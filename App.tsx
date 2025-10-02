@@ -16,6 +16,7 @@ import AlumniDashboard from './components/AlumniDashboard';
 
 const App = () => {
     const [subdomain, setSubdomain] = useState<string | null>(null);
+    const [isRootDomain, setIsRootDomain] = useState(false);
     const [loading, setLoading] = useState(true);
     const [view, setView] = useState<string | null>(null);
 
@@ -25,7 +26,10 @@ const App = () => {
 
         const host = window.location.hostname;
         const sd = getSubdomain(host);
+        
         setSubdomain(sd);
+        setIsRootDomain(!sd); // If there's no subdomain, it's the root domain.
+
         setLoading(false);
         
         const handlePopState = () => {
@@ -47,7 +51,7 @@ const App = () => {
         return <div className="flex items-center justify-center h-screen">Loading...</div>;
     }
     
-    // Handle views from query params first
+    // Query parameter views have the highest priority
     if (view === 'demo') {
         return <DemoPage />;
     }
@@ -58,33 +62,33 @@ const App = () => {
         return <PublicResultViewer />;
     }
     if (view === 'blog') {
-        // Fix: Use standard JSX children for PublicLayout component for consistency.
         return <PublicLayout onNavigate={handleNavigate}><BlogIndexPage /></PublicLayout>;
     }
     if (view === 'article') {
-        // Fix: Use standard JSX children for PublicLayout component for consistency.
         return <PublicLayout onNavigate={handleNavigate}><BlogPostPage /></PublicLayout>;
     }
     if (view === 'kb' || view === 'kb-article') {
-        // Fix: Use standard JSX children for PublicLayout component for consistency.
         return <PublicLayout onNavigate={handleNavigate}><KnowledgeBaseViewer /></PublicLayout>;
     }
     if (view === 'alumni') {
         return <PublicLayout onNavigate={handleNavigate}><AlumniDashboard /></PublicLayout>;
     }
 
-    // Then, handle subdomain routing
+    // Explicitly serve the landing page on the root domain
+    if (isRootDomain) {
+        return <LandingPage onNavigate={handleNavigate} />;
+    }
+
+    // Handle subdomain routing if not on the root domain
     if (subdomain) {
         if (subdomain === 'admin') {
             return <SuperAdminDashboard />;
         }
-        // 'demo' subdomain is effectively handled by the query param now, but this is a good fallback.
-        if (subdomain === 'demo') {
-            return <DemoPage />;
-        }
+        // All other subdomains lead to the school portal
         return <Dashboard />;
     }
 
+    // Fallback to the landing page if no other condition is met
     return <LandingPage onNavigate={handleNavigate} />;
 };
 
