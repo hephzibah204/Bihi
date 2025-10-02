@@ -1,34 +1,31 @@
-import { GoogleGenAI } from "@google/genai";
-
-// IMPORTANT: API_KEY is sourced from environment variables.
-// Do not hardcode the API key in the code.
-const apiKey = process.env.API_KEY;
-
-let ai;
-if (apiKey) {
-  ai = new GoogleGenAI({ apiKey });
-} else {
-  console.warn("API_KEY environment variable not set. AI features will be disabled.");
-}
-
 /**
- * Generates text content using the Gemini Flash model.
+ * Generates text content by calling a server-side proxy endpoint.
+ * This approach keeps the API key secure on the server.
  * @param prompt The text prompt to send to the model.
  * @returns The generated text response.
  */
-// Fix: Added explicit types for the function parameters and return value for better type safety.
 export const generateText = async (prompt: string): Promise<string> => {
-  if (!ai) {
-    return "AI features are disabled because the API key is not configured.";
-  }
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
+    // This calls a serverless function (e.g., a Cloudflare Worker) that you will create.
+    // This function securely holds the API key and calls the Gemini API.
+    const response = await fetch('/api/ai/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ prompt }),
     });
-    return response.text;
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'The AI service returned an error.');
+    }
+
+    const data = await response.json();
+    return data.text;
   } catch (error) {
-    console.error("Error generating text with Gemini:", error);
-    return "Sorry, there was an error communicating with the AI. Please try again later.";
+    console.error("Error calling AI service proxy:", error);
+    // Provide a more user-friendly error message.
+    return "Sorry, there was an error communicating with the AI service. Please check the server logs and try again.";
   }
 };

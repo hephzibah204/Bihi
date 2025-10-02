@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef, PropsWithChildren } from 'react';
-import { apiGetStudents, apiGetSubjects, apiGetTeachers, apiGetScores, apiGetAttendance } from '../services/api';
+import { apiGetStudents, apiGetSubjects, apiGetTeachers, apiGetScores, apiGetSchoolSettings } from '../services/api';
 import { Score, Student, Subject } from '../types';
+import { generateText } from '../services/geminiService';
+import SparklesIcon from './icons/SparklesIcon';
+import SpinnerIcon from './icons/SpinnerIcon';
 
 declare global {
     interface Window {
@@ -10,41 +13,46 @@ declare global {
 
 const AdvancedAnalytics = () => {
     const [stats, setStats] = useState({ students: 0, subjects: 0, teachers: 0 });
-    const [allData, setAllData] = useState<{students: Student[], scores: Score[], subjects: Subject[]}>({ students: [], scores: [], subjects: [] });
+    const [allData, setAllData] = useState<{students: Student[], scores: Score[], subjects: Subject[], settings: any}>({ students: [], scores: [], subjects: [], settings: null });
     const [chartData, setChartData] = useState({
         subjectHotspot: null,
         termPerformance: null,
         studentTrajectory: null,
+        classAverages: null,
     });
     
     const [sessions, setSessions] = useState<string[]>([]);
     const [terms, setTerms] = useState<string[]>([]);
     const [selectedSession, setSelectedSession] = useState('');
     const [selectedTerm, setSelectedTerm] = useState('All Terms');
-    const [selectedClassForTerms, setSelectedClassForTerms] = useState('');
+    const [selectedClass, setSelectedClass] = useState('');
     const [selectedStudentId, setSelectedStudentId] = useState('');
 
     const [loading, setLoading] = useState(true);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [aiAnalysisResult, setAiAnalysisResult] = useState('');
+    const [analysisError, setAnalysisError] = useState('');
 
     const subjectHotspotChartRef = useRef<HTMLCanvasElement>(null);
     const termPerformanceChartRef = useRef<HTMLCanvasElement>(null);
     const studentTrajectoryChartRef = useRef<HTMLCanvasElement>(null);
+    const classAverageChartRef = useRef<HTMLCanvasElement>(null);
     const chartInstances = useRef<{ [key: string]: any }>({});
 
     useEffect(() => {
         const fetchAndProcessData = async () => {
             try {
-                const [studentData, subjectData, teacherData, scoreData] = await Promise.all([
+                const [studentData, subjectData, teacherData, scoreData, settingsData] = await Promise.all([
                     apiGetStudents(),
                     apiGetSubjects(),
                     apiGetTeachers(),
                     apiGetScores(),
+                    apiGetSchoolSettings(),
                 ]);
 
-                setAllData({ students: studentData, scores: scoreData, subjects: subjectData });
+                setAllData({ students: studentData, scores: scoreData, subjects: subjectData, settings: settingsData });
                 setStats({ students: studentData.length, subjects: subjectData.length, teachers: teacherData.length });
 
-                // FIX: Explicitly type sort callback arguments as string to resolve localeCompare error.
                 const uniqueSessions = [...new Set(scoreData.map(s => s.session))].sort((a: string, b: string) => b.localeCompare(a));
                 const uniqueTerms = ['All Terms', ...new Set(scoreData.map(s => s.term))];
                 setSessions(uniqueSessions);
@@ -53,7 +61,7 @@ const AdvancedAnalytics = () => {
                 if (uniqueSessions.length > 0) setSelectedSession(uniqueSessions[0]);
 
                 const allClasses = [...new Set(studentData.map(s => s.class))].sort();
-                if(allClasses.length > 0) setSelectedClassForTerms(allClasses[0]);
+                if(allClasses.length > 0) setSelectedClass(allClasses[0]);
                 if(studentData.length > 0) setSelectedStudentId(studentData[0].id);
 
             } catch (error) {
@@ -70,11 +78,12 @@ const AdvancedAnalytics = () => {
 
         setChartData({
             subjectHotspot: processSubjectHotspotData(allData.students, allData.subjects, allData.scores, selectedSession, selectedTerm),
-            termPerformance: processTermPerformanceData(allData.scores, selectedClassForTerms),
+            termPerformance: processTermPerformanceData(allData.scores, selectedClass),
             studentTrajectory: processStudentTrajectoryData(allData.scores, allData.subjects, selectedStudentId),
+            classAverages: processClassSubjectAverages(allData.students, allData.subjects, allData.scores, selectedClass, selectedSession, selectedTerm)
         });
 
-    }, [loading, allData, selectedSession, selectedTerm, selectedClassForTerms, selectedStudentId]);
+    }, [loading, allData, selectedSession, selectedTerm, selectedClass, selectedStudentId]);
 
     useEffect(() => {
         if (loading || !window.Chart) return;
@@ -82,30 +91,100 @@ const AdvancedAnalytics = () => {
         const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
         const labelColor = isDarkMode ? '#CBD5E1' : '#4B5563';
 
-        // FIX: Explicitly type the 'chart' parameter as 'any' to avoid it being inferred as 'unknown', allowing the type guard and method call to work correctly.
         Object.values(chartInstances.current).forEach((chart: any) => {
             if (chart && typeof chart.destroy === 'function') chart.destroy();
         });
 
-        // Subject Hotspot Chart (Grouped Bar)
+        const commonOptions = { responsive: true, scales: { y: { beginAtZero: true, max: 100, grid: { color: gridColor }, ticks: { color: labelColor } }, x: { grid: { color: gridColor }, ticks: { color: labelColor } } } };
+
         if (subjectHotspotChartRef.current && chartData.subjectHotspot) {
-            chartInstances.current.subjectHotspot = new window.Chart(subjectHotspotChartRef.current, {
-                type: 'bar', data: chartData.subjectHotspot, options: { responsive: true, scales: { y: { beginAtZero: true, max: 100, grid: { color: gridColor }, ticks: { color: labelColor } }, x: { grid: { color: gridColor }, ticks: { color: labelColor } } } }
-            });
+            chartInstances.current.subjectHotspot = new window.Chart(subjectHotspotChartRef.current, { type: 'bar', data: chartData.subjectHotspot, options: commonOptions });
         }
-        // Term Performance Chart (Line)
         if (termPerformanceChartRef.current && chartData.termPerformance) {
-            chartInstances.current.termPerformance = new window.Chart(termPerformanceChartRef.current, {
-                type: 'line', data: chartData.termPerformance, options: { responsive: true, scales: { y: { beginAtZero: true, max: 100, grid: { color: gridColor }, ticks: { color: labelColor } }, x: { grid: { color: gridColor }, ticks: { color: labelColor } } } }
-            });
+            chartInstances.current.termPerformance = new window.Chart(termPerformanceChartRef.current, { type: 'line', data: chartData.termPerformance, options: commonOptions });
         }
-        // Student Trajectory Chart (Line)
         if (studentTrajectoryChartRef.current && chartData.studentTrajectory) {
-            chartInstances.current.studentTrajectory = new window.Chart(studentTrajectoryChartRef.current, {
-                type: 'line', data: chartData.studentTrajectory, options: { responsive: true, scales: { y: { beginAtZero: true, max: 100, grid: { color: gridColor }, ticks: { color: labelColor } }, x: { grid: { color: gridColor }, ticks: { color: labelColor } } }, plugins: { legend: { display: false } } }
-            });
+            chartInstances.current.studentTrajectory = new window.Chart(studentTrajectoryChartRef.current, { type: 'line', data: chartData.studentTrajectory, options: { ...commonOptions, plugins: { legend: { display: false } } } });
+        }
+        if (classAverageChartRef.current && chartData.classAverages) {
+            chartInstances.current.classAverages = new window.Chart(classAverageChartRef.current, { type: 'bar', data: chartData.classAverages, options: commonOptions });
         }
     }, [loading, chartData]);
+
+    const handleRunAnalysis = async () => {
+        if (!selectedClass) return;
+        setIsAnalyzing(true);
+        setAiAnalysisResult('');
+        setAnalysisError('');
+
+        const failureGrade = allData.settings?.gradingSystem?.find(g => g.grade === 'F');
+        const failureThreshold = failureGrade ? failureGrade.to : 39;
+
+        const studentsInClass = allData.students.filter(s => s.class === selectedClass);
+        const subjectsForClass = allData.subjects.filter(s => s.classes.includes(selectedClass));
+        
+        if (studentsInClass.length === 0 || subjectsForClass.length === 0) {
+            setAnalysisError("Not enough data for this class to perform an analysis.");
+            setIsAnalyzing(false);
+            return;
+        }
+
+        const performanceSummary = subjectsForClass.map(subject => {
+            const scoresForSubject = allData.scores.filter(score => 
+                score.subjectId === subject.id && 
+                studentsInClass.some(s => s.id === score.studentId) &&
+                (!selectedSession || score.session === selectedSession) &&
+                (selectedTerm === 'All Terms' || score.term === selectedTerm)
+            );
+
+            if (scoresForSubject.length === 0) return { name: subject.name, avg: 0, failRate: 0 };
+
+            let totalScore = 0;
+            let failureCount = 0;
+            scoresForSubject.forEach(s => {
+                const total = (s.ca1 || 0) + (s.ca2 || 0) + (s.exam || 0);
+                totalScore += total;
+                if (total <= failureThreshold) {
+                    failureCount++;
+                }
+            });
+
+            return {
+                name: subject.name,
+                avg: (totalScore / scoresForSubject.length).toFixed(1),
+                failRate: ((failureCount / scoresForSubject.length) * 100).toFixed(0)
+            };
+        });
+
+        const prompt = `
+            You are an expert educational data analyst for a Nigerian secondary school. Your task is to provide actionable insights based on performance data for a specific class.
+
+            Class: ${selectedClass}
+            Session: ${selectedSession || 'All Sessions'}
+            Term: ${selectedTerm}
+
+            Performance Data Summary:
+            ${performanceSummary.map(p => `- ${p.name}: Average Score = ${p.avg}, Failure Rate = ${p.failRate}%`).join('\n')}
+
+            Based on this data, please provide the following:
+            1.  **Identify Underperforming Subjects:** List the subjects with an average score below 50 or a failure rate above 50%.
+            2.  **Provide Potential Insights:** For each underperforming subject, suggest 2-3 potential reasons for the poor performance. Consider factors like curriculum difficulty, teaching methods, or foundational knowledge gaps. Be specific to the subject. For example, for 'Basic Science', you might suggest students are struggling with abstract concepts.
+            3.  **Suggest Actionable Recommendations:** Provide a brief, actionable recommendation for each identified issue. For example, "Recommend extra tutorial sessions for Basic Science focusing on practical demonstrations."
+
+            Format your response clearly with headings. If all subjects are performing well, congratulate the teachers and students.
+        `;
+
+        try {
+            const result = await generateText(prompt);
+            setAiAnalysisResult(result);
+        } catch (error) {
+            console.error("AI Analysis failed:", error);
+            setAnalysisError("An error occurred while communicating with the AI. Please try again.");
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
 
     if (loading) return <div className="card p-6 text-center">Loading analytics...</div>;
     
@@ -127,16 +206,43 @@ const AdvancedAnalytics = () => {
                 <StatCard title="Total Teachers" value={stats.teachers} />
                 <StatCard title="Total Subjects" value={stats.subjects} />
             </div>
+            
+            <ChartCard title="AI Performance Analysis" fullWidth={true}>
+                <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Select a class and run an AI-powered analysis to get insights and recommendations on subject performance.
+                    </p>
+                    <div className="mt-4 flex items-center gap-4">
+                        <select value={selectedClass} onChange={e => setSelectedClass(e.target.value)} className="input-field w-auto">
+                            {allClasses.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                         <button onClick={handleRunAnalysis} className="btn btn-primary" disabled={isAnalyzing}>
+                            {isAnalyzing ? <SpinnerIcon className="w-5 h-5 animate-spin mr-2" /> : <SparklesIcon className="w-5 h-5 mr-2" />}
+                            {isAnalyzing ? 'Analyzing...' : 'Run Analysis'}
+                        </button>
+                    </div>
+                    {analysisError && <p className="mt-4 text-sm text-red-500">{analysisError}</p>}
+                    {aiAnalysisResult && (
+                        <div className="mt-6 border-t dark:border-gray-600 pt-4">
+                            <h4 className="font-semibold">AI Insights for {selectedClass}</h4>
+                            <div className="prose dark:prose-invert max-w-none mt-2 text-sm whitespace-pre-wrap">{aiAnalysisResult}</div>
+                        </div>
+                    )}
+                </div>
+            </ChartCard>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                <ChartCard title="Class Subject Averages">
+                    <canvas ref={classAverageChartRef}></canvas>
+                </ChartCard>
                 <ChartCard title="Subject Performance Hotspots">
                     <canvas ref={subjectHotspotChartRef}></canvas>
                 </ChartCard>
                  <ChartCard title="Term-over-Term Performance">
-                     <select value={selectedClassForTerms} onChange={e => setSelectedClassForTerms(e.target.value)} className="input-field mb-4"><option value="">Select a Class</option>{allClasses.map(c => <option key={c} value={c}>{c}</option>)}</select>
+                     <select value={selectedClass} onChange={e => setSelectedClass(e.target.value)} className="input-field mb-4"><option value="">Select a Class</option>{allClasses.map(c => <option key={c} value={c}>{c}</option>)}</select>
                     <canvas ref={termPerformanceChartRef}></canvas>
                 </ChartCard>
-                <ChartCard title="Student Academic Trajectory" fullWidth={true}>
+                <ChartCard title="Student Academic Trajectory">
                      <select value={selectedStudentId} onChange={e => setSelectedStudentId(e.target.value)} className="input-field mb-4"><option value="">Select a Student</option>{allStudents.map(s => <option key={s.id} value={s.id}>{s.name} ({s.class})</option>)}</select>
                     <canvas ref={studentTrajectoryChartRef}></canvas>
                 </ChartCard>
@@ -162,7 +268,41 @@ const ChartCard = ({ title, children, fullWidth = false }: PropsWithChildren<{ t
 );
 
 // --- Data Processing Functions ---
-const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#6366F1'];
+const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#6366F1', '#8B5CF6', '#EC4899'];
+
+const processClassSubjectAverages = (students: Student[], subjects: Subject[], scores: Score[], className: string, session: string, term: string) => {
+    if (!className) return { labels: [], datasets: [] };
+
+    const studentsInClass = students.filter(s => s.class === className);
+    const subjectsForClass = subjects.filter(s => s.classes.includes(className));
+    
+    const labels = subjectsForClass.map(s => s.name);
+    const data = labels.map(subjectName => {
+        const subject = subjects.find(s => s.name === subjectName);
+        if (!subject) return 0;
+
+        const relevantScores = scores.filter(score =>
+            studentsInClass.some(s => s.id === score.studentId) &&
+            score.subjectId === subject.id &&
+            (!session || score.session === session) &&
+            (term === 'All Terms' || score.term === term)
+        );
+
+        if (relevantScores.length === 0) return 0;
+        const total = relevantScores.reduce((sum, s) => sum + (s.ca1 || 0) + (s.ca2 || 0) + (s.exam || 0), 0);
+        return (total / relevantScores.length).toFixed(2);
+    });
+
+    return {
+        labels,
+        datasets: [{
+            label: `Average Score for ${className}`,
+            data,
+            backgroundColor: COLORS,
+        }]
+    };
+};
+
 
 const processSubjectHotspotData = (students: Student[], subjects: Subject[], scores: Score[], session: string, term: string) => {
     const classGroups = students.reduce((acc, student) => {

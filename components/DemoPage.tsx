@@ -11,6 +11,8 @@ import { apiSaveSchoolSettings, apiSaveStudents, apiSaveSubjects, apiSaveScores,
 import DemoRoleSelector from './DemoRoleSelector';
 import StudentDashboard from './StudentDashboard';
 import ParentDashboard from './ParentDashboard';
+import { TenantProvider } from '../contexts/TenantContext';
+import { PlanFeaturesProvider } from '../contexts/PlanFeaturesContext';
 
 const setupDemoData = async () => {
     console.log("Setting up demo environment...");
@@ -88,27 +90,29 @@ const DemoPage = () => {
         case 'teacher':
         default:
             return (
-                <>
-                    <SandboxBanner />
-                    <div className="flex h-screen bg-gray-100 dark:bg-gray-900 pt-12">
-                        <Sidebar 
-                            isSidebarOpen={isSidebarOpen} 
-                            setSidebarOpen={setSidebarOpen} 
-                            activeView={activeView}
-                            setActiveView={handleViewChange}
-                            userRole={selectedProfile.role === 'admin' ? 'Admin' : 'Teacher'}
-                        />
-                        <div className="flex-1 flex flex-col overflow-hidden">
-                            <Header setSidebarOpen={setSidebarOpen} onLogout={handleDemoLogout} />
-                            <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900">
-                                <div className="container mx-auto px-6 py-8">
-                                    {/* FIX: Passed the missing 'userRole' prop to DashboardContent to satisfy its type requirements. */}
-                                    <DashboardContent activeView={activeView} setActiveView={handleViewChange} userRole={selectedProfile.role === 'admin' ? 'Admin' : 'Teacher'} />
-                                </div>
-                            </main>
+                <TenantProvider>
+                    <PlanFeaturesProvider>
+                        <SandboxBanner />
+                        <div className="flex h-screen bg-gray-100 dark:bg-gray-900 pt-12">
+                            <Sidebar 
+                                isSidebarOpen={isSidebarOpen} 
+                                setSidebarOpen={setSidebarOpen} 
+                                activeView={activeView}
+                                setActiveView={handleViewChange}
+                                userRole={selectedProfile.role === 'admin' ? 'Admin' : 'Teacher'}
+                            />
+                            <div className="flex-1 flex flex-col overflow-hidden">
+                                <Header setSidebarOpen={setSidebarOpen} onLogout={handleDemoLogout} />
+                                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900">
+                                    <div className="container mx-auto px-6 py-8">
+                                        {/* FIX: Passed the missing 'userRole' prop to DashboardContent to satisfy its type requirements. */}
+                                        <DashboardContent activeView={activeView} setActiveView={handleViewChange} userRole={selectedProfile.role === 'admin' ? 'Admin' : 'Teacher'} />
+                                    </div>
+                                </main>
+                            </div>
                         </div>
-                    </div>
-                </>
+                    </PlanFeaturesProvider>
+                </TenantProvider>
             );
     }
 };
