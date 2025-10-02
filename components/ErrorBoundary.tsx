@@ -1,8 +1,5 @@
-
-
 import React, { ErrorInfo, ReactNode } from 'react';
 
-// Fix: Explicitly defined `children` prop to resolve type error in this class component.
 interface ErrorBoundaryProps {
     children?: ReactNode;
 }
@@ -12,9 +9,7 @@ interface ErrorBoundaryState {
 }
 
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-    // FIX: Replaced state class property with a constructor. The error "Property 'props' does not exist"
-    // often points to an issue with how the component's `this` context is initialized.
-    // Explicitly calling `super(props)` in a constructor ensures `this.props` is correctly set up.
+    // FIX: The component's state was not initialized, causing errors when trying to access `this.state`. Added a constructor to properly initialize state and props for this class component.
     constructor(props: ErrorBoundaryProps) {
         super(props);
         this.state = { hasError: false };

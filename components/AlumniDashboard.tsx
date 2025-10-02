@@ -1,13 +1,32 @@
-import React, { useState, useEffect, useRef } from 'react';
+
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { apiGetStudents } from '../services/api';
 import { getSubdomain } from '../utils/subdomain';
+import SearchIcon from './icons/SearchIcon';
+import { Student } from '../types';
 
 const PAGE_SIZE = 30;
 
 const AlumniDashboard = () => {
-    const [alumni, setAlumni] = useState([]);
+    // FIX: The `alumni` state was not explicitly typed, preventing TypeScript from inferring that `graduationYear` would be a number. Adding the `Student[]` type allows the sort function's arithmetic operation to pass type checking.
+    const [alumni, setAlumni] = useState<Student[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [yearFilter, setYearFilter] = useState('');
     const [loading, setLoading] = useState(true);
+
+    const graduationYears = useMemo(() => {
+        const years = alumni.map(a => a.graduationYear).filter(Boolean);
+        return [...new Set(years)].sort((a, b) => b - a);
+    }, [alumni]);
+
+    const filteredAlumni = useMemo(() => {
+        return alumni.filter(alum => {
+            const nameMatch = alum.name.toLowerCase().includes(searchTerm.toLowerCase());
+            const yearMatch = !yearFilter || alum.graduationYear?.toString() === yearFilter;
+            return nameMatch && yearMatch;
+        });
+    }, [alumni, searchTerm, yearFilter]);
+
 
     // State for virtualization/infinite scroll
     const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -34,10 +53,6 @@ const AlumniDashboard = () => {
         fetchAlumni();
     }, []);
     
-    const filteredAlumni = alumni.filter(alum =>
-        alum.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (alum.graduationYear && alum.graduationYear.toString().includes(searchTerm))
-    );
     
     // Observer for infinite scroll
     useEffect(() => {
@@ -63,9 +78,14 @@ const AlumniDashboard = () => {
     // Reset visible count on search
     useEffect(() => {
         setVisibleCount(PAGE_SIZE);
-    }, [searchTerm]);
+    }, [filteredAlumni]);
 
     const visibleAlumni = filteredAlumni.slice(0, visibleCount);
+
+    const handleClearFilters = () => {
+        setSearchTerm('');
+        setYearFilter('');
+    };
     
     if (loading) {
         return <div className="text-center p-8">Loading Alumni Directory...</div>
@@ -75,15 +95,33 @@ const AlumniDashboard = () => {
         <div className="card">
             <div className="p-6">
                 <h2 className="text-2xl font-semibold">Alumni Directory</h2>
-                <div className="mt-4">
-                    <input 
-                        type="text"
-                        placeholder="Search by name or graduation year..."
-                        className="input-field"
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                    />
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                     <div className="md:col-span-2 relative">
+                         <input 
+                            type="text"
+                            placeholder="Search by name..."
+                            className="input-field pl-10"
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                        />
+                         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                     </div>
+                     <div>
+                        <select className="input-field" value={yearFilter} onChange={e => setYearFilter(e.target.value)}>
+                            <option value="">Filter by Year</option>
+                            {graduationYears.map(year => <option key={year} value={year}>{year}</option>)}
+                        </select>
+                     </div>
                 </div>
+
+                 {(searchTerm || yearFilter) && (
+                    <div className="mt-4 flex justify-between items-center">
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                            Found {filteredAlumni.length} alumni matching your criteria.
+                        </p>
+                        <button onClick={handleClearFilters} className="btn btn-secondary text-sm">Clear Filters</button>
+                    </div>
+                )}
                 
                 {filteredAlumni.length > 0 ? (
                     <>

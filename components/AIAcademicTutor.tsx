@@ -2,36 +2,47 @@ import React, { useState, useEffect, useRef, FC } from 'react';
 import { generateText } from '../services/geminiService';
 import SparklesIcon from './icons/SparklesIcon';
 import UserCircleIcon from './icons/UserCircleIcon';
+import SpinnerIcon from './icons/SpinnerIcon';
+
 
 const AIAcademicTutor: FC = () => {
     const [messages, setMessages] = useState<{sender: string, text: string}[]>([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showQuickPrompts, setShowQuickPrompts] = useState(true);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
-    useEffect(scrollToBottom, [messages]);
+    useEffect(scrollToBottom, [messages, loading]);
     
     useEffect(() => {
         setMessages([
-            { sender: 'ai', text: "Hello! I'm your AI Academic Tutor. How can I help you learn today?" }
+            { sender: 'ai', text: "Hello! I'm your AI Academic Tutor. Ask me anything about your subjects, and I'll do my best to help you understand." }
         ]);
     }, []);
 
-    const handleSend = async () => {
-        if (!input.trim()) return;
-        const userMessage = { sender: 'user', text: input };
+    const handleSend = async (messageText?: string) => {
+        const textToSend = messageText || input;
+        if (!textToSend.trim()) return;
+
+        setShowQuickPrompts(false);
+
+        const userMessage = { sender: 'user', text: textToSend };
         setMessages(prev => [...prev, userMessage]);
-        setInput('');
+        
+        if (!messageText) {
+            setInput('');
+        }
         setLoading(true);
 
         try {
-            const prompt = `You are a friendly and helpful AI Academic Tutor for a Nigerian secondary school student. Keep your explanations clear, concise, and encouraging.
+            const prompt = `You are a friendly and helpful AI Academic Tutor for a Nigerian secondary school student. Your goal is to provide clear, concise, and encouraging explanations.
+            After explaining the concept, if applicable, suggest 1-2 relevant practice exercises or related concepts the student should review to solidify their understanding.
             
-            Student's question: "${input}"
+            Student's question: "${textToSend}"
             
             Your response:`;
 
@@ -45,6 +56,12 @@ const AIAcademicTutor: FC = () => {
             setLoading(false);
         }
     };
+    
+    const quickPrompts = [
+        "Explain photosynthesis",
+        "What is an algebraic equation?",
+        "Summarize the causes of World War 1"
+    ];
 
     return (
         <div className="card h-[70vh] flex flex-col">
@@ -60,7 +77,7 @@ const AIAcademicTutor: FC = () => {
                         <div key={index} className={`flex items-start gap-3 ${msg.sender === 'user' ? 'justify-end' : ''}`}>
                             {msg.sender === 'ai' && <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white flex-shrink-0"><SparklesIcon className="w-5 h-5"/></div>}
                             <div className={`max-w-md p-3 rounded-lg ${msg.sender === 'ai' ? 'bg-gray-100 dark:bg-gray-700' : 'bg-indigo-500 text-white'}`}>
-                                <p className="text-sm">{msg.text}</p>
+                                <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
                             </div>
                              {msg.sender === 'user' && <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center flex-shrink-0"><UserCircleIcon className="w-5 h-5"/></div>}
                         </div>
@@ -69,8 +86,18 @@ const AIAcademicTutor: FC = () => {
                         <div className="flex items-start gap-3">
                             <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white flex-shrink-0"><SparklesIcon className="w-5 h-5"/></div>
                             <div className="max-w-md p-3 rounded-lg bg-gray-100 dark:bg-gray-700">
-                                <p className="text-sm animate-pulse">Thinking...</p>
+                                <SpinnerIcon className="w-5 h-5 animate-spin text-indigo-500" />
                             </div>
+                        </div>
+                    )}
+                    {showQuickPrompts && !loading && (
+                        <div className="pt-4 space-y-2">
+                            <p className="text-sm text-center text-gray-500 dark:text-gray-400">Or try one of these:</p>
+                            {quickPrompts.map(prompt => (
+                                <button key={prompt} onClick={() => handleSend(prompt)} className="w-full text-left text-sm p-2 rounded-md bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">
+                                    {prompt}
+                                </button>
+                            ))}
                         </div>
                     )}
                     <div ref={messagesEndRef} />
@@ -81,13 +108,13 @@ const AIAcademicTutor: FC = () => {
                     <input 
                         type="text" 
                         className="input-field flex-1" 
-                        placeholder="Ask a question..."
+                        placeholder="Ask a question about your subjects..."
                         value={input}
                         onChange={e => setInput(e.target.value)}
                         onKeyPress={e => e.key === 'Enter' && !loading && handleSend()}
                         disabled={loading}
                     />
-                    <button onClick={handleSend} className="btn btn-primary" disabled={loading}>
+                    <button onClick={() => handleSend()} className="btn btn-primary" disabled={loading}>
                         Send
                     </button>
                 </div>

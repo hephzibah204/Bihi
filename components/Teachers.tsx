@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import PlusIcon from './icons/PlusIcon';
 import Modal from './Modal';
 import { apiLogActivity, updateTeachers } from '../services/api';
@@ -7,6 +7,7 @@ import TrashIcon from './icons/TrashIcon';
 import ConfirmationModal from './ConfirmationModal';
 import { supabase } from '../services/supabaseClient';
 import useSyncedLocalStorage from '../hooks/useSyncedLocalStorage';
+import SearchIcon from './icons/SearchIcon';
 
 // Types for better code management
 interface Teacher {
@@ -35,6 +36,21 @@ const Teachers = () => {
     const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
     const [teacherToDelete, setTeacherToDelete] = useState<Teacher | null>(null);
     
+    // Filter states
+    const [searchTerm, setSearchTerm] = useState('');
+    const [roleFilter, setRoleFilter] = useState('');
+    
+    const filteredTeachers = useMemo(() => {
+        return teachers.filter(teacher => {
+            const searchLower = searchTerm.toLowerCase();
+            const nameMatch = teacher.name.toLowerCase().includes(searchLower);
+            const emailMatch = teacher.email.toLowerCase().includes(searchLower);
+            const roleMatch = !roleFilter || teacher.role === roleFilter;
+            return (nameMatch || emailMatch) && roleMatch;
+        });
+    }, [teachers, searchTerm, roleFilter]);
+
+
     // State for virtualization/infinite scroll
     const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
     const loaderRef = useRef(null);
@@ -44,7 +60,7 @@ const Teachers = () => {
         const observer = new IntersectionObserver((entries) => {
             const first = entries[0];
             if (first.isIntersecting) {
-                setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, teachers.length));
+                setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, filteredTeachers.length));
             }
         }, { threshold: 1 });
 
@@ -58,18 +74,23 @@ const Teachers = () => {
                 observer.unobserve(currentLoader);
             }
         };
-    }, [loaderRef, teachers.length]);
+    }, [loaderRef, filteredTeachers.length]);
     
     // Reset visible count if the underlying data changes
     useEffect(() => {
         setVisibleCount(PAGE_SIZE);
-    }, [teachers.length]);
+    }, [filteredTeachers]);
     
-    const visibleTeachers = teachers.slice(0, visibleCount);
+    const visibleTeachers = filteredTeachers.slice(0, visibleCount);
 
     useEffect(() => {
         setLoading(false);
     }, [teachers]);
+
+    const handleClearFilters = () => {
+        setSearchTerm('');
+        setRoleFilter('');
+    };
 
     const handleOpenAddModal = () => {
         setEditingTeacher(null);
@@ -195,6 +216,7 @@ const Teachers = () => {
         if (loading) return <div className="card p-6 text-center">Loading teachers...</div>;
         if (pageError) return <div className="card p-6 text-center text-red-500">{pageError}</div>;
         if (teachers.length === 0) return <div className="card p-6 text-center">No teachers found. Click "Add Teacher" to begin.</div>;
+        if (filteredTeachers.length === 0) return <div className="card p-6 text-center">No teachers match the current filters.</div>;
 
         return (
             <div className="table-container">
@@ -233,7 +255,7 @@ const Teachers = () => {
                                 </td>
                             </tr>
                         ))}
-                        {visibleCount < teachers.length && (
+                        {visibleCount < filteredTeachers.length && (
                             <tr ref={loaderRef}>
                                 <td colSpan={5} className="text-center p-4 text-gray-500">
                                     Loading more...
@@ -254,6 +276,41 @@ const Teachers = () => {
                     <PlusIcon className="h-5 w-5 mr-2" />
                     Add Teacher
                 </button>
+            </div>
+            
+            <div className="card mb-6">
+                <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <div className="md:col-span-2">
+                        <label className="label">Search by Name or Email</label>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                className="input-field pl-10"
+                                placeholder="Search teachers..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="label">Filter by Role</label>
+                        <select className="input-field" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+                            <option value="">All Roles</option>
+                            <option value="Teacher">Teacher</option>
+                            <option value="Admin">Admin</option>
+                            <option value="Bursar">Bursar</option>
+                        </select>
+                    </div>
+                </div>
+                {(searchTerm || roleFilter) && (
+                    <div className="p-4 border-t dark:border-gray-700 flex justify-between items-center">
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                            Found {filteredTeachers.length} teacher(s) matching your criteria.
+                        </p>
+                        <button onClick={handleClearFilters} className="btn btn-secondary text-sm">Clear Filters</button>
+                    </div>
+                )}
             </div>
 
             {renderContent()}

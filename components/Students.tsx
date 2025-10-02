@@ -1,5 +1,6 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import PlusIcon from './icons/PlusIcon';
 import { apiGetSubjects, apiLogActivity } from '../services/api';
 import ImportStudentsModal from './ImportStudentsModal';
@@ -12,6 +13,7 @@ import FaceIdIcon from './icons/FaceIdIcon';
 import FaceEnrollmentModal from './FaceEnrollmentModal';
 import useSyncedLocalStorage from '../hooks/useSyncedLocalStorage';
 import { Student } from '../types';
+import SearchIcon from './icons/SearchIcon';
 
 const PAGE_SIZE = 50;
 
@@ -34,6 +36,22 @@ const Students = () => {
     // State for Face Enrollment Modal
     const [enrollmentStudent, setEnrollmentStudent] = useState<Student | null>(null);
 
+    // Filter states
+    const [searchTerm, setSearchTerm] = useState('');
+    const [classFilter, setClassFilter] = useState('');
+    const [genderFilter, setGenderFilter] = useState('');
+
+    const filteredStudents = useMemo(() => {
+        return students.filter(student => {
+            const searchLower = searchTerm.toLowerCase();
+            const nameMatch = student.name.toLowerCase().includes(searchLower);
+            const admissionNoMatch = student.admissionNo.toLowerCase().includes(searchLower);
+            const classMatch = !classFilter || student.class === classFilter;
+            const genderMatch = !genderFilter || student.gender === genderFilter;
+            return (nameMatch || admissionNoMatch) && classMatch && genderMatch;
+        });
+    }, [students, searchTerm, classFilter, genderFilter]);
+
     // State for virtualization/infinite scroll
     const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
     const loaderRef = useRef(null);
@@ -45,7 +63,7 @@ const Students = () => {
         const observer = new IntersectionObserver((entries) => {
             const first = entries[0];
             if (first.isIntersecting) {
-                setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, students.length));
+                setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, filteredStudents.length));
             }
         }, { threshold: 1 });
 
@@ -59,14 +77,14 @@ const Students = () => {
                 observer.unobserve(currentLoader);
             }
         };
-    }, [loaderRef, students.length]);
+    }, [loaderRef, filteredStudents.length]);
     
     // Reset visible count if the underlying data changes
     useEffect(() => {
         setVisibleCount(PAGE_SIZE);
-    }, [students.length]);
+    }, [filteredStudents]);
 
-    const visibleStudents = students.slice(0, visibleCount);
+    const visibleStudents = filteredStudents.slice(0, visibleCount);
 
     const fetchClasses = async () => {
         try {
@@ -95,6 +113,12 @@ const Students = () => {
     
     const handleCameraFeatureClick = () => {
         setPermissionModalOpen(true);
+    };
+
+    const handleClearFilters = () => {
+        setSearchTerm('');
+        setClassFilter('');
+        setGenderFilter('');
     };
 
     // --- CRUD Handlers ---
@@ -193,6 +217,16 @@ const Students = () => {
             );
         }
 
+        if (filteredStudents.length === 0) {
+            return (
+                <div className="card">
+                    <div className="p-6 text-center text-gray-500 dark:text-gray-400">
+                        No students match the current filters.
+                    </div>
+                </div>
+            );
+        }
+
         return (
              <div className="table-container">
                 <table className="table">
@@ -235,7 +269,7 @@ const Students = () => {
                                 </td>
                             </tr>
                         ))}
-                         {visibleCount < students.length && (
+                         {visibleCount < filteredStudents.length && (
                             <tr ref={loaderRef}>
                                 <td colSpan={6} className="text-center p-4 text-gray-500">
                                     Loading more...
@@ -263,6 +297,48 @@ const Students = () => {
                     </button>
                 </div>
             </div>
+            
+            <div className="card mb-6">
+                <div className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                    <div className="md:col-span-2">
+                        <label className="label">Search by Name or Admission No.</label>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                className="input-field pl-10"
+                                placeholder="Search students..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="label">Filter by Class</label>
+                        <select className="input-field" value={classFilter} onChange={(e) => setClassFilter(e.target.value)}>
+                            <option value="">All Classes</option>
+                            {classes.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="label">Filter by Gender</label>
+                        <select className="input-field" value={genderFilter} onChange={(e) => setGenderFilter(e.target.value)}>
+                            <option value="">All Genders</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                    </div>
+                </div>
+                {(searchTerm || classFilter || genderFilter) && (
+                    <div className="p-4 border-t dark:border-gray-700 flex justify-between items-center">
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                            Found {filteredStudents.length} student(s) matching your criteria.
+                        </p>
+                        <button onClick={handleClearFilters} className="btn btn-secondary text-sm">Clear Filters</button>
+                    </div>
+                )}
+            </div>
+
             {renderContent()}
             <ImportStudentsModal 
                 isOpen={isImportModalOpen}
