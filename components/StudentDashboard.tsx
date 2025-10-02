@@ -53,7 +53,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ isDemo = false, onL
                     </main>
                     <StudentBottomNavBar activeView={activeView} setActiveView={handleViewChange} />
                 </div>
-                <Chatbot />
+                <Chatbot userRole="Student" demoUserId={demoUserId} />
             </div>
         </>
     );

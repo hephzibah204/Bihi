@@ -1,4 +1,5 @@
 import React from 'react';
+import ReportCardHeader from './ReportCardHeader';
 
 const StarRating = ({ rating }) => {
     const totalStars = 5;
@@ -31,19 +32,15 @@ const assessmentAreas = {
     ]
 };
 
-// Fix: Added 'remarks' and 'attendance' props to match the interface of other report card templates, resolving a type error.
 const NurseryReportCard = ({ student, settings, students, scores, subjects, term, session, remarks, attendance }) => {
   return (
     <div className="bg-white p-6 shadow-lg" id={`report-card-${student.id}`}>
-      <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold">{settings.schoolName}</h1>
-        <h2 className="text-lg font-semibold mt-2">Nursery Progress Report</h2>
-      </div>
+      <ReportCardHeader settings={settings} />
       <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
         <div><strong>Name:</strong> {student.name}</div>
         <div><strong>Class:</strong> {student.class}</div>
-        <div><strong>Session:</strong> {settings.session}</div>
-        <div><strong>Term:</strong> {settings.term}</div>
+        <div><strong>Session:</strong> {session}</div>
+        <div><strong>Term:</strong> {term}</div>
       </div>
       
       <h3 className="font-bold text-md mt-6 mb-2 border-b">Cognitive Development</h3>

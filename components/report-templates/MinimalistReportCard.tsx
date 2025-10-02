@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 import { calculateGrade, calculateOverallPerformance, summarizeAttendance } from '../../utils/reportCardHelper';
 import ReportCardFooter from './ReportCardFooter';
@@ -23,6 +21,9 @@ const MinimalistReportCard = ({ student, students, scores, subjects, settings, t
     return (
         <div className="bg-white p-12 font-sans text-gray-700 flex flex-col" style={{ width: '210mm', minHeight: '297mm' }}>
             <header className="mb-12">
+                {settings.schoolLogo && (
+                    <img src={settings.schoolLogo} alt="School Logo" className="w-16 h-16 mb-4" />
+                )}
                 <h1 className="text-2xl font-semibold tracking-tight">{settings.schoolName}</h1>
                 <p className="text-sm text-gray-500">Academic Report</p>
             </header>

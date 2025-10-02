@@ -61,7 +61,6 @@ const StudentSidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveVi
                         <NavItem icon={<ClipboardListIcon className="h-6 w-6" />} view="results" activeView={activeView} onClick={setActiveView}>My Results</NavItem>
                         <NavItem icon={<ClockIcon className="h-6 w-6" />} view="timetable" activeView={activeView} onClick={setActiveView}>Timetable</NavItem>
                         <NavItem icon={<BellIcon className="h-6 w-6" />} view="notifications" activeView={activeView} onClick={setActiveView}>Notifications</NavItem>
-                        <NavItem icon={<BrainCircuitIcon className="h-6 w-6" />} view="ai-tutor" activeView={activeView} onClick={setActiveView}>AI Tutor</NavItem>
                         <NavItem icon={<UserCircleIcon className="h-6 w-6" />} view="profile" activeView={activeView} onClick={setActiveView}>My Profile</NavItem>
                     </ul>
                 </nav>

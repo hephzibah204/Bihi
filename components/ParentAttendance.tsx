@@ -78,7 +78,6 @@ const ParentAttendance = ({ demoUserId }) => {
                                 </td>
                             </tr>
                         )) : (
-                            // Fix: Changed colSpan from string to number.
                             <tr><td colSpan={2} className="td text-center">No attendance records found.</td></tr>
                         )}
                     </tbody>

@@ -30,15 +30,20 @@ const Dashboard = () => {
     const { syncStatus } = useSync();
     const [isLogoutModalOpen, setLogoutModalOpen] = useState(false);
 
+    // Effect to manage the active session (either from sessionStorage for students/parents or Supabase for staff)
     useEffect(() => {
         setLoading(true);
+
         // 1. Check for active student/parent session first
         try {
             const activeUserSession = sessionStorage.getItem('activeUser');
             if (activeUserSession) {
-                setActiveUser(JSON.parse(activeUserSession));
+                const parsedUser = JSON.parse(activeUserSession);
+                setActiveUser(parsedUser);
+                setUserRole(parsedUser.role);
+                initializeSync();
                 setLoading(false);
-                return; // Found a student/parent, no need to check for staff
+                return;
             }
         } catch (e) {
             sessionStorage.removeItem('activeUser');
@@ -51,53 +56,53 @@ const Dashboard = () => {
             return;
         }
 
-        const checkUserRole = async (currentSession) => {
-            if (currentSession) {
+        const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+            setSession(session);
+            if (session) {
                 const teachers = await apiGetTeachers();
-                const currentUser = teachers.find(t => t.email.toLowerCase() === currentSession.user.email.toLowerCase());
+                const currentUser = teachers.find(t => t.email.toLowerCase() === session.user.email.toLowerCase());
                 setUserRole(currentUser?.role || 'Admin');
+                initializeSync();
             } else {
                 setUserRole(null);
+                cleanupSync();
             }
-            setSession(currentSession);
             setLoading(false);
-        };
-        
-        const getSessionAndRole = async () => {
-             const { data, error } = await supabase.auth.getSession();
-             if (error) {
-                 console.error("Error getting session:", error);
-                 setLoading(false);
-                 return;
-             }
-             await checkUserRole(data?.session ?? null);
-        };
-
-        getSessionAndRole();
-
-        const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            // Only act on this if there's no active student/parent user
-            if (!sessionStorage.getItem('activeUser')) {
-                 await checkUserRole(session);
-            }
         });
 
         return () => {
             authListener?.subscription?.unsubscribe();
+            cleanupSync();
         };
     }, []);
 
-    useEffect(() => {
-        if (session || activeUser) {
-            initializeSync();
+    const handleStudentLoginSuccess = (userData) => {
+        setActiveUser(userData);
+        setUserRole(userData.role);
+    };
+
+    const handleLogout = () => {
+        if (syncStatus === 'syncing' || syncStatus === 'unsynced') {
+            setLogoutModalOpen(true);
+        } else {
+            confirmLogout();
         }
-        return () => {
-            cleanupSync();
-        };
-    }, [session, activeUser]);
+    };
     
+    const confirmLogout = async () => {
+        setLogoutModalOpen(false);
+        // Clear both types of sessions
+        sessionStorage.removeItem('activeUser');
+        setActiveUser(null);
+        if (supabase) {
+            await supabase.auth.signOut();
+        }
+        setSession(null);
+        setUserRole(null);
+        clearSyncQueue();
+    };
+
     useEffect(() => {
-        // Update header title when view changes
         const viewName = activeView.replace(/-/g, ' ');
         setHeaderTitle(viewName.charAt(0).toUpperCase() + viewName.slice(1));
     }, [activeView]);
@@ -107,92 +112,65 @@ const Dashboard = () => {
         if (window.innerWidth < 768) {
             setSidebarOpen(false);
         }
-    };
-
-    const handleStaffLogout = () => {
-        if (syncStatus === 'unsynced') {
-            setLogoutModalOpen(true);
-        } else {
-            if (supabase) {
-                supabase.auth.signOut();
-            }
-        }
-    };
-
-    const confirmStaffLogout = async () => {
-        clearSyncQueue();
-        setLogoutModalOpen(false);
-        if (supabase) {
-            await supabase.auth.signOut();
-        }
-    };
-
-    const handleUserLogout = () => {
-        if (activeUser) { // It's a student/parent
-            sessionStorage.removeItem('activeUser');
-            setActiveUser(null);
-        } else if (session) { // It's a staff member
-            handleStaffLogout();
-        }
-    };
+    }
 
     if (loading) {
-        return <div className="flex items-center justify-center h-screen">Loading Portal...</div>;
+        return <div className="flex items-center justify-center h-screen">Authenticating...</div>;
     }
 
-    // Render based on who is logged in
-    if (activeUser) {
-        if (activeUser.role === 'student') {
-            return <StudentDashboard onLogout={handleUserLogout} demoUserId={activeUser.userId} />;
-        }
-        if (activeUser.role === 'parent') {
-            return <ParentDashboard onLogout={handleUserLogout} demoUserId={activeUser.userId} />;
-        }
+    if (!session && !activeUser) {
+        return <PortalLogin onStudentLoginSuccess={handleStudentLoginSuccess} />;
     }
-    
-    if (session) {
-        if (userRole === 'Teacher') {
-            return <TeacherDashboard onLogout={handleStaffLogout} />;
-        }
-        // Default to Admin/Bursar dashboard
-        return (
-            <TenantProvider>
-                <PlanFeaturesProvider>
-                    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-                        <GlobalNotification />
-                        <Sidebar 
-                            isSidebarOpen={isSidebarOpen} 
-                            setSidebarOpen={setSidebarOpen} 
-                            activeView={activeView}
-                            setActiveView={handleViewChange}
-                            userRole={userRole}
-                        />
-                        <div className="flex-1 flex flex-col overflow-hidden">
-                            <Header title={headerTitle} setSidebarOpen={setSidebarOpen} onLogout={handleStaffLogout} />
-                            <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900 main-content-mobile-padding">
-                                <div className="container mx-auto px-6 py-8">
-                                    {activeView === 'more' ? <MoreView setActiveView={handleViewChange} /> : <DashboardContent activeView={activeView} setActiveView={handleViewChange} userRole={userRole} />}
-                                </div>
-                            </main>
-                            <AdminBottomNavBar activeView={activeView} setActiveView={handleViewChange} />
-                        </div>
-                        <Chatbot />
-                        <SyncStatusIndicator />
-                        <ConfirmationModal
-                            isOpen={isLogoutModalOpen}
-                            onClose={() => setLogoutModalOpen(false)}
-                            onConfirm={confirmStaffLogout}
-                            title="Logout with Unsynced Changes?"
-                            message="You have changes that haven't been saved to the cloud. If you log out now, these changes will be lost. Are you sure you want to continue?"
-                        />
+
+    // Render specific dashboards for non-admin roles
+    if (userRole === 'Teacher') {
+        return <TeacherDashboard onLogout={handleLogout} />;
+    }
+    if (userRole === 'Student') {
+        return <StudentDashboard onLogout={handleLogout} demoUserId={activeUser?.userId} />;
+    }
+    if (userRole === 'Parent') {
+        return <ParentDashboard onLogout={handleLogout} demoUserId={activeUser?.userId} />;
+    }
+
+    // Render Admin/Bursar dashboard
+    return (
+        <TenantProvider>
+            <PlanFeaturesProvider>
+                <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
+                    <Sidebar 
+                        isSidebarOpen={isSidebarOpen} 
+                        setSidebarOpen={setSidebarOpen} 
+                        activeView={activeView}
+                        setActiveView={handleViewChange}
+                        userRole={userRole}
+                    />
+                    <div className="flex-1 flex flex-col overflow-hidden main-content-mobile-padding">
+                        <Header title={headerTitle} setSidebarOpen={setSidebarOpen} onLogout={handleLogout} />
+                        <main className="flex-1 overflow-x-hidden overflow-y-auto">
+                            <div className="container mx-auto px-6 py-8">
+                                {activeView === 'more' 
+                                    ? <MoreView setActiveView={handleViewChange} /> 
+                                    : <DashboardContent activeView={activeView} setActiveView={handleViewChange} userRole={userRole} />
+                                }
+                            </div>
+                        </main>
+                        <AdminBottomNavBar activeView={activeView} setActiveView={handleViewChange} />
                     </div>
-                </PlanFeaturesProvider>
-            </TenantProvider>
-        );
-    }
-    
-    // If no one is logged in, show the portal login page
-    return <PortalLogin onStudentLoginSuccess={setActiveUser} />;
+                </div>
+                <SyncStatusIndicator />
+                 <ConfirmationModal
+                    isOpen={isLogoutModalOpen}
+                    onClose={() => setLogoutModalOpen(false)}
+                    onConfirm={confirmLogout}
+                    title="Unsynced Changes"
+                    message="You have changes that haven't been saved to the cloud. If you log out now, they may be lost. Are you sure you want to continue?"
+                />
+                <GlobalNotification />
+                <Chatbot userRole={userRole} />
+            </PlanFeaturesProvider>
+        </TenantProvider>
+    );
 };
 
 export default Dashboard;

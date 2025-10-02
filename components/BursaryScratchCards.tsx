@@ -64,7 +64,6 @@ const BursaryScratchCards = () => {
                         </thead>
                         <tbody className="bg-white dark:bg-gray-800 divide-y dark:divide-gray-700">
                             {cards.length === 0 ? (
-                                // Fix: Changed colSpan from string to number.
                                 <tr><td colSpan={3} className="td text-center">No scratch cards generated yet.</td></tr>
                             ) : (
                                 cards.slice().reverse().map(card => (

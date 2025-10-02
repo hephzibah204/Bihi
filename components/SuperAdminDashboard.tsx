@@ -108,7 +108,8 @@ const SuperAdminDashboard = () => {
             <main className="flex-1 p-6">
                 {renderView()}
             </main>
-            <Chatbot />
+            {/* FIX: Pass the required 'userRole' prop to the Chatbot component. */}
+            <Chatbot userRole="Admin" />
         </div>
     );
 };

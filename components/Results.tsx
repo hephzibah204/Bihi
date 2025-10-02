@@ -47,7 +47,6 @@ const Results = () => {
     const fetchInitialData = useCallback(async () => {
         setLoading(true);
         try {
-            // Fix: Explicitly type allSubjects to ensure allClasses is inferred as string[].
             const allSubjects: Subject[] = await apiGetSubjects();
             setSubjects(allSubjects);
             const allClasses = [...new Set(allSubjects.flatMap(s => s.classes))];
@@ -184,7 +183,6 @@ const Results = () => {
                         ) : (
                             <>
                             {visibleStudents.map(student => {
-                                // Fix: Explicitly type `score` as Partial<Score> to avoid errors when accessing properties on a potentially empty object.
                                 const score: Partial<Score> = currentScoresMap[student.id] || {};
                                 const total = (score.ca1 || 0) + (score.ca2 || 0) + (score.exam || 0);
                                 return (

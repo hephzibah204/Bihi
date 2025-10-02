@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { apiGetFees, apiGetStudentsForClasses, apiGetSubjects } from '../services/api';
-// Fix: Import Subject type to correctly type data from apiGetSubjects.
 import { Subject } from '../types';
 
 const BursaryInvoice = () => {
@@ -13,7 +12,6 @@ const BursaryInvoice = () => {
 
     useEffect(() => {
         const fetchInitialData = async () => {
-            // Fix: Explicitly type allSubjects to ensure allClasses is inferred as string[].
             const [feeData, allSubjects]: [any[], Subject[]] = await Promise.all([apiGetFees(), apiGetSubjects()]);
             setFees(feeData || []);
             const allClasses = [...new Set(allSubjects.flatMap(s => s.classes))].sort();

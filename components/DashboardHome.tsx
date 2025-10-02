@@ -4,6 +4,7 @@ import UsersIcon from './icons/UsersIcon';
 import BookOpenIcon from './icons/BookOpenIcon';
 import BriefcaseIcon from './icons/BriefcaseIcon';
 import RecentActivityWidget from './RecentActivityWidget';
+import DashboardInsights from './DashboardInsights';
 
 function StatCard({ icon, title, value }: { icon: React.ReactNode, title: string, value: any }) {
     return (
@@ -60,6 +61,8 @@ export default function DashboardHome() {
                     </>
                 )}
             </div>
+            
+            <DashboardInsights />
             
             <RecentActivityWidget />
         </div>

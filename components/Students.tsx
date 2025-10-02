@@ -10,7 +10,6 @@ import ConfirmationModal from './ConfirmationModal';
 import FaceIdIcon from './icons/FaceIdIcon';
 import FaceEnrollmentModal from './FaceEnrollmentModal';
 import useSyncedLocalStorage from '../hooks/useSyncedLocalStorage';
-// Fix: Import Subject type to correctly type data from apiGetSubjects.
 import { Student, Subject } from '../types';
 import SearchIcon from './icons/SearchIcon';
 
@@ -86,7 +85,6 @@ const Students = () => {
 
     const fetchClasses = async () => {
         try {
-            // Fix: Explicitly type fetchedSubjects to ensure `allClasses` is inferred as string[].
             const fetchedSubjects: Subject[] = await apiGetSubjects();
             const allClasses = [...new Set(fetchedSubjects.flatMap(s => s.classes))].sort();
             setClasses(allClasses);

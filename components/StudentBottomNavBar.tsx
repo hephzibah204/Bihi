@@ -36,7 +36,6 @@ const StudentBottomNavBar: FC<BottomNavBarProps> = ({ activeView, setActiveView 
         { view: 'dashboard', label: 'Home', icon: <HomeIcon className="h-6 w-6" /> },
         { view: 'results', label: 'Results', icon: <ClipboardListIcon className="h-6 w-6" /> },
         { view: 'timetable', label: 'Timetable', icon: <ClockIcon className="h-6 w-6" /> },
-        { view: 'ai-tutor', label: 'AI Tutor', icon: <BrainCircuitIcon className="h-6 w-6" /> },
         { view: 'notifications', label: 'Alerts', icon: <BellIcon className="h-6 w-6" /> },
     ];
 

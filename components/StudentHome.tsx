@@ -8,14 +8,13 @@ const StudentHome = ({ setActiveView }: { setActiveView: (view: StudentView) => 
     const quickLinks = [
         { view: 'results' as StudentView, title: "View My Results", icon: <ClipboardListIcon className="w-8 h-8"/>, description: "Check your latest scores and grades." },
         { view: 'timetable' as StudentView, title: "Check Timetable", icon: <ClockIcon className="w-8 h-8"/>, description: "See your class schedule for the week." },
-        { view: 'ai-tutor' as StudentView, title: "AI Academic Tutor", icon: <BrainCircuitIcon className="w-8 h-8"/>, description: "Get help with homework and difficult topics." },
     ];
 
     return (
         <div>
             <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">Welcome, Student!</h1>
             <p className="mt-2 text-gray-600 dark:text-gray-300">Here's a quick overview of your portal.</p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                 {quickLinks.map(link => (
                     <button 
                         key={link.view} 

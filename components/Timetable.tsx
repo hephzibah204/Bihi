@@ -5,7 +5,6 @@ import AITimetableGenerator from './AITimetableGenerator';
 import PlusIcon from './icons/PlusIcon';
 import BrainCircuitIcon from './icons/BrainCircuitIcon';
 import useSyncedLocalStorage from '../hooks/useSyncedLocalStorage';
-// Fix: Import Subject and Teacher types to correctly type data from API calls.
 import { Subject } from '../types';
 import { Teacher } from './Teachers';
 
@@ -28,8 +27,8 @@ const TIME_SLOTS = ['8:00 - 9:00', '9:00 - 10:00', '10:00 - 11:00', '11:00 - 12:
 
 const Timetable = () => {
     const [timetable, setTimetable] = useSyncedLocalStorage<TimetableData>('timetable', {});
-    const [subjects, setSubjects] = useState([]);
-    const [teachers, setTeachers] = useState([]);
+    const [subjects, setSubjects] = useState<Subject[]>([]);
+    const [teachers, setTeachers] = useState<Teacher[]>([]);
     const [subjectMap, setSubjectMap] = useState({});
     const [teacherMap, setTeacherMap] = useState({});
     const [classes, setClasses] = useState([]);
@@ -43,7 +42,6 @@ const Timetable = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            // Fix: Explicitly type the destructured data to ensure correct type inference downstream.
             const [subData, teaData]: [Subject[], Teacher[]] = await Promise.all([
                 apiGetSubjects(),
                 apiGetTeachers()

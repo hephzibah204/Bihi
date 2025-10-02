@@ -5,7 +5,6 @@ import StudentProfile from './StudentProfile';
 import StudentTimetable from './StudentTimetable';
 // Fix: Import StudentView from the central types file to break a circular dependency.
 import { StudentView } from '../types';
-import AIAcademicTutor from './AIAcademicTutor';
 import NotificationViewer from './NotificationViewer';
 
 interface StudentDashboardContentProps {
@@ -22,8 +21,6 @@ const StudentDashboardContent = ({ activeView, setActiveView, demoUserId }: Stud
             return <StudentResults demoUserId={demoUserId} />;
         case 'timetable':
             return <StudentTimetable demoUserId={demoUserId} />;
-        case 'ai-tutor':
-            return <AIAcademicTutor />;
         case 'profile':
             return <StudentProfile demoUserId={demoUserId} />;
         case 'notifications':

@@ -51,7 +51,6 @@ const AccessDenied = () => (
 
 
 const DashboardContent = ({ activeView, setActiveView, userRole }: DashboardContentProps) => {
-    // Fix: Default hasAI to false to prevent errors if the context value is an empty object.
     const { hasAI = false } = usePlanFeatures();
 
     if (!hasPermission(userRole, activeView)) {

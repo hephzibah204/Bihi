@@ -42,7 +42,6 @@ const AdvancedAnalytics = () => {
     useEffect(() => {
         const fetchAndProcessData = async () => {
             try {
-                // Fix: Explicitly type the destructured data to ensure correct type inference downstream.
                 const [studentData, subjectData, teacherData, scoreData, settingsData]: [Student[], Subject[], any[], Score[], any] = await Promise.all([
                     apiGetStudents(),
                     apiGetSubjects(),

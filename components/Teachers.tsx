@@ -10,7 +10,6 @@ import useSyncedLocalStorage from '../hooks/useSyncedLocalStorage';
 import SearchIcon from './icons/SearchIcon';
 
 // Types for better code management
-// FIX: Export the Teacher interface to make it available for import in other modules, resolving a build error in Timetable.tsx.
 export interface Teacher {
     id: string;
     name: string;

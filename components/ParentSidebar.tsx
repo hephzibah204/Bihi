@@ -63,7 +63,6 @@ const ParentSidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveVie
                         <NavItem icon={<BellIcon className="h-6 w-6" />} view="notifications" activeView={activeView} onClick={setActiveView}>Notifications</NavItem>
                         <NavItem icon={<CheckBadgeIcon className="h-6 w-6" />} view="attendance" activeView={activeView} onClick={setActiveView}>Attendance</NavItem>
                         <NavItem icon={<ShieldExclamationIcon className="h-6 w-6" />} view="behavioral" activeView={activeView} onClick={setActiveView}>Behavioral</NavItem>
-                        <NavItem icon={<BrainCircuitIcon className="h-6 w-6" />} view="ai-assistant" activeView={activeView} onClick={setActiveView}>AI Assistant</NavItem>
                     </ul>
                 </nav>
             </aside>

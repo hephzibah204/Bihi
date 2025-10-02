@@ -4,8 +4,10 @@ import SparklesIcon from './icons/SparklesIcon';
 import UserCircleIcon from './icons/UserCircleIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
-import { getFallbackChatResponse } from '../services/fallbackAiService';
+import { getFallbackChatResponse, getFallbackTutorResponse, getFallbackParentChatResponse } from '../services/fallbackAiService';
 import WifiSlashIcon from './icons/WifiSlashIcon';
+import { apiGetStudents, apiGetScores, apiGetSubjects, apiGetSchoolSettings } from '../services/api';
+
 
 let ai;
 if (process.env.API_KEY) {
@@ -14,26 +16,71 @@ if (process.env.API_KEY) {
     console.warn("API_KEY not set, AI Chatbot will be disabled.");
 }
 
-const ChatbotPanel = ({ isOpen, onClose }) => {
+const ChatbotPanel = ({ isOpen, onClose, userRole, demoUserId }) => {
     const [chat, setChat] = useState<Chat | null>(null);
     const [messages, setMessages] = useState<{ text: string; sender: 'ai' | 'user' }[]>([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const isOnline = useOnlineStatus();
+    const [currentSystemInstruction, setCurrentSystemInstruction] = useState('');
 
     useEffect(() => {
-        if (isOpen && !chat && ai) {
-            const newChat = ai.chats.create({
-                model: 'gemini-2.5-flash',
-                config: {
-                    systemInstruction: `You are a friendly and knowledgeable assistant for 'ReportSheet', a school management application. Your goal is to help teachers and administrators with their tasks. You can answer questions about how to use the app (e.g., adding students, generating reports, entering scores), provide tips on managing student data, and help draft communications. Keep your answers concise, helpful, and easy to understand.`,
-                },
-            });
-            setChat(newChat);
-            setMessages([{ text: "Hello! I'm your AI assistant for ReportSheet. How can I help you today?", sender: 'ai' }]);
+        const initializeChatContext = async () => {
+            if (!isOpen || !ai || chat) return; // Only initialize once when opened
+
+            setLoading(true);
+            let systemInstruction = '';
+            let initialMessage = '';
+
+            try {
+                switch (userRole) {
+                    case 'Student':
+                        systemInstruction = `You are a friendly and helpful AI Academic Tutor for a Nigerian secondary school student. Your goal is to provide clear, concise, and encouraging explanations. After explaining a concept, suggest 1-2 relevant practice exercises.`;
+                        initialMessage = "Hello! I'm your AI Academic Tutor. Ask me anything about your subjects.";
+                        break;
+                    
+                    case 'Parent':
+                        const [students, scores, subjects, settings] = await Promise.all([apiGetStudents(), apiGetScores(), apiGetSubjects(), apiGetSchoolSettings()]);
+                        const student = students.find(s => s.id === demoUserId);
+                        if (!student) throw new Error("Student data not found.");
+                        const studentScores = scores.filter(s => s.studentId === student.id && s.session === settings.session && s.term === settings.term);
+                        const performanceSummary = studentScores.map(score => {
+                            const subject = subjects.find(sub => sub.id === score.subjectId);
+                            const total = (score.ca1 || 0) + (score.ca2 || 0) + (score.exam || 0);
+                            return `${subject?.name || 'A subject'}: ${total}/100`;
+                        }).join(', ');
+                        
+                        systemInstruction = `You are a helpful, empathetic, and professional AI assistant for a parent. You are discussing their child, ${student.name}, who is in class ${student.class}. Current Term Performance: ${performanceSummary || 'No scores yet.'}. Provide constructive advice and be encouraging.`;
+                        initialMessage = `Hello! I'm your AI assistant, ready to discuss ${student.name}'s performance. How can I help?`;
+                        break;
+                        
+                    default: // Admin, Teacher, Bursar
+                        systemInstruction = `You are a friendly and knowledgeable assistant for 'ReportSheet', a school management application. Your goal is to help teachers and administrators with their tasks. You can answer questions about how to use the app, provide tips on managing student data, and help draft communications. Keep your answers concise and helpful.`;
+                        initialMessage = "Hello! I'm your AI assistant for ReportSheet. How can I help you today?";
+                }
+                
+                setCurrentSystemInstruction(systemInstruction);
+                const newChat = ai.chats.create({ model: 'gemini-2.5-flash', config: { systemInstruction } });
+                setChat(newChat);
+                setMessages([{ text: initialMessage, sender: 'ai' }]);
+
+            } catch (err) {
+                console.error("Failed to initialize chat context:", err);
+                setMessages([{ text: "I'm sorry, I couldn't load the necessary context. My responses may be limited.", sender: 'ai' }]);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        initializeChatContext();
+
+        // Reset chat when panel is closed
+        if (!isOpen) {
+            setChat(null);
+            setMessages([]);
         }
-    }, [isOpen, chat]);
+    }, [isOpen, userRole, demoUserId]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -48,31 +95,47 @@ const ChatbotPanel = ({ isOpen, onClose }) => {
         if (!prompt) setInput('');
         setLoading(true);
 
+        const getFallbackResponse = () => {
+            switch (userRole) {
+                case 'Student': return getFallbackTutorResponse(messageToSend);
+                case 'Parent': return getFallbackParentChatResponse(messageToSend);
+                default: return getFallbackChatResponse(messageToSend);
+            }
+        };
+
         if (!isOnline || !chat) {
-            const fallbackResponse = getFallbackChatResponse(messageToSend);
-            setTimeout(() => { // Simulate a slight delay for better UX
-                setMessages(prev => [...prev, { text: fallbackResponse, sender: 'ai' }]);
+            setTimeout(() => {
+                setMessages(prev => [...prev, { text: getFallbackResponse(), sender: 'ai' }]);
                 setLoading(false);
             }, 500);
             return;
         }
 
         try {
-            const response = await chat.sendMessage({ message: messageToSend });
+            // Re-create chat if context is missing for some reason
+            let currentChat = chat;
+            if (!currentChat) {
+                currentChat = ai.chats.create({ model: 'gemini-2.5-flash', config: { systemInstruction: currentSystemInstruction } });
+                setChat(currentChat);
+            }
+
+            const response = await currentChat.sendMessage({ message: messageToSend });
             setMessages(prev => [...prev, { text: response.text, sender: 'ai' }]);
         } catch (error) {
             console.error("Chatbot error:", error);
-            setMessages(prev => [...prev, { text: getFallbackChatResponse(messageToSend), sender: 'ai' }]);
+            setMessages(prev => [...prev, { text: getFallbackResponse(), sender: 'ai' }]);
         } finally {
             setLoading(false);
         }
     };
     
-    const quickPrompts = [
-        "How do I add a new student?",
-        "Help me write a report card comment.",
-        "How does the promotion feature work?",
-    ];
+    const quickPrompts = {
+        Student: ["Explain photosynthesis", "What is an algebraic equation?", "Summarize the causes of World War 1"],
+        Parent: ["How is my child performing overall?", "Which subjects are they strongest in?", "What can I do to help them improve?"],
+        default: ["How do I add a new student?", "Help me write a report card comment.", "How does promotion work?"]
+    };
+
+    const currentPrompts = quickPrompts[userRole] || quickPrompts.default;
 
     if (!isOpen) return null;
     
@@ -80,7 +143,7 @@ const ChatbotPanel = ({ isOpen, onClose }) => {
          return (
             <div className="absolute bottom-20 right-0 w-80 h-96 bg-white dark:bg-gray-800 rounded-lg shadow-2xl flex flex-col">
                 <header className="p-4 bg-red-600 text-white rounded-t-lg flex justify-between items-center">
-                    <h3 className="font-semibold">ReportSheet Assistant</h3>
+                    <h3 className="font-semibold">AI Assistant</h3>
                 </header>
                 <div className="flex-1 p-4 flex items-center justify-center text-center">
                     <p className="text-gray-600 dark:text-gray-400">AI Assistant is unavailable. The API key is not configured.</p>
@@ -92,7 +155,7 @@ const ChatbotPanel = ({ isOpen, onClose }) => {
     return (
         <div className="absolute bottom-20 right-0 w-80 h-96 bg-white dark:bg-gray-800 rounded-lg shadow-2xl flex flex-col">
             <header className="p-4 bg-indigo-600 text-white rounded-t-lg flex justify-between items-center">
-                <h3 className="font-semibold">ReportSheet Assistant</h3>
+                <h3 className="font-semibold">AI Assistant</h3>
             </header>
              {!isOnline && (
                 <div className="p-2 bg-yellow-100 text-yellow-800 text-xs text-center flex items-center justify-center">
@@ -120,7 +183,7 @@ const ChatbotPanel = ({ isOpen, onClose }) => {
                 )}
                 {messages.length <= 1 && !loading && (
                     <div className="pt-4 space-y-2">
-                        {quickPrompts.map(prompt => (
+                        {currentPrompts.map(prompt => (
                             <button key={prompt} onClick={() => handleSend(prompt)} className="w-full text-left text-sm p-2 rounded-md bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">
                                 {prompt}
                             </button>

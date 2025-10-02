@@ -89,7 +89,7 @@ const TeacherDashboard = ({ isDemo = false, onLogout = null }: TeacherDashboardP
                             {activeView === 'more' ? <TeacherMoreView setActiveView={handleViewChange} /> : <TeacherDashboardContent activeView={activeView} setActiveView={handleViewChange} />}
                         </div>
                     </main>
-                    <Chatbot />
+                    <Chatbot userRole="Teacher" />
                     <TeacherBottomNavBar activeView={activeView} setActiveView={handleViewChange} />
                 </div>
             </div>
