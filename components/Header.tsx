@@ -6,7 +6,7 @@ import MoonIcon from './icons/MoonIcon';
 import { supabase } from '../services/supabaseClient';
 import { useTheme } from '../hooks/useTheme';
 
-const Header = ({ setSidebarOpen, onLogout }) => {
+const Header = ({ title, setSidebarOpen, onLogout }) => {
     const { theme, toggleTheme } = useTheme();
 
     const defaultLogoutHandler = async () => {
@@ -21,11 +21,12 @@ const Header = ({ setSidebarOpen, onLogout }) => {
     const handleLogout = onLogout || defaultLogoutHandler;
 
     return (
-        <header className="flex-shrink-0 flex justify-between items-center h-20 px-6 bg-card-bg-light dark:bg-card-bg-dark shadow-sm">
+        <header className="flex-shrink-0 flex justify-between items-center h-16 px-4 md:px-6 bg-card-bg-light dark:bg-card-bg-dark shadow-sm z-10">
             <div className="flex items-center">
                 <button onClick={() => setSidebarOpen(true)} className="text-slate-500 focus:outline-none md:hidden">
                     <Bars3Icon className="h-6 w-6" />
                 </button>
+                <h1 className="text-xl font-semibold ml-2 md:ml-0">{title}</h1>
             </div>
 
             <div className="flex items-center space-x-2">

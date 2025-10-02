@@ -271,8 +271,7 @@ const Teachers = () => {
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">Manage Teachers</h1>
+            <div className="hidden md:flex justify-end items-center mb-6">
                 <button onClick={handleOpenAddModal} className="btn btn-primary">
                     <PlusIcon className="h-5 w-5 mr-2" />
                     Add Teacher
@@ -315,6 +314,10 @@ const Teachers = () => {
             </div>
 
             {renderContent()}
+            
+            <button onClick={handleOpenAddModal} className="fab md:hidden" aria-label="Add Teacher">
+                <PlusIcon className="h-6 w-6" />
+            </button>
 
             <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingTeacher ? "Edit Teacher" : "Add New Teacher"}>
                 <form onSubmit={handleSaveTeacher} className="p-6 space-y-4">

@@ -47,10 +47,9 @@ export default function DashboardHome() {
 
     return (
         <div>
-            <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Dashboard</h1>
-            <p className="mt-1 text-gray-600 dark:text-gray-400">Welcome back! Here's a summary of your school.</p>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">Welcome back! Here's a summary of your school.</p>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {loading ? (
                     <p>Loading stats...</p>
                 ) : (

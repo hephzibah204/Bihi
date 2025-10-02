@@ -33,14 +33,11 @@ interface DashboardContentProps {
 }
 
 const AiToolsDashboard = () => (
-    <div>
-        <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">AI Tools</h1>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-            <CommentGenerator />
-            <LessonPlanner />
-            <LearningPathways />
-            <EarlyIntervention />
-        </div>
+    <div className="space-y-6">
+        <CommentGenerator />
+        <LessonPlanner />
+        <LearningPathways />
+        <EarlyIntervention />
     </div>
 );
 

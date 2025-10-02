@@ -39,19 +39,17 @@ const AdminBottomNavBar: FC<BottomNavBarProps> = ({ activeView, setActiveView })
     ];
 
     return (
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-40">
-            <div className="flex justify-around">
-                {navItems.map(({ view, label, icon }) => (
-                    <NavItem 
-                        key={view}
-                        icon={icon}
-                        label={label}
-                        view={view}
-                        isActive={activeView === view}
-                        onClick={setActiveView}
-                    />
-                ))}
-            </div>
+        <nav className="bottom-nav md:hidden">
+            {navItems.map(({ view, label, icon }) => (
+                <NavItem 
+                    key={view}
+                    icon={icon}
+                    label={label}
+                    view={view}
+                    isActive={activeView === view}
+                    onClick={setActiveView}
+                />
+            ))}
         </nav>
     );
 };

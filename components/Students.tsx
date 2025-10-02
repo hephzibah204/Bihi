@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import PlusIcon from './icons/PlusIcon';
 import { apiGetSubjects, apiLogActivity } from '../services/api';
@@ -287,8 +284,7 @@ const Students = () => {
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">Students</h1>
+            <div className="hidden md:flex justify-end items-center mb-6">
                 <div className="flex space-x-2">
                      <button onClick={() => setImportModalOpen(true)} className="btn btn-secondary">
                         <ArrowUpTrayIcon className="h-5 w-5 mr-2" />
@@ -343,6 +339,11 @@ const Students = () => {
             </div>
 
             {renderContent()}
+
+            <button onClick={handleOpenAddModal} className="fab md:hidden" aria-label="Add Student">
+                <PlusIcon className="h-6 w-6" />
+            </button>
+
             <ImportStudentsModal 
                 isOpen={isImportModalOpen}
                 onClose={() => setImportModalOpen(false)}

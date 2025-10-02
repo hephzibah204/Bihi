@@ -46,6 +46,8 @@ const DemoPage = () => {
     const [loading, setLoading] = useState(true);
     const [activeView, setActiveView] = useState<DashboardView>('dashboard');
     const [selectedProfile, setSelectedProfile] = useState<SelectedProfile | null>(null);
+    // Fix: Add headerTitle state to dynamically update the header.
+    const [headerTitle, setHeaderTitle] = useState('Dashboard');
 
     useEffect(() => {
         sessionStorage.setItem('isDemoMode', 'true');
@@ -60,6 +62,13 @@ const DemoPage = () => {
             sessionStorage.removeItem('isDemoMode');
         };
     }, []);
+
+    // Fix: Add useEffect to update header title when activeView changes.
+    useEffect(() => {
+        const viewName = activeView.replace(/-/g, ' ');
+        setHeaderTitle(viewName.charAt(0).toUpperCase() + viewName.slice(1));
+    }, [activeView]);
+
 
     const handleDemoLogout = () => {
         window.location.href = window.location.pathname;
@@ -104,7 +113,8 @@ const DemoPage = () => {
                                 userRole="Admin"
                             />
                             <div className="flex-1 flex flex-col overflow-hidden">
-                                <Header setSidebarOpen={setSidebarOpen} onLogout={handleDemoLogout} />
+                                {/* Fix: Pass the missing 'title' prop to the Header component. */}
+                                <Header title={headerTitle} setSidebarOpen={setSidebarOpen} onLogout={handleDemoLogout} />
                                 <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900">
                                     <div className="container mx-auto px-6 py-8">
                                         <DashboardContent activeView={activeView} setActiveView={handleViewChange} userRole="Admin" />

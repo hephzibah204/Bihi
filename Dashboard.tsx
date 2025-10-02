@@ -26,6 +26,7 @@ const Dashboard = () => {
     const [loading, setLoading] = useState(true);
     const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [activeView, setActiveView] = useState<DashboardView>('dashboard');
+    const [headerTitle, setHeaderTitle] = useState('Dashboard');
     const { syncStatus } = useSync();
     const [isLogoutModalOpen, setLogoutModalOpen] = useState(false);
 
@@ -94,6 +95,12 @@ const Dashboard = () => {
             cleanupSync();
         };
     }, [session, activeUser]);
+    
+    useEffect(() => {
+        // Update header title when view changes
+        const viewName = activeView.replace(/-/g, ' ');
+        setHeaderTitle(viewName.charAt(0).toUpperCase() + viewName.slice(1));
+    }, [activeView]);
 
     const handleViewChange = (view: DashboardView) => {
         setActiveView(view);
@@ -161,8 +168,8 @@ const Dashboard = () => {
                             userRole={userRole}
                         />
                         <div className="flex-1 flex flex-col overflow-hidden">
-                            <Header setSidebarOpen={setSidebarOpen} onLogout={handleStaffLogout} />
-                            <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900 pb-16 md:pb-0">
+                            <Header title={headerTitle} setSidebarOpen={setSidebarOpen} onLogout={handleStaffLogout} />
+                            <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900 main-content-mobile-padding">
                                 <div className="container mx-auto px-6 py-8">
                                     {activeView === 'more' ? <MoreView setActiveView={handleViewChange} /> : <DashboardContent activeView={activeView} setActiveView={handleViewChange} userRole={userRole} />}
                                 </div>
