@@ -71,10 +71,10 @@ const SubscriptionPage = () => {
                 setError('Payment window closed. Your school has not been created.');
                 setLoading(false);
             },
-            callback: async function(response: { status: string }){
+            callback: function(response: { status: string }){
                 if (response.status === 'success') {
                     // Payment is successful, now create the school and user
-                    await createSchoolAndUser();
+                    createSchoolAndUser();
                 } else {
                     setError('Payment failed. Please try again.');
                     setLoading(false);

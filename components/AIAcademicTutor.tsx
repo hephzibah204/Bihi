@@ -3,6 +3,9 @@ import { generateText } from '../services/geminiService';
 import SparklesIcon from './icons/SparklesIcon';
 import UserCircleIcon from './icons/UserCircleIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
+import { useOnlineStatus } from '../hooks/useOnlineStatus';
+import { getFallbackTutorResponse } from '../services/fallbackAiService';
+import WifiSlashIcon from './icons/WifiSlashIcon';
 
 
 const AIAcademicTutor: FC = () => {
@@ -11,6 +14,7 @@ const AIAcademicTutor: FC = () => {
     const [loading, setLoading] = useState(false);
     const [showQuickPrompts, setShowQuickPrompts] = useState(true);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const isOnline = useOnlineStatus();
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -38,6 +42,15 @@ const AIAcademicTutor: FC = () => {
         }
         setLoading(true);
 
+        if (!isOnline) {
+            const fallbackResponse = getFallbackTutorResponse(textToSend);
+            setTimeout(() => { // Simulate delay
+                setMessages(prev => [...prev, { sender: 'ai', text: fallbackResponse }]);
+                setLoading(false);
+            }, 500);
+            return;
+        }
+
         try {
             const prompt = `You are a friendly and helpful AI Academic Tutor for a Nigerian secondary school student. Your goal is to provide clear, concise, and encouraging explanations.
             After explaining the concept, if applicable, suggest 1-2 relevant practice exercises or related concepts the student should review to solidify their understanding.
@@ -47,10 +60,11 @@ const AIAcademicTutor: FC = () => {
             Your response:`;
 
             const aiResponse = await generateText(prompt);
+            if (aiResponse.startsWith("Sorry,")) throw new Error(aiResponse);
             setMessages(prev => [...prev, { sender: 'ai', text: aiResponse }]);
         } catch (error) {
             console.error("Error sending message to AI Tutor:", error);
-            const errorMessage = { text: "I seem to be having trouble connecting. Please try again in a moment.", sender: 'ai' };
+            const errorMessage = { text: getFallbackTutorResponse(textToSend), sender: 'ai' };
             setMessages(prev => [...prev, errorMessage]);
         } finally {
             setLoading(false);
@@ -71,6 +85,12 @@ const AIAcademicTutor: FC = () => {
                     AI Academic Tutor
                 </h2>
             </div>
+            {!isOnline && (
+                <div className="p-2 bg-yellow-100 text-yellow-800 text-xs text-center flex items-center justify-center">
+                    <WifiSlashIcon className="w-4 h-4 mr-1" />
+                    You are currently offline. Responses are limited.
+                </div>
+            )}
             <div className="flex-1 p-4 overflow-y-auto">
                 <div className="space-y-4">
                     {messages.map((msg, index) => (

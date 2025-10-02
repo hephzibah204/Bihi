@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { generateText } from '../services/geminiService';
 import SparklesIcon from './icons/SparklesIcon';
 import { apiGetSubjects } from '../services/api';
-// Fix: Import Subject type to correctly type data from apiGetSubjects.
 import { Subject } from '../types';
+import Tooltip from './Tooltip';
+import { getFallbackLessonPlan } from '../services/fallbackAiService';
+import { useOnlineStatus } from '../hooks/useOnlineStatus';
+import WifiSlashIcon from './icons/WifiSlashIcon';
 
 const LessonPlanner = () => {
     const [topic, setTopic] = useState('');
@@ -13,11 +16,12 @@ const LessonPlanner = () => {
     const [lessonPlan, setLessonPlan] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const isOnline = useOnlineStatus();
+    const [isOfflineResult, setIsOfflineResult] = useState(false);
 
     useEffect(() => {
         const fetchClasses = async () => {
             try {
-                // Fix: Explicitly type subjects to ensure allClasses is inferred as string[].
                 const subjects: Subject[] = await apiGetSubjects();
                 const allClasses = [...new Set(subjects.flatMap(s => s.classes))].sort();
                 setAvailableClasses(allClasses);
@@ -39,30 +43,45 @@ const LessonPlanner = () => {
         setLoading(true);
         setError('');
         setLessonPlan('');
+        setIsOfflineResult(false);
 
-        const prompt = `
-            Create a detailed lesson plan for a Nigerian secondary school class.
+        const useFallback = () => {
+             console.warn("Using offline fallback for lesson plan.");
+             const fallbackPlan = getFallbackLessonPlan(topic);
+             setLessonPlan(fallbackPlan);
+             setIsOfflineResult(true);
+        }
 
-            Class: ${className}
-            Topic: ${topic}
-            Duration: ${duration} minutes
-
-            The lesson plan should include the following sections:
-            1.  **Instructional Objectives:** What students should be able to do after the lesson (use behavioral terms).
-            2.  **Instructional Materials:** List of materials needed.
-            3.  **Instructional Procedure:** A step-by-step guide for the teacher, including introduction, main content delivery, and activities.
-            4.  **Evaluation:** Questions or tasks to assess student understanding.
-            5.  **Conclusion & Assignment:** How to wrap up the lesson and a relevant homework assignment.
-
-            Format the output clearly with headings for each section.
-        `;
+        if (!isOnline) {
+            useFallback();
+            setLoading(false);
+            return;
+        }
 
         try {
+            const prompt = `
+                Create a detailed lesson plan for a Nigerian secondary school class.
+
+                Class: ${className}
+                Topic: ${topic}
+                Duration: ${duration} minutes
+
+                The lesson plan should include the following sections:
+                1.  **Instructional Objectives:** What students should be able to do after the lesson (use behavioral terms).
+                2.  **Instructional Materials:** List of materials needed.
+                3.  **Instructional Procedure:** A step-by-step guide for the teacher, including introduction, main content delivery, and activities.
+                4.  **Evaluation:** Questions or tasks to assess student understanding.
+                5.  **Conclusion & Assignment:** How to wrap up the lesson and a relevant homework assignment.
+
+                Format the output clearly with headings for each section.
+            `;
             const response = await generateText(prompt);
+             if (response.startsWith("Sorry,")) {
+                throw new Error(response);
+            }
             setLessonPlan(response);
         } catch (err) {
-            console.error(err);
-            setError("Failed to generate lesson plan. Please try again.");
+            useFallback();
         } finally {
             setLoading(false);
         }
@@ -104,17 +123,27 @@ const LessonPlanner = () => {
                     </div>
                 </div>
                  <div className="mt-4">
-                    <button onClick={handleGenerate} className="btn btn-primary w-full md:w-auto" disabled={loading || !className}>
-                        <SparklesIcon className="w-5 h-5 mr-2" />
-                        {loading ? 'Generating...' : 'Generate Lesson Plan'}
-                    </button>
+                    <Tooltip text="Requires an internet connection for full AI capabilities">
+                        <div className="inline-block"> {/* Wrapper for tooltip on disabled element */}
+                            <button onClick={handleGenerate} className="btn btn-primary w-full md:w-auto" disabled={loading || !className}>
+                                <SparklesIcon className="w-5 h-5 mr-2" />
+                                {loading ? 'Generating...' : 'Generate Lesson Plan'}
+                            </button>
+                        </div>
+                    </Tooltip>
                 </div>
 
-                {error && <div className="mt-4 text-red-500">{error}</div>}
+                {error && <div className="mt-4 text-yellow-600 dark:text-yellow-400 text-sm">{error}</div>}
 
                 {lessonPlan && (
                     <div className="mt-6 border-t pt-4">
                         <h3 className="text-lg font-semibold">Generated Lesson Plan</h3>
+                        {isOfflineResult && (
+                             <div className="my-2 p-2 bg-yellow-100 text-yellow-800 text-sm rounded-md flex items-center">
+                                <WifiSlashIcon className="w-5 h-5 mr-2 flex-shrink-0" />
+                                <span>You are offline. Showing a basic template.</span>
+                            </div>
+                        )}
                         <div className="prose dark:prose-invert max-w-none mt-2 whitespace-pre-wrap">{lessonPlan}</div>
                     </div>
                 )}

@@ -1,11 +1,21 @@
-
-
 import React, { useState, useEffect, useRef } from 'react';
-import { apiGetStudentsForClasses, apiGetSubjects, updateStudents, apiGetStudents } from '../services/api';
-// Fix: Import Subject type to correctly type data from API calls.
-import { Student, Subject } from '../types';
+import { apiGetStudentsForClasses, apiGetSubjects, updateStudents, apiGetStudents, apiGetScores, apiGetSchoolSettings } from '../services/api';
+import { Student, Subject, Score } from '../types';
+import SparklesIcon from './icons/SparklesIcon';
+import SpinnerIcon from './icons/SpinnerIcon';
+import { generateText } from '../services/geminiService';
+import Tooltip from './Tooltip';
 
 const PAGE_SIZE = 50;
+
+type SuggestionStatus = 'Promote' | 'Consider' | 'Repeat';
+
+interface AISuggestion {
+    studentId: string;
+    suggestion: SuggestionStatus;
+    justification: string;
+}
+
 
 const Promotions = () => {
     const [classes, setClasses] = useState<string[]>([]);
@@ -16,10 +26,29 @@ const Promotions = () => {
     const [loading, setLoading] = useState(false);
     const [promoting, setPromoting] = useState(false);
     const [notification, setNotification] = useState('');
+    const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+
+    // New AI Feature State
+    const [aiSuggestions, setAiSuggestions] = useState<Record<string, AISuggestion>>({});
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [analysisError, setAnalysisError] = useState('');
 
     // State for virtualization/infinite scroll
     const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
     const loaderRef = useRef(null);
+
+    // Network status listener
+    useEffect(() => {
+        const handleOnline = () => setIsOnline(true);
+        const handleOffline = () => setIsOnline(false);
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
+    }, []);
 
     // Observer for infinite scroll
     useEffect(() => {
@@ -45,7 +74,6 @@ const Promotions = () => {
     const visibleStudents = studentsInClass.slice(0, visibleCount);
 
     const fetchClasses = async () => {
-        // Fix: Explicitly type allSubjects to ensure allClasses is inferred as string[].
         const allSubjects: Subject[] = await apiGetSubjects();
         const allClasses = [...new Set(allSubjects.flatMap(s => s.classes))].sort();
         setClasses(allClasses);
@@ -61,6 +89,8 @@ const Promotions = () => {
             return;
         }
         setLoading(true);
+        // Clear suggestions when class changes
+        setAiSuggestions({});
         const students = await apiGetStudentsForClasses([fromClass]);
         setStudentsInClass(students.filter(s => s.status !== 'alumni'));
         setLoading(false);
@@ -68,7 +98,6 @@ const Promotions = () => {
 
     useEffect(() => {
         fetchClasses();
-        // Initial fetchStudents is triggered by fromClass change
     }, []);
 
     useEffect(() => {
@@ -135,7 +164,6 @@ const Promotions = () => {
             }
         }
 
-
         try {
             await updateStudents(allStudents => {
                 return allStudents.map(student => {
@@ -174,7 +202,88 @@ const Promotions = () => {
         }
     };
     
+    const handleAiSuggest = async () => {
+        if (!fromClass || !isOnline) return;
+        setIsAnalyzing(true);
+        setAnalysisError('');
+        setAiSuggestions({});
+
+        try {
+            const [scores, subjects, settings] = await Promise.all([
+                apiGetScores(),
+                apiGetSubjects(),
+                apiGetSchoolSettings()
+            ]);
+
+            const passMark = settings?.gradingSystem?.find(g => g.remark.toLowerCase() === 'pass')?.from || 45;
+            const coreSubjects = ['mathematics', 'english language'];
+
+            const studentPerformanceData = studentsInClass.map(student => {
+                const studentScores = scores.filter(s => s.studentId === student.id);
+                const scoresSummary = studentScores.map(score => {
+                    const subject = subjects.find(sub => sub.id === score.subjectId);
+                    const total = (score.ca1 || 0) + (score.ca2 || 0) + (score.exam || 0);
+                    return { subject: subject?.name || 'Unknown', total };
+                });
+                return { studentId: student.id, name: student.name, scores: scoresSummary };
+            });
+
+            const prompt = `
+                You are an expert AI educational assistant for a Nigerian school. Your task is to analyze student performance for the entire session and recommend promotion status.
+
+                School's Pass Mark: ${passMark}%. Core subjects are Mathematics and English Language.
+                Class to Analyze: ${fromClass}
+
+                Student Data:
+                ${JSON.stringify(studentPerformanceData)}
+
+                Based on this data, provide a promotion recommendation for each student.
+                - "Promote": Strong overall average and clear passes in core subjects.
+                - "Consider": Borderline average or failure in one core subject.
+                - "Repeat": Low overall average and failure in multiple core subjects.
+
+                Provide a brief, one-sentence justification for each decision. Your output MUST be a valid JSON array with this exact structure, with no extra text or markdown:
+                [
+                  { "studentId": "...", "suggestion": "Promote" | "Consider" | "Repeat", "justification": "..." }
+                ]
+            `;
+            
+            const responseText = await generateText(prompt);
+            const suggestions: AISuggestion[] = JSON.parse(responseText.replace(/```json/g, "").replace(/```/g, ""));
+            
+            const suggestionsMap = suggestions.reduce((acc, s) => {
+                acc[s.studentId] = s;
+                return acc;
+            }, {});
+
+            setAiSuggestions(suggestionsMap);
+
+        } catch (err) {
+            console.error("AI Suggestion Error:", err);
+            setAnalysisError("Failed to get AI suggestions. Please check your connection or try again.");
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
+    const handleSelectPromoted = () => {
+        const promotedIds = Object.values(aiSuggestions)
+            .filter(s => s.suggestion === 'Promote')
+            .map(s => s.studentId);
+        setSelectedStudents(new Set(promotedIds));
+    };
+
+
     const isFinalClass = fromClass === classes[classes.length - 1];
+
+    const SuggestionBadge = ({ suggestion }: { suggestion: SuggestionStatus }) => {
+        const styles = {
+            Promote: 'bg-green-100 text-green-800',
+            Consider: 'bg-yellow-100 text-yellow-800',
+            Repeat: 'bg-red-100 text-red-800'
+        };
+        return <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${styles[suggestion]}`}>{suggestion}</span>
+    };
 
     return (
         <div>
@@ -182,9 +291,11 @@ const Promotions = () => {
             <p className="mt-2 text-gray-600 dark:text-gray-300">Promote students to the next class or graduate them from the final class.</p>
 
             {notification && <div className="my-4 p-3 text-sm text-green-700 bg-green-100 rounded-lg">{notification}</div>}
+            {analysisError && <div className="my-4 p-3 text-sm text-red-700 bg-red-100 rounded-lg">{analysisError}</div>}
+
 
             <div className="card mt-6">
-                <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                <div className="p-6 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                     <div>
                         <label className="label">Promote From</label>
                         <select className="input-field" value={fromClass} onChange={e => setFromClass(e.target.value)}>
@@ -198,13 +309,27 @@ const Promotions = () => {
                         </select>
                         {isFinalClass && <p className="text-xs text-indigo-600 mt-1">Students in the final class will be graduated.</p>}
                     </div>
+                    <Tooltip text="Requires an internet connection">
+                        <div className="w-full"> {/* Wrapper div for tooltip on disabled element */}
+                            <button onClick={handleAiSuggest} className="btn btn-secondary w-full" disabled={isAnalyzing || !fromClass || !isOnline}>
+                                {isAnalyzing ? <SpinnerIcon className="w-5 h-5 animate-spin mr-2" /> : <SparklesIcon className="w-5 h-5 mr-2" />}
+                                {isAnalyzing ? 'Analyzing...' : 'AI Suggestions'}
+                            </button>
+                        </div>
+                    </Tooltip>
                     <button onClick={handlePromote} className="btn btn-primary" disabled={promoting}>
-                        {promoting ? 'Processing...' : isFinalClass ? `Graduate ${selectedStudents.size} Student(s)` : `Promote ${selectedStudents.size} Student(s)`}
+                        {promoting ? 'Processing...' : isFinalClass ? `Graduate ${selectedStudents.size}` : `Promote ${selectedStudents.size}`}
                     </button>
                 </div>
             </div>
 
             <div className="table-container mt-6">
+                 {Object.keys(aiSuggestions).length > 0 && (
+                    <div className="p-4 bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700 flex justify-between items-center">
+                        <p className="text-sm text-gray-600 dark:text-gray-300">AI analysis complete. Review the suggestions and make your selections.</p>
+                        <button onClick={handleSelectPromoted} className="btn btn-secondary text-sm">Select All 'Promote'</button>
+                    </div>
+                 )}
                 <table className="table">
                     <thead>
                         <tr>
@@ -216,32 +341,44 @@ const Promotions = () => {
                             </th>
                             <th className="th">Student Name</th>
                             <th className="th">Admission No.</th>
+                            <th className="th">AI Suggestion</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white dark:bg-gray-800">
                         {loading ? (
-                            // Fix: Changed colSpan from string to number.
-                            <tr><td colSpan={3} className="td text-center">Loading students...</td></tr>
+                            <tr><td colSpan={4} className="td text-center">Loading students...</td></tr>
                         ) : studentsInClass.length === 0 ? (
-                             // Fix: Changed colSpan from string to number.
-                             <tr><td colSpan={3} className="td text-center">No students in this class.</td></tr>
+                             <tr><td colSpan={4} className="td text-center">No students in this class.</td></tr>
                         ) : (
                             <>
-                                {visibleStudents.map(student => (
-                                    <tr key={student.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                                        <td className="td">
-                                            <input type="checkbox" className="rounded"
-                                                checked={selectedStudents.has(student.id)}
-                                                onChange={() => handleSelectStudent(student.id)}
-                                            />
-                                        </td>
-                                        <td className="td font-medium">{student.name}</td>
-                                        <td className="td">{student.admissionNo}</td>
-                                    </tr>
-                                ))}
+                                {visibleStudents.map(student => {
+                                    const suggestion = aiSuggestions[student.id];
+                                    return (
+                                        <tr key={student.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                            <td className="td">
+                                                <input type="checkbox" className="rounded"
+                                                    checked={selectedStudents.has(student.id)}
+                                                    onChange={() => handleSelectStudent(student.id)}
+                                                />
+                                            </td>
+                                            <td className="td font-medium">{student.name}</td>
+                                            <td className="td">{student.admissionNo}</td>
+                                            <td className="td">
+                                                {suggestion ? (
+                                                    <div>
+                                                        <SuggestionBadge suggestion={suggestion.suggestion} />
+                                                        <p className="text-xs text-gray-500 mt-1">{suggestion.justification}</p>
+                                                    </div>
+                                                ) : isAnalyzing ? (
+                                                    <span className="text-xs text-gray-400">Analyzing...</span>
+                                                ) : null}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                                 {visibleCount < studentsInClass.length && (
                                     <tr ref={loaderRef}>
-                                        <td colSpan={3} className="text-center p-4 text-gray-500">
+                                        <td colSpan={4} className="text-center p-4 text-gray-500">
                                             Loading more...
                                         </td>
                                     </tr>

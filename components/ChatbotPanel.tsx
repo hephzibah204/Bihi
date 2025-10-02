@@ -3,6 +3,9 @@ import { GoogleGenAI, Chat } from '@google/genai';
 import SparklesIcon from './icons/SparklesIcon';
 import UserCircleIcon from './icons/UserCircleIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
+import { useOnlineStatus } from '../hooks/useOnlineStatus';
+import { getFallbackChatResponse } from '../services/fallbackAiService';
+import WifiSlashIcon from './icons/WifiSlashIcon';
 
 let ai;
 if (process.env.API_KEY) {
@@ -17,6 +20,7 @@ const ChatbotPanel = ({ isOpen, onClose }) => {
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const isOnline = useOnlineStatus();
 
     useEffect(() => {
         if (isOpen && !chat && ai) {
@@ -37,19 +41,28 @@ const ChatbotPanel = ({ isOpen, onClose }) => {
 
     const handleSend = async (prompt?: string) => {
         const messageToSend = prompt || input;
-        if (!messageToSend.trim() || !chat || loading) return;
+        if (!messageToSend.trim() || loading) return;
 
         const userMessage = { text: messageToSend, sender: 'user' as const };
         setMessages(prev => [...prev, userMessage]);
         if (!prompt) setInput('');
         setLoading(true);
 
+        if (!isOnline || !chat) {
+            const fallbackResponse = getFallbackChatResponse(messageToSend);
+            setTimeout(() => { // Simulate a slight delay for better UX
+                setMessages(prev => [...prev, { text: fallbackResponse, sender: 'ai' }]);
+                setLoading(false);
+            }, 500);
+            return;
+        }
+
         try {
             const response = await chat.sendMessage({ message: messageToSend });
             setMessages(prev => [...prev, { text: response.text, sender: 'ai' }]);
         } catch (error) {
             console.error("Chatbot error:", error);
-            setMessages(prev => [...prev, { text: "Sorry, I encountered an error. Please try again.", sender: 'ai' }]);
+            setMessages(prev => [...prev, { text: getFallbackChatResponse(messageToSend), sender: 'ai' }]);
         } finally {
             setLoading(false);
         }
@@ -81,6 +94,12 @@ const ChatbotPanel = ({ isOpen, onClose }) => {
             <header className="p-4 bg-indigo-600 text-white rounded-t-lg flex justify-between items-center">
                 <h3 className="font-semibold">ReportSheet Assistant</h3>
             </header>
+             {!isOnline && (
+                <div className="p-2 bg-yellow-100 text-yellow-800 text-xs text-center flex items-center justify-center">
+                    <WifiSlashIcon className="w-4 h-4 mr-1" />
+                    You are currently offline. Responses are limited.
+                </div>
+            )}
             <main className="flex-1 p-4 overflow-y-auto space-y-4">
                 {messages.map((msg, i) => (
                     <div key={i} className={`flex items-start gap-3 ${msg.sender === 'user' ? 'justify-end' : ''}`}>

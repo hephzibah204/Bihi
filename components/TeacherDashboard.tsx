@@ -9,6 +9,7 @@ import PortalLogin from './PortalLogin'; // Teachers can use the same login
 import SandboxBanner from './SandboxBanner';
 import TeacherBottomNavBar from './TeacherBottomNavBar';
 import TeacherMoreView from './TeacherMoreView';
+import Chatbot from './Chatbot';
 
 interface TeacherDashboardProps {
     isDemo?: boolean;
@@ -79,6 +80,7 @@ const TeacherDashboard = ({ isDemo = false, onLogout = null }: TeacherDashboardP
                             {activeView === 'more' ? <TeacherMoreView setActiveView={handleViewChange} /> : <TeacherDashboardContent activeView={activeView} setActiveView={handleViewChange} />}
                         </div>
                     </main>
+                    <Chatbot />
                     <TeacherBottomNavBar activeView={activeView} setActiveView={handleViewChange} />
                 </div>
             </div>

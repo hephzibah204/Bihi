@@ -17,6 +17,7 @@ import { PlanFeaturesProvider } from './contexts/PlanFeaturesContext';
 import StudentDashboard from './components/StudentDashboard';
 import ParentDashboard from './components/ParentDashboard';
 import GlobalNotification from './components/GlobalNotification';
+import Chatbot from './components/Chatbot';
 
 const Dashboard = () => {
     const [session, setSession] = useState(null); // Supabase session for staff
@@ -168,6 +169,7 @@ const Dashboard = () => {
                             </main>
                             <AdminBottomNavBar activeView={activeView} setActiveView={handleViewChange} />
                         </div>
+                        <Chatbot />
                         <SyncStatusIndicator />
                         <ConfirmationModal
                             isOpen={isLogoutModalOpen}

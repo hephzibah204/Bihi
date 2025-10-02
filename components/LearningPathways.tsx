@@ -10,6 +10,7 @@ const LearningPathways = () => {
     const [topic, setTopic] = useState('');
     const [pathway, setPathway] = useState('');
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
     useEffect(() => {
         const fetchData = async () => {
@@ -24,6 +25,8 @@ const LearningPathways = () => {
         if (!selectedStudentId || !topic) return;
         setLoading(true);
         setPathway('');
+        setError('');
+
         const student = students.find(s => s.id === selectedStudentId);
         const prompt = `Create a personalized, step-by-step learning pathway for a student struggling with a topic.
         
@@ -40,7 +43,11 @@ const LearningPathways = () => {
         Keep the tone encouraging and clear.`;
 
         const result = await generateText(prompt);
-        setPathway(result);
+        if (result.startsWith("Sorry,")) {
+            setError(result);
+        } else {
+            setPathway(result);
+        }
         setLoading(false);
     };
 
@@ -56,7 +63,10 @@ const LearningPathways = () => {
                     <input type="text" value={topic} onChange={e => setTopic(e.target.value)} placeholder="Enter topic (e.g., Algebra)" className="input-field"/>
                 </div>
                 <button onClick={handleGenerate} disabled={loading} className="btn btn-primary"><SparklesIcon className="w-5 h-5 mr-2" />Generate Pathway</button>
-                {pathway && (
+                
+                {error && <div className="mt-4 text-red-500">{error}</div>}
+
+                {pathway && !error && (
                     <div className="mt-6 border-t pt-4">
                         <h3 className="font-semibold">Generated Pathway</h3>
                         <p className="prose dark:prose-invert whitespace-pre-wrap mt-2">{pathway}</p>
