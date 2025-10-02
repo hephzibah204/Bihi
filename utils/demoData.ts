@@ -1,118 +1,78 @@
-import { Student, Subject, Score, Remark } from '../types';
-
-export const DEMO_TENANT_ID = 'brightstar';
-
-export const demoTenants = [
-  { id: 'brightstar', name: 'Brightstar Academy' }
-];
+export const DEMO_TENANT_ID = 'demo';
 
 export const demoSchoolSettings = {
   schoolName: 'Brightstar Academy',
-  schoolAddress: '123 Education Lane, Knowledge City',
+  schoolAddress: '123, Education Lane, Lagos',
+  schoolLogo: 'https://i.imgur.com/gKEBi1f.png',
   session: '2023/2024',
   term: 'Second Term',
-  schoolLogo: 'https://i.imgur.com/gKEBi1f.png',
-  paystackPublicKey: 'pk_test_a62243685a10497577e5c54c34a873130d71a9b5',
+  paystackPublicKey: 'pk_test_xxxxxxxxxxxxxxxxxxxxxxxx',
   gradingSystem: [
     { grade: 'A', from: 75, to: 100, remark: 'Excellent' },
     { grade: 'B', from: 65, to: 74, remark: 'Very Good' },
-    { grade: 'C', from: 50, to: 64, remark: 'Good' },
-    { grade: 'D', from: 45, to: 49, remark: 'Pass' },
-    { grade: 'E', from: 40, to: 44, remark: 'Weak' },
+    { grade: 'C', from: 55, to: 64, remark: 'Good' },
+    { grade: 'D', from: 45, to: 54, remark: 'Pass' },
+    { grade: 'E', from: 40, to: 44, remark: 'Weak Pass' },
     { grade: 'F', from: 0, to: 39, remark: 'Fail' },
   ],
+  schoolType: 'secondary',
+  planId: 'plan_pro', // A demo plan ID
 };
 
-export const demoFees = [
-    { id: 'fee_1', description: 'Tuition Fee', amount: '50000', classes: ['JSS 1', 'JSS 2'] },
-    { id: 'fee_2', description: 'Development Levy', amount: '10000', classes: ['JSS 1', 'JSS 2'] },
-    { id: 'fee_3', description: 'PTA Levy', amount: '5000', classes: ['JSS 1', 'JSS 2'] },
+export const demoStudents = [
+  { id: 'std_1', name: 'Adebayo Chinedu', class: 'JSS 1', admissionNo: 'RS-001', gender: 'Male', dob: '2010-05-15', photo: 'https://i.pravatar.cc/150?u=std_1', parentEmail: 'parent1@example.com', faceDescriptor: [], status: 'active' },
+  { id: 'std_2', name: 'Ngozi Okoro', class: 'JSS 1', admissionNo: 'RS-002', gender: 'Female', dob: '2010-08-22', photo: 'https://i.pravatar.cc/150?u=std_2', parentEmail: 'parent2@example.com', faceDescriptor: [], status: 'active' },
+  { id: 'std_3', name: 'Tunde Bello', class: 'JSS 2', admissionNo: 'RS-003', gender: 'Male', dob: '2009-02-10', photo: 'https://i.pravatar.cc/150?u=std_3', parentEmail: 'parent3@example.com', faceDescriptor: [], status: 'active' },
+  { id: 'std_4', name: 'Aisha Lawal', class: 'SSS 1', admissionNo: 'RS-004', gender: 'Female', dob: '2008-11-30', photo: 'https://i.pravatar.cc/150?u=std_4', parentEmail: 'parent4@example.com', faceDescriptor: [], status: 'active' },
+  { id: 'std_5', name: 'Yusuf Ibrahim', class: 'SSS 1', admissionNo: 'RS-005', gender: 'Male', dob: '2008-07-19', photo: 'https://i.pravatar.cc/150?u=std_5', parentEmail: 'parent5@example.com', faceDescriptor: [], status: 'active' },
+  { id: 'std_6', name: 'Folake Adekunle', class: 'JSS 1', admissionNo: 'RS-006', gender: 'Female', dob: '2010-03-12', photo: 'https://i.pravatar.cc/150?u=std_6', parentEmail: 'parent6@example.com', faceDescriptor: [], status: 'active' },
+  { id: 'std_7', name: 'Emeka Nwosu', class: 'JSS 2', admissionNo: 'RS-007', gender: 'Male', dob: '2009-09-05', photo: 'https://i.pravatar.cc/150?u=std_7', parentEmail: 'parent7@example.com', faceDescriptor: [], status: 'active' },
+  { id: 'alumni_1', name: 'John Doe', class: 'Graduated (2022)', admissionNo: 'RS-AL-001', gender: 'Male', dob: '2004-01-01', photo: 'https://i.pravatar.cc/150?u=alumni_1', parentEmail: 'johndoe@example.com', status: 'alumni', graduationYear: 2022 },
+  { id: 'alumni_2', name: 'Jane Smith', class: 'Graduated (2023)', admissionNo: 'RS-AL-002', gender: 'Female', dob: '2005-02-02', photo: 'https://i.pravatar.cc/150?u=alumni_2', parentEmail: 'janesmith@example.com', status: 'alumni', graduationYear: 2023 },
 ];
 
-export const demoScratchCards = [
-    { id: 'card_1', pin: '123456789012', used: false, createdAt: new Date().toISOString() }
+export const demoSubjects = [
+    { id: 'subj_1', name: 'Mathematics', classes: ['JSS 1', 'JSS 2', 'JSS 3', 'SSS 1', 'SSS 2', 'SSS 3'] },
+    { id: 'subj_2', name: 'English Language', classes: ['JSS 1', 'JSS 2', 'JSS 3', 'SSS 1', 'SSS 2', 'SSS 3'] },
+    { id: 'subj_3', name: 'Basic Science', classes: ['JSS 1', 'JSS 2', 'JSS 3'] },
+    { id: 'subj_4', name: 'Physics', classes: ['SSS 1', 'SSS 2', 'SSS 3'] },
+    { id: 'subj_5', name: 'Chemistry', classes: ['SSS 1', 'SSS 2', 'SSS 3'] },
+    { id: 'subj_6', name: 'Biology', classes: ['SSS 1', 'SSS 2', 'SSS 3'] },
 ];
 
-export const demoStudents: Student[] = [
-  { id: 'std_001', name: 'Adebayo Chukwuma', class: 'JSS 1', admissionNo: 'RS-001', gender: 'Male', dob: '2010-05-15', photo: 'https://api.dicebear.com/8.x/adventurer/svg?seed=Adebayo', parentEmail: 'parent1@example.com' },
-  { id: 'std_002', name: 'Ngozi Okoro', class: 'JSS 1', admissionNo: 'RS-002', gender: 'Female', dob: '2010-08-22', photo: 'https://api.dicebear.com/8.x/adventurer/svg?seed=Ngozi', parentEmail: 'parent2@example.com' },
-  { id: 'std_003', name: 'Emeka Nwosu', class: 'JSS 2', admissionNo: 'RS-003', gender: 'Male', dob: '2009-03-10', photo: 'https://api.dicebear.com/8.x/adventurer/svg?seed=Emeka', parentEmail: 'parent3@example.com' },
-  { id: 'std_004', name: 'Fatima Bello', class: 'JSS 2', admissionNo: 'RS-004', gender: 'Female', dob: '2009-11-05', photo: 'https://api.dicebear.com/8.x/adventurer/svg?seed=Fatima', parentEmail: 'parent4@example.com' },
-];
-
-export const demoSubjects: Subject[] = [
-  { id: 'subj_eng', name: 'English Language', classes: ['JSS 1', 'JSS 2'] },
-  { id: 'subj_mat', name: 'Mathematics', classes: ['JSS 1', 'JSS 2'] },
-  { id: 'subj_sci', name: 'Basic Science', classes: ['JSS 1', 'JSS 2'] },
-  { id: 'subj_tec', name: 'Basic Technology', classes: ['JSS 1', 'JSS 2'] },
+export const demoScores = [
+    { studentId: 'std_1', subjectId: 'subj_1', term: 'First Term', session: '2023/2024', ca1: 15, ca2: 18, exam: 45 },
+    { studentId: 'std_1', subjectId: 'subj_2', term: 'First Term', session: '2023/2024', ca1: 12, ca2: 10, exam: 30 },
+    { studentId: 'std_2', subjectId: 'subj_1', term: 'First Term', session: '2023/2024', ca1: 20, ca2: 19, exam: 55 },
+    { studentId: 'std_2', subjectId: 'subj_2', term: 'First Term', session: '2023/2024', ca1: 18, ca2: 17, exam: 48 },
 ];
 
 export const demoTeachers = [
-    { id: 'teacher_1699904494056', name: 'Mrs. Funke Akindele', email: 'funke@example.com', role: 'Teacher' },
-    { id: 'teacher_1699904534638', name: 'Mr. Chidi Mokeme', email: 'chidi@example.com', role: 'Admin' },
-    { id: 'teacher_1699904534639', name: 'Mr. Femi Adebayo', email: 'femi@example.com', role: 'Bursar' },
+    { id: 'teacher_1', name: 'Mrs. Funke Adewale', email: 'teacher@example.com', role: 'Teacher' },
+    { id: 'teacher_2', name: 'Mr. John Obi', email: 'admin@example.com', role: 'Admin' },
 ];
-
-export const demoScores: Score[] = [
-  // Session: 2023/2024, First Term
-  { studentId: 'std_001', subjectId: 'subj_eng', term: 'First Term', session: '2023/2024', ca1: 18, ca2: 15, exam: 50 }, // 83
-  { studentId: 'std_001', subjectId: 'subj_mat', term: 'First Term', session: '2023/2024', ca1: 20, ca2: 18, exam: 55 }, // 93
-  { studentId: 'std_001', subjectId: 'subj_sci', term: 'First Term', session: '2023/2024', ca1: 17, ca2: 17, exam: 48 }, // 82
-  { studentId: 'std_002', subjectId: 'subj_eng', term: 'First Term', session: '2023/2024', ca1: 15, ca2: 12, exam: 40 }, // 67
-  { studentId: 'std_002', subjectId: 'subj_mat', term: 'First Term', session: '2023/2024', ca1: 10, ca2: 8, exam: 25 },  // 43
-  { studentId: 'std_002', subjectId: 'subj_sci', term: 'First Term', session: '2023/2024', ca1: 12, ca2: 13, exam: 35 },  // 60
-  { studentId: 'std_003', subjectId: 'subj_eng', term: 'First Term', session: '2023/2024', ca1: 14, ca2: 16, exam: 45 }, // 75
-  { studentId: 'std_003', subjectId: 'subj_mat', term: 'First Term', session: '2023/2024', ca1: 19, ca2: 19, exam: 58 }, // 96
-
-  // Session: 2023/2024, Second Term
-  { studentId: 'std_001', subjectId: 'subj_eng', term: 'Second Term', session: '2023/2024', ca1: 17, ca2: 16, exam: 52 }, // 85
-  { studentId: 'std_001', subjectId: 'subj_mat', term: 'Second Term', session: '2023/2024', ca1: 18, ca2: 19, exam: 50 }, // 87
-  { studentId: 'std_001', subjectId: 'subj_sci', term: 'Second Term', session: '2023/2024', ca1: 15, ca2: 15, exam: 50 }, // 80
-  { studentId: 'std_002', subjectId: 'subj_eng', term: 'Second Term', session: '2023/2024', ca1: 16, ca2: 13, exam: 45 }, // 74
-  { studentId: 'std_002', subjectId: 'subj_mat', term: 'Second Term', session: '2023/2024', ca1: 11, ca2: 10, exam: 30 }, // 51
-  { studentId: 'std_002', subjectId: 'subj_sci', term: 'Second Term', session: '2023/2024', ca1: 14, ca2: 12, exam: 40 },  // 66
-  { studentId: 'std_003', subjectId: 'subj_eng', term: 'Second Term', session: '2023/2024', ca1: 15, ca2: 15, exam: 48 }, // 78
-  { studentId: 'std_003', subjectId: 'subj_mat', term: 'Second Term', session: '2023/2024', ca1: 18, ca2: 17, exam: 55 }, // 90
-
-  // Session: 2022/2023, Third Term (for historical data)
-  { studentId: 'std_003', subjectId: 'subj_eng', term: 'Third Term', session: '2022/2023', ca1: 12, ca2: 14, exam: 40 }, // 66 (was in JSS 1)
-  { studentId: 'std_003', subjectId: 'subj_mat', term: 'Third Term', session: '2022/2023', ca1: 17, ca2: 18, exam: 50 }, // 85 (was in JSS 1)
-];
-
 
 export const demoAttendance = [
-    { date: '2024-05-20', statuses: { 'std_001': 'present', 'std_002': 'late' } },
-    { date: '2024-05-21', statuses: { 'std_001': 'present', 'std_002': 'present' } },
+    { date: new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().split('T')[0], statuses: { 'std_1': 'present', 'std_2': 'present', 'std_3': 'late' } },
+    { date: new Date().toISOString().split('T')[0], statuses: { 'std_1': 'present', 'std_2': 'absent' } },
 ];
 
 export const demoBehavioralRecords = [
-    { id: 'bhv_1', studentId: 'std_001', type: 'positive', remark: 'Answered questions correctly in class.', date: '2024-05-20' },
-    { id: 'bhv_2', studentId: 'std_002', type: 'negative', remark: 'Did not submit assignment on time.', date: '2024-05-21' },
+    { id: 'bhv_1', studentId: 'std_1', date: new Date().toISOString(), type: 'positive', remark: 'Assisted a classmate who was struggling with a math problem.' },
+    { id: 'bhv_2', studentId: 'std_2', date: new Date(new Date().setDate(new Date().getDate() - 1)).toISOString(), type: 'negative', remark: 'Was disruptive during the English class.' },
 ];
 
 export const demoActivities = [
-  { id: 'act_1', type: 'STUDENT_ADD', description: 'Added a new student: Adebayo Chukwuma.', timestamp: new Date(Date.now() - 120000).toISOString() },
-  { id: 'act_2', type: 'TEACHER_ADD', description: 'Added a new teacher: Mrs. Funke Akindele.', timestamp: new Date(Date.now() - 3600000).toISOString() },
-  { id: 'act_3', type: 'SUBJECT_UPDATE', description: 'Updated subject: Mathematics', timestamp: new Date(Date.now() - 7200000).toISOString() }
+    { id: 'act_1', type: 'STUDENT_ADD', description: 'Added a new student: Adebayo Chinedu.', timestamp: new Date().toISOString() },
+    { id: 'act_2', type: 'SUBJECT_UPDATE', description: 'Updated subject: Mathematics.', timestamp: new Date().toISOString() },
 ];
 
-export const demoPlatformSettings = {
-    paystackPublicKey: '',
-    paystackSecretKey: '',
-    flutterwavePublicKey: '',
-    flutterwaveSecretKey: '',
-    payvesselMerchantId: '',
-    payvesselApiKey: '',
-    articles: [
-        { id: 'art_1', title: 'Welcome to ReportSheet', content: 'This is the first article in your knowledge base.', status: 'published', lastUpdated: new Date().toISOString() },
-    ]
-};
-
-export const demoKbArticles = [
-    { id: 'kb_1', title: 'How to Add a New Student', content: 'Go to the Students tab and click "Add Student".', status: 'published', lastUpdated: new Date().toISOString() },
+export const demoFees = [
+    { id: 'fee_1', description: 'Tuition Fee', amount: 50000, classes: ['JSS 1', 'JSS 2', 'JSS 3'] },
+    { id: 'fee_2', description: 'Lab Fee', amount: 10000, classes: ['SSS 1', 'SSS 2', 'SSS 3'] },
 ];
 
-export const demoRemarks: Remark[] = [
-    { studentId: 'std_001', term: 'First Term', session: '2023/2024', generalComment: 'Excellent start to the session. Adebayo is focused and hardworking.' },
-    { studentId: 'std_001', term: 'Second Term', session: '2023/2024', generalComment: 'Consistent performance. Keep up the great work.' },
+export const demoScratchCards = [
+    { id: 'card_1', pin: '123456789012', used: false, createdAt: new Date().toISOString() },
+    { id: 'card_2', pin: '098765432109', used: true, createdAt: new Date().toISOString() },
 ];

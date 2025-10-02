@@ -18,6 +18,12 @@ const SubscriptionPage = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    const domain = window.location.hostname.includes('localhost')
+        ? window.location.host // e.g., localhost:5173
+        : 'reportsheet.com.ng';
+
+    const portalUrl = `${window.location.protocol}//${formData.subdomain}.${domain}`;
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         let processedValue = value;
@@ -45,13 +51,16 @@ const SubscriptionPage = () => {
             // 1. Create the tenant record first
             await apiAddTenant({ id: formData.subdomain, name: formData.schoolName });
 
-            // 2. Create the Supabase user
+            // 2. Create the Supabase user with redirect option
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email: formData.adminEmail,
                 password: formData.adminPassword,
+                options: {
+                    emailRedirectTo: portalUrl
+                }
             });
             if (authError) throw authError;
-            if (!authData.user) throw new Error("User creation failed.");
+            if (!authData.user) throw new Error("User creation succeeded, but no user data was returned.");
 
             // 3. Populate the new tenant with default data
             const newAdmin = {
@@ -73,17 +82,21 @@ const SubscriptionPage = () => {
                 apiSaveTeachers([newAdmin], formData.subdomain),
             ]);
 
-            // 4. Redirect to the new portal
+            // 4. Go to "Verify Email" step
             setStep(3);
         } catch (err) {
-            setError(err.message);
+            let errorMessage = err.message;
+            if (err.message.toLowerCase().includes('failed to fetch')) {
+                errorMessage = "A network error occurred. This might be due to a connectivity issue, an ad-blocker, or a server configuration problem. Please check your connection and try again.";
+            } else if (err.status === 429) {
+                errorMessage = "You have made too many requests. Please wait a moment before trying again.";
+            }
+            setError(errorMessage);
             // TODO: Add rollback logic if tenant creation succeeds but user creation fails
         } finally {
             setLoading(false);
         }
     };
-
-    const portalUrl = `http://${formData.subdomain}.localhost:5173`; // Adjust for production
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4">
@@ -102,7 +115,7 @@ const SubscriptionPage = () => {
                             <div className="space-y-4">
                                 <div><label className="label">School Name</label><input type="text" name="schoolName" value={formData.schoolName} onChange={handleChange} className="input-field" placeholder="Brightstar Academy" required /></div>
                                 <div><label className="label">School Level</label><select name="schoolType" value={formData.schoolType} onChange={handleChange} className="input-field"><option value="nursery_primary">Nursery & Primary</option><option value="secondary">Secondary</option><option value="all">All Levels</option></select></div>
-                                <div><label className="label">Portal Address</label><div className="flex items-center"><input type="text" name="subdomain" value={formData.subdomain} onChange={handleChange} className="input-field rounded-r-none" placeholder="brightstar" required /><span className="px-3 py-2.5 bg-gray-100 dark:bg-gray-700 border border-l-0 dark:border-gray-600 rounded-r-md">.reportsheet.com</span></div></div>
+                                <div><label className="label">Portal Address</label><div className="flex items-center"><input type="text" name="subdomain" value={formData.subdomain} onChange={handleChange} className="input-field rounded-r-none" placeholder="brightstar" required /><span className="px-3 py-2.5 bg-gray-100 dark:bg-gray-700 border border-l-0 dark:border-gray-600 rounded-r-md">.{domain}</span></div></div>
                             </div>
                             <div className="text-right mt-6"><button onClick={handleNext} disabled={!formData.schoolName || !formData.subdomain} className="btn btn-primary">Next</button></div>
                         </div>
@@ -125,10 +138,11 @@ const SubscriptionPage = () => {
                     )}
                      {step === 3 && (
                         <div className="text-center">
-                            <h2 className="text-2xl font-semibold text-green-600">Account Created!</h2>
-                            <p className="mt-4">Your school portal is ready. You can now log in at your new address:</p>
-                            <a href={portalUrl} className="my-4 block font-mono text-lg text-indigo-600 underline">{portalUrl}</a>
-                            <a href={portalUrl} className="btn btn-primary">Go to My Portal</a>
+                            <h2 className="text-2xl font-semibold text-indigo-600">Almost there!</h2>
+                            <p className="mt-4">We've sent a verification link to <strong>{formData.adminEmail}</strong>.</p>
+                            <p className="mt-2">Please click the link in the email to activate your account. Once verified, you can log in at:</p>
+                            <a href={portalUrl} className="my-4 block font-mono text-lg text-indigo-600 underline" target="_blank" rel="noopener noreferrer">{portalUrl}</a>
+                            <p className="text-sm text-gray-500">Didn't receive an email? Check your spam folder or wait a few minutes.</p>
                         </div>
                     )}
                 </div>

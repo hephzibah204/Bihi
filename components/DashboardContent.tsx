@@ -94,8 +94,6 @@ const DashboardContent = ({ activeView, setActiveView, userRole }: DashboardCont
             return <BehavioralRemarks />;
         case 'bursary':
             return <Bursary />;
-        case 'billing':
-            return <BillingDashboard />;
         case 'communications':
             return <CommunicationsDashboard />;
         case 'analytics':
@@ -103,8 +101,9 @@ const DashboardContent = ({ activeView, setActiveView, userRole }: DashboardCont
              return hasFeature('hasAnalytics') ? <AdvancedAnalytics /> : <UpgradePrompt featureName="Advanced Analytics" onUpgradeClick={handleUpgrade} />;
         case 'ai-tools':
             return hasFeature('hasAI') ? <AiTools /> : <UpgradePrompt featureName="AI Tools" onUpgradeClick={handleUpgrade} />;
-        case 'settings':
-            return <SchoolSettings />;
+        // Fix: Removed redundant 'billing' and 'settings' cases. They are handled in the guard clause above,
+        // and leaving them here causes a TypeScript error because control flow analysis
+        // knows they are unreachable.
         default:
             return <DashboardHome setActiveView={setActiveView} />;
     }
