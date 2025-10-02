@@ -55,7 +55,6 @@ const Students = () => {
     const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
     const loaderRef = useRef(null);
     
-    const [isPermissionModalOpen, setPermissionModalOpen] = useState(false);
 
     // Observer for infinite scroll
     useEffect(() => {
@@ -111,10 +110,6 @@ const Students = () => {
         // The useSyncedLocalStorage hook will automatically update the student list.
     };
     
-    const handleCameraFeatureClick = () => {
-        setPermissionModalOpen(true);
-    };
-
     const handleClearFilters = () => {
         setSearchTerm('');
         setClassFilter('');
@@ -256,7 +251,7 @@ const Students = () => {
                                 <td className="td text-gray-500 dark:text-gray-400">{student.gender}</td>
                                 <td className="td text-right">
                                     <div className="flex justify-end space-x-4">
-                                        <button onClick={handleCameraFeatureClick} className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-200" title="Enroll Face ID">
+                                        <button onClick={() => setEnrollmentStudent(student)} className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-200" title="Enroll Face ID">
                                             <FaceIdIcon className="h-5 w-5" />
                                         </button>
                                         <button onClick={() => handleOpenEditModal(student)} className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-200" title="Edit Student">
@@ -402,17 +397,6 @@ const Students = () => {
                     student={enrollmentStudent}
                 />
             )}
-             <Modal isOpen={isPermissionModalOpen} onClose={() => setPermissionModalOpen(false)} title="Camera Permission Required">
-                <div className="p-6 text-center space-y-4">
-                    <p className="text-gray-600 dark:text-gray-300">This feature requires camera access to function.</p>
-                    <p className="text-gray-600 dark:text-gray-300">The app has not been configured to request camera permissions. If you need this feature, please contact the administrator.</p>
-                    <div className="mt-2">
-                        <button onClick={() => setPermissionModalOpen(false)} className="btn btn-primary">
-                            OK
-                        </button>
-                    </div>
-                </div>
-            </Modal>
         </div>
     );
 };

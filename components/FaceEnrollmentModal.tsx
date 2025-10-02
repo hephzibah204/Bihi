@@ -13,6 +13,7 @@ const FaceEnrollmentModal = ({ isOpen, onClose, student }) => {
     const videoRef = useRef(null);
     const [modelsLoaded, setModelsLoaded] = useState(false);
     const [captureStatus, setCaptureStatus] = useState('idle'); // idle, capturing, success, error
+    const [cameraStatus, setCameraStatus] = useState('initializing'); // initializing, ready, error
 
     useEffect(() => {
         const loadModels = async () => {
@@ -35,19 +36,28 @@ const FaceEnrollmentModal = ({ isOpen, onClose, student }) => {
         } else {
             stopVideo();
         }
+        return () => stopVideo(); // Cleanup on unmount or when isOpen changes
     }, [isOpen, modelsLoaded]);
     
     const startVideo = () => {
+        setCameraStatus('initializing');
         navigator.mediaDevices.getUserMedia({ video: {} })
             .then(stream => {
-                if (videoRef.current) videoRef.current.srcObject = stream;
+                if (videoRef.current) {
+                    videoRef.current.srcObject = stream;
+                    setCameraStatus('ready');
+                }
             })
-            .catch(err => console.error("Error accessing camera: ", err));
+            .catch(err => {
+                console.error("Error accessing camera: ", err);
+                setCameraStatus('error');
+            });
     };
 
     const stopVideo = () => {
         if (videoRef.current && videoRef.current.srcObject) {
             videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+            videoRef.current.srcObject = null;
         }
     };
     
@@ -81,18 +91,33 @@ const FaceEnrollmentModal = ({ isOpen, onClose, student }) => {
         }
     };
 
+    const renderCameraView = () => {
+        if (cameraStatus === 'initializing') {
+            return <div className="flex items-center justify-center h-full text-white"><p>Starting camera...</p></div>;
+        }
+        if (cameraStatus === 'error') {
+            return (
+                <div className="flex flex-col items-center justify-center h-full text-red-400 p-4">
+                    <p className="font-semibold">Camera Access Denied</p>
+                    <p className="text-sm mt-1 text-gray-300">Please enable camera permissions in your browser settings to use this feature.</p>
+                </div>
+            );
+        }
+        return <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover"></video>;
+    };
+
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={`Face Enrollment for ${student?.name}`}>
             <div className="p-6 text-center">
                 {!modelsLoaded ? <p>Loading AI models...</p> :
                 <>
-                    <div className="w-full bg-black rounded-lg overflow-hidden aspect-video mx-auto">
-                        <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover"></video>
+                    <div className="w-full bg-black rounded-lg overflow-hidden aspect-video mx-auto flex items-center justify-center">
+                        {renderCameraView()}
                     </div>
                     <p className="mt-4 text-gray-600 dark:text-gray-300">
                         Please look directly at the camera and ensure your face is well-lit.
                     </p>
-                    <button onClick={handleCapture} disabled={captureStatus !== 'idle'} className="mt-4 btn btn-primary">
+                    <button onClick={handleCapture} disabled={captureStatus !== 'idle' || cameraStatus !== 'ready'} className="mt-4 btn btn-primary">
                         {captureStatus === 'idle' && 'Capture Photo'}
                         {captureStatus === 'capturing' && 'Analyzing...'}
                         {captureStatus === 'success' && 'Success!'}

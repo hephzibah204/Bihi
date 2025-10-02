@@ -35,7 +35,6 @@ const Attendance = () => {
     const [recognitionStatus, setRecognitionStatus] = useState({ message: 'Align your face in the frame.', type: 'info'});
     const videoRef = useRef(null);
     const recognitionIntervalRef = useRef(null);
-    const [isPermissionModalOpen, setPermissionModalOpen] = useState(false);
 
     const attendanceRef = useRef(attendance);
     useEffect(() => {
@@ -151,10 +150,6 @@ const Attendance = () => {
         setAttendance(prev => ({ ...prev, [studentId]: status }));
     }, []);
 
-    const handleCameraFeatureClick = () => {
-        setPermissionModalOpen(true);
-    };
-
     // QR Code Scanner Effect
      useEffect(() => {
         if (!isScannerOpen || !document.getElementById("qr-reader")) return;
@@ -220,9 +215,13 @@ const Attendance = () => {
     };
 
     const stopVideo = () => {
-        if (recognitionIntervalRef.current) clearInterval(recognitionIntervalRef.current);
+        if (recognitionIntervalRef.current) {
+            clearInterval(recognitionIntervalRef.current);
+            recognitionIntervalRef.current = null;
+        }
         if (videoRef.current && videoRef.current.srcObject) {
             videoRef.current.srcObject.getTracks().forEach((track: any) => track.stop());
+            videoRef.current.srcObject = null;
         }
     };
     
@@ -296,11 +295,11 @@ const Attendance = () => {
                     </div>
                 </div>
                  <div className="flex space-x-2">
-                    <button onClick={handleCameraFeatureClick} className="btn btn-secondary">
+                    <button onClick={() => setRecognitionModalOpen(true)} className="btn btn-secondary">
                         <FaceIdIcon className="w-5 h-5 mr-2" />
                         Facial Recognition
                     </button>
-                    <button onClick={handleCameraFeatureClick} className="btn btn-secondary">
+                    <button onClick={() => setScannerOpen(true)} className="btn btn-secondary">
                          <QrCodeIcon className="w-5 h-5 mr-2" />
                         QR Code Scan
                     </button>
@@ -340,18 +339,6 @@ const Attendance = () => {
                     </tbody>
                 </table>
             </div>
-
-            <Modal isOpen={isPermissionModalOpen} onClose={() => setPermissionModalOpen(false)} title="Camera Permission Required">
-                <div className="p-6 text-center space-y-4">
-                    <p className="text-gray-600 dark:text-gray-300">This feature requires camera access to function.</p>
-                    <p className="text-gray-600 dark:text-gray-300">The app has not been configured to request camera permissions. If you need this feature, please contact the administrator.</p>
-                    <div className="mt-2">
-                        <button onClick={() => setPermissionModalOpen(false)} className="btn btn-primary">
-                            OK
-                        </button>
-                    </div>
-                </div>
-            </Modal>
 
              <Modal isOpen={isScannerOpen} onClose={handleCloseScanner} title="Scan Student QR Code">
                 <div className="p-4">

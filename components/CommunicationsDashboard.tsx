@@ -14,6 +14,7 @@ const CommunicationsDashboard = () => {
     const [recipients, setRecipients] = useState(['all']);
     const [methods, setMethods] = useState({ portal: true, email: false });
     const [sending, setSending] = useState(false);
+    const [notification, setNotification] = useState({ message: '', type: '' });
     
     const fetchInitialData = async () => {
         setLoading(true);
@@ -54,10 +55,12 @@ const CommunicationsDashboard = () => {
 
     const handleSend = async () => {
         if (!title || !content || recipients.length === 0) {
-            alert("Title, content, and at least one recipient are required.");
+            setNotification({ message: "Title, content, and at least one recipient are required.", type: 'error'});
             return;
         }
         setSending(true);
+        setNotification({ message: '', type: '' });
+
 
         const newAnnouncement = { 
             title, 
@@ -76,9 +79,12 @@ const CommunicationsDashboard = () => {
             setRecipients(['all']);
             setMethods({ portal: true, email: false });
             setActiveTab('sent');
+            setNotification({ message: "Announcement sent successfully!", type: 'success' });
+            setTimeout(() => setNotification({ message: '', type: '' }), 5000);
+
         } catch (error) {
             console.error("Failed to send announcement:", error);
-            alert(`Error: ${error.message}`);
+            setNotification({ message: `Error sending announcement: ${error.message}. Please check if the email service is configured.`, type: 'error' });
         } finally {
             setSending(false);
         }
@@ -156,6 +162,11 @@ const CommunicationsDashboard = () => {
     return (
         <div className="card">
             <div className="p-6">
+                 {notification.message && (
+                    <div className={`mb-4 p-3 text-sm rounded-lg ${notification.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {notification.message}
+                    </div>
+                )}
                 <div className="border-b dark:border-gray-600 mb-4">
                     <nav className="flex space-x-4">
                         <button onClick={() => setActiveTab('compose')} className={`py-2 px-4 font-semibold ${activeTab === 'compose' ? 'border-b-2 border-indigo-500 text-indigo-600' : 'text-gray-500'}`}>Compose New</button>
