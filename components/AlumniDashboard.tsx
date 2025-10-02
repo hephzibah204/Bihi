@@ -1,19 +1,29 @@
 
 
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { apiGetStudents } from '../services/api';
+import { apiGetStudents, apiSendAlumniEmail } from '../services/api';
 import { getSubdomain } from '../utils/subdomain';
 import SearchIcon from './icons/SearchIcon';
 import { Student } from '../types';
+import Modal from './Modal';
+import EnvelopeIcon from './icons/EnvelopeIcon';
 
 const PAGE_SIZE = 30;
 
 const AlumniDashboard = () => {
-    // FIX: The `alumni` state was not explicitly typed, preventing TypeScript from inferring that `graduationYear` would be a number. Adding the `Student[]` type allows the sort function's arithmetic operation to pass type checking.
+    // Fix: Explicitly type the `alumni` state with `Student[]`. This allows TypeScript to correctly infer that `graduationYear` is a number, resolving the arithmetic operation error in the `sort` function.
     const [alumni, setAlumni] = useState<Student[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [yearFilter, setYearFilter] = useState('');
     const [loading, setLoading] = useState(true);
+    const [notification, setNotification] = useState({ message: '', type: '' });
+
+    // Email Modal State
+    const [isEmailModalOpen, setEmailModalOpen] = useState(false);
+    const [emailSubject, setEmailSubject] = useState('');
+    const [emailBody, setEmailBody] = useState('');
+    const [sendingEmail, setSendingEmail] = useState(false);
 
     const graduationYears = useMemo(() => {
         const years = alumni.map(a => a.graduationYear).filter(Boolean);
@@ -88,6 +98,38 @@ const AlumniDashboard = () => {
         setYearFilter('');
     };
     
+    const handleSendEmail = async () => {
+        if (!emailSubject || !emailBody) {
+            setNotification({ message: 'Email subject and body are required.', type: 'error' });
+            return;
+        }
+
+        setSendingEmail(true);
+        setNotification({ message: '', type: '' });
+
+        const recipients = filteredAlumni
+            .map(a => a.parentEmail) // Assuming parentEmail is the contact for alumni
+            .filter(email => email && email.includes('@'));
+
+        if (recipients.length === 0) {
+            setNotification({ message: 'No alumni with valid email addresses in the current selection.', type: 'error' });
+            setSendingEmail(false);
+            return;
+        }
+
+        try {
+            await apiSendAlumniEmail(recipients, emailSubject, emailBody);
+            setNotification({ message: 'Email sent successfully!', type: 'success' });
+            setEmailModalOpen(false);
+            setEmailSubject('');
+            setEmailBody('');
+        } catch (error) {
+            setNotification({ message: `Failed to send email: ${error.message}`, type: 'error' });
+        } finally {
+            setSendingEmail(false);
+        }
+    };
+    
     if (loading) {
         return <div className="text-center p-8">Loading Alumni Directory...</div>
     }
@@ -96,7 +138,14 @@ const AlumniDashboard = () => {
         <div className="card">
             <div className="p-6">
                 <h2 className="text-2xl font-semibold">Alumni Directory</h2>
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                {notification.message && (
+                    <div className={`my-4 p-3 text-sm rounded-lg ${notification.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {notification.message}
+                    </div>
+                )}
+
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                      <div className="md:col-span-2 relative">
                          <input 
                             type="text"
@@ -115,14 +164,20 @@ const AlumniDashboard = () => {
                      </div>
                 </div>
 
-                 {(searchTerm || yearFilter) && (
-                    <div className="mt-4 flex justify-between items-center">
-                        <p className="text-sm text-gray-600 dark:text-gray-300">
-                            Found {filteredAlumni.length} alumni matching your criteria.
-                        </p>
-                        <button onClick={handleClearFilters} className="btn btn-secondary text-sm">Clear Filters</button>
+                 <div className="mt-4 flex justify-between items-center">
+                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Showing {filteredAlumni.length} alumni.
+                    </p>
+                    <div className="flex items-center space-x-2">
+                        {(searchTerm || yearFilter) && (
+                            <button onClick={handleClearFilters} className="btn btn-secondary text-sm">Clear Filters</button>
+                        )}
+                        <button onClick={() => setEmailModalOpen(true)} className="btn btn-primary">
+                            <EnvelopeIcon className="w-5 h-5 mr-2" />
+                            Email Alumni
+                        </button>
                     </div>
-                )}
+                </div>
                 
                 {filteredAlumni.length > 0 ? (
                     <>
@@ -155,6 +210,40 @@ const AlumniDashboard = () => {
                     </div>
                 )}
             </div>
+
+            <Modal isOpen={isEmailModalOpen} onClose={() => setEmailModalOpen(false)} title="Send Email to Alumni">
+                <div className="p-6 space-y-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Your message will be sent to <strong>{filteredAlumni.filter(a => a.parentEmail).length} alumni</strong> with an email address based on your current filters.
+                    </p>
+                    <div>
+                        <label className="label">Subject</label>
+                        <input
+                            type="text"
+                            className="input-field"
+                            value={emailSubject}
+                            onChange={(e) => setEmailSubject(e.target.value)}
+                            placeholder="Announcing our annual reunion"
+                        />
+                    </div>
+                    <div>
+                        <label className="label">Message</label>
+                        <textarea
+                            className="input-field"
+                            rows={8}
+                            value={emailBody}
+                            onChange={(e) => setEmailBody(e.target.value)}
+                            placeholder="Dear Alumni..."
+                        />
+                    </div>
+                    <div className="flex justify-end pt-2 space-x-2">
+                        <button onClick={() => setEmailModalOpen(false)} className="btn btn-secondary">Cancel</button>
+                        <button onClick={handleSendEmail} className="btn btn-primary" disabled={sendingEmail}>
+                            {sendingEmail ? 'Sending...' : 'Send Email'}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 };

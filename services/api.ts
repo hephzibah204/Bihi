@@ -468,6 +468,19 @@ export const apiSendAnnouncement = async (announcement) => {
     }
 };
 
+export const apiSendAlumniEmail = async (emails: string[], subject: string, message: string) => {
+    if (!supabase) {
+        throw new Error("Supabase is not initialized.");
+    }
+    const { error } = await supabase.functions.invoke('send-alumni-email', {
+        body: { emails, subject, message },
+    });
+
+    if (error) {
+        throw error;
+    }
+};
+
 
 // --- Platform-Wide Data Functions (Not Tenant-Specific) ---
 
