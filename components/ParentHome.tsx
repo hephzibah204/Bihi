@@ -52,7 +52,6 @@ const ParentHome = ({ demoUserId, setActiveView }) => {
 
     return (
         <div>
-            <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">Parent Dashboard</h1>
             <p className="mt-2 text-gray-600 dark:text-gray-300">Welcome! Here's a summary for {child?.name}.</p>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">

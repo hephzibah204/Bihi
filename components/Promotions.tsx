@@ -287,7 +287,6 @@ const Promotions = () => {
 
     return (
         <div>
-            <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">Student Promotions & Graduation</h1>
             <p className="mt-2 text-gray-600 dark:text-gray-300">Promote students to the next class or graduate them from the final class.</p>
 
             {notification && <div className="my-4 p-3 text-sm text-green-700 bg-green-100 rounded-lg">{notification}</div>}

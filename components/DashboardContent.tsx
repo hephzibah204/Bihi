@@ -1,29 +1,29 @@
 import React from 'react';
-import { DashboardView } from '../types';
 import DashboardHome from './DashboardHome';
 import Students from './Students';
 import Subjects from './Subjects';
 import Results from './Results';
+import ReportCard from './ReportCard';
+import { DashboardView } from '../types';
+import Promotions from './Promotions';
 import SchoolSettings from './SchoolSettings';
 import Teachers from './Teachers';
-import Promotions from './Promotions';
 import IDCardGenerator from './IDCardGenerator';
-import Timetable from './Timetable';
 import Attendance from './Attendance';
 import BehavioralRemarks from './BehavioralRemarks';
-import Bursary from './Bursary';
-import AdvancedAnalytics from './AdvancedAnalytics';
-import CommentGenerator from './CommentGenerator';
-import LearningPathways from './LearningPathways';
-import LessonPlanner from './LessonPlanner';
-import EarlyIntervention from './EarlyIntervention';
-import ReportCard from './ReportCard';
+import Timetable from './Timetable';
 import CommunicationsDashboard from './CommunicationsDashboard';
+import Bursary from './Bursary';
 import BillingDashboard from './BillingDashboard';
+import AdvancedAnalytics from './AdvancedAnalytics';
+import LearningPathways from './LearningPathways';
+import PracticeQuiz from './PracticeQuiz';
+import EarlyIntervention from './EarlyIntervention';
+import LessonPlanner from './LessonPlanner';
+import CommentGenerator from './CommentGenerator';
+import BroadsheetAnalysis from './BroadsheetAnalysis';
 import { usePlanFeatures } from '../contexts/PlanFeaturesContext';
 import UpgradePrompt from './UpgradePrompt';
-import { hasPermission } from './Sidebar';
-import LockIcon from './icons/LockIcon';
 
 
 interface DashboardContentProps {
@@ -32,34 +32,46 @@ interface DashboardContentProps {
     userRole: string;
 }
 
-const AiToolsDashboard = () => (
-    <div className="space-y-6">
-        <CommentGenerator />
-        <LessonPlanner />
-        <LearningPathways />
-        <EarlyIntervention />
-    </div>
-);
-
-const AccessDenied = () => (
-    <div className="card text-center p-8 max-w-lg mx-auto">
-        <LockIcon className="w-16 h-16 mx-auto text-red-500" />
-        <h2 className="mt-4 text-2xl font-bold">Access Denied</h2>
-        <p className="mt-2 text-gray-500">You do not have the required permissions to view this page.</p>
+const AiTools = () => (
+    <div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+            <CommentGenerator />
+            <LessonPlanner />
+            <LearningPathways />
+            <PracticeQuiz />
+            <EarlyIntervention />
+            <BroadsheetAnalysis />
+        </div>
     </div>
 );
 
 
 const DashboardContent = ({ activeView, setActiveView, userRole }: DashboardContentProps) => {
-    const { hasAI = false } = usePlanFeatures();
+    const { isSubscribed, hasFeature, isLoading } = usePlanFeatures();
 
-    if (!hasPermission(userRole, activeView)) {
-        return <AccessDenied />;
+    const handleUpgrade = () => setActiveView('billing');
+
+    if (isLoading) {
+        return <div className="card p-6">Loading subscription status...</div>;
+    }
+    
+    // Allow access to these pages even if not subscribed
+    if (activeView === 'settings' || activeView === 'billing') {
+        if (activeView === 'settings') return <SchoolSettings />;
+        if (activeView === 'billing') return <BillingDashboard />;
+    }
+    
+    if (!isSubscribed) {
+        if (activeView === 'dashboard') {
+            return <DashboardHome setActiveView={setActiveView} />;
+        }
+        return <UpgradePrompt featureName="this feature" onUpgradeClick={handleUpgrade} />;
     }
 
     switch(activeView) {
         case 'dashboard':
-            return <DashboardHome />;
+            return <DashboardHome setActiveView={setActiveView} />;
         case 'students':
             return <Students />;
         case 'teachers':
@@ -82,18 +94,19 @@ const DashboardContent = ({ activeView, setActiveView, userRole }: DashboardCont
             return <BehavioralRemarks />;
         case 'bursary':
             return <Bursary />;
-        case 'communications':
-            return <CommunicationsDashboard />;
         case 'billing':
             return <BillingDashboard />;
+        case 'communications':
+            return <CommunicationsDashboard />;
         case 'analytics':
-            return <AdvancedAnalytics />;
+// Fix: Corrected feature key from 'ANALYTICS' to 'hasAnalytics' to match plan definition.
+             return hasFeature('hasAnalytics') ? <AdvancedAnalytics /> : <UpgradePrompt featureName="Advanced Analytics" onUpgradeClick={handleUpgrade} />;
         case 'ai-tools':
-            return hasAI ? <AiToolsDashboard /> : <UpgradePrompt featureName="AI Tools" setActiveView={setActiveView} />;
+            return hasFeature('hasAI') ? <AiTools /> : <UpgradePrompt featureName="AI Tools" onUpgradeClick={handleUpgrade} />;
         case 'settings':
             return <SchoolSettings />;
         default:
-            return <DashboardHome />;
+            return <DashboardHome setActiveView={setActiveView} />;
     }
 };
 

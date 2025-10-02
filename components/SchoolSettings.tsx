@@ -59,7 +59,7 @@ const SchoolSettings = () => {
     return (
         <div>
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">School Settings</h1>
+                <div></div>
                 <button onClick={handleSave} disabled={saving} className="btn btn-primary">
                     {saving ? 'Saving...' : 'Save All Settings'}
                 </button>

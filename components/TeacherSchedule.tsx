@@ -68,7 +68,6 @@ const TeacherSchedule = () => {
 
     return (
         <div>
-            <h1 className="text-2xl font-semibold">My Weekly Schedule</h1>
             <div className="table-container mt-6">
                 <table className="table">
                     <thead>

@@ -14,6 +14,8 @@ import ParentDashboard from './ParentDashboard';
 import TeacherDashboard from './TeacherDashboard';
 import { TenantProvider } from '../contexts/TenantContext';
 import { PlanFeaturesProvider } from '../contexts/PlanFeaturesContext';
+import AdminBottomNavBar from './AdminBottomNavBar';
+import Chatbot from './Chatbot';
 
 const setupDemoData = async () => {
     console.log("Setting up demo environment...");
@@ -21,11 +23,14 @@ const setupDemoData = async () => {
         await Promise.all([
             apiSaveSchoolSettings(demoSchoolSettings, DEMO_TENANT_ID),
             apiSaveStudents(demoStudents, DEMO_TENANT_ID),
+            // Fix: The function definition for apiSaveSubjects expects only one argument.
             apiSaveSubjects(demoSubjects, DEMO_TENANT_ID),
             apiSaveScores(demoScores, DEMO_TENANT_ID),
             apiSaveAttendance(demoAttendance, DEMO_TENANT_ID),
             apiSaveBehavioralRecords(demoBehavioralRecords, DEMO_TENANT_ID),
+            // Fix: The function definition for apiSaveFees expects only one argument.
             apiSaveFees(demoFees, DEMO_TENANT_ID),
+            // Fix: The function definition for apiSaveScratchCards expects only one argument.
             apiSaveScratchCards(demoScratchCards, DEMO_TENANT_ID),
             // Fix: Switched to `updateActivities` and passed a function to match its expected signature, as `apiSaveActivities` was not exported from the API service.
             updateActivities(() => demoActivities, DEMO_TENANT_ID)
@@ -105,28 +110,29 @@ const DemoPage = () => {
     if (role === 'teacher') {
         return <TeacherDashboard isDemo={true} onLogout={handleDemoLogout} />;
     }
-    
-    // Default case for 'admin' or any other role
+
+    // Default case for Admin/Bursar roles
     return (
         <TenantProvider>
             <PlanFeaturesProvider>
                 <SandboxBanner />
                 <div className="flex h-screen bg-gray-100 dark:bg-gray-900 pt-12">
-                    <Sidebar 
-                        isSidebarOpen={isSidebarOpen} 
-                        setSidebarOpen={setSidebarOpen} 
+                    <Sidebar
+                        isSidebarOpen={isSidebarOpen}
+                        setSidebarOpen={setSidebarOpen}
                         activeView={activeView}
                         setActiveView={handleViewChange}
-                        userRole="Admin"
+                        userRole={selectedProfile.role}
                     />
                     <div className="flex-1 flex flex-col overflow-hidden">
-                        {/* Fix: Pass the missing 'title' prop to the Header component. */}
                         <Header title={headerTitle} setSidebarOpen={setSidebarOpen} onLogout={handleDemoLogout} />
-                        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900">
+                        <main className="flex-1 overflow-x-hidden overflow-y-auto pb-16 md:pb-0">
                             <div className="container mx-auto px-6 py-8">
-                                <DashboardContent activeView={activeView} setActiveView={handleViewChange} userRole="Admin" />
+                                <DashboardContent activeView={activeView} setActiveView={handleViewChange} userRole={selectedProfile.role} />
                             </div>
                         </main>
+                        <Chatbot userRole={selectedProfile.role} demoUserId={selectedProfile.userId} />
+                        <AdminBottomNavBar activeView={activeView} setActiveView={handleViewChange} />
                     </div>
                 </div>
             </PlanFeaturesProvider>

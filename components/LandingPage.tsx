@@ -1,5 +1,6 @@
 import React, { useState, FC, useEffect, useRef } from 'react';
 import ChevronDownIcon from './icons/ChevronDownIcon';
+import Logo from './icons/Logo';
 
 // --- Reusable Icon Component ---
 const CheckIcon: FC<{ className?: string }> = ({ className = "w-6 h-6" }) => (
@@ -62,21 +63,16 @@ const LandingPage = ({ onNavigate }) => {
     const [billingCycle, setBillingCycle] = useState('termly');
     const [openFaq, setOpenFaq] = useState<number | null>(0);
 
-    const handleLinkClick = (e, view) => {
-        e.preventDefault();
-        onNavigate(view);
-    };
-
     return (
         <div className="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200">
-            <Header onNavigate={handleLinkClick} />
+            <Header onNavigate={onNavigate} />
             <main>
-                <HeroSection onNavigate={handleLinkClick} />
+                <HeroSection onNavigate={onNavigate} />
                 <SocialProof />
                 <ProblemSolution />
-                <PricingSection billingCycle={billingCycle} setBillingCycle={setBillingCycle} onNavigate={handleLinkClick} />
+                <PricingSection billingCycle={billingCycle} setBillingCycle={setBillingCycle} onNavigate={onNavigate} />
                 <FAQSection openFaq={openFaq} setOpenFaq={setOpenFaq} />
-                <OfferSection onNavigate={handleLinkClick} />
+                <OfferSection onNavigate={onNavigate} />
             </main>
             <Footer />
         </div>
@@ -88,14 +84,20 @@ const LandingPage = ({ onNavigate }) => {
 const Header = ({ onNavigate }) => (
      <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-slate-200/50 dark:border-slate-800/50">
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-            <a href="/" className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-purple-500">ReportSheet</a>
+            <a href="/" className="flex items-center space-x-2">
+                <Logo className="h-8 w-8" />
+                <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-purple-500">
+                    ReportSheet
+                </span>
+            </a>
             <nav className="hidden md:flex items-center space-x-8 text-slate-600 dark:text-slate-300 font-medium">
                 <a href="#features" className="hover:text-indigo-500 transition-colors">Features</a>
                 <a href="#pricing" className="hover:text-indigo-500 transition-colors">Pricing</a>
                 <a href="#faq" className="hover:text-indigo-500 transition-colors">FAQ</a>
             </nav>
             <div className="flex items-center space-x-2">
-                 <a href="?view=signup" onClick={(e) => onNavigate(e, 'signup')} className="btn btn-primary">
+                 {/* Fix: Changed onClick to prevent default and call onNavigate with a single argument. */}
+                 <a href="?view=signup" onClick={(e) => { e.preventDefault(); onNavigate('signup'); }} className="btn btn-primary">
                     Get Started Free
                 </a>
             </div>
@@ -115,10 +117,12 @@ const HeroSection = ({ onNavigate }) => (
                 The All-In-One OS for Modern Nigerian Schools. Automate results, engage parents, and empower teachers with our AI-powered platform.
             </p>
             <div className="mt-10 flex flex-col sm:flex-row justify-center items-center gap-4">
-                <a href="?view=signup" onClick={(e) => onNavigate(e, 'signup')} className="w-full sm:w-auto btn btn-primary px-8 py-3 text-lg">
+                {/* Fix: Changed onClick to prevent default and call onNavigate with a single argument. */}
+                <a href="?view=signup" onClick={(e) => { e.preventDefault(); onNavigate('signup'); }} className="w-full sm:w-auto btn btn-primary px-8 py-3 text-lg">
                     Get Started Free
                 </a>
-                <a href="?view=demo" onClick={(e) => onNavigate(e, 'demo')} className="w-full sm:w-auto btn btn-secondary px-8 py-3 text-lg">
+                {/* Fix: Changed onClick to prevent default and call onNavigate with a single argument. */}
+                <a href="?view=demo" onClick={(e) => { e.preventDefault(); onNavigate('demo'); }} className="w-full sm:w-auto btn btn-secondary px-8 py-3 text-lg">
                     Explore The Demo
                 </a>
             </div>
@@ -210,7 +214,8 @@ const PricingCard = ({ name, price, desc, features, onNavigate, popular = false,
                 </li>
             ))}
         </ul>
-        <a href="?view=signup" onClick={(e) => onNavigate(e, 'signup')} className={`w-full text-center btn ${popular ? 'btn-primary' : 'btn-secondary'} mt-8`}>
+        {/* Fix: Changed onClick to prevent default and call onNavigate with a single argument. */}
+        <a href="?view=signup" onClick={(e) => { e.preventDefault(); onNavigate('signup'); }} className={`w-full text-center btn ${popular ? 'btn-primary' : 'btn-secondary'} mt-8`}>
             Choose {name}
         </a>
     </div>
@@ -256,7 +261,8 @@ const OfferSection = ({ onNavigate }) => (
                 <CountdownTimer />
             </div>
             <div className="mt-10">
-                <a href="?view=signup" onClick={(e) => onNavigate(e, 'signup')} className="btn btn-primary bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 px-10 py-4 text-xl">
+                {/* Fix: Changed onClick to prevent default and call onNavigate with a single argument. */}
+                <a href="?view=signup" onClick={(e) => { e.preventDefault(); onNavigate('signup'); }} className="btn btn-primary bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 px-10 py-4 text-xl">
                     Claim My Discount Now
                 </a>
             </div>

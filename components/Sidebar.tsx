@@ -17,6 +17,7 @@ import DocumentArrowDownIcon from './icons/DocumentArrowDownIcon';
 import EnvelopeIcon from './icons/EnvelopeIcon';
 import { DashboardView } from '../types';
 import CreditCardIcon from './icons/CreditCardIcon';
+import Logo from './icons/Logo';
 
 const rolePermissions: Record<string, 'all' | DashboardView[]> = {
     Admin: 'all',
@@ -126,7 +127,8 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView, use
 
             <aside className={`fixed inset-y-0 left-0 w-64 bg-white dark:bg-card-bg-dark transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-200 ease-in-out z-30 flex flex-col border-r border-border-light dark:border-border-dark`}>
                 <div className="flex items-center justify-center h-20 border-b border-border-light dark:border-border-dark">
-                    <div className="flex items-center">
+                    <div className="flex items-center space-x-2">
+                         <Logo className="h-8 w-8" />
                          <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-purple-500">ReportSheet</span>
                     </div>
                 </div>

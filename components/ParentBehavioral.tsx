@@ -44,7 +44,6 @@ const ParentBehavioral = ({ demoUserId }) => {
 
     return (
         <div>
-            <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">Behavioral Records for {child?.name}</h1>
             <div className="space-y-4 mt-6">
                 {records.length > 0 ? records.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(record => (
                     <div key={record.id} className="card p-4">

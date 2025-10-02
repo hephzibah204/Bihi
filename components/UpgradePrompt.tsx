@@ -1,17 +1,21 @@
 import React from 'react';
-import { DashboardView } from '../types';
+import LockIcon from './icons/LockIcon';
 
-interface UpgradePromptProps {
-  featureName: string;
-  setActiveView: (view: DashboardView) => void;
-}
-
-const UpgradePrompt: React.FC<UpgradePromptProps> = ({ featureName, setActiveView }) => {
+const UpgradePrompt = ({ featureName, onUpgradeClick }) => {
     return (
-        <div className="p-6 text-center border-2 border-dashed rounded-lg">
-            <h3 className="text-lg font-semibold">Upgrade to unlock {featureName}</h3>
-            <p className="mt-2 text-gray-500">This feature is not available on your current plan.</p>
-            <button onClick={() => setActiveView('billing')} className="mt-4 btn btn-primary">Upgrade Plan</button>
+        <div className="card max-w-lg mx-auto mt-8">
+            <div className="p-8 text-center">
+                <div className="w-16 h-16 bg-yellow-100 text-yellow-500 rounded-full flex items-center justify-center mx-auto">
+                    <LockIcon className="w-8 h-8" />
+                </div>
+                <h2 className="mt-4 text-2xl font-bold">Upgrade to Unlock This Feature</h2>
+                <p className="mt-2 text-gray-600 dark:text-gray-300">
+                    Your current plan does not include access to {featureName}. Please upgrade your plan to continue.
+                </p>
+                <button onClick={onUpgradeClick} className="btn btn-primary mt-6">
+                    View Plans & Upgrade
+                </button>
+            </div>
         </div>
     );
 };

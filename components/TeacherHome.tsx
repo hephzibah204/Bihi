@@ -16,7 +16,6 @@ const TeacherHome = ({ setActiveView }: { setActiveView: (view: TeacherView) => 
 
     return (
         <div>
-            <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">Teacher Dashboard</h1>
             <p className="mt-2 text-gray-600 dark:text-gray-300">Welcome! Here are some quick actions to get you started.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
                 {quickLinks.map(link => (

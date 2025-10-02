@@ -215,7 +215,7 @@ const Subjects = () => {
                     </div>
                     <div>
                         <label className="label">Applicable Classes</label>
-                        <div className="grid grid-cols-3 gap-2 mt-2">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
                             {availableClasses.map(c => (
                                 <label key={c} className="flex items-center space-x-2 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
                                     <input 

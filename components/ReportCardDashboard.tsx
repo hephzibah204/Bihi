@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useEffect } from 'react';
 import { apiGetScores, apiGetSubjects, apiGetSchoolSettings, apiGetStudents, updateScores, apiGetAttendance, getTenantData, updateTenantData } from '../services/api';
 import Modal from './Modal';
@@ -327,7 +324,7 @@ const ReportCardDashboard = () => {
                     </div>
                 </div>
             )}
-            <h1 className="text-2xl font-semibold">Generate Report Cards</h1>
+            
             <div className="mt-6 flex flex-col md:flex-row justify-between items-center gap-4">
                 <div>
                     <label className="label">Select Class</label>
@@ -349,9 +346,9 @@ const ReportCardDashboard = () => {
             {renderStudentList()}
             {selectedStudent && allData && (
                 <Modal isOpen={!!selectedStudent} onClose={handleCloseModal} size="full" title={`Report for ${selectedStudent.name}`}>
-                    <div className="flex h-full">
+                    <div className="flex flex-col lg:flex-row h-full">
                         {/* Left Panel: Edit Form */}
-                        <div className="w-1/3 p-6 border-r dark:border-gray-700 overflow-y-auto no-print">
+                        <div className="w-full lg:w-1/3 p-6 border-b lg:border-b-0 lg:border-r dark:border-gray-700 overflow-y-auto no-print">
                             <div className="flex border-b dark:border-gray-700 mb-4">
                                 <button
                                     onClick={() => setActiveModalTab('edit')}
@@ -431,7 +428,7 @@ const ReportCardDashboard = () => {
                             )}
                         </div>
                         {/* Right Panel: Report Card Preview */}
-                        <div className="w-2/3 overflow-y-auto bg-gray-100 dark:bg-gray-900 p-8 flex justify-center">
+                        <div className="w-full lg:w-2/3 overflow-y-auto bg-gray-100 dark:bg-gray-900 p-4 md:p-8 flex justify-center">
                             <div className="printable-content">
                                 <div id={`report-card-${selectedStudent.id}`} className="transform scale-[0.8] origin-top">
                                     {ReportCardComponentForPreview && <ReportCardComponentForPreview

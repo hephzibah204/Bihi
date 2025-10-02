@@ -141,7 +141,6 @@ const Results = () => {
 
     return (
         <div>
-            <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">Enter Student Scores</h1>
             
             <div className="my-6 grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                 <div>

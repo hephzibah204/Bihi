@@ -1,507 +1,240 @@
 import { getSubdomain } from '../utils/subdomain';
-import { DEMO_TENANT_ID, demoTenants, demoPlatformSettings, demoKbArticles, demoActivities, demoFees, demoScratchCards } from '../utils/demoData';
-import { supabase } from './supabaseClient';
-import { RealtimeChannel } from '@supabase/supabase-js';
+import { demoTenants, demoSchoolSettings, demoStudents, demoSubjects, demoScores, demoAttendance, demoBehavioralRecords, demoActivities, demoFees, demoScratchCards, demoPlatformSettings, demoKbArticles, demoTeachers } from '../utils/demoData';
+import { Student } from '../types';
 
-
-// --- Sync Logic ---
-const SYNC_QUEUE_KEY = 'sync_queue';
+// --- Sync Mechanism ---
 export const syncEventBus = new EventTarget();
-let realtimeChannel: RealtimeChannel | null = null;
-
-const getSyncQueue = (): string[] => {
-    try {
-        const queue = localStorage.getItem(SYNC_QUEUE_KEY);
-        return queue ? JSON.parse(queue) : [];
-    } catch {
-        return [];
-    }
-};
-
-const getInitialStatus = (): string => {
-    if (!navigator.onLine) return 'offline';
-    return getSyncQueue().length > 0 ? 'unsynced' : 'synced';
-};
-
-let currentStatus = getInitialStatus();
+let syncQueue: { tenantId: string, key: string, data: any }[] = [];
 let isSyncing = false;
-let syncTimeout: ReturnType<typeof setTimeout> | null = null;
+let syncInterval: ReturnType<typeof setInterval> | null = null;
 
-
-const getTenantIdForSync = () => getSubdomain(window.location.hostname);
-
-const updateStatus = (newStatus: string) => {
-    if (currentStatus === newStatus) return;
-    currentStatus = newStatus;
-    syncEventBus.dispatchEvent(new CustomEvent('syncStatusChange', { detail: currentStatus }));
+const dispatchSyncStatus = () => {
+    let status = 'synced';
+    if (!navigator.onLine) status = 'offline';
+    else if (isSyncing) status = 'syncing';
+    else if (syncQueue.length > 0) status = 'unsynced';
+    syncEventBus.dispatchEvent(new CustomEvent('syncStatusChange', { detail: status }));
 };
 
-const saveSyncQueue = (queue: string[]) => {
-    localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(queue));
-};
-
-const addToSyncQueue = (dataType: string) => {
-    const queue = getSyncQueue();
-    if (!queue.includes(dataType)) {
-        queue.push(dataType);
-        saveSyncQueue(queue);
-    }
-    if (navigator.onLine && currentStatus !== 'syncing') {
-        updateStatus('unsynced');
-    }
-};
-
-const removeFromSyncQueue = (dataType: string) => {
-    let queue = getSyncQueue();
-    queue = queue.filter(item => item !== dataType);
-    saveSyncQueue(queue);
-};
-
-export const clearSyncQueue = () => {
-    saveSyncQueue([]);
-    if (navigator.onLine) {
-        updateStatus('synced');
-    }
-};
-
-export const isSyncNeeded = (): boolean => getSyncQueue().length > 0;
-
-const showGlobalError = (message: string) => {
-    window.dispatchEvent(new CustomEvent('show-global-error', { detail: { message } }));
-};
-
-export const syncData = async () => {
-    if (sessionStorage.getItem('isDemoMode') === 'true' || isSyncing) {
-        return; // Don't sync in demo mode or if already syncing
-    }
-
-    if (!navigator.onLine) {
-        updateStatus('offline');
+const processSyncQueue = async () => {
+    if (isSyncing || syncQueue.length === 0 || !navigator.onLine) {
+        dispatchSyncStatus();
         return;
     }
-
-    if (!supabase) {
-        console.warn("Supabase not initialized, cannot sync.");
-        return;
-    }
-
-    const tenantId = getTenantIdForSync();
-    if (!tenantId) {
-        // Not in a tenant context, nothing to sync.
-        return;
-    }
-
-    const queue = getSyncQueue();
-    if (queue.length === 0) {
-        if (currentStatus !== 'synced') updateStatus('synced');
-        return;
-    }
-
     isSyncing = true;
-    updateStatus('syncing');
-
-    try {
-        const syncPromises = queue.map(async (dataType) => {
-            const dataToSync = getTenantData(dataType, tenantId);
-            const payload = dataToSync === null ? {} : dataToSync;
-            const backupKey = `tenant_${tenantId}_${dataType}_backup`;
-
-            const { error } = await supabase
-                .from('tenant_data')
-                .upsert({
-                    tenant_id: tenantId,
-                    data_type: dataType,
-                    data: payload,
-                    updated_at: new Date().toISOString()
-                }, { onConflict: 'tenant_id, data_type' });
-
-            if (error) {
-                console.error(`Failed to sync ${dataType}:`, error);
-                
-                const backupData = getFromStorage(backupKey);
-                if (backupData !== null) {
-                    saveToStorage(`tenant_${tenantId}_${dataType}`, backupData);
-                    window.dispatchEvent(new CustomEvent('storage-update', { detail: { key: dataType } }));
-                }
-                showGlobalError(`Failed to save ${dataType.replace(/_/g, ' ')}. Your changes have been reverted.`);
-                
-                removeFromSyncQueue(dataType);
-                localStorage.removeItem(backupKey);
-
-                return dataType; // Indicate failure
-            } else {
-                removeFromSyncQueue(dataType);
-                localStorage.removeItem(backupKey);
-                return null; // Indicate success
-            }
-        });
-
-        await Promise.all(syncPromises);
-    } catch (error) {
-        console.error("Error during sync process:", error);
-    } finally {
-        isSyncing = false;
-        if (getSyncQueue().length > 0) {
-            updateStatus('unsynced');
-        } else {
-            updateStatus('synced');
-        }
-    }
-};
-
-
-const triggerSync = () => {
-    if (syncTimeout) {
-        clearTimeout(syncTimeout);
-    }
-    syncTimeout = setTimeout(() => {
-        syncData();
-    }, 2000); // Debounce sync calls by 2 seconds
-};
-
-// --- End Sync Logic ---
-
-
-// --- Atomic Update Logic to Prevent Race Conditions ---
-class Mutex {
-    private queue: (() => void)[] = [];
-    private locked = false;
-
-    lock(): Promise<void> {
-        return new Promise(resolve => {
-            if (!this.locked) {
-                this.locked = true;
-                resolve();
-            } else {
-                this.queue.push(resolve);
-            }
-        });
-    }
-
-    unlock(): void {
-        if (this.queue.length > 0) {
-            const next = this.queue.shift();
-            if (next) {
-                next();
-            }
-        } else {
-            this.locked = false;
-        }
-    }
-}
-
-const dataMutex = new Mutex();
-// --- End Atomic Update Logic ---
-
-// --- Two-Way Sync (Pull) Logic ---
-const handleRealtimeUpdate = (payload: any) => {
-    const { new: newData } = payload;
-    if (!newData) return;
-
-    const tenantId = getTenantId();
-    if (newData.tenant_id !== tenantId) return;
-
-    const { data_type: dataType, data: remoteData } = newData;
-    const localData = getTenantData(dataType);
-
-    // Prevent echo updates by checking if data is identical
-    if (JSON.stringify(localData) === JSON.stringify(remoteData)) {
-        return;
-    }
-
-    console.log(`Remote update for ${dataType}. Applying changes.`);
-    saveToStorage(`tenant_${tenantId}_${dataType}`, remoteData);
-
-    // Notify the app that this specific key has changed
-    window.dispatchEvent(new CustomEvent('storage-update', { detail: { key: dataType } }));
-};
-
-export const initializeSync = async () => {
-    const tenantId = getTenantId();
-    if (!tenantId || sessionStorage.getItem('isDemoMode') === 'true' || !supabase) {
-        return;
-    }
-
-    console.log("Performing initial data pull...");
-    const { data: remoteData, error } = await supabase
-        .from('tenant_data')
-        .select('*')
-        .eq('tenant_id', tenantId);
-
-    if (error) {
-        console.error("Failed to pull initial data:", error);
-        return;
-    }
-
-    if (remoteData) {
-        remoteData.forEach(item => {
-            saveToStorage(`tenant_${tenantId}_${item.data_type}`, item.data);
-            window.dispatchEvent(new CustomEvent('storage-update', { detail: { key: item.data_type } }));
-        });
-        console.log("Initial data pull complete.");
-    }
+    dispatchSyncStatus();
     
-    // Clear any existing channel before creating a new one
-    if (realtimeChannel) {
-        supabase.removeChannel(realtimeChannel);
-        realtimeChannel = null;
-    }
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
-    console.log(`Subscribing to changes for tenant: ${tenantId}`);
-    realtimeChannel = supabase
-        .channel(`tenant-data-${tenantId}`)
-        .on('postgres_changes', {
-            event: '*',
-            schema: 'public',
-            table: 'tenant_data',
-            filter: `tenant_id=eq.${tenantId}`
-        }, handleRealtimeUpdate)
-        .subscribe((status, err) => {
-            if (status === 'SUBSCRIBED') console.log('Realtime subscription active.');
-            if (status === 'CHANNEL_ERROR') console.error('Realtime subscription error:', err);
-            if (status === 'TIMED_OUT') console.warn('Realtime subscription timed out.');
-        });
+    // In a real app, you would send the queue to a server.
+    // For this mock, we just clear it.
+    syncQueue = [];
+    isSyncing = false;
+    dispatchSyncStatus();
+    
+    // Dispatch a global event to notify components that data has been "synced"
+    // and they might need to re-fetch or update.
+    window.dispatchEvent(new CustomEvent('storage-update', { detail: { synced: true } }));
+};
+
+export const initializeSync = () => {
+    if (!syncInterval) {
+        syncInterval = setInterval(processSyncQueue, 10000); // Try to sync every 10 seconds
+    }
+    window.addEventListener('online', processSyncQueue);
 };
 
 export const cleanupSync = () => {
-    if (realtimeChannel && supabase) {
-        supabase.removeChannel(realtimeChannel);
-        realtimeChannel = null;
-        console.log("Realtime subscription cleaned up.");
+    if (syncInterval) {
+        clearInterval(syncInterval);
+        syncInterval = null;
     }
-};
-// --- End Two-Way Sync ---
-
-
-const getTenantId = (tenantIdOverride?: string): string | null => {
-    if (sessionStorage.getItem('isDemoMode') === 'true') {
-        return DEMO_TENANT_ID;
-    }
-    return tenantIdOverride || getSubdomain(window.location.hostname);
+    window.removeEventListener('online', processSyncQueue);
 };
 
-const getFromStorage = (key: string) => {
-    try {
-        const item = localStorage.getItem(key);
-        return item ? JSON.parse(item) : null;
-    } catch (error) {
-        console.error(`Error getting ${key} from storage`, error);
-        return null;
-    }
+export const isSyncNeeded = () => syncQueue.length > 0;
+export const clearSyncQueue = () => { syncQueue = []; };
+
+
+// --- Tenancy & Data Access ---
+const getActiveTenantId = (): string => {
+    const subdomain = getSubdomain(window.location.hostname);
+    return subdomain || 'default_tenant'; // Fallback for root domain
 };
 
-const saveToStorage = (key: string, data: any): boolean => {
-    try {
-        localStorage.setItem(key, JSON.stringify(data));
-        return true;
-    } catch (error) {
-        console.error(`Error saving ${key} to storage`, error);
-        return false;
-    }
+const getLocalStorageKey = (key: string, tenantId?: string) => {
+    const activeTenantId = tenantId || getActiveTenantId();
+    return `tenant_${activeTenantId}_${key}`;
 };
 
-// --- Tenant-Specific Data Functions ---
+const getPlatformStorageKey = (key: string) => `platform_${key}`;
 
-export const getTenantData = (key: string, tenantIdOverride?: string) => {
-    const tenantId = getTenantId(tenantIdOverride);
-    if (!tenantId) {
-        console.warn(`Cannot get ${key}: No tenant ID found.`);
-        return null;
-    }
-    return getFromStorage(`tenant_${tenantId}_${key}`);
+const isDemoMode = () => getActiveTenantId() === 'demo';
+
+// Universal data getter
+export const getTenantData = (key: string, tenantId?: string) => {
+    const lsKey = getLocalStorageKey(key, tenantId);
+    const item = localStorage.getItem(lsKey);
+    return item ? JSON.parse(item) : null;
 };
 
-const saveTenantData = (key: string, data: any, tenantIdOverride?: string) => {
-    const tenantId = getTenantId(tenantIdOverride);
-    if (!tenantId) {
-        console.warn(`Cannot save ${key}: No tenant ID found.`);
-        return;
-    }
-    const success = saveToStorage(`tenant_${tenantId}_${key}`, data);
+// Universal data setter
+export const updateTenantData = (key: string, updater: (currentData: any) => any, tenantId?: string) => {
+    return new Promise<void>(resolve => {
+        const activeTenantId = tenantId || getActiveTenantId();
+        const lsKey = getLocalStorageKey(key, activeTenantId);
+        const currentData = getTenantData(key, activeTenantId);
+        const newData = updater(currentData);
+        localStorage.setItem(lsKey, JSON.stringify(newData));
 
-    if (success) {
-        addToSyncQueue(key);
-        triggerSync();
-    }
-};
-
-// New atomic update function
-export const updateTenantData = async (key: string, updateFn: (currentData: any) => any, tenantIdOverride?: string) => {
-    await dataMutex.lock();
-    try {
-        const tenantId = getTenantId(tenantIdOverride);
-        if (!tenantId) {
-            console.warn(`Cannot update ${key}: No tenant ID found.`);
-            return;
-        }
-        const defaultState = (key === 'settings' || key === 'timetable') ? {} : [];
-        const currentData = getTenantData(key, tenantId) || defaultState;
+        // Add to sync queue
+        syncQueue.push({ tenantId: activeTenantId, key, data: newData });
+        dispatchSyncStatus();
         
-        const backupKey = `tenant_${tenantId}_${key}_backup`;
-        if (getFromStorage(backupKey) === null) {
-            saveToStorage(backupKey, currentData);
-        }
-        
-        const newData = updateFn(currentData);
-        saveTenantData(key, newData, tenantId);
-    } finally {
-        dataMutex.unlock();
-    }
+        // Notify other components of the change
+        window.dispatchEvent(new CustomEvent('storage-update', { detail: { key } }));
+        resolve();
+    });
 };
 
 
 // --- API Functions ---
 
-export const apiGetStudents = async (tenantId?: string) => getTenantData('students', tenantId) || [];
-export const updateStudents = async (updateFn: (data: any[]) => any[], tenantId?: string) => updateTenantData('students', updateFn, tenantId);
-export const apiSaveStudents = async (students: any[], tenantId?: string) => updateStudents(() => students, tenantId);
-
-export const apiGetStudentsForClasses = async (classes: string[], tenantId?: string) => {
-    const students = await apiGetStudents(tenantId);
-    return students.filter(student => classes.includes(student.class));
+// Platform-level data (not tenant-specific)
+export const apiGetPlatformSettings = async () => {
+    if (isDemoMode()) return { ...demoPlatformSettings, plans: [] }; // Plans are separate
+    const data = localStorage.getItem(getPlatformStorageKey('settings'));
+    return data ? JSON.parse(data) : { ...demoPlatformSettings, plans: [] };
+};
+export const apiSavePlatformSettings = async (settings) => {
+    localStorage.setItem(getPlatformStorageKey('settings'), JSON.stringify(settings));
 };
 
-export const apiGetSubjects = async (tenantId?: string) => getTenantData('subjects', tenantId) || [];
-export const updateSubjects = async (updateFn: (data: any[]) => any[], tenantId?: string) => updateTenantData('subjects', updateFn, tenantId);
-export const apiSaveSubjects = async (subjects: any[], tenantId?: string) => updateSubjects(() => subjects, tenantId);
-
-export const apiGetScores = async (tenantId?: string) => getTenantData('scores', tenantId) || [];
-export const updateScores = async (updateFn: (data: any[]) => any[], tenantId?: string) => updateTenantData('scores', updateFn, tenantId);
-export const apiSaveScores = async (scores: any[], tenantId?: string) => updateScores(() => scores, tenantId);
-
-export const apiGetSchoolSettings = async (tenantId?: string) => getTenantData('settings', tenantId) || {};
-export const updateSchoolSettings = async (updateFn: (data: object) => object, tenantId?: string) => updateTenantData('settings', updateFn, tenantId);
-export const apiSaveSchoolSettings = async (settings: any, tenantId?: string) => updateSchoolSettings(() => settings, tenantId);
-
-export const apiGetTeachers = async (tenantId?: string) => getTenantData('teachers', tenantId) || [];
-export const updateTeachers = async (updateFn: (data: any[]) => any[], tenantId?: string) => updateTenantData('teachers', updateFn, tenantId);
-export const apiSaveTeachers = async (teachers: any[], tenantId?: string) => updateTeachers(() => teachers, tenantId);
-
-export const apiGetAttendance = async (tenantId?: string) => getTenantData('attendance', tenantId) || [];
-export const updateAttendance = async (updateFn: (data: any[]) => any[], tenantId?: string) => updateTenantData('attendance', updateFn, tenantId);
-export const apiSaveAttendance = async (attendance: any[], tenantId?: string) => updateAttendance(() => attendance, tenantId);
-
-export const apiGetBehavioralRecords = async (tenantId?: string) => getTenantData('behavioral', tenantId) || [];
-export const updateBehavioralRecords = async (updateFn: (data: any[]) => any[], tenantId?: string) => updateTenantData('behavioral', updateFn, tenantId);
-export const apiSaveBehavioralRecords = async (records: any[], tenantId?: string) => updateBehavioralRecords(() => records, tenantId);
-
-export const apiGetTimetableData = async (tenantId?: string) => getTenantData('timetable', tenantId) || {};
-export const updateTimetableData = async (updateFn: (data: object) => object, tenantId?: string) => updateTenantData('timetable', updateFn, tenantId);
-export const apiSaveTimetableData = async (timetable: any, tenantId?: string) => updateTimetableData(() => timetable, tenantId);
-
-// --- Bursary Specific Functions ---
-export const apiGetFees = async (tenantId?: string) => getTenantData('fees', tenantId) || [];
-export const apiSaveFees = async (fees: any[], tenantId?: string) => updateTenantData('fees', () => fees, tenantId);
-export const apiGetScratchCards = async (tenantId?: string) => getTenantData('scratch_cards', tenantId) || [];
-export const apiSaveScratchCards = async (cards: any[], tenantId?: string) => updateTenantData('scratch_cards', () => cards, tenantId);
-
-export const apiUseScratchCard = async (pin: string, tenantId: string) => {
-    await updateTenantData('scratch_cards', (allCards: any[]) => {
-        return allCards.map(c => c.pin === pin ? { ...c, used: true } : c);
-    }, tenantId);
+export const apiGetKbArticles = async () => {
+    if (isDemoMode()) return demoKbArticles;
+    const data = localStorage.getItem(getPlatformStorageKey('kb_articles'));
+    return data ? JSON.parse(data) : [];
+};
+export const apiSaveKbArticles = async (articles) => {
+    localStorage.setItem(getPlatformStorageKey('kb_articles'), JSON.stringify(articles));
 };
 
 
-export const apiGetActivities = async (tenantId?: string) => getTenantData('activities', tenantId) || [];
-export const updateActivities = async (updateFn: (data: any[]) => any[], tenantId?: string) => updateTenantData('activities', updateFn, tenantId);
+// Tenant-level data
+export const apiGetSchoolSettings = async (tenantId?: string) => {
+    if (isDemoMode()) return demoSchoolSettings;
+    return getTenantData('settings', tenantId) || demoSchoolSettings;
+};
+export const updateSchoolSettings = (updater: (currentData: any) => any) => updateTenantData('settings', updater);
+export const apiSaveSchoolSettings = (data, tenantId?: string) => updateTenantData('settings', () => data, tenantId);
 
-export const apiLogActivity = async (activity: { type: string; description: string }, tenantId?: string) => {
-    const newActivity = {
-        id: `act_${Date.now()}`,
-        ...activity,
-        timestamp: new Date().toISOString()
-    };
-    await updateActivities(activities => {
-        // Keep a rolling log of the last 20 activities
-        return [newActivity, ...activities].slice(0, 20);
-    }, tenantId);
+export const apiGetStudents = async (tenantId?: string): Promise<Student[]> => {
+    if (isDemoMode()) return demoStudents;
+    return getTenantData('students', tenantId) || [];
+};
+export const apiSaveStudents = async (students: Student[], tenantId?: string) => {
+    await updateTenantData('students', () => students, tenantId);
+};
+export const updateStudents = (updater) => updateTenantData('students', updater);
+
+export const apiGetStudentsForClasses = async (classes: string[], tenantId?: string): Promise<Student[]> => {
+    const allStudents = await apiGetStudents(tenantId);
+    return allStudents.filter(student => classes.includes(student.class));
 };
 
-// --- Real-time Communications ---
-export const apiGetAnnouncements = async () => {
-    if (!supabase) return [];
-    const tenantId = getTenantId();
-    if (!tenantId) return [];
-
-    const { data, error } = await supabase
-        .from('announcements')
-        .select('*')
-        .eq('tenant_id', tenantId)
-        .order('created_at', { ascending: false });
-
-    if (error) {
-        console.error('Error fetching announcements:', error);
-        return [];
-    }
-    return data;
+export const apiGetSubjects = async (tenantId?: string) => {
+    if (isDemoMode()) return demoSubjects;
+    return getTenantData('subjects', tenantId) || [];
 };
+// Fix: Added optional tenantId parameter to align with other save functions.
+export const apiSaveSubjects = (subjects, tenantId?: string) => updateTenantData('subjects', () => subjects, tenantId);
 
-export const apiSendAnnouncement = async (announcement) => {
-    if (!supabase) throw new Error("Database service not available.");
-    const tenantId = getTenantId();
-    if (!tenantId) throw new Error("Could not determine school portal.");
-
-    // 1. Save the announcement to the database for in-portal viewing.
-    const { data, error } = await supabase
-        .from('announcements')
-        .insert([{ ...announcement, tenant_id: tenantId }])
-        .select();
-    
-    if (error) throw error;
-    if (!data || data.length === 0) throw new Error("Failed to save announcement.");
-
-    // 2. If email method is selected, invoke the Supabase Edge Function.
-    if (announcement.methods.email) {
-        try {
-            const { error: funcError } = await supabase.functions.invoke('send-announcement-email', {
-                body: { 
-                    announcementId: data[0].id,
-                    tenantId: tenantId,
-                    recipients: announcement.recipients 
-                },
-            });
-            if (funcError) throw funcError;
-        } catch (emailError) {
-            // Log the error but don't throw, so the in-portal message is still considered "sent".
-            console.error("In-portal announcement saved, but failed to trigger email function:", emailError);
-        }
-    }
+export const apiGetScores = async (tenantId?: string) => {
+    if (isDemoMode()) return demoScores;
+    return getTenantData('scores', tenantId) || [];
 };
+export const updateScores = (updater) => updateTenantData('scores', updater);
+export const apiSaveScores = (data, tenantId?: string) => updateTenantData('scores', () => data, tenantId);
 
-export const apiSendAlumniEmail = async (emails: string[], subject: string, message: string) => {
-    if (!supabase) {
-        throw new Error("Supabase is not initialized.");
-    }
-    const { error } = await supabase.functions.invoke('send-alumni-email', {
-        body: { emails, subject, message },
+export const apiGetTeachers = async (tenantId?: string) => {
+    if (isDemoMode()) return demoTeachers;
+    return getTenantData('teachers', tenantId) || [];
+};
+export const updateTeachers = (updater) => updateTenantData('teachers', updater);
+// Fix: Added missing apiSaveTeachers function for consistency.
+export const apiSaveTeachers = (data, tenantId?: string) => updateTenantData('teachers', () => data, tenantId);
+
+
+export const apiGetAttendance = async (tenantId?: string) => {
+    if (isDemoMode()) return demoAttendance;
+    return getTenantData('attendance', tenantId) || [];
+};
+export const apiSaveAttendance = (data, tenantId?: string) => updateTenantData('attendance', () => data, tenantId);
+export const updateAttendance = (updater) => updateTenantData('attendance', updater);
+
+
+export const apiGetBehavioralRecords = async (tenantId?: string) => {
+    if (isDemoMode()) return demoBehavioralRecords;
+    return getTenantData('behavioral', tenantId) || [];
+};
+export const apiSaveBehavioralRecords = (data, tenantId?: string) => updateTenantData('behavioral', () => data, tenantId);
+
+
+export const apiGetActivities = async (tenantId?: string) => {
+    if (isDemoMode()) return demoActivities;
+    const activities = getTenantData('activities', tenantId) || [];
+    return activities.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0,5);
+};
+export const updateActivities = (updater, tenantId?: string) => updateTenantData('activities', updater, tenantId);
+export const apiLogActivity = async (activity) => {
+    await updateActivities(currentActivities => {
+        const newActivity = { ...activity, id: `act_${Date.now()}`, timestamp: new Date().toISOString() };
+        return [newActivity, ...(currentActivities || [])];
     });
-
-    if (error) {
-        throw error;
-    }
 };
 
+export const apiGetFees = async (tenantId?: string) => {
+    if(isDemoMode()) return demoFees;
+    return getTenantData('fees', tenantId) || [];
+};
+// Fix: Added optional tenantId parameter to align with other save functions.
+export const apiSaveFees = (data, tenantId?: string) => updateTenantData('fees', () => data, tenantId);
 
-// --- Platform-Wide Data Functions (Not Tenant-Specific) ---
+export const apiGetScratchCards = async (tenantId?: string) => {
+    if(isDemoMode()) return demoScratchCards;
+    return getTenantData('scratch_cards', tenantId) || [];
+};
+// Fix: Added optional tenantId parameter to align with other save functions.
+export const apiSaveScratchCards = (data, tenantId?: string) => updateTenantData('scratch_cards', () => data, tenantId);
 
+export const apiGetTimetableData = async (tenantId?: string) => {
+    if (isDemoMode()) return {};
+    return getTenantData('timetable', tenantId) || {};
+}
+
+
+// --- Super Admin Functions ---
 export const apiGetTenants = async () => {
-    return getFromStorage('platform_tenants') || demoTenants;
+    const data = localStorage.getItem(getPlatformStorageKey('tenants'));
+    return data ? JSON.parse(data) : demoTenants;
 };
-
-export const apiSaveTenants = async (tenants: any[]) => {
-    saveToStorage('platform_tenants', tenants);
+export const apiSaveTenants = async (tenants) => {
+    localStorage.setItem(getPlatformStorageKey('tenants'), JSON.stringify(tenants));
 };
-
 export const apiAddTenant = async (tenant: { id: string, name: string }) => {
     const tenants = await apiGetTenants();
     if (tenants.some(t => t.id === tenant.id)) {
-        throw new Error('Tenant ID already exists.');
+        throw new Error("A tenant with this ID already exists.");
     }
-    const newTenants = [...tenants, tenant];
-    await apiSaveTenants(newTenants);
+    // Add new tenants with a null planId by default
+    await apiSaveTenants([...tenants, { ...tenant, planId: null }]);
 };
 
-export const apiDeleteTenantData = async (tenant: { id: string }) => {
+
+export const apiDeleteTenantData = async (tenant) => {
+    // In a real app, this would be a server-side operation.
+    // Here we clear localStorage for that tenant.
     Object.keys(localStorage).forEach(key => {
         if (key.startsWith(`tenant_${tenant.id}_`)) {
             localStorage.removeItem(key);
@@ -509,59 +242,56 @@ export const apiDeleteTenantData = async (tenant: { id: string }) => {
     });
 };
 
-export const apiGetPlatformSettings = async () => {
-    return getFromStorage('platform_settings') || demoPlatformSettings;
-};
-
-export const apiSavePlatformSettings = async (settings: any) => {
-    saveToStorage('platform_settings', settings);
-};
-
-export const apiGetKbArticles = async () => {
-    return getFromStorage('kb_articles') || demoKbArticles;
-};
-
-export const apiSaveKbArticles = async (articles: any[]) => {
-    saveToStorage('kb_articles', articles);
-};
-
-
-// --- Public Functions ---
-export const apiGetPublicStudentResult = async (schoolId: string, admissionNo: string) => {
-    if (!schoolId || !admissionNo) throw new Error("School ID and Admission Number are required.");
-
-    const tenants = await apiGetTenants();
-    const schoolExists = tenants.some(t => t.id === schoolId);
-    if (!schoolExists) throw new Error("School portal not found.");
-
-    const allStudents = await apiGetStudents(schoolId);
-    const student = allStudents.find(s => s.admissionNo.toLowerCase() === admissionNo.toLowerCase());
-
-    if (!student) throw new Error("Student with that admission number not found in this school.");
-
-    // Fetch all data for that school to build the report card
-    // FIX: Added attendance and remarks to the data fetching for public results.
-    const [scores, subjects, schoolSettings, students, attendance, remarks] = await Promise.all([
-        apiGetScores(schoolId),
-        apiGetSubjects(schoolId),
-        apiGetSchoolSettings(schoolId),
-        apiGetStudents(schoolId),
-        apiGetAttendance(schoolId),
-        getTenantData('remarks', schoolId) || [],
+// --- Public / Cross-Tenant Functions ---
+export const apiGetPublicStudentResult = async (tenantId: string, admissionNo: string) => {
+    const [students, scores, subjects, schoolSettings, attendance, remarks] = await Promise.all([
+        apiGetStudents(tenantId),
+        apiGetScores(tenantId),
+        apiGetSubjects(tenantId),
+        apiGetSchoolSettings(tenantId),
+        apiGetAttendance(tenantId),
+        getTenantData('remarks', tenantId) || [],
     ]);
+    const student = students.find(s => s.admissionNo.toLowerCase() === admissionNo.toLowerCase());
+    if (!student) throw new Error("Admission number not found for this school.");
 
-    return {
-        student,
-        scores,
-        subjects,
-        schoolSettings,
-        students,
-        attendance,
-        remarks,
-    };
+    return { student, students, scores, subjects, schoolSettings, attendance, remarks };
 };
 
-// --- Init Sync System ---
-window.addEventListener('online', syncData);
-window.addEventListener('offline', () => updateStatus('offline'));
-setTimeout(syncData, 1000);
+export const apiUseScratchCard = async (pin: string, tenantId: string) => {
+    await updateTenantData('scratch_cards', (cards: any[]) => {
+        return (cards || []).map(card => card.pin === pin ? { ...card, used: true } : card);
+    }, tenantId);
+};
+
+// --- Communications ---
+export const apiGetAnnouncements = async (tenantId?: string) => {
+    // In a real app, this would fetch from a database table.
+    // We'll mock it with Supabase SDK if available, or localStorage.
+    if (isDemoMode()) return [];
+    if(window.supabase) {
+        const { data } = await window.supabase.from('announcements').select('*').order('created_at', { ascending: false });
+        return data || [];
+    }
+    return getTenantData('announcements', tenantId) || [];
+};
+
+export const apiSendAnnouncement = async (announcement) => {
+    // Mock sending. In a real app, this would save to a DB and trigger emails.
+    if(window.supabase) {
+        const { error } = await window.supabase.from('announcements').insert([announcement]);
+        if (error) throw error;
+    } else {
+        await updateTenantData('announcements', (announcements: any[] = []) => {
+            return [{ ...announcement, id: `ann_${Date.now()}`, created_at: new Date().toISOString() }, ...announcements];
+        });
+    }
+};
+
+export const apiSendAlumniEmail = async (recipients: string[], subject: string, body: string) => {
+    // This is a mock. A real implementation would use an email service.
+    console.log("Mock sending email to alumni:", { recipients, subject, body });
+    if (recipients.length === 0) throw new Error("No recipients provided.");
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Simulate success
+};

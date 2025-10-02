@@ -85,8 +85,6 @@ const StudentResults = ({ demoUserId }) => {
 
     return (
         <div>
-            <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">My Results</h1>
-
             {sortedTerms.length > 0 ? sortedTerms.map(termKey => (
                 <div key={termKey} className="card mt-6">
                     <div className="p-4 flex justify-between items-center border-b dark:border-gray-700">

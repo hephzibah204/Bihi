@@ -129,7 +129,6 @@ const IDCardGenerator = () => {
 
     return (
         <div>
-            <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">ID Card Generator</h1>
             <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Settings Panel */}
                 <div className="lg:col-span-1 card">

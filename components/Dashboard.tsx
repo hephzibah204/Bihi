@@ -1,9 +1,4 @@
-// This component is redundant and no longer in use. The main dashboard content is rendered by DashboardContent.tsx. It can be safely deleted.
+// This component is redundant and not used. The main dashboard is in the root Dashboard.tsx file. This file can be safely deleted.
 import React from 'react';
-import DashboardHome from './DashboardHome';
-
-const Dashboard = () => {
-    return <DashboardHome />;
-};
-
+const Dashboard = () => null;
 export default Dashboard;

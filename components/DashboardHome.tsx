@@ -1,70 +1,69 @@
-import React, { useState, useEffect } from 'react';
-import { apiGetStudents, apiGetSubjects, apiGetTeachers } from '../services/api';
+import React from 'react';
+import { DashboardView } from '../types';
 import UsersIcon from './icons/UsersIcon';
-import BookOpenIcon from './icons/BookOpenIcon';
-import BriefcaseIcon from './icons/BriefcaseIcon';
+import ClipboardListIcon from './icons/ClipboardListIcon';
+import DocumentArrowDownIcon from './icons/DocumentArrowDownIcon';
+import GraduationCapIcon from './icons/GraduationCapIcon';
 import RecentActivityWidget from './RecentActivityWidget';
 import DashboardInsights from './DashboardInsights';
+import { usePlanFeatures } from '../contexts/PlanFeaturesContext';
+import SparklesIcon from './icons/SparklesIcon';
 
-function StatCard({ icon, title, value }: { icon: React.ReactNode, title: string, value: any }) {
-    return (
-        <div className="card p-6 flex items-center space-x-6">
-            <div className="flex items-center justify-center w-16 h-16 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 flex-shrink-0">
-                {icon}
-            </div>
-            <div>
-                 <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</p>
-                 <p className="text-3xl font-bold text-slate-800 dark:text-white mt-1">{value}</p>
+const DashboardHome = ({ setActiveView }: { setActiveView: (view: DashboardView) => void }) => {
+    const { isSubscribed, isLoading } = usePlanFeatures();
+
+    const quickLinks = [
+        { view: 'students' as DashboardView, title: "Manage Students", icon: <UsersIcon className="w-8 h-8"/>, description: "Add, edit, or import student records." },
+        { view: 'results' as DashboardView, title: "Enter Scores", icon: <ClipboardListIcon className="w-8 h-8"/>, description: "Input the latest CA and exam scores." },
+        { view: 'report-cards' as DashboardView, title: "Generate Reports", icon: <DocumentArrowDownIcon className="w-8 h-8"/>, description: "Create and print report cards." },
+        { view: 'promotions' as DashboardView, title: "Promote Students", icon: <GraduationCapIcon className="w-8 h-8"/>, description: "Move students to the next class." },
+    ];
+
+    const renderSubscriptionPrompt = () => (
+        <div className="card bg-indigo-50 dark:bg-indigo-900/50 my-6">
+            <div className="p-6 text-center">
+                 <SparklesIcon className="w-12 h-12 mx-auto text-indigo-500" />
+                 <h2 className="mt-4 text-xl font-semibold">Welcome to ReportSheet!</h2>
+                 <p className="mt-2 text-gray-600 dark:text-gray-300">Your account is active. Subscribe to a plan to unlock all features and start managing your school like a pro.</p>
+                 <button onClick={() => setActiveView('billing')} className="btn btn-primary mt-6">
+                    View Plans & Subscribe
+                </button>
             </div>
         </div>
     );
-}
-
-export default function DashboardHome() {
-    const [stats, setStats] = useState({ students: 0, subjects: 0, teachers: 0 });
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const [studentData, subjectData, teacherData] = await Promise.all([
-                    apiGetStudents(),
-                    apiGetSubjects(),
-                    apiGetTeachers()
-                ]);
-                setStats({
-                    students: studentData.length,
-                    subjects: subjectData.length,
-                    teachers: teacherData.length,
-                });
-            } catch (error) {
-                console.error("Failed to load dashboard stats", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchStats();
-    }, []);
 
     return (
         <div>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">Welcome back! Here's a summary of your school.</p>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {loading ? (
-                    <p>Loading stats...</p>
-                ) : (
-                    <>
-                        <StatCard icon={<UsersIcon className="w-8 h-8"/>} title="Total Students" value={stats.students} />
-                        <StatCard icon={<BriefcaseIcon className="w-8 h-8"/>} title="Total Teachers" value={stats.teachers} />
-                        <StatCard icon={<BookOpenIcon className="w-8 h-8"/>} title="Total Subjects" value={stats.subjects} />
-                    </>
-                )}
-            </div>
+            <p className="mt-2 text-gray-600 dark:text-gray-300">Here are some quick actions to get you started.</p>
             
-            <DashboardInsights />
-            
-            <RecentActivityWidget />
+            {isLoading ? (
+                <div className="card mt-6 p-6 text-center">Loading...</div>
+            ) : isSubscribed ? (
+                <>
+                    <DashboardInsights />
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+                        {quickLinks.map(link => (
+                            <button 
+                                key={link.view} 
+                                onClick={() => setActiveView(link.view)}
+                                className="card p-6 text-center hover:shadow-lg hover:scale-105 transition-transform duration-200"
+                            >
+                                <div className="text-indigo-500 mx-auto w-16 h-16 flex items-center justify-center bg-indigo-100 dark:bg-gray-700 rounded-full">
+                                    {link.icon}
+                                </div>
+                                <h3 className="mt-4 text-lg font-semibold">{link.title}</h3>
+                                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{link.description}</p>
+                            </button>
+                        ))}
+                    </div>
+                    <RecentActivityWidget />
+                </>
+            ) : (
+                renderSubscriptionPrompt()
+            )}
         </div>
     );
-}
+};
+
+export default DashboardHome;

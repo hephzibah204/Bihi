@@ -194,7 +194,7 @@ const AdvancedAnalytics = () => {
     return (
         <div>
             <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">Interactive Analytics</h1>
+                <div></div>
                  <div className="flex gap-4">
                     <select value={selectedSession} onChange={e => setSelectedSession(e.target.value)} className="input-field"><option value="">All Sessions</option>{sessions.map(s => <option key={s} value={s}>{s}</option>)}</select>
                     <select value={selectedTerm} onChange={e => setSelectedTerm(e.target.value)} className="input-field">{terms.map(t => <option key={t} value={t}>{t}</option>)}</select>

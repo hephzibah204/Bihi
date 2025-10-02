@@ -26,7 +26,7 @@ const Header = ({ title, setSidebarOpen, onLogout }) => {
                 <button onClick={() => setSidebarOpen(true)} className="text-slate-500 focus:outline-none md:hidden">
                     <Bars3Icon className="h-6 w-6" />
                 </button>
-                <h1 className="text-xl font-semibold ml-2 md:ml-0">{title}</h1>
+                <h1 className="text-xl font-semibold ml-2 md:ml-0 truncate">{title}</h1>
             </div>
 
             <div className="flex items-center space-x-2">

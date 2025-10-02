@@ -85,7 +85,7 @@ const BehavioralRemarks = () => {
     return (
         <div>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                <h1 className="text-2xl font-semibold">Behavioral Remarks</h1>
+                <div></div>
                 <div className="flex items-center gap-4">
                      <select className="input-field" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
                         {classes.map(c => <option key={c} value={c}>{c}</option>)}

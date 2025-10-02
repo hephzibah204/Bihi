@@ -38,7 +38,6 @@ const Bursary = () => {
 
     return (
         <div>
-            <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">Bursary / Finance</h1>
             <div className="mt-6 flex space-x-2 border-b dark:border-gray-700 pb-4">
                 <NavButton view="fees">School Fees</NavButton>
                 <NavButton view="invoice">Student Invoice</NavButton>

@@ -352,7 +352,7 @@ const Students = () => {
                         <label className="label">Admission No.</label>
                         <input name="admissionNo" value={formData.admissionNo || ''} onChange={handleFormChange} className="input-field" required />
                     </div>
-                     <div className="grid grid-cols-2 gap-4">
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="label">Class</label>
                             <select name="class" value={formData.class || ''} onChange={handleFormChange} className="input-field" required>

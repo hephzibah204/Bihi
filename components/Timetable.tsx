@@ -138,7 +138,7 @@ const Timetable = () => {
     return (
         <div>
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">Class Timetable</h1>
+                <div></div>
                 <div className="flex items-center gap-4">
                     <select
                         value={selectedClass}

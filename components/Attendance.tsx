@@ -276,19 +276,16 @@ const Attendance = () => {
     return (
         <div>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                <div>
-                    <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">Take Attendance</h1>
-                    <div className="mt-2 flex items-center space-x-4">
-                        <select 
-                            className="input-field"
-                            value={selectedClass}
-                            onChange={e => setSelectedClass(e.target.value)}
-                        >
-                            {classes.map(c => <option key={c} value={c}>{c}</option>)}
-                        </select>
-                        <div className="p-2 bg-white dark:bg-gray-800 rounded-md shadow-sm">
-                            <strong>Date:</strong> {new Date(currentDate).toLocaleDateString()}
-                        </div>
+                <div className="mt-2 flex items-center space-x-4">
+                    <select 
+                        className="input-field"
+                        value={selectedClass}
+                        onChange={e => setSelectedClass(e.target.value)}
+                    >
+                        {classes.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <div className="p-2 bg-white dark:bg-gray-800 rounded-md shadow-sm">
+                        <strong>Date:</strong> {new Date(currentDate).toLocaleDateString()}
                     </div>
                 </div>
                  <div className="flex space-x-2">
