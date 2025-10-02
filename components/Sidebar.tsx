@@ -47,17 +47,17 @@ interface NavItemProps {
 
 const NavItem: FC<NavItemProps> = ({ icon, children, view, activeView, onClick }) => {
     const isActive = view === activeView;
-    const activeClasses = 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white';
-    const inactiveClasses = 'text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700';
+    const activeClasses = 'bg-indigo-50 dark:bg-slate-700 text-indigo-600 dark:text-white font-semibold';
+    const inactiveClasses = 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700';
 
     return (
         <li>
             <button 
                 onClick={() => onClick(view)} 
-                className={`flex items-center w-full px-4 py-2 rounded-md transition-colors duration-200 ${isActive ? activeClasses : inactiveClasses}`}
+                className={`flex items-center w-full px-4 py-2.5 rounded-md transition-colors duration-200 ${isActive ? activeClasses : inactiveClasses}`}
             >
                 {icon}
-                <span className="mx-4 font-medium">{children}</span>
+                <span className="mx-4">{children}</span>
             </button>
         </li>
     );
@@ -105,8 +105,8 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView, use
 
         return (
             <>
-                <p className="px-4 mt-6 text-xs text-gray-500 uppercase">{title}</p>
-                <ul className="space-y-2 mt-2">
+                <p className="px-4 mt-8 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">{title}</p>
+                <ul className="space-y-1">
                     {visibleItems.map(item => (
                         <NavItem key={item.view} icon={item.icon} view={item.view} activeView={activeView} onClick={setActiveView}>
                             {item.label}
@@ -124,13 +124,13 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView, use
                 onClick={() => setSidebarOpen(false)}
             ></div>
 
-            <aside className={`fixed inset-y-0 left-0 w-64 bg-white dark:bg-gray-800 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-200 ease-in-out z-30 shadow-lg md:shadow-none flex flex-col`}>
-                <div className="flex items-center justify-center mt-8">
+            <aside className={`fixed inset-y-0 left-0 w-64 bg-white dark:bg-card-bg-dark transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-200 ease-in-out z-30 flex flex-col border-r border-border-light dark:border-border-dark`}>
+                <div className="flex items-center justify-center h-20 border-b border-border-light dark:border-border-dark">
                     <div className="flex items-center">
-                         <span className="text-gray-800 dark:text-white text-2xl font-semibold">ReportSheet</span>
+                         <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-purple-500">ReportSheet</span>
                     </div>
                 </div>
-                <nav className="mt-10 px-2 flex-1 overflow-y-auto">
+                <nav className="flex-1 px-4 py-4 overflow-y-auto">
                     <NavGroup title="Menu" items={allNavItems.menu} />
                     <NavGroup title="Academics" items={allNavItems.academics} />
                     <NavGroup title="Administration" items={allNavItems.administration} />

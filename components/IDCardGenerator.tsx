@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import { apiGetStudentsForClasses, apiGetSubjects, apiGetSchoolSettings } from '../services/api';
 import ClassicIDCard from './id-cards/ClassicIDCard';
@@ -9,7 +10,8 @@ import ClassicLandscape from './report-templates/ClassicLandscape';
 import BasicPortrait from './report-templates/BasicPortrait';
 import BasicLandscape from './report-templates/BasicLandscape';
 import SpinnerIcon from './icons/SpinnerIcon';
-import { Student } from '../types';
+// Fix: Import Subject type to correctly type data from API calls.
+import { Student, Subject } from '../types';
 
 import ArrowDownTrayIcon from './icons/ArrowDownTrayIcon';
 
@@ -48,7 +50,8 @@ const IDCardGenerator = () => {
     useEffect(() => {
         const fetchInitialData = async () => {
             try {
-                const [subjects, schoolSettings] = await Promise.all([
+                // Fix: Explicitly type the destructured data to ensure correct type inference downstream.
+                const [subjects, schoolSettings]: [Subject[], any] = await Promise.all([
                     apiGetSubjects(),
                     apiGetSchoolSettings()
                 ]);

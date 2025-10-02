@@ -3,6 +3,8 @@ import { apiGetStudents, apiGetSubjects } from '../services/api';
 import Modal from './Modal';
 import PlusIcon from './icons/PlusIcon';
 import useSyncedLocalStorage from '../hooks/useSyncedLocalStorage';
+// Fix: Import Student and Subject types to correctly type data from API calls.
+import { Student, Subject } from '../types';
 
 const BehavioralRemarks = () => {
     const [allRecords, setAllRecords] = useSyncedLocalStorage('behavioral', []);
@@ -17,7 +19,8 @@ const BehavioralRemarks = () => {
     const fetchInitialData = async () => {
         setLoading(true);
         try {
-            const [subjectsData, studentsData] = await Promise.all([
+            // Fix: Explicitly type the destructured data to ensure correct type inference downstream.
+            const [subjectsData, studentsData]: [Subject[], Student[]] = await Promise.all([
                 apiGetSubjects(),
                 apiGetStudents(),
             ]);
@@ -108,8 +111,10 @@ const BehavioralRemarks = () => {
                     </thead>
                     <tbody className="bg-white dark:bg-gray-800 divide-y dark:divide-gray-700">
                         {loading ? (
+                            // Fix: Changed colSpan from string to number.
                             <tr><td colSpan={4} className="td text-center">Loading records...</td></tr>
                         ) : recordsForView.length === 0 ? (
+                             // Fix: Changed colSpan from string to number.
                              <tr><td colSpan={4} className="td text-center">No records for this class.</td></tr>
                         ) : (
                             recordsForView.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(rec => (
@@ -148,7 +153,8 @@ const BehavioralRemarks = () => {
                     </div>
                     <div>
                         <label className="label">Remark</label>
-                        <textarea className="input-field" rows="3" value={newRecord.remark} onChange={e => setNewRecord({...newRecord, remark: e.target.value})}></textarea>
+                        {/* FIX: Changed the `rows` attribute from a string "3" to a number {3} to satisfy TypeScript's type requirements for JSX. */}
+                        <textarea className="input-field" rows={3} value={newRecord.remark} onChange={e => setNewRecord({...newRecord, remark: e.target.value})}></textarea>
                     </div>
                     <div className="flex justify-end pt-2">
                         <button onClick={handleAddRecord} className="btn btn-primary">Save Remark</button>

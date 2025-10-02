@@ -5,6 +5,9 @@ import AITimetableGenerator from './AITimetableGenerator';
 import PlusIcon from './icons/PlusIcon';
 import BrainCircuitIcon from './icons/BrainCircuitIcon';
 import useSyncedLocalStorage from '../hooks/useSyncedLocalStorage';
+// Fix: Import Subject and Teacher types to correctly type data from API calls.
+import { Subject } from '../types';
+import { Teacher } from './Teachers';
 
 // Types for better structure
 interface TimetableSlot {
@@ -40,7 +43,8 @@ const Timetable = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [subData, teaData] = await Promise.all([
+            // Fix: Explicitly type the destructured data to ensure correct type inference downstream.
+            const [subData, teaData]: [Subject[], Teacher[]] = await Promise.all([
                 apiGetSubjects(),
                 apiGetTeachers()
             ]);

@@ -92,7 +92,8 @@ const KBArticleManager = () => {
                     </div>
                     <div>
                         <label className="label">Content (Markdown supported)</label>
-                        <textarea rows="10" value={articleData.content} onChange={e => setArticleData({...articleData, content: e.target.value})} className="input-field"></textarea>
+                        {/* Fix: Changed rows from string to number. */}
+                        <textarea rows={10} value={articleData.content} onChange={e => setArticleData({...articleData, content: e.target.value})} className="input-field"></textarea>
                     </div>
                     <div>
                         <label className="label">Status</label>

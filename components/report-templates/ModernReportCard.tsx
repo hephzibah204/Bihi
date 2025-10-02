@@ -1,5 +1,6 @@
 
 
+
 import React from 'react';
 import { calculateGrade, calculateOverallPerformance, summarizeAttendance } from '../../utils/reportCardHelper';
 import ReportCardFooter from './ReportCardFooter';
@@ -61,7 +62,8 @@ const ModernReportCard = ({ student, students, scores, subjects, settings, term,
                         <div className="grid grid-cols-2 gap-4 text-sm">
                             <div><p className="text-gray-500">Total Score</p><p className="font-bold text-xl">{performance.totalScore}</p></div>
                             <div><p className="text-gray-500">Average</p><p className="font-bold text-xl">{performance.average}%</p></div>
-                            <div colSpan="2"><p className="text-gray-500">Class Position</p><p className="font-bold text-xl">{performance.position} of {performance.totalStudentsInClass}</p></div>
+                            {/* Fix: Replaced invalid `colSpan` prop on div with `className="col-span-2"`. */}
+                            <div className="col-span-2"><p className="text-gray-500">Class Position</p><p className="font-bold text-xl">{performance.position} of {performance.totalStudentsInClass}</p></div>
                         </div>
                     </div>
                      <div className="mt-4 bg-gray-50 p-4 rounded-lg">

@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect } from 'react';
 import { apiGetScores, apiGetSubjects, apiGetSchoolSettings, apiGetStudents, updateScores, apiGetAttendance, getTenantData, updateTenantData } from '../services/api';
 import Modal from './Modal';
@@ -43,7 +44,8 @@ const ReportCardDashboard = () => {
         const fetchAllData = async () => {
             setLoading(true);
             try {
-                const [subjects, scores, settings, allStudents, attendance, remarks] = await Promise.all([
+                // Fix: Explicitly type the destructured data to ensure correct type inference downstream.
+                const [subjects, scores, settings, allStudents, attendance, remarks]: [Subject[], Score[], any, Student[], any[], Remark[]] = await Promise.all([
                     apiGetSubjects(),
                     apiGetScores(),
                     apiGetSchoolSettings(),
@@ -297,7 +299,14 @@ const ReportCardDashboard = () => {
 
     const ReportCardComponent = selectedStudent ? getReportCardTemplate(selectedStudent.class) : null;
     const generalRemark = (allData?.remarks || []).find(r => r.studentId === selectedStudent?.id && r.term === allData?.settings.term && r.session === allData?.settings.session)?.generalComment || '';
-
+    
+    // Fix: Defined a variable for the preview component to avoid re-rendering issues.
+    const ReportCardComponentForPreview = selectedStudent && (
+        selectedTemplate === 'default' ? ReportCardComponent
+      : selectedTemplate === 'classic' ? ClassicReportCard
+      : selectedTemplate === 'modern' ? ModernReportCard
+      : MinimalistReportCard
+    );
 
     return (
         <div>
@@ -339,8 +348,100 @@ const ReportCardDashboard = () => {
             </div>
             {renderStudentList()}
             {selectedStudent && allData && (
+                // Fix: Added children to the Modal component to fix the missing property error.
                 <Modal isOpen={!!selectedStudent} onClose={handleCloseModal} size="full" title={`Report for ${selectedStudent.name}`}>
-                    {/* ... Modal content is unchanged ... */}
+                    <div className="flex h-full">
+                        {/* Left Panel: Edit Form */}
+                        <div className="w-1/3 p-6 border-r dark:border-gray-700 overflow-y-auto">
+                            {/* Tabs */}
+                            <div className="flex border-b dark:border-gray-700 mb-4">
+                                <button
+                                    onClick={() => setActiveModalTab('edit')}
+                                    className={`px-4 py-2 font-semibold ${activeModalTab === 'edit' ? 'border-b-2 border-indigo-500 text-indigo-600' : 'text-gray-500'}`}
+                                >
+                                    Edit Comments
+                                </button>
+                                <button
+                                    onClick={() => setActiveModalTab('preview')}
+                                    className={`px-4 py-2 font-semibold ${activeModalTab === 'preview' ? 'border-b-2 border-indigo-500 text-indigo-600' : 'text-gray-500'}`}
+                                >
+                                    Preview & Print
+                                </button>
+                            </div>
+
+                            {activeModalTab === 'edit' && (
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="label">Form Teacher's General Comment</label>
+                                        <textarea
+                                            className="input-field"
+                                            rows={4}
+                                            value={generalRemark}
+                                            onChange={(e) => handleGeneralCommentChange(e.target.value)}
+                                        />
+                                        <button onClick={handleGenerateGeneralComment} className="btn btn-secondary text-sm mt-1" disabled={generatingGeneralComment}>
+                                                <SparklesIcon className="w-4 h-4 mr-1" />
+                                                {generatingGeneralComment ? 'Generating...' : 'AI Generate'}
+                                        </button>
+                                    </div>
+                                    <h4 className="font-semibold pt-4 border-t dark:border-gray-600">Subject Teacher Comments</h4>
+                                    {allData.subjects.filter(s => s.classes.includes(selectedStudent.class)).map(subject => {
+                                        const score = allData.scores.find(s => s.studentId === selectedStudent.id && s.subjectId === subject.id);
+                                        return (
+                                            <div key={subject.id}>
+                                                <label className="label">{subject.name}</label>
+                                                <textarea
+                                                    className="input-field"
+                                                    rows={2}
+                                                    value={score?.comment || ''}
+                                                    onChange={(e) => handleCommentChange(subject.id, e.target.value)}
+                                                />
+                                                <button onClick={() => handleGenerateComment(subject)} className="btn btn-secondary text-sm mt-1" disabled={generatingCommentFor === subject.id}>
+                                                    <SparklesIcon className="w-4 h-4 mr-1" />
+                                                    {generatingCommentFor === subject.id ? 'Generating...' : 'AI Generate'}
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                            
+                            {activeModalTab === 'preview' && (
+                                <div>
+                                    <label className="label">Select Template</label>
+                                    <select value={selectedTemplate} onChange={e => setSelectedTemplate(e.target.value)} className="input-field">
+                                        <option value="default">School Default</option>
+                                        <option value="classic">Classic</option>
+                                        <option value="modern">Modern</option>
+                                        <option value="minimalist">Minimalist</option>
+                                    </select>
+                                    <button 
+                                        onClick={() => exportToPDF(`report-card-${selectedStudent.id}`, `${selectedStudent.name}-report.pdf`)}
+                                        className="btn btn-primary w-full mt-4"
+                                        disabled={exporting}
+                                    >
+                                        {exporting ? 'Exporting...' : 'Export as PDF'}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                        {/* Right Panel: Report Card Preview */}
+                        <div className="w-2/3 overflow-y-auto bg-gray-100 dark:bg-gray-900 p-8 flex justify-center">
+                            <div id={`report-card-${selectedStudent.id}`} className="transform scale-[0.8] origin-top">
+                                {ReportCardComponentForPreview && <ReportCardComponentForPreview
+                                    student={selectedStudent}
+                                    students={allData.allStudents}
+                                    scores={allData.scores}
+                                    subjects={allData.subjects}
+                                    settings={allData.settings}
+                                    term={allData.settings.term}
+                                    session={allData.settings.session}
+                                    remarks={allData.remarks}
+                                    attendance={allData.attendance}
+                                />}
+                            </div>
+                        </div>
+                    </div>
                 </Modal>
             )}
              <ConfirmationModal

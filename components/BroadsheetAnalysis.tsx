@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiGetStudentsForClasses, apiGetScores, apiGetSubjects } from '../services/api';
+// Fix: Import Subject type to correctly type data from apiGetSubjects.
+import { Subject } from '../types';
 
 const BroadsheetAnalysis = () => {
     const [classes, setClasses] = useState<string[]>([]);
@@ -11,7 +13,8 @@ const BroadsheetAnalysis = () => {
 
     useEffect(() => {
         const fetchInitialData = async () => {
-            const allSubjects = await apiGetSubjects();
+            // Fix: Explicitly type allSubjects to ensure allClasses is inferred as string[].
+            const allSubjects: Subject[] = await apiGetSubjects();
             setSubjects(allSubjects);
             const allClasses = [...new Set(allSubjects.flatMap(s => s.classes))].sort();
             setClasses(allClasses);

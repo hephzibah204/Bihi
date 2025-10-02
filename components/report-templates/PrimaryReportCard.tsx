@@ -1,5 +1,6 @@
 
 
+
 import React from 'react';
 import { calculateGrade, calculateOverallPerformance, summarizeAttendance } from '../../utils/reportCardHelper';
 import ReportCardFooter from './ReportCardFooter';
@@ -79,9 +80,11 @@ const PrimaryReportCard = ({ student, students, scores, subjects, settings, term
                         </tr>
                     ))}
                      <tr className="font-bold bg-gray-100">
-                        <td className="border border-gray-400 p-2 text-right" colSpan="4">Total Score</td>
+                        {/* Fix: Changed colSpan from string to number. */}
+                        <td className="border border-gray-400 p-2 text-right" colSpan={4}>Total Score</td>
                         <td className="border border-gray-400 p-2 text-center">{performance.totalScore}</td>
-                        <td className="border border-gray-400 p-2 text-right" colSpan="1">Average</td>
+                        {/* Fix: Changed colSpan from string to number. */}
+                        <td className="border border-gray-400 p-2 text-right" colSpan={1}>Average</td>
                         <td className="border border-gray-400 p-2 text-center">{performance.average}</td>
                     </tr>
                 </tbody>

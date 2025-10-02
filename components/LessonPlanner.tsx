@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { generateText } from '../services/geminiService';
 import SparklesIcon from './icons/SparklesIcon';
 import { apiGetSubjects } from '../services/api';
+// Fix: Import Subject type to correctly type data from apiGetSubjects.
+import { Subject } from '../types';
 
 const LessonPlanner = () => {
     const [topic, setTopic] = useState('');
@@ -15,7 +17,8 @@ const LessonPlanner = () => {
     useEffect(() => {
         const fetchClasses = async () => {
             try {
-                const subjects = await apiGetSubjects();
+                // Fix: Explicitly type subjects to ensure allClasses is inferred as string[].
+                const subjects: Subject[] = await apiGetSubjects();
                 const allClasses = [...new Set(subjects.flatMap(s => s.classes))].sort();
                 setAvailableClasses(allClasses);
                 if (allClasses.length > 0) {

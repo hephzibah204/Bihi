@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import PlusIcon from './icons/PlusIcon';
 import { apiGetSubjects, apiLogActivity } from '../services/api';
@@ -12,7 +13,8 @@ import ConfirmationModal from './ConfirmationModal';
 import FaceIdIcon from './icons/FaceIdIcon';
 import FaceEnrollmentModal from './FaceEnrollmentModal';
 import useSyncedLocalStorage from '../hooks/useSyncedLocalStorage';
-import { Student } from '../types';
+// Fix: Import Subject type to correctly type data from apiGetSubjects.
+import { Student, Subject } from '../types';
 import SearchIcon from './icons/SearchIcon';
 
 const PAGE_SIZE = 50;
@@ -88,7 +90,8 @@ const Students = () => {
 
     const fetchClasses = async () => {
         try {
-            const fetchedSubjects = await apiGetSubjects();
+            // Fix: Explicitly type fetchedSubjects to ensure `allClasses` is inferred as string[].
+            const fetchedSubjects: Subject[] = await apiGetSubjects();
             const allClasses = [...new Set(fetchedSubjects.flatMap(s => s.classes))].sort();
             setClasses(allClasses);
             if (!formData.class && allClasses.length > 0) {

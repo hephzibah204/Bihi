@@ -1,7 +1,9 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import { apiGetStudentsForClasses, apiGetSubjects, updateStudents, apiGetStudents } from '../services/api';
-import { Student } from '../types';
+// Fix: Import Subject type to correctly type data from API calls.
+import { Student, Subject } from '../types';
 
 const PAGE_SIZE = 50;
 
@@ -43,7 +45,8 @@ const Promotions = () => {
     const visibleStudents = studentsInClass.slice(0, visibleCount);
 
     const fetchClasses = async () => {
-        const allSubjects = await apiGetSubjects();
+        // Fix: Explicitly type allSubjects to ensure allClasses is inferred as string[].
+        const allSubjects: Subject[] = await apiGetSubjects();
         const allClasses = [...new Set(allSubjects.flatMap(s => s.classes))].sort();
         setClasses(allClasses);
         if (allClasses.length > 1) {
@@ -217,9 +220,11 @@ const Promotions = () => {
                     </thead>
                     <tbody className="bg-white dark:bg-gray-800">
                         {loading ? (
-                            <tr><td colSpan="3" className="td text-center">Loading students...</td></tr>
+                            // Fix: Changed colSpan from string to number.
+                            <tr><td colSpan={3} className="td text-center">Loading students...</td></tr>
                         ) : studentsInClass.length === 0 ? (
-                             <tr><td colSpan="3" className="td text-center">No students in this class.</td></tr>
+                             // Fix: Changed colSpan from string to number.
+                             <tr><td colSpan={3} className="td text-center">No students in this class.</td></tr>
                         ) : (
                             <>
                                 {visibleStudents.map(student => (

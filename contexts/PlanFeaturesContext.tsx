@@ -1,6 +1,10 @@
 import React, { createContext, useContext, ReactNode, PropsWithChildren } from 'react';
 
-const PlanFeaturesContext = createContext({});
+// Fix: Provide a default value to the context that matches the shape of the data it will hold.
+const PlanFeaturesContext = createContext({
+    hasAI: false,
+    maxStudents: 0,
+});
 
 export const usePlanFeatures = () => useContext(PlanFeaturesContext);
 

@@ -103,7 +103,8 @@ const StudentResults = ({ demoUserId }) => {
                             </tr>
                         )) : (
                             <tr>
-                                <td colSpan="7" className="td text-center">No results have been uploaded for you yet.</td>
+                                {/* Fix: Changed colSpan from string to number. */}
+                                <td colSpan={7} className="td text-center">No results have been uploaded for you yet.</td>
                             </tr>
                         )}
                     </tbody>

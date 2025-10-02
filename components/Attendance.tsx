@@ -5,6 +5,8 @@ import QrCodeIcon from './icons/QrCodeIcon';
 import Modal from './Modal';
 import CheckIcon from './icons/CheckIcon';
 import XIcon from './icons/XIcon';
+// Fix: Import Subject type to correctly type data from apiGetSubjects.
+import { Subject } from '../types';
 
 // CDN libraries are declared on the window object
 declare global {
@@ -49,7 +51,8 @@ const Attendance = () => {
     const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const fetchClassesAndData = useCallback(async () => {
-        const subjects = await apiGetSubjects();
+        // Fix: Explicitly type subjects to ensure allClasses is inferred as string[].
+        const subjects: Subject[] = await apiGetSubjects();
         const allClasses = [...new Set(subjects.flatMap(s => s.classes))].sort();
         setClasses(allClasses);
         if (allClasses.length > 0 && !selectedClass) {

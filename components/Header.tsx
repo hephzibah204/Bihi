@@ -21,28 +21,27 @@ const Header = ({ setSidebarOpen, onLogout }) => {
     const handleLogout = onLogout || defaultLogoutHandler;
 
     return (
-        <header className="flex justify-between items-center py-4 px-6 bg-white dark:bg-gray-800 border-b dark:border-gray-700">
+        <header className="flex-shrink-0 flex justify-between items-center h-20 px-6 bg-card-bg-light dark:bg-card-bg-dark shadow-sm">
             <div className="flex items-center">
-                <button onClick={() => setSidebarOpen(true)} className="text-gray-500 focus:outline-none md:hidden">
+                <button onClick={() => setSidebarOpen(true)} className="text-slate-500 focus:outline-none md:hidden">
                     <Bars3Icon className="h-6 w-6" />
                 </button>
             </div>
 
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
                 <button 
                     onClick={toggleTheme}
-                    className="p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+                    className="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700"
                     aria-label="Toggle theme"
                 >
                     {theme === 'dark' ? <SunIcon className="h-6 w-6" /> : <MoonIcon className="h-6 w-6" />}
                 </button>
                 <button 
                     onClick={handleLogout} 
-                    className="flex items-center text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    className="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700"
                     aria-label="Logout"
                 >
-                    <LogoutIcon className="h-5 w-5 mr-1" />
-                    <span>Logout</span>
+                    <LogoutIcon className="h-6 w-6" />
                 </button>
             </div>
         </header>

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { apiGetStudentsForClasses, apiGetSubjects } from '../services/api';
 import useSyncedLocalStorage from '../hooks/useSyncedLocalStorage';
@@ -46,7 +47,8 @@ const Results = () => {
     const fetchInitialData = useCallback(async () => {
         setLoading(true);
         try {
-            const allSubjects = await apiGetSubjects();
+            // Fix: Explicitly type allSubjects to ensure allClasses is inferred as string[].
+            const allSubjects: Subject[] = await apiGetSubjects();
             setSubjects(allSubjects);
             const allClasses = [...new Set(allSubjects.flatMap(s => s.classes))];
             setClasses(allClasses.sort());
@@ -182,7 +184,8 @@ const Results = () => {
                         ) : (
                             <>
                             {visibleStudents.map(student => {
-                                const score = currentScoresMap[student.id] || {};
+                                // Fix: Explicitly type `score` as Partial<Score> to avoid errors when accessing properties on a potentially empty object.
+                                const score: Partial<Score> = currentScoresMap[student.id] || {};
                                 const total = (score.ca1 || 0) + (score.ca2 || 0) + (score.exam || 0);
                                 return (
                                     <tr key={student.id}>

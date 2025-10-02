@@ -109,7 +109,8 @@ const CommunicationsDashboard = () => {
             </div>
             <div>
                 <label className="label">Message</label>
-                <textarea value={content} onChange={e => setContent(e.target.value)} placeholder="Message content..." className="input-field" rows="8"></textarea>
+                {/* Fix: Changed rows from string to number. */}
+                <textarea value={content} onChange={e => setContent(e.target.value)} placeholder="Message content..." className="input-field" rows={8}></textarea>
             </div>
              <div>
                 <label className="label">Recipients</label>

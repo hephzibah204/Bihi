@@ -23,12 +23,12 @@ const SubscriptionPage = () => {
     const PAYSTACK_PUBLIC_KEY = "pk_test_a62243685a10497577e5c54c34a873130d71a9b5";
     const PLAN_AMOUNT = 675000; // ₦6,750 in kobo for the Termly Pro plan
 
-    const handleSubdomainChange = (e) => {
+    const handleSubdomainChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
         setSubdomain(value);
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError('');
         setLoading(true);
@@ -50,7 +50,7 @@ const SubscriptionPage = () => {
             initiatePayment();
 
         } catch (err) {
-            setError(err.message || 'An unexpected error occurred.');
+            setError((err as Error).message || 'An unexpected error occurred.');
             setLoading(false);
         }
     };
@@ -71,7 +71,7 @@ const SubscriptionPage = () => {
                 setError('Payment window closed. Your school has not been created.');
                 setLoading(false);
             },
-            callback: async function(response){
+            callback: async function(response: { status: string }){
                 if (response.status === 'success') {
                     // Payment is successful, now create the school and user
                     await createSchoolAndUser();
@@ -86,17 +86,21 @@ const SubscriptionPage = () => {
     
     const createSchoolAndUser = async () => {
         try {
+            if (!supabase) {
+                throw new Error("Authentication service is not configured.");
+            }
             // Create the Supabase auth user
-            const { data: { user }, error: signUpError } = await supabase.auth.signUp({
+            const { data, error: signUpError } = await supabase.auth.signUp({
                 email: adminEmail,
                 password: password,
             });
 
             if (signUpError) throw signUpError;
-            if (!user) throw new Error("Authentication failed after payment.");
+            if (!data || !data.user) throw new Error("Authentication failed after payment.");
+
+            const { user } = data;
 
             // Create new tenant
-            // FIX: Removed `createdAt` property to match the expected type for `apiAddTenant`.
             await apiAddTenant({ id: subdomain, name: schoolName });
             
             // Save default settings for the new tenant, including the public key
@@ -115,7 +119,7 @@ const SubscriptionPage = () => {
             setSuccess(true);
 
         } catch (err) {
-             setError(`CRITICAL ERROR: Payment was successful but account setup failed. Please contact support with your email ${adminEmail}. Error: ${err.message}`);
+             setError(`CRITICAL ERROR: Payment was successful but account setup failed. Please contact support with your email ${adminEmail}. Error: ${(err as Error).message}`);
         } finally {
             setLoading(false);
         }
@@ -172,7 +176,7 @@ const SubscriptionPage = () => {
                 <form className="space-y-4" onSubmit={handleSubmit}>
                     <div>
                         <label htmlFor="schoolName" className="label">School Name</label>
-                        <input id="schoolName" type="text" required className="input-field" value={schoolName} onChange={(e) => setSchoolName(e.target.value)} placeholder="e.g., Brightstar Academy" />
+                        <input id="schoolName" type="text" required className="input-field" value={schoolName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSchoolName(e.target.value)} placeholder="e.g., Brightstar Academy" />
                     </div>
                     
                     <div>
@@ -190,29 +194,32 @@ const SubscriptionPage = () => {
 
                      <div>
                         <label htmlFor="adminName" className="label">Your Full Name</label>
-                        <input id="adminName" type="text" required className="input-field" value={adminName} onChange={(e) => setAdminName(e.target.value)} placeholder="e.g., Jane Doe" />
+                        <input id="adminName" type="text" required className="input-field" value={adminName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAdminName(e.target.value)} placeholder="e.g., Jane Doe" />
                     </div>
 
                     <div>
                         <label htmlFor="adminEmail" className="label">Email Address</label>
-                        <input id="adminEmail" type="email" required className="input-field" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} placeholder="you@example.com" />
+                        <input id="adminEmail" type="email" required className="input-field" value={adminEmail} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAdminEmail(e.target.value)} placeholder="e.g., jane.doe@example.com" />
                     </div>
-                    
-                    <div>
+                     <div>
                         <label htmlFor="password" className="label">Password</label>
-                        <input id="password" type="password" required className="input-field" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
+                        <input id="password" type="password" required className="input-field" minLength={8} value={password} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)} placeholder="Min. 8 characters" />
                     </div>
-                    
+
                     <div>
-                        <button type="submit" disabled={loading} className="w-full btn btn-primary">
-                            {loading ? 'Initializing...' : 'Proceed to Payment (₦6,750)'}
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full btn btn-primary"
+                        >
+                            {loading ? 'Processing...' : 'Create School & Proceed to Payment'}
                         </button>
                     </div>
                 </form>
-                 <p className="text-center text-sm text-gray-500">
-                    Already have an account?{' '}
+                 <p className="text-center text-sm text-gray-500 mt-6">
+                    Already have a portal?{' '}
                     <a href="/" className="font-medium text-indigo-600 hover:text-indigo-500">
-                        Go back to Sign In
+                        Go to main site
                     </a>
                 </p>
             </div>
