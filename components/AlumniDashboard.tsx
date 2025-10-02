@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { apiGetStudents, apiSendAlumniEmail } from '../services/api';
 import { getSubdomain } from '../utils/subdomain';
@@ -12,7 +13,7 @@ import EnvelopeIcon from './icons/EnvelopeIcon';
 const PAGE_SIZE = 30;
 
 const AlumniDashboard = () => {
-    // Fix: Explicitly type the `alumni` state with `Student[]`. This allows TypeScript to correctly infer that `graduationYear` is a number, resolving the arithmetic operation error in the `sort` function.
+    // Fix: Explicitly type the `alumni` state with `Student[]` to ensure `graduationYear` is correctly inferred as a number for sorting.
     const [alumni, setAlumni] = useState<Student[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [yearFilter, setYearFilter] = useState('');
@@ -26,8 +27,12 @@ const AlumniDashboard = () => {
     const [sendingEmail, setSendingEmail] = useState(false);
 
     const graduationYears = useMemo(() => {
-        const years = alumni.map(a => a.graduationYear).filter(Boolean);
-        return [...new Set(years)].sort((a, b) => b - a);
+        // Fix: Use a type guard in the filter to correctly narrow the type of `years` to `number[]`.
+        // `filter(Boolean)` does not inform TypeScript that `undefined` values are removed,
+        // which caused a type error when trying to perform arithmetic subtraction in the `sort` method.
+        const years = alumni.map(a => a.graduationYear).filter((year): year is number => year != null);
+        // Fix: Explicitly type sort callback parameters to resolve arithmetic operation type error.
+        return [...new Set(years)].sort((a: number, b: number) => b - a);
     }, [alumni]);
 
     const filteredAlumni = useMemo(() => {
