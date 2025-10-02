@@ -1,0 +1,5 @@
+{
+  "name": "Nigeria School Results Management System",
+  "description": "A comprehensive system for managing student results in Nigerian schools. It allows for student and subject management, score entry, report card generation, and provides AI-powered performance analysis.",
+  "requestFramePermissions": []
+}

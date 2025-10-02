@@ -1,0 +1,125 @@
+import React, { FC, useState, useEffect } from 'react';
+import UsersIcon from './icons/UsersIcon';
+import BriefcaseIcon from './icons/BriefcaseIcon';
+import AcademicCapIcon from './icons/AcademicCapIcon';
+import UsersGroupIcon from './icons/UsersGroupIcon';
+import { apiGetStudents } from '../services/api';
+import { DEMO_TENANT_ID } from '../utils/demoData';
+import ArrowLeftIcon from './icons/ArrowLeftIcon';
+
+interface RoleCardProps {
+    icon: React.ReactNode;
+    title: string;
+    description: string;
+    onClick: () => void;
+}
+
+const RoleCard: FC<RoleCardProps> = ({ icon, title, description, onClick }) => (
+    <button
+        onClick={onClick}
+        className="w-full text-left p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg hover:scale-105 transition-transform duration-200 flex items-start space-x-4"
+    >
+        <div className="flex-shrink-0 w-12 h-12 bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 rounded-lg flex items-center justify-center">
+            {icon}
+        </div>
+        <div>
+            <h3 className="text-xl font-bold text-gray-800 dark:text-white">{title}</h3>
+            <p className="mt-1 text-gray-600 dark:text-gray-400">{description}</p>
+        </div>
+    </button>
+);
+
+interface DemoSchoolLandingPageProps {
+    onSelectProfile: (profile: { role: string, userId?: string }) => void;
+}
+
+const DemoSchoolLandingPage: FC<DemoSchoolLandingPageProps> = ({ onSelectProfile }) => {
+    const schoolLogo = "https://i.imgur.com/gKEBi1f.png";
+    const [selectionStep, setSelectionStep] = useState('role'); // 'role', 'student', 'parent'
+    const [students, setStudents] = useState([]);
+    const [loading, setLoading] = useState(false);
+
+    const handleRoleClick = async (role: string) => {
+        if (role === 'student' || role === 'parent') {
+            setLoading(true);
+            const demoStudents = await apiGetStudents(DEMO_TENANT_ID);
+            setStudents(demoStudents);
+            setSelectionStep(role);
+            setLoading(false);
+        } else {
+            onSelectProfile({ role });
+        }
+    };
+    
+    if (loading) {
+        return <div className="flex items-center justify-center h-screen">Loading students...</div>;
+    }
+
+    if (selectionStep === 'student' || selectionStep === 'parent') {
+        return (
+             <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+                <h1 className="text-3xl font-bold text-center mb-6">Select a {selectionStep} profile to view</h1>
+                <div className="w-full max-w-2xl space-y-4">
+                    {students.map(student => (
+                        <button 
+                            key={student.id} 
+                            onClick={() => onSelectProfile({ role: selectionStep, userId: student.id })}
+                            className="w-full flex items-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                        >
+                            <img src={student.photo} alt={student.name} className="w-12 h-12 rounded-full mr-4"/>
+                            <span className="font-semibold text-lg">{student.name}</span>
+                        </button>
+                    ))}
+                </div>
+                 <button onClick={() => setSelectionStep('role')} className="mt-8 flex items-center text-indigo-600 font-semibold">
+                    <ArrowLeftIcon className="w-5 h-5 mr-2" />
+                    Back to Roles
+                </button>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+            <header className="text-center">
+                <img src={schoolLogo} alt="School Logo" className="w-20 h-20 mx-auto mb-4 rounded-full" />
+                <h1 className="text-4xl font-bold text-gray-800 dark:text-white">Welcome to Brightstar Academy</h1>
+                <p className="mt-2 text-lg text-gray-600 dark:text-gray-400">
+                    Experience the platform from every perspective.
+                </p>
+            </header>
+
+            <main className="mt-12 w-full max-w-4xl">
+                <h2 className="text-2xl font-semibold text-center text-gray-700 dark:text-gray-300 mb-6">Choose a role to sign in as:</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <RoleCard 
+                        icon={<UsersIcon className="w-6 h-6" />}
+                        title="Admin"
+                        description="Manage school settings, students, teachers, and view analytics."
+                        onClick={() => handleRoleClick('admin')}
+                    />
+                    <RoleCard 
+                        icon={<BriefcaseIcon className="w-6 h-6" />}
+                        title="Teacher"
+                        description="Manage your classes, enter scores, and generate report cards."
+                        onClick={() => handleRoleClick('teacher')}
+                    />
+                    <RoleCard 
+                        icon={<AcademicCapIcon className="w-6 h-6" />}
+                        title="Student"
+                        description="View your results, check your timetable, and access the AI tutor."
+                        onClick={() => handleRoleClick('student')}
+                    />
+                    <RoleCard 
+                        icon={<UsersGroupIcon className="w-6 h-6" />}
+                        title="Parent"
+                        description="Monitor your child's performance, attendance, and results."
+                        onClick={() => handleRoleClick('parent')}
+                    />
+                </div>
+            </main>
+        </div>
+    );
+};
+
+export default DemoSchoolLandingPage;

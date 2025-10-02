@@ -1,0 +1,108 @@
+import React, { useState, useEffect, useRef } from 'react';
+import Modal from './Modal';
+import { updateStudents } from '../services/api';
+
+// Augment the Window interface to declare 'faceapi' from the CDN-loaded script.
+declare global {
+    interface Window {
+        faceapi: any;
+    }
+}
+
+const FaceEnrollmentModal = ({ isOpen, onClose, student }) => {
+    const videoRef = useRef(null);
+    const [modelsLoaded, setModelsLoaded] = useState(false);
+    const [captureStatus, setCaptureStatus] = useState('idle'); // idle, capturing, success, error
+
+    useEffect(() => {
+        const loadModels = async () => {
+            if (!window.faceapi) {
+                console.error("face-api.js has not loaded. Face enrollment will be unavailable.");
+                return;
+            }
+            const MODEL_URL = 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights';
+            await window.faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
+            await window.faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+            await window.faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+            setModelsLoaded(true);
+        };
+        loadModels();
+    }, []);
+
+    useEffect(() => {
+        if (isOpen && modelsLoaded) {
+            startVideo();
+        } else {
+            stopVideo();
+        }
+    }, [isOpen, modelsLoaded]);
+    
+    const startVideo = () => {
+        navigator.mediaDevices.getUserMedia({ video: {} })
+            .then(stream => {
+                if (videoRef.current) videoRef.current.srcObject = stream;
+            })
+            .catch(err => console.error("Error accessing camera: ", err));
+    };
+
+    const stopVideo = () => {
+        if (videoRef.current && videoRef.current.srcObject) {
+            videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+        }
+    };
+    
+    const handleCapture = async () => {
+        if (!videoRef.current || !window.faceapi) {
+             setCaptureStatus('error');
+             setTimeout(() => setCaptureStatus('idle'), 2000);
+            return;
+        }
+        setCaptureStatus('capturing');
+        
+        const detections = await window.faceapi.detectSingleFace(videoRef.current)
+            .withFaceLandmarks()
+            .withFaceDescriptor();
+
+        if (detections) {
+            await updateStudents(allStudents => 
+                allStudents.map(s => 
+                    s.id === student.id ? { ...s, faceDescriptor: Array.from(detections.descriptor) } : s
+                )
+            );
+            
+            setCaptureStatus('success');
+            setTimeout(() => {
+                onClose();
+                setCaptureStatus('idle');
+            }, 1500);
+        } else {
+            setCaptureStatus('error');
+            setTimeout(() => setCaptureStatus('idle'), 2000);
+        }
+    };
+
+    return (
+        <Modal isOpen={isOpen} onClose={onClose} title={`Face Enrollment for ${student?.name}`}>
+            <div className="p-6 text-center">
+                {!modelsLoaded ? <p>Loading AI models...</p> :
+                <>
+                    <div className="w-full bg-black rounded-lg overflow-hidden aspect-video mx-auto">
+                        <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover"></video>
+                    </div>
+                    <p className="mt-4 text-gray-600 dark:text-gray-300">
+                        Please look directly at the camera and ensure your face is well-lit.
+                    </p>
+                    <button onClick={handleCapture} disabled={captureStatus !== 'idle'} className="mt-4 btn btn-primary">
+                        {captureStatus === 'idle' && 'Capture Photo'}
+                        {captureStatus === 'capturing' && 'Analyzing...'}
+                        {captureStatus === 'success' && 'Success!'}
+                        {captureStatus === 'error' && 'No face detected. Try again.'}
+                    </button>
+                </>
+                }
+            </div>
+        </Modal>
+    );
+};
+
+export default FaceEnrollmentModal;
