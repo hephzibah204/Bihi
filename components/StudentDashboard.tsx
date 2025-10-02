@@ -6,6 +6,7 @@ import StudentBottomNavBar from './StudentBottomNavBar';
 import SandboxBanner from './SandboxBanner';
 // Fix: Import StudentView from the central types file to break a circular dependency.
 import { StudentView } from '../types';
+import Chatbot from './Chatbot';
 
 interface StudentDashboardProps {
     isDemo?: boolean;
@@ -43,6 +44,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ isDemo = false, onL
                     </main>
                     <StudentBottomNavBar activeView={activeView} setActiveView={handleViewChange} />
                 </div>
+                <Chatbot />
             </div>
         </>
     );

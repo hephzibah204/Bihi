@@ -6,6 +6,7 @@ import ParentBottomNavBar from './ParentBottomNavBar';
 import SandboxBanner from './SandboxBanner';
 // Fix: Import ParentView from the central types file to break a circular dependency.
 import { ParentView } from '../types';
+import Chatbot from './Chatbot';
 
 interface ParentDashboardProps {
     isDemo?: boolean;
@@ -44,6 +45,7 @@ const ParentDashboard: React.FC<ParentDashboardProps> = ({ isDemo = false, onLog
                     </main>
                     <ParentBottomNavBar activeView={activeView} setActiveView={handleViewChange} />
                 </div>
+                <Chatbot />
             </div>
         </>
     );

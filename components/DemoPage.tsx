@@ -82,7 +82,7 @@ const DemoPage = () => {
     }
 
     // Render the correct dashboard based on the selected role
-    switch (selectedProfile.role) {
+    switch (selectedProfile.role.toLowerCase()) {
         case 'student':
             return <StudentDashboard isDemo={true} onLogout={handleDemoLogout} demoUserId={selectedProfile.userId} />;
         case 'parent':

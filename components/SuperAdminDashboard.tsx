@@ -15,6 +15,7 @@ import WrenchScrewdriverIcon from './icons/WrenchScrewdriverIcon';
 import QuestionMarkCircleIcon from './icons/QuestionMarkCircleIcon';
 import AdminBillingPage from './AdminBillingPage';
 import BanknotesIcon from './icons/BanknotesIcon';
+import Chatbot from './Chatbot';
 
 type AdminView = 'analytics' | 'tenants' | 'plans' | 'content' | 'kb-manager' | 'customization' | 'billing';
 
@@ -107,6 +108,7 @@ const SuperAdminDashboard = () => {
             <main className="flex-1 p-6">
                 {renderView()}
             </main>
+            <Chatbot />
         </div>
     );
 };
