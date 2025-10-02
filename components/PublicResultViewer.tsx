@@ -58,7 +58,7 @@ const PublicResultViewer = () => {
         const ReportCardComponent = getReportCardTemplate(resultData.student.class);
         return (
             <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-4 md:p-8">
-                <div className="max-w-4xl mx-auto bg-white shadow-lg">
+                <div className="max-w-4xl mx-auto bg-white shadow-lg printable-content">
                     <div className="p-4" id="report-card-public">
                         <ReportCardComponent 
                             student={resultData.student}
@@ -68,18 +68,17 @@ const PublicResultViewer = () => {
                             settings={resultData.schoolSettings}
                             term={resultData.schoolSettings.term}
                             session={resultData.schoolSettings.session}
-                            // FIX: Added missing remarks and attendance props to satisfy component interface.
                             remarks={resultData.remarks}
                             attendance={resultData.attendance}
                         />
                     </div>
-                    <div className="text-center my-6 no-print">
-                         <button onClick={handlePrint} className="btn btn-primary mr-4">
-                            <PrinterIcon className="w-5 h-5 mr-2" />
-                            Print Report
-                        </button>
-                        <button onClick={() => setResultData(null)} className="btn btn-secondary">Check Another Result</button>
-                    </div>
+                </div>
+                 <div className="text-center my-6 no-print max-w-4xl mx-auto">
+                     <button onClick={handlePrint} className="btn btn-primary mr-4">
+                        <PrinterIcon className="w-5 h-5 mr-2" />
+                        Print Report
+                    </button>
+                    <button onClick={() => setResultData(null)} className="btn btn-secondary">Check Another Result</button>
                 </div>
             </div>
         );

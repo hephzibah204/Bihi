@@ -11,6 +11,7 @@ import { apiSaveSchoolSettings, apiSaveStudents, apiSaveSubjects, apiSaveScores,
 import DemoRoleSelector from './DemoRoleSelector';
 import StudentDashboard from './StudentDashboard';
 import ParentDashboard from './ParentDashboard';
+import TeacherDashboard from './TeacherDashboard';
 import { TenantProvider } from '../contexts/TenantContext';
 import { PlanFeaturesProvider } from '../contexts/PlanFeaturesContext';
 
@@ -86,8 +87,9 @@ const DemoPage = () => {
             return <StudentDashboard isDemo={true} onLogout={handleDemoLogout} demoUserId={selectedProfile.userId} />;
         case 'parent':
             return <ParentDashboard isDemo={true} onLogout={handleDemoLogout} demoUserId={selectedProfile.userId} />;
-        case 'admin':
         case 'teacher':
+            return <TeacherDashboard isDemo={true} onLogout={handleDemoLogout} />;
+        case 'admin':
         default:
             return (
                 <TenantProvider>
@@ -99,14 +101,13 @@ const DemoPage = () => {
                                 setSidebarOpen={setSidebarOpen} 
                                 activeView={activeView}
                                 setActiveView={handleViewChange}
-                                userRole={selectedProfile.role === 'admin' ? 'Admin' : 'Teacher'}
+                                userRole="Admin"
                             />
                             <div className="flex-1 flex flex-col overflow-hidden">
                                 <Header setSidebarOpen={setSidebarOpen} onLogout={handleDemoLogout} />
                                 <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900">
                                     <div className="container mx-auto px-6 py-8">
-                                        {/* FIX: Passed the missing 'userRole' prop to DashboardContent to satisfy its type requirements. */}
-                                        <DashboardContent activeView={activeView} setActiveView={handleViewChange} userRole={selectedProfile.role === 'admin' ? 'Admin' : 'Teacher'} />
+                                        <DashboardContent activeView={activeView} setActiveView={handleViewChange} userRole="Admin" />
                                     </div>
                                 </main>
                             </div>

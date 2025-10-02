@@ -194,11 +194,27 @@
       
       /* Print styles */
       @media print {
-          body { font-size: var(--print-font-size); -webkit-print-color-adjust: exact; color-adjust: exact; }
-          .no-print { display: none; }
-          .print-container { max-width: 100%; box-shadow: none; border: 1px solid #ccc; }
+          body * {
+              visibility: hidden;
+          }
+          .printable-content, .printable-content * {
+              visibility: visible;
+          }
+          .printable-content {
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 100%;
+              transform: scale(1) !important; /* Override any scaling used for screen preview */
+              margin: 0;
+              padding: 0;
+          }
+          .no-print { display: none !important; }
           .page-break { page-break-after: always; }
-          @page { size: A4; margin: 0.5in; }
+          @page {
+            size: A4;
+            margin: 0;
+          }
       }
     </style>
   </head>

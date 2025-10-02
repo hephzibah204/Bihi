@@ -38,7 +38,8 @@ const ParentDashboard: React.FC<ParentDashboardProps> = ({ isDemo = false, onLog
                     <Header setSidebarOpen={setSidebarOpen} onLogout={onLogout} />
                     <main className="flex-1 overflow-x-hidden overflow-y-auto pb-16 md:pb-0">
                         <div className="container mx-auto px-6 py-8">
-                            <ParentDashboardContent activeView={activeView} demoUserId={demoUserId} />
+                            {/* FIX: Pass the 'setActiveView' prop to ParentDashboardContent as it is required by its props interface. */}
+                            <ParentDashboardContent activeView={activeView} demoUserId={demoUserId} setActiveView={handleViewChange} />
                         </div>
                     </main>
                     <ParentBottomNavBar activeView={activeView} setActiveView={handleViewChange} />

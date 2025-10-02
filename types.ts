@@ -1,4 +1,5 @@
-
+// Fix: Removed self-import of types which was causing a declaration conflict.
+// The types Student, Subject, Score, and Remark are defined in this file.
 
 export const Term = {
     FIRST: 'First Term',
@@ -36,7 +37,7 @@ export type TeacherView =
 
 // Fix: Moved view-specific types here to break circular dependencies
 export type StudentView = 'dashboard' | 'results' | 'timetable' | 'profile' | 'ai-tutor' | 'notifications';
-export type ParentView = 'dashboard' | 'attendance' | 'behavioral' | 'tutor' | 'notifications';
+export type ParentView = 'dashboard' | 'results' | 'attendance' | 'behavioral' | 'ai-assistant' | 'notifications';
 
 
 export interface Score {

@@ -34,7 +34,7 @@ const BulkReportCardPrintView = ({ studentIds, allData, onClose }) => {
                 </button>
             </div>
             
-            <div className="print-area">
+            <div className="printable-content">
                 {studentsToPrint.map((student) => {
                     const ReportCardComponent = getTemplateForStudent(student);
                     return (

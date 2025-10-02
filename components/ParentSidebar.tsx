@@ -6,6 +6,7 @@ import BrainCircuitIcon from './icons/BrainCircuitIcon';
 // Fix: Import ParentView from the central types file to break a circular dependency.
 import { ParentView } from '../types';
 import BellIcon from './icons/BellIcon';
+import ClipboardListIcon from './icons/ClipboardListIcon';
 
 
 interface NavItemProps {
@@ -58,10 +59,11 @@ const ParentSidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveVie
                 <nav className="mt-10 px-2">
                     <ul className="space-y-2">
                         <NavItem icon={<HomeIcon className="h-6 w-6" />} view="dashboard" activeView={activeView} onClick={setActiveView}>Dashboard</NavItem>
+                        <NavItem icon={<ClipboardListIcon className="h-6 w-6" />} view="results" activeView={activeView} onClick={setActiveView}>Results</NavItem>
                         <NavItem icon={<BellIcon className="h-6 w-6" />} view="notifications" activeView={activeView} onClick={setActiveView}>Notifications</NavItem>
                         <NavItem icon={<CheckBadgeIcon className="h-6 w-6" />} view="attendance" activeView={activeView} onClick={setActiveView}>Attendance</NavItem>
                         <NavItem icon={<ShieldExclamationIcon className="h-6 w-6" />} view="behavioral" activeView={activeView} onClick={setActiveView}>Behavioral</NavItem>
-                        <NavItem icon={<BrainCircuitIcon className="h-6 w-6" />} view="tutor" activeView={activeView} onClick={setActiveView}>AI Tutor</NavItem>
+                        <NavItem icon={<BrainCircuitIcon className="h-6 w-6" />} view="ai-assistant" activeView={activeView} onClick={setActiveView}>AI Assistant</NavItem>
                     </ul>
                 </nav>
             </aside>

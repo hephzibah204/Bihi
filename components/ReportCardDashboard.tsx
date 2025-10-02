@@ -348,12 +348,10 @@ const ReportCardDashboard = () => {
             </div>
             {renderStudentList()}
             {selectedStudent && allData && (
-                // Fix: Added children to the Modal component to fix the missing property error.
                 <Modal isOpen={!!selectedStudent} onClose={handleCloseModal} size="full" title={`Report for ${selectedStudent.name}`}>
                     <div className="flex h-full">
                         {/* Left Panel: Edit Form */}
-                        <div className="w-1/3 p-6 border-r dark:border-gray-700 overflow-y-auto">
-                            {/* Tabs */}
+                        <div className="w-1/3 p-6 border-r dark:border-gray-700 overflow-y-auto no-print">
                             <div className="flex border-b dark:border-gray-700 mb-4">
                                 <button
                                     onClick={() => setActiveModalTab('edit')}
@@ -422,23 +420,32 @@ const ReportCardDashboard = () => {
                                     >
                                         {exporting ? 'Exporting...' : 'Export as PDF'}
                                     </button>
+                                    <button 
+                                        onClick={() => window.print()}
+                                        className="btn btn-secondary w-full mt-2"
+                                    >
+                                        <PrinterIcon className="w-5 h-5 mr-2" />
+                                        Print Report
+                                    </button>
                                 </div>
                             )}
                         </div>
                         {/* Right Panel: Report Card Preview */}
                         <div className="w-2/3 overflow-y-auto bg-gray-100 dark:bg-gray-900 p-8 flex justify-center">
-                            <div id={`report-card-${selectedStudent.id}`} className="transform scale-[0.8] origin-top">
-                                {ReportCardComponentForPreview && <ReportCardComponentForPreview
-                                    student={selectedStudent}
-                                    students={allData.allStudents}
-                                    scores={allData.scores}
-                                    subjects={allData.subjects}
-                                    settings={allData.settings}
-                                    term={allData.settings.term}
-                                    session={allData.settings.session}
-                                    remarks={allData.remarks}
-                                    attendance={allData.attendance}
-                                />}
+                            <div className="printable-content">
+                                <div id={`report-card-${selectedStudent.id}`} className="transform scale-[0.8] origin-top">
+                                    {ReportCardComponentForPreview && <ReportCardComponentForPreview
+                                        student={selectedStudent}
+                                        students={allData.allStudents}
+                                        scores={allData.scores}
+                                        subjects={allData.subjects}
+                                        settings={allData.settings}
+                                        term={allData.settings.term}
+                                        session={allData.settings.session}
+                                        remarks={allData.remarks}
+                                        attendance={allData.attendance}
+                                    />}
+                                </div>
                             </div>
                         </div>
                     </div>

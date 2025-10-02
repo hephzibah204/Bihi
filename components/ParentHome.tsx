@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { apiGetAttendance, apiGetBehavioralRecords, apiGetStudents } from '../services/api';
+import ClipboardListIcon from './icons/ClipboardListIcon';
 
-const ParentHome = ({ demoUserId }) => {
+const ParentHome = ({ demoUserId, setActiveView }) => {
     const [child, setChild] = useState(null);
     const [loading, setLoading] = useState(true);
     const [summary, setSummary] = useState({ attendance: null, behavior: null });
@@ -54,7 +55,18 @@ const ParentHome = ({ demoUserId }) => {
             <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">Parent Dashboard</h1>
             <p className="mt-2 text-gray-600 dark:text-gray-300">Welcome! Here's a summary for {child?.name}.</p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                <button
+                    onClick={() => setActiveView('results')}
+                    className="card p-6 text-center hover:shadow-lg hover:scale-105 transition-transform duration-200"
+                >
+                    <div className="text-indigo-500 mx-auto w-16 h-16 flex items-center justify-center bg-indigo-100 dark:bg-gray-700 rounded-full">
+                        <ClipboardListIcon className="w-8 h-8"/>
+                    </div>
+                    <h3 className="mt-4 text-lg font-semibold">View Full Results</h3>
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Check detailed scores and print report cards.</p>
+                </button>
+
                 <div className="card p-6">
                     <h3 className="font-semibold">Latest Attendance Record</h3>
                     <p className={`mt-2 text-3xl font-bold capitalize ${

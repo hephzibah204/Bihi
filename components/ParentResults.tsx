@@ -4,7 +4,7 @@ import { calculateGrade, getReportCardTemplate } from '../utils/reportCardHelper
 import Modal from './Modal';
 import PrinterIcon from './icons/PrinterIcon';
 
-const StudentResults = ({ demoUserId }) => {
+const ParentResults = ({ demoUserId }) => {
     const [allResults, setAllResults] = useState({});
     const [student, setStudent] = useState(null);
     const [allData, setAllData] = useState(null);
@@ -16,7 +16,7 @@ const StudentResults = ({ demoUserId }) => {
     useEffect(() => {
         if (!demoUserId) {
             setLoading(false);
-            setError("Student profile not selected.");
+            setError("Child profile not selected.");
             return;
         }
         
@@ -30,7 +30,7 @@ const StudentResults = ({ demoUserId }) => {
                 setAllData({ scores, subjects, students, settings, attendance, remarks });
 
                 const currentStudent = students.find(s => s.id === demoUserId);
-                if (!currentStudent) throw new Error("Student profile not found.");
+                if (!currentStudent) throw new Error("Child's profile not found.");
                 setStudent(currentStudent);
 
                 const studentScores = scores.filter(score => score.studentId === demoUserId);
@@ -54,7 +54,7 @@ const StudentResults = ({ demoUserId }) => {
 
             } catch (err) {
                 console.error("Failed to fetch results:", err);
-                setError("Could not load your results. Please try again later.");
+                setError("Could not load your child's results. Please try again later.");
             } finally {
                 setLoading(false);
             }
@@ -62,30 +62,25 @@ const StudentResults = ({ demoUserId }) => {
 
         fetchResults();
     }, [demoUserId]);
-    
+
     const handleViewReport = (termKey) => {
         const [session, term] = termKey.split(' - ');
         setSelectedTermData({ session, term });
         setIsModalOpen(true);
     };
 
-    if (loading) {
-        return <div className="card p-6 text-center">Loading your results...</div>;
-    }
-
-    if (error) {
-        return <div className="card p-6 text-center text-red-500">{error}</div>;
-    }
-
-    const sortedTerms = Object.keys(allResults).sort().reverse();
+    if (loading) return <div className="card p-6 text-center">Loading results...</div>;
+    if (error) return <div className="card p-6 text-center text-red-500">{error}</div>;
     
+    const sortedTerms = Object.keys(allResults).sort().reverse();
+
     const ReportCardComponent = selectedTermData && student
       ? getReportCardTemplate(student.class)
       : null;
 
     return (
         <div>
-            <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">My Results</h1>
+            <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">Results for {student?.name}</h1>
 
             {sortedTerms.length > 0 ? sortedTerms.map(termKey => (
                 <div key={termKey} className="card mt-6">
@@ -95,7 +90,7 @@ const StudentResults = ({ demoUserId }) => {
                     </div>
                     <div className="table-container">
                         <table className="table">
-                            <thead><tr><th className="th">Subject</th><th className="th text-center">Total Score</th><th className="th">Remark</th></tr></thead>
+                            <thead><tr><th className="th">Subject</th><th className="th text-center">Total</th><th className="th">Remark</th></tr></thead>
                             <tbody>
                                 {allResults[termKey].map((res, index) => (
                                     <tr key={index}><td className="td font-medium">{res.subjectName}</td><td className="td text-center">{res.total}</td><td className="td">{res.remark}</td></tr>
@@ -105,12 +100,12 @@ const StudentResults = ({ demoUserId }) => {
                     </div>
                 </div>
             )) : (
-                <div className="card mt-6 p-6 text-center">No results have been uploaded for you yet.</div>
+                <div className="card mt-6 p-6 text-center">No results have been uploaded for your child yet.</div>
             )}
 
             {selectedTermData && student && (
                 <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={`Report Card for ${selectedTermData.term}`} size="full">
-                    <div className="bg-gray-100 dark:bg-gray-900 p-8 flex flex-col items-center">
+                     <div className="bg-gray-100 dark:bg-gray-900 p-8 flex flex-col items-center">
                         <div className="printable-content bg-white shadow-lg">
                            {ReportCardComponent && <ReportCardComponent
                                 student={student}
@@ -137,4 +132,4 @@ const StudentResults = ({ demoUserId }) => {
     );
 };
 
-export default StudentResults;
+export default ParentResults;

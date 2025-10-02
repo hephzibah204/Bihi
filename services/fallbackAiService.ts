@@ -67,3 +67,7 @@ export const getFallbackChatResponse = (prompt: string): string => {
 export const getFallbackTutorResponse = (prompt: string): string => {
     return "I'm sorry, I cannot provide detailed academic explanations while you are offline. My full capabilities, including explaining complex topics and providing practice exercises, require an internet connection. Please try again when you're online.";
 };
+
+export const getFallbackParentChatResponse = (prompt: string): string => {
+    return "I have limited functionality while you're offline. I can't provide detailed analysis of your child's performance right now. Please connect to the internet to ask specific questions about their progress.";
+};
