@@ -44,7 +44,7 @@ export default {
       // 2. If not found, use the hardcoded key (INSECURE FALLBACK)
 
       // WARNING: THIS IS AN INSECURE FALLBACK. DO NOT USE IN PRODUCTION.
-      const HARDCODED_API_KEY = "AIzaSyD26-Xj5UtHY6IKCgLh3nDlOKyHhbr-eK4"; 
+      const HARDCODED_API_KEY = "PASTE_YOUR_GEMINI_API_KEY_HERE"; 
 
       const apiKey = env.API_KEY || HARDCODED_API_KEY;
 
@@ -54,7 +54,7 @@ export default {
           console.warn('This is NOT recommended for production and exposes your API key if your code is public.');
       }
       
-      if (!apiKey || apiKey === "YOUR_GEMINI_API_KEY_HERE") {
+      if (!apiKey || apiKey === "PASTE_YOUR_GEMINI_API_KEY_HERE") {
         console.error('API_KEY is not configured in Cloudflare secrets and no hardcoded key is provided.');
         return new Response(JSON.stringify({ error: 'AI service is not configured on the server.' }), {
           status: 500,

@@ -57,10 +57,50 @@ const CountdownTimer = () => {
     );
 };
 
+// Fix: Moved PricingCard component out of PricingSection and added explicit types to resolve mapping errors.
+interface PricingCardProps {
+    name: string;
+    price: {
+        monthly: number;
+        termly: number;
+        yearly: number;
+    };
+    desc: string;
+    features: string[];
+    onNavigate: (view: string) => void;
+    popular?: boolean;
+    billingCycle: 'monthly' | 'termly' | 'yearly';
+}
+
+const PricingCard: FC<PricingCardProps> = ({ name, price, desc, features, onNavigate, popular = false, billingCycle }) => (
+    <div className={`card p-8 flex flex-col h-full ${popular ? 'border-2 border-indigo-500 transform lg:scale-105' : 'border'}`}>
+        {popular && <span className="absolute top-0 -translate-y-1/2 bg-indigo-500 text-white text-xs font-semibold px-3 py-1 rounded-full left-1/2 -translate-x-1/2">Most Popular</span>}
+        <h4 className="text-xl font-semibold">{name}</h4>
+        <p className="mt-2 text-slate-500 min-h-[40px]">{desc}</p>
+        <p className="mt-6">
+            <span className="text-4xl font-bold">₦{price[billingCycle].toLocaleString()}</span>
+            <span className="text-lg font-medium text-slate-500">/{billingCycle === 'monthly' ? 'mo' : billingCycle === 'termly' ? 'term' : 'yr'}</span>
+        </p>
+        <ul className="mt-8 space-y-4 text-slate-600 dark:text-slate-300">
+            {features.map(feature => (
+                <li key={feature} className="flex items-start">
+                    <CheckIcon className="w-5 h-5 text-indigo-500 mr-3 mt-1 flex-shrink-0" />
+                    <span>{feature}</span>
+                </li>
+            ))}
+        </ul>
+        {/* Fix: Changed onClick to prevent default and call onNavigate with a single argument. */}
+        <a href="?view=signup" onClick={(e) => { e.preventDefault(); onNavigate('signup'); }} className={`w-full text-center btn ${popular ? 'btn-primary' : 'btn-secondary'} mt-8`}>
+            Choose {name}
+        </a>
+    </div>
+);
+
 
 // --- Main Landing Page Component ---
 const LandingPage = ({ onNavigate }) => {
-    const [billingCycle, setBillingCycle] = useState('termly');
+    // Fix: Explicitly type the billing cycle state to ensure type safety.
+    const [billingCycle, setBillingCycle] = useState<'monthly' | 'termly' | 'yearly'>('termly');
     const [openFaq, setOpenFaq] = useState<number | null>(0);
 
     return (
@@ -196,30 +236,6 @@ const PricingSection = ({ billingCycle, setBillingCycle, onNavigate }) => {
         </section>
     );
 };
-
-const PricingCard = ({ name, price, desc, features, onNavigate, popular = false, billingCycle }) => (
-    <div className={`card p-8 flex flex-col h-full ${popular ? 'border-2 border-indigo-500 transform lg:scale-105' : 'border'}`}>
-        {popular && <span className="absolute top-0 -translate-y-1/2 bg-indigo-500 text-white text-xs font-semibold px-3 py-1 rounded-full left-1/2 -translate-x-1/2">Most Popular</span>}
-        <h4 className="text-xl font-semibold">{name}</h4>
-        <p className="mt-2 text-slate-500 min-h-[40px]">{desc}</p>
-        <p className="mt-6">
-            <span className="text-4xl font-bold">₦{price[billingCycle].toLocaleString()}</span>
-            <span className="text-lg font-medium text-slate-500">/{billingCycle === 'monthly' ? 'mo' : billingCycle === 'termly' ? 'term' : 'yr'}</span>
-        </p>
-        <ul className="mt-8 space-y-4 text-slate-600 dark:text-slate-300">
-            {features.map(feature => (
-                <li key={feature} className="flex items-start">
-                    <CheckIcon className="w-5 h-5 text-indigo-500 mr-3 mt-1 flex-shrink-0" />
-                    <span>{feature}</span>
-                </li>
-            ))}
-        </ul>
-        {/* Fix: Changed onClick to prevent default and call onNavigate with a single argument. */}
-        <a href="?view=signup" onClick={(e) => { e.preventDefault(); onNavigate('signup'); }} className={`w-full text-center btn ${popular ? 'btn-primary' : 'btn-secondary'} mt-8`}>
-            Choose {name}
-        </a>
-    </div>
-);
 
 const FAQSection = ({ openFaq, setOpenFaq }) => {
     const faqs = [

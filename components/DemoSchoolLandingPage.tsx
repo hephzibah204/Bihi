@@ -40,7 +40,7 @@ const DemoSchoolLandingPage: FC<DemoSchoolLandingPageProps> = ({ onSelectProfile
     const [loading, setLoading] = useState(false);
 
     const handleRoleClick = async (role: string) => {
-        if (role === 'student' || role === 'parent') {
+        if (role === 'Student' || role === 'Parent') {
             setLoading(true);
             const demoStudents = await apiGetStudents(DEMO_TENANT_ID);
             setStudents(demoStudents);
@@ -55,7 +55,7 @@ const DemoSchoolLandingPage: FC<DemoSchoolLandingPageProps> = ({ onSelectProfile
         return <div className="flex items-center justify-center h-screen">Loading students...</div>;
     }
 
-    if (selectionStep === 'student' || selectionStep === 'parent') {
+    if (selectionStep === 'Student' || selectionStep === 'Parent') {
         return (
              <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
                 <h1 className="text-3xl font-bold text-center mb-6">Select a {selectionStep} profile to view</h1>
@@ -96,25 +96,25 @@ const DemoSchoolLandingPage: FC<DemoSchoolLandingPageProps> = ({ onSelectProfile
                         icon={<UsersIcon className="w-6 h-6" />}
                         title="Admin"
                         description="Manage school settings, students, teachers, and view analytics."
-                        onClick={() => handleRoleClick('admin')}
+                        onClick={() => handleRoleClick('Admin')}
                     />
                     <RoleCard 
                         icon={<BriefcaseIcon className="w-6 h-6" />}
                         title="Teacher"
                         description="Manage your classes, enter scores, and generate report cards."
-                        onClick={() => handleRoleClick('teacher')}
+                        onClick={() => handleRoleClick('Teacher')}
                     />
                     <RoleCard 
                         icon={<AcademicCapIcon className="w-6 h-6" />}
                         title="Student"
                         description="View your results, check your timetable, and access the AI tutor."
-                        onClick={() => handleRoleClick('student')}
+                        onClick={() => handleRoleClick('Student')}
                     />
                     <RoleCard 
                         icon={<UsersGroupIcon className="w-6 h-6" />}
                         title="Parent"
                         description="Monitor your child's performance, attendance, and results."
-                        onClick={() => handleRoleClick('parent')}
+                        onClick={() => handleRoleClick('Parent')}
                     />
                 </div>
             </main>

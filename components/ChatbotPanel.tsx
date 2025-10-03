@@ -8,12 +8,18 @@ import { getFallbackChatResponse, getFallbackTutorResponse, getFallbackParentCha
 import WifiSlashIcon from './icons/WifiSlashIcon';
 import { apiGetStudents, apiGetScores, apiGetSubjects, apiGetSchoolSettings } from '../services/api';
 
+// -----------------------------------------------------------------
+// --- PASTE YOUR GEMINI API KEY HERE FOR THE CLIENT-SIDE CHATBOT ---
+// WARNING: This is INSECURE for a public website. Your key will be
+// visible to users. For production, use environment variables.
+// -----------------------------------------------------------------
+const CLIENT_SIDE_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNoendvbGFudGF2YXVzenV4d2xwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MTUxMTIsImV4cCI6MjA3MzE5MTExMn0.hu1qFjgKUvBKUDzYj1pjkCQX7Can9BQcyiNeYowzBPw";
 
 let ai;
-if (process.env.API_KEY) {
-  ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+if (CLIENT_SIDE_API_KEY && CLIENT_SIDE_API_KEY !== "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNoendvbGFudGF2YXVzenV4d2xwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MTUxMTIsImV4cCI6MjA3MzE5MTExMn0.hu1qFjgKUvBKUDzYj1pjkCQX7Can9BQcyiNeYowzBPw") {
+  ai = new GoogleGenAI({ apiKey: CLIENT_SIDE_API_KEY });
 } else {
-    console.warn("API_KEY not set, AI Chatbot will be disabled.");
+    console.warn("API_KEY not set for Chatbot, AI will be disabled.");
 }
 
 const ChatbotPanel = ({ isOpen, onClose, userRole, demoUserId }) => {
