@@ -6,7 +6,6 @@
  */
 export const generateText = async (prompt: string): Promise<string> => {
   try {
-    // This endpoint is intercepted by the Cloudflare Worker (_worker.js)
     const response = await fetch('/api/ai/generate', {
       method: 'POST',
       headers: {
@@ -16,8 +15,23 @@ export const generateText = async (prompt: string): Promise<string> => {
     });
 
     if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Server responded with status: ${response.status}`);
+        // The response is an error. We need to handle it gracefully.
+        // The body could be JSON, text, or empty.
+        const errorText = await response.text();
+        let errorMessage = `Server responded with status: ${response.status}`;
+
+        if (errorText) {
+            try {
+                // See if the error text is actually our expected JSON format
+                const errorJson = JSON.parse(errorText);
+                errorMessage = errorJson.error || errorText;
+            } catch (e) {
+                // If parsing fails, it's not JSON. Use the raw text.
+                errorMessage = errorText;
+            }
+        }
+        
+        throw new Error(errorMessage);
     }
 
     const data = await response.json();
