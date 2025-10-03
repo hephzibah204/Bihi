@@ -40,10 +40,6 @@ export default {
       }
 
       // --- HYBRID KEY LOGIC ---
-      // 1. Try to get the key from Cloudflare secrets (SECURE METHOD)
-      // 2. If not found, use the hardcoded key (INSECURE FALLBACK)
-
-      // WARNING: THIS IS AN INSECURE FALLBACK. DO NOT USE IN PRODUCTION.
       const HARDCODED_API_KEY = "PASTE_YOUR_GEMINI_API_KEY_HERE"; 
 
       const apiKey = env.API_KEY || HARDCODED_API_KEY;
@@ -54,9 +50,12 @@ export default {
           console.warn('This is NOT recommended for production and exposes your API key if your code is public.');
       }
       
-      if (!apiKey || apiKey === "PASTE_YOUR_GEMINI_API_KEY_HERE") {
-        console.error('API_KEY is not configured in Cloudflare secrets and no hardcoded key is provided.');
-        return new Response(JSON.stringify({ error: 'AI service is not configured on the server.' }), {
+      if (!apiKey || apiKey === "PASTE_YOUR_GEMINI_API_KEY_HERE" || apiKey.startsWith("ey")) {
+        let errorMsg = 'AI service is not configured on the server.';
+        if (apiKey && apiKey.startsWith("ey")) {
+          errorMsg = "Invalid Gemini API key detected in _worker.js. It looks like a Supabase key. Please use a valid Gemini key.";
+        }
+        return new Response(JSON.stringify({ error: errorMsg }), {
           status: 500,
           headers,
         });
@@ -77,7 +76,11 @@ export default {
 
     } catch (error) {
       console.error('Error in Cloudflare Worker:', error);
-      return new Response(JSON.stringify({ error: 'An internal server error occurred while contacting the AI service.' }), {
+      let errorMessage = 'An internal server error occurred while contacting the AI service.';
+      if (error.message && (error.message.includes('API key not valid') || error.message.includes('invalid'))) {
+          errorMessage = 'The provided AI API key is not valid. Please ensure you have pasted the correct Gemini API key in `_worker.js`.';
+      }
+      return new Response(JSON.stringify({ error: errorMessage }), {
         status: 500,
         headers,
       });

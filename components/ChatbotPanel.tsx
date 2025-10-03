@@ -13,14 +13,24 @@ import { apiGetStudents, apiGetScores, apiGetSubjects, apiGetSchoolSettings } fr
 // WARNING: This is INSECURE for a public website. Your key will be
 // visible to users. For production, use environment variables.
 // -----------------------------------------------------------------
-const CLIENT_SIDE_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNoendvbGFudGF2YXVzenV4d2xwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MTUxMTIsImV4cCI6MjA3MzE5MTExMn0.hu1qFjgKUvBKUDzYj1pjkCQX7Can9BQcyiNeYowzBPw";
+// Fix: Changed from const to let to avoid overly-strict type inference by TypeScript.
+let CLIENT_SIDE_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNoendvbGFudGF2YXVzenV4d2xwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MTUxMTIsImV4cCI6MjA3MzE5MTExMn0.hu1qFjgKUvBKUDzYj1pjkCQX7Can9BQcyiNeYowzBPw";
 
 let ai;
-if (CLIENT_SIDE_API_KEY && CLIENT_SIDE_API_KEY !== "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNoendvbGFudGF2YXVzenV4d2xwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MTUxMTIsImV4cCI6MjA3MzE5MTExMn0.hu1qFjgKUvBKUDzYj1pjkCQX7Can9BQcyiNeYowzBPw") {
-  ai = new GoogleGenAI({ apiKey: CLIENT_SIDE_API_KEY });
+let keyValidationError: string | null = null;
+
+if (!CLIENT_SIDE_API_KEY || CLIENT_SIDE_API_KEY === "PASTE_YOUR_GEMINI_API_KEY_HERE" || CLIENT_SIDE_API_KEY === "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNoendvbGFudGF2YXVzenV4d2xwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MTUxMTIsImV4cCI6MjA3MzE5MTExMn0.hu1qFjgKUvBKUDzYj1pjkCQX7Can9BQcyiNeYowzBPw") {
+  keyValidationError = "AI Assistant is unavailable. The Gemini API key has not been configured.";
+} else if (CLIENT_SIDE_API_KEY.startsWith("ey")) {
+  keyValidationError = "Invalid Gemini API key detected. It looks like a Supabase key. Please use a valid Gemini key in `components/ChatbotPanel.tsx`.";
 } else {
-    console.warn("API_KEY not set for Chatbot, AI will be disabled.");
+  try {
+    ai = new GoogleGenAI({ apiKey: CLIENT_SIDE_API_KEY });
+  } catch (e) {
+    keyValidationError = `Error initializing AI: ${e.message}`;
+  }
 }
+
 
 const ChatbotPanel = ({ isOpen, onClose, userRole, demoUserId }) => {
     const [chat, setChat] = useState<Chat | null>(null);
@@ -129,7 +139,11 @@ const ChatbotPanel = ({ isOpen, onClose, userRole, demoUserId }) => {
             setMessages(prev => [...prev, { text: response.text, sender: 'ai' }]);
         } catch (error) {
             console.error("Chatbot error:", error);
-            setMessages(prev => [...prev, { text: getFallbackResponse(), sender: 'ai' }]);
+            let errorMessage = getFallbackResponse();
+            if (error.message && (error.message.includes('API key not valid') || error.message.includes('invalid'))) {
+                errorMessage = 'The Gemini API key is not valid. Please check the key in `components/ChatbotPanel.tsx`.';
+            }
+            setMessages(prev => [...prev, { text: errorMessage, sender: 'ai' }]);
         } finally {
             setLoading(false);
         }
@@ -145,14 +159,14 @@ const ChatbotPanel = ({ isOpen, onClose, userRole, demoUserId }) => {
 
     if (!isOpen) return null;
     
-    if (!ai) {
+    if (keyValidationError) {
          return (
             <div className="absolute bottom-20 right-0 w-80 h-96 bg-white dark:bg-gray-800 rounded-lg shadow-2xl flex flex-col">
                 <header className="p-4 bg-red-600 text-white rounded-t-lg flex justify-between items-center">
-                    <h3 className="font-semibold">AI Assistant</h3>
+                    <h3 className="font-semibold">AI Assistant Error</h3>
                 </header>
                 <div className="flex-1 p-4 flex items-center justify-center text-center">
-                    <p className="text-gray-600 dark:text-gray-400">AI Assistant is unavailable. The API key is not configured.</p>
+                    <p className="text-gray-600 dark:text-gray-400">{keyValidationError}</p>
                 </div>
             </div>
         );
