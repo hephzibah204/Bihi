@@ -16,13 +16,11 @@ const DemoPage = () => {
         const userSession = {
             role: profile.role,
             userId: profile.userId,
-            // For Admin/Teacher in demo, we can just set a flag, as the Dashboard handles login state.
-            // For Student/Parent, we need to fake a session.
         };
 
-        if (profile.role === USER_ROLES.STUDENT || profile.role === USER_ROLES.PARENT) {
-            sessionStorage.setItem('activeUser', JSON.stringify(userSession));
-        }
+        // For all demo roles, create a fake session in sessionStorage.
+        // This allows Dashboard.tsx to pick up the role and bypass the login screen.
+        sessionStorage.setItem('activeUser', JSON.stringify(userSession));
         
         setSelectedProfile(profile);
     };

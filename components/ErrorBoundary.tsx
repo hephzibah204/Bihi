@@ -9,22 +9,23 @@ interface State {
 }
 
 class ErrorBoundary extends Component<Props, State> {
-  // Fix: Removed 'public' access modifier for broader compatibility.
-  state: State = {
-    hasError: false,
-  };
+  // Fix: Replaced class property state initialization with a constructor for broader compatibility,
+  // which can resolve issues with how `this.props` is inferred by some toolchains.
+  constructor(props: Props) {
+    super(props);
+    this.state = {
+      hasError: false,
+    };
+  }
 
-  // Fix: Removed 'public' access modifier.
   static getDerivedStateFromError(_: Error): State {
     return { hasError: true };
   }
 
-  // Fix: Removed 'public' access modifier.
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught error:', error, errorInfo);
   }
 
-  // Fix: Removed 'public' access modifier.
   render() {
     if (this.state.hasError) {
       return (
