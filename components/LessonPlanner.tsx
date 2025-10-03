@@ -90,7 +90,7 @@ Return the response as a valid JSON object with a single key "topics" which is a
                 setSuggestedTopics(jsonResponse.topics || []);
             } catch (error) {
                 console.error("Failed to generate topic suggestions:", error);
-                setSuggestionError('Could not get suggestions.');
+                setSuggestionError(`Error: ${error.message}`);
             } finally {
                 setIsSuggesting(false);
             }
@@ -118,7 +118,7 @@ Return the response as a valid JSON object with a single key "topics" which is a
             setLessonPlan(plan);
         } catch (error) {
             console.error("Failed to generate lesson plan:", error);
-            setLessonPlan("Sorry, I couldn't generate a lesson plan. Please try again.");
+            setLessonPlan(`Sorry, an error occurred: ${error.message}`);
         } finally {
             setIsLoading(false);
         }

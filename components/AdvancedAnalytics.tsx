@@ -179,7 +179,7 @@ const AdvancedAnalytics = () => {
             setAiAnalysisResult(result);
         } catch (error) {
             console.error("AI Analysis failed:", error);
-            setAnalysisError("An error occurred while communicating with the AI. Please try again.");
+            setAnalysisError(`AI Analysis Error: ${error.message}`);
         } finally {
             setIsAnalyzing(false);
         }

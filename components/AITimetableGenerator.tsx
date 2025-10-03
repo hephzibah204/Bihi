@@ -43,7 +43,7 @@ const AITimetableGenerator = ({ isOpen, onClose, onApply, subjects, teachers, cl
             setGeneratedTimetable(parsedTimetable);
         } catch (e) {
             console.error("AI Timetable Generation Error:", e);
-            setError("Failed to generate timetable. The AI returned an invalid format or an error occurred. Please try again.");
+            setError(`Failed to generate timetable. ${e.message}`);
         } finally {
             setIsLoading(false);
         }

@@ -28,7 +28,7 @@ const CommentGenerator = () => {
             setGeneratedComment(comment);
         } catch (error) {
             console.error("Failed to generate comment:", error);
-            setGeneratedComment("Sorry, I couldn't generate a comment right now. Please try again.");
+            setGeneratedComment(`Sorry, an error occurred: ${error.message}`);
         } finally {
             setIsLoading(false);
         }

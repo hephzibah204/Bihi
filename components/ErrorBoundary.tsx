@@ -9,19 +9,23 @@ interface State {
 }
 
 class ErrorBoundary extends Component<Props, State> {
-  public state: State = {
+  // Fix: Removed 'public' access modifier for broader compatibility.
+  state: State = {
     hasError: false,
   };
 
-  public static getDerivedStateFromError(_: Error): State {
+  // Fix: Removed 'public' access modifier.
+  static getDerivedStateFromError(_: Error): State {
     return { hasError: true };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  // Fix: Removed 'public' access modifier.
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught error:', error, errorInfo);
   }
 
-  public render() {
+  // Fix: Removed 'public' access modifier.
+  render() {
     if (this.state.hasError) {
       return (
         <div className="flex h-screen w-screen flex-col items-center justify-center bg-gray-100">
@@ -41,7 +45,6 @@ class ErrorBoundary extends Component<Props, State> {
       );
     }
 
-    // Fix: Return this.props.children directly.
     return this.props.children;
   }
 }

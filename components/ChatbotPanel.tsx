@@ -56,7 +56,7 @@ const ChatbotPanel: React.FC<ChatbotPanelProps> = ({ isOpen, onClose, userRole }
             }
             setMessages([...newMessages, { sender: 'ai', text: aiResponse }]);
         } catch (error) {
-            setMessages([...newMessages, { sender: 'ai', text: "Sorry, I'm having trouble connecting right now." }]);
+            setMessages([...newMessages, { sender: 'ai', text: `Sorry, an error occurred: ${error.message}` }]);
         } finally {
             setIsLoading(false);
         }

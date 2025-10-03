@@ -16,7 +16,8 @@ interface SidebarProps {
     setActiveView: (view: TeacherView) => void;
 }
 
-const NavLink = ({ icon, label, view, activeView, setActiveView }) => (
+// Fix: Explicitly type NavLink as a React Functional Component (React.FC) to ensure TypeScript correctly handles the `key` prop passed during iteration.
+const NavLink: React.FC<{ icon: React.ReactNode; label: string; view: TeacherView; activeView: TeacherView; setActiveView: (view: TeacherView) => void; }> = ({ icon, label, view, activeView, setActiveView }) => (
     <button
         onClick={() => setActiveView(view)}
         className={`w-full flex items-center px-4 py-2.5 rounded-lg transition-colors duration-200 ${
@@ -58,7 +59,6 @@ const TeacherSidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveVi
                     </button>
                 </div>
                 <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-                    {/* Fix: The key prop is handled by React and not passed to the component. The explicit props are correct. */}
                     {navLinks.map(link => <NavLink key={link.view} view={link.view} label={link.label} icon={link.icon} activeView={activeView} setActiveView={setActiveView} />)}
                 </nav>
             </aside>
