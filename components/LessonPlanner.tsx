@@ -78,7 +78,12 @@ const LessonPlanner = () => {
                 const subjectName = allSubjects.find(s => s.id === selectedSubject)?.name;
                 if (!subjectName) return;
 
-                const prompt = `Suggest 5 relevant lesson topics for a Nigerian school. Class: "${selectedClass}", Subject: "${subjectName}", Term: "${selectedTerm}", Curriculum: "${selectedCurriculum}". Return the response as a valid JSON object with a single key "topics" which is an array of strings. For example: {"topics": ["Topic 1", "Topic 2"]}`;
+                const prompt = `Based on the official Nigerian curriculum, suggest 5 highly relevant lesson topics. The topics must be appropriate for the specified class and align with the typical scheme of work for the selected term.
+- Class: "${selectedClass}"
+- Subject: "${subjectName}"
+- Term: "${selectedTerm}"
+- Curriculum/Scheme: "${selectedCurriculum}"
+Return the response as a valid JSON object with a single key "topics" which is an array of strings. For example: {"topics": ["Topic 1", "Topic 2"]}`;
                 const response = await generateText(prompt);
                 const cleanedResponse = response.replace(/```json/g, '').replace(/```/g, '').trim();
                 const jsonResponse = JSON.parse(cleanedResponse);
@@ -152,6 +157,10 @@ const LessonPlanner = () => {
                         <label className="label">Curriculum</label>
                         <select className="input-field" value={selectedCurriculum} onChange={e => setSelectedCurriculum(e.target.value)}>
                             <option>NERDC</option>
+                            <option>UBE</option>
+                            <option>Lagos State Scheme</option>
+                            <option>Rivers State Scheme</option>
+                            <option>NAPPS Scheme</option>
                             <option>British</option>
                             <option>American</option>
                         </select>

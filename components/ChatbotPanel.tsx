@@ -14,12 +14,12 @@ import { apiGetStudents, apiGetScores, apiGetSubjects, apiGetSchoolSettings } fr
 // visible to users. For production, use environment variables.
 // -----------------------------------------------------------------
 // Fix: Changed from const to let to avoid overly-strict type inference by TypeScript.
-let CLIENT_SIDE_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNoendvbGFudGF2YXVzenV4d2xwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MTUxMTIsImV4cCI6MjA3MzE5MTExMn0.hu1qFjgKUvBKUDzYj1pjkCQX7Can9BQcyiNeYowzBPw";
+let CLIENT_SIDE_API_KEY = "AIzaSyA3EgWjAc2CPTIV_eEmmuzlh4W-sRYLdeA";
 
 let ai;
 let keyValidationError: string | null = null;
 
-if (!CLIENT_SIDE_API_KEY || CLIENT_SIDE_API_KEY === "PASTE_YOUR_GEMINI_API_KEY_HERE" || CLIENT_SIDE_API_KEY === "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNoendvbGFudGF2YXVzenV4d2xwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MTUxMTIsImV4cCI6MjA3MzE5MTExMn0.hu1qFjgKUvBKUDzYj1pjkCQX7Can9BQcyiNeYowzBPw") {
+if (!CLIENT_SIDE_API_KEY || CLIENT_SIDE_API_KEY === "AIzaSyA3EgWjAc2CPTIV_eEmmuzlh4W-sRYLdeA" || CLIENT_SIDE_API_KEY === "AIzaSyA3EgWjAc2CPTIV_eEmmuzlh4W-sRYLdeA") {
   keyValidationError = "AI Assistant is unavailable. The Gemini API key has not been configured.";
 } else if (CLIENT_SIDE_API_KEY.startsWith("ey")) {
   keyValidationError = "Invalid Gemini API key detected. It looks like a Supabase key. Please use a valid Gemini key in `components/ChatbotPanel.tsx`.";
