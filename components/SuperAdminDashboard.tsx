@@ -48,6 +48,25 @@ const SuperAdminDashboard = () => {
         return () => authListener?.subscription?.unsubscribe();
     }, []);
 
+    // Effect to check AI service health
+    useEffect(() => {
+        const checkAIHealth = async () => {
+            try {
+                const response = await fetch('/api/ai/health');
+                const data = await response.json();
+                if (!response.ok) {
+                    console.error('AI Health Check Failed:', data.message);
+                    window.dispatchEvent(new CustomEvent('show-global-error', { detail: { message: data.message } }));
+                }
+            } catch (e) {
+                console.warn('AI proxy server may not be available. This is expected in local development if a proxy is not running.', e);
+            }
+        };
+        if(session) {
+          checkAIHealth();
+        }
+    }, [session]);
+
     const handleLogout = async () => {
         if (supabase) await supabase.auth.signOut();
     };

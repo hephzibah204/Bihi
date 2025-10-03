@@ -77,6 +77,26 @@ const Dashboard = () => {
         };
     }, []);
 
+    // Effect to check AI service health
+    useEffect(() => {
+        const checkAIHealth = async () => {
+            try {
+                const response = await fetch('/api/ai/health');
+                const data = await response.json();
+                if (!response.ok) {
+                    console.error('AI Health Check Failed:', data.message);
+                    window.dispatchEvent(new CustomEvent('show-global-error', { detail: { message: data.message } }));
+                }
+            } catch (e) {
+                console.warn('AI proxy server may not be available. This is expected in local development if a proxy is not running.', e);
+            }
+        };
+        // Run check only once when an admin-like user logs in
+        if (userRole === USER_ROLES.ADMIN || userRole === USER_ROLES.TEACHER || userRole === USER_ROLES.BURSAR) {
+            checkAIHealth();
+        }
+    }, [userRole]);
+
     const handleStudentLoginSuccess = (userData) => {
         setActiveUser(userData);
         setUserRole(userData.role);

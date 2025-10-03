@@ -7,20 +7,6 @@ import SpinnerIcon from './icons/SpinnerIcon';
 import SparklesIcon from './icons/SparklesIcon';
 import UserCircleIcon from './icons/UserCircleIcon';
 
-
-let CLIENT_SIDE_API_KEY = process.env.API_KEY; // Using environment variable as per guideline
-let ai;
-let keyValidationError = null;
-if (!CLIENT_SIDE_API_KEY) {
-  keyValidationError = "AI Assistant is unavailable. The Gemini API key has not been configured.";
-} else {
-  try {
-    ai = new GoogleGenAI({ apiKey: CLIENT_SIDE_API_KEY });
-  } catch (e) {
-    keyValidationError = `Error initializing AI: ${e.message}`;
-  }
-}
-
 // --- Audio Helper Functions ---
 function encode(bytes) {
   let binary = '';
@@ -55,10 +41,12 @@ async function decodeAudioData(data, ctx, sampleRate, numChannels) {
 // --- Component ---
 const AIAcademicTutor = () => {
     const [sessionPromise, setSessionPromise] = useState(null);
-    const [status, setStatus] = useState('idle'); // idle, connecting, connected, error
+    const [status, setStatus] = useState('idle'); // idle, initializing, connecting, connected, error
+    const [errorMessage, setErrorMessage] = useState('');
     const [transcripts, setTranscripts] = useState([]);
     const [isSpeaking, setIsSpeaking] = useState(false);
-
+    
+    const aiRef = useRef(null);
     const inputAudioContextRef = useRef(null);
     const outputAudioContextRef = useRef(null);
     const scriptProcessorRef = useRef(null);
@@ -71,25 +59,10 @@ const AIAcademicTutor = () => {
     useEffect(() => {
         transcriptsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [transcripts]);
-
-    useEffect(() => {
-        const handleBeforeUnload = (e) => {
-            if (status === 'connected') {
-                e.preventDefault();
-                e.returnValue = 'You have an active AI Tutor session. Are you sure you want to leave?';
-            }
-        };
-
-        window.addEventListener('beforeunload', handleBeforeUnload);
-
-        return () => {
-            window.removeEventListener('beforeunload', handleBeforeUnload);
-        };
-    }, [status]);
-
+    
     const cleanup = () => {
         if (sessionPromise) {
-            sessionPromise.then(session => session.close());
+            sessionPromise.then(session => session.close()).catch(console.error);
             setSessionPromise(null);
         }
         if (streamRef.current) {
@@ -105,11 +78,11 @@ const AIAcademicTutor = () => {
             mediaStreamSourceRef.current = null;
         }
         if (inputAudioContextRef.current && inputAudioContextRef.current.state !== 'closed') {
-            inputAudioContextRef.current.close();
+            inputAudioContextRef.current.close().catch(console.error);
             inputAudioContextRef.current = null;
         }
         if (outputAudioContextRef.current && outputAudioContextRef.current.state !== 'closed') {
-            outputAudioContextRef.current.close();
+            outputAudioContextRef.current.close().catch(console.error);
             outputAudioContextRef.current = null;
         }
         setStatus('idle');
@@ -117,25 +90,56 @@ const AIAcademicTutor = () => {
     };
 
     useEffect(() => {
-        return () => cleanup();
-    }, []);
+        const initialize = async () => {
+            setStatus('initializing');
+            setErrorMessage('');
+            try {
+                const response = await fetch('/api/ai/client-key');
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to fetch AI configuration from server.');
+                }
+                const { key } = await response.json();
+                if (!key) throw new Error('Server did not provide an API key.');
+                
+                aiRef.current = new GoogleGenAI({ apiKey: key });
+                setStatus('idle');
+            } catch (e) {
+                setErrorMessage(`AI Tutor is unavailable: ${e.message}`);
+                setStatus('error');
+            }
+        };
+        initialize();
+
+        const handleBeforeUnload = (e) => {
+            if (status === 'connected') {
+                e.preventDefault();
+                e.returnValue = 'You have an active AI Tutor session. Are you sure you want to leave?';
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        return () => {
+            cleanup();
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, []); // Run only once on mount
 
     const startSession = async () => {
-        if (keyValidationError) {
-            alert(keyValidationError);
+        if (status !== 'idle' || !aiRef.current) {
             return;
         }
+
         setStatus('connecting');
         setTranscripts([]);
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             streamRef.current = stream;
-             // FIX: Cast `window` to `any` to allow access to the vendor-prefixed `webkitAudioContext` for older browser compatibility without causing a TypeScript error.
             inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
             outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
             
-            const promise = ai.live.connect({
+            const promise = aiRef.current.live.connect({
                 model: 'gemini-2.5-flash-native-audio-preview-09-2025',
                 callbacks: {
                     onopen: async () => {
@@ -147,19 +151,17 @@ const AIAcademicTutor = () => {
                             const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
                             const pcmBlob = createBlob(inputData);
                             promise.then((session) => {
-                                session.sendRealtimeInput({ media: pcmBlob });
+                                if (session) session.sendRealtimeInput({ media: pcmBlob });
                             });
                         };
                         mediaStreamSourceRef.current.connect(scriptProcessorRef.current);
                         scriptProcessorRef.current.connect(inputAudioContextRef.current.destination);
                     },
-                    onmessage: async (message) => {
-                        handleServerMessage(message);
-                    },
+                    onmessage: async (message) => handleServerMessage(message),
                     onerror: (e) => {
                         console.error('Session error:', e);
                         setStatus('error');
-                        setTranscripts(prev => [...prev, { sender: 'system', text: 'A connection error occurred.' }]);
+                        setErrorMessage('A connection error occurred with the AI service.');
                         cleanup();
                     },
                     onclose: (e) => {
@@ -201,13 +203,12 @@ You: "Ah, no wahala, we go solve am together. Photosynthesis can sound complex, 
         } catch (err) {
             console.error("Microphone access denied:", err);
             setStatus('error');
-            setTranscripts(prev => [...prev, { sender: 'system', text: 'Microphone access was denied. Please allow microphone access to use the tutor.' }]);
+            setErrorMessage('Microphone access was denied. Please allow microphone access to use the tutor.');
             cleanup();
         }
     };
     
     const handleServerMessage = async (message) => {
-        // Handle audio playback
         const audioData = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
         if (audioData) {
             setIsSpeaking(true);
@@ -219,38 +220,27 @@ You: "Ah, no wahala, we go solve am together. Photosynthesis can sound complex, 
             source.connect(ctx.destination);
             source.addEventListener('ended', () => {
                 audioSourcesRef.current.delete(source);
-                if (audioSourcesRef.current.size === 0) {
-                    setIsSpeaking(false);
-                }
+                if (audioSourcesRef.current.size === 0) setIsSpeaking(false);
             });
             source.start(nextStartTimeRef.current);
             nextStartTimeRef.current += audioBuffer.duration;
             audioSourcesRef.current.add(source);
         }
     
-        // Handle transcription updates
         setTranscripts(prev => {
             const newTranscripts = [...prev];
             const lastTranscript = newTranscripts[newTranscripts.length - 1];
     
             if (message.serverContent?.inputTranscription) {
                 const text = message.serverContent.inputTranscription.text;
-                if (lastTranscript && lastTranscript.sender === 'user' && !lastTranscript.isFinal) {
-                    lastTranscript.text += text;
-                } else {
-                    newTranscripts.push({ sender: 'user', text: text, isFinal: false });
-                }
+                if (lastTranscript && lastTranscript.sender === 'user' && !lastTranscript.isFinal) lastTranscript.text += text;
+                else newTranscripts.push({ sender: 'user', text: text, isFinal: false });
             } else if (message.serverContent?.outputTranscription) {
                 const text = message.serverContent.outputTranscription.text;
-                if (lastTranscript && lastTranscript.sender === 'ai' && !lastTranscript.isFinal) {
-                    lastTranscript.text += text;
-                } else {
-                    newTranscripts.push({ sender: 'ai', text: text, isFinal: false });
-                }
+                if (lastTranscript && lastTranscript.sender === 'ai' && !lastTranscript.isFinal) lastTranscript.text += text;
+                else newTranscripts.push({ sender: 'ai', text: text, isFinal: false });
             } else if (message.serverContent?.turnComplete) {
-                if (lastTranscript) {
-                    lastTranscript.isFinal = true;
-                }
+                if (lastTranscript) lastTranscript.isFinal = true;
             }
             return newTranscripts;
         });
@@ -259,50 +249,48 @@ You: "Ah, no wahala, we go solve am together. Photosynthesis can sound complex, 
     const createBlob = (data) => {
         const l = data.length;
         const int16 = new Int16Array(l);
-        for (let i = 0; i < l; i++) {
-            int16[i] = data[i] * 32768;
-        }
-        return {
-            data: encode(new Uint8Array(int16.buffer)),
-            mimeType: 'audio/pcm;rate=16000',
-        };
+        for (let i = 0; i < l; i++) int16[i] = data[i] * 32768;
+        return { data: encode(new Uint8Array(int16.buffer)), mimeType: 'audio/pcm;rate=16000' };
     };
 
-    const endSession = () => {
-        cleanup();
-    };
-    
     const getStatusIndicator = () => {
-        if (status === 'connected') {
-            if (isSpeaking) {
-                return (
+        switch (status) {
+            case 'connected':
+                return isSpeaking ? (
                     <div className="flex items-center gap-2 text-sm font-semibold text-green-600">
                         <div className="w-3 h-3 rounded-full bg-green-400 pulse-dot-animation"></div>
                         <span>Tutor is speaking...</span>
                     </div>
+                ) : (
+                    <div className="flex items-center gap-2 text-sm font-semibold text-blue-600">
+                        <div className="w-3 h-3 rounded-full bg-blue-400"></div>
+                        <span>Listening...</span>
+                    </div>
                 );
-            }
-            return (
-                 <div className="flex items-center gap-2 text-sm font-semibold text-blue-600">
-                    <div className="w-3 h-3 rounded-full bg-blue-400"></div>
-                    <span>Listening...</span>
-                </div>
-            );
+            case 'connecting':
+            case 'initializing':
+                return (
+                    <div className="flex items-center gap-2 text-sm font-semibold text-gray-500">
+                        <SpinnerIcon className="w-4 h-4 animate-spin"/>
+                        <span>{status === 'connecting' ? 'Connecting...' : 'Initializing...'}</span>
+                    </div>
+                );
+            case 'idle':
+                 return (
+                    <div className="flex items-center gap-2 text-sm font-semibold text-gray-500">
+                        <div className="w-3 h-3 rounded-full bg-gray-400"></div>
+                        <span>Ready to start</span>
+                    </div>
+                 );
+            case 'error':
+                 return (
+                    <div className="flex items-center gap-2 text-sm font-semibold text-red-500">
+                        <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                        <span>Error</span>
+                    </div>
+                 );
+            default: return null;
         }
-        if (status === 'connecting') {
-            return (
-                <div className="flex items-center gap-2 text-sm font-semibold text-gray-500">
-                    <SpinnerIcon className="w-4 h-4 animate-spin"/>
-                    <span>Connecting...</span>
-                </div>
-            );
-        }
-         return (
-             <div className="flex items-center gap-2 text-sm font-semibold text-gray-500">
-                <div className="w-3 h-3 rounded-full bg-gray-400"></div>
-                <span>Session ended</span>
-            </div>
-         );
     };
 
     return (
@@ -315,11 +303,15 @@ You: "Ah, no wahala, we go solve am together. Photosynthesis can sound complex, 
                 </div>
 
                 <div className="p-4 border-t flex flex-col items-center gap-4">
-                    <div className="flex items-center gap-2 text-sm font-semibold h-6">{getStatusIndicator()}</div>
-                    {status === 'idle' || status === 'error' ? (
-                        <button onClick={startSession} className="btn btn-primary"><MicrophoneIcon className="w-5 h-5 mr-2" /> Start Session</button>
+                    <div className="h-6">{getStatusIndicator()}</div>
+                    {errorMessage && <p className="text-sm text-red-600 max-w-md">{errorMessage}</p>}
+
+                    {status === 'connected' || status === 'connecting' ? (
+                        <button onClick={cleanup} className="btn btn-secondary bg-red-100 text-red-700 hover:bg-red-200"><StopIcon className="w-5 h-5 mr-2" /> End Session</button>
                     ) : (
-                        <button onClick={endSession} className="btn btn-secondary bg-red-100 text-red-700 hover:bg-red-200"><StopIcon className="w-5 h-5 mr-2" /> End Session</button>
+                        <button onClick={startSession} className="btn btn-primary" disabled={status !== 'idle'}>
+                            <MicrophoneIcon className="w-5 h-5 mr-2" /> Start Session
+                        </button>
                     )}
                 </div>
             </div>
@@ -329,6 +321,7 @@ You: "Ah, no wahala, we go solve am together. Photosynthesis can sound complex, 
                      <h3 className="font-semibold">Live Transcription</h3>
                 </div>
                 <div className="p-6 flex-grow overflow-y-auto flex flex-col space-y-4">
+                    {transcripts.length === 0 && status !== 'error' && <p className="text-center text-gray-400 my-auto">Your conversation will appear here...</p>}
                     {transcripts.map((t, i) => (
                         <div key={i} className={`flex items-end gap-3 ${t.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                             {t.sender === 'ai' && (
@@ -344,7 +337,6 @@ You: "Ah, no wahala, we go solve am together. Photosynthesis can sound complex, 
                                     <UserCircleIcon className="w-6 h-6"/>
                                 </div>
                             )}
-                             {t.sender === 'system' && <p className="p-3 rounded-lg bg-yellow-100 text-yellow-800 text-sm w-full">{t.text}</p>}
                         </div>
                     ))}
                     <div ref={transcriptsEndRef}></div>
