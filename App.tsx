@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getSubdomain } from './utils/subdomain';
-import Dashboard from './Dashboard';
+import Dashboard from './components/Dashboard';
 import LandingPage from './components/LandingPage';
 // Fix: Added placeholder content to SuperAdminDashboard.tsx to make it a valid module.
 import SuperAdminDashboard from './components/SuperAdminDashboard';
@@ -13,6 +13,7 @@ import BlogIndexPage from './components/BlogIndexPage';
 import BlogPostPage from './components/BlogPostPage';
 import KnowledgeBaseViewer from './components/KnowledgeBaseViewer';
 import AlumniDashboard from './components/AlumniDashboard';
+import { APP_VIEWS } from './utils/constants';
 
 const App = () => {
     const [subdomain, setSubdomain] = useState<string | null>(null);
@@ -22,7 +23,19 @@ const App = () => {
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
-        setView(params.get('view'));
+        const currentView = params.get('view');
+        setView(currentView);
+
+        // Update document title for accessibility
+        let title = 'ReportSheet | AI-Powered School Management System';
+        if (currentView === APP_VIEWS.DEMO) title = 'Demo | ReportSheet';
+        else if (currentView === APP_VIEWS.SIGNUP) title = 'Sign Up | ReportSheet';
+        else if (currentView === APP_VIEWS.RESULT_CHECKER) title = 'Result Checker | ReportSheet';
+        else if (currentView === APP_VIEWS.BLOG) title = 'Blog | ReportSheet';
+        else if (currentView === APP_VIEWS.KB) title = 'Knowledge Base | ReportSheet';
+        else if (currentView === APP_VIEWS.ALUMNI) title = 'Alumni Portal | ReportSheet';
+        document.title = title;
+
 
         const host = window.location.hostname;
         const sd = getSubdomain(host);
@@ -52,25 +65,25 @@ const App = () => {
     }
     
     // Query parameter views have the highest priority
-    if (view === 'demo') {
+    if (view === APP_VIEWS.DEMO) {
         return <DemoPage />;
     }
-    if (view === 'signup') {
+    if (view === APP_VIEWS.SIGNUP) {
         return <SubscriptionPage />;
     }
-    if (view === 'result-checker') {
+    if (view === APP_VIEWS.RESULT_CHECKER) {
         return <PublicResultViewer />;
     }
-    if (view === 'blog') {
+    if (view === APP_VIEWS.BLOG) {
         return <PublicLayout onNavigate={handleNavigate}><BlogIndexPage /></PublicLayout>;
     }
-    if (view === 'article') {
+    if (view === APP_VIEWS.ARTICLE) {
         return <PublicLayout onNavigate={handleNavigate}><BlogPostPage /></PublicLayout>;
     }
-    if (view === 'kb' || view === 'kb-article') {
+    if (view === APP_VIEWS.KB || view === APP_VIEWS.KB_ARTICLE) {
         return <PublicLayout onNavigate={handleNavigate}><KnowledgeBaseViewer /></PublicLayout>;
     }
-    if (view === 'alumni') {
+    if (view === APP_VIEWS.ALUMNI) {
         return <PublicLayout onNavigate={handleNavigate}><AlumniDashboard /></PublicLayout>;
     }
 

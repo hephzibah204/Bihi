@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { apiGetSubjects, apiGetTeachers } from '../services/api';
+// Fix: Correctly import Teacher type from the central types file, not the component file.
+import { apiGetSubjects, apiGetTeachers, apiGetTimetableData, apiSaveTimetableData } from '../services/api';
 import Modal from './Modal';
 import AITimetableGenerator from './AITimetableGenerator';
 import PlusIcon from './icons/PlusIcon';
 import BrainCircuitIcon from './icons/BrainCircuitIcon';
-import useSyncedLocalStorage from '../hooks/useSyncedLocalStorage';
-import { Subject } from '../types';
-import { Teacher } from './Teachers';
+import { Subject, Teacher } from '../types';
 
-// Types for better structure
 interface TimetableSlot {
     subjectId: string;
     teacherId: string;
@@ -26,7 +24,7 @@ const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const TIME_SLOTS = ['8:00 - 9:00', '9:00 - 10:00', '10:00 - 11:00', '11:00 - 12:00', '1:00 - 2:00'];
 
 const Timetable = () => {
-    const [timetable, setTimetable] = useSyncedLocalStorage<TimetableData>('timetable', {});
+    const [timetable, setTimetable] = useState<TimetableData>({});
     const [subjects, setSubjects] = useState<Subject[]>([]);
     const [teachers, setTeachers] = useState<Teacher[]>([]);
     const [subjectMap, setSubjectMap] = useState({});
@@ -42,21 +40,17 @@ const Timetable = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [subData, teaData]: [Subject[], Teacher[]] = await Promise.all([
+            const [subData, teaData, ttData]: [Subject[], Teacher[], TimetableData] = await Promise.all([
                 apiGetSubjects(),
-                apiGetTeachers()
+                apiGetTeachers(),
+                apiGetTimetableData()
             ]);
             setSubjects(subData);
             setTeachers(teaData);
+            setTimetable(ttData);
 
-            const subMap = subData.reduce((acc, sub) => {
-                acc[sub.id] = sub;
-                return acc;
-            }, {});
-            const teaMap = teaData.reduce((acc, tea) => {
-                acc[tea.id] = tea;
-                return acc;
-            }, {});
+            const subMap = subData.reduce((acc, sub) => ({ ...acc, [sub.id]: sub }), {});
+            const teaMap = teaData.reduce((acc, tea) => ({ ...acc, [tea.id]: tea }), {});
             setSubjectMap(subMap);
             setTeacherMap(teaMap);
 
@@ -74,20 +68,15 @@ const Timetable = () => {
 
     useEffect(() => {
         fetchData();
-    }, []);
-
-    useEffect(() => {
         const handleStorageUpdate = (event: Event) => {
             const customEvent = event as CustomEvent;
-            const key = customEvent.detail?.key;
-            if (['subjects', 'teachers'].includes(key)) {
+            if (['subjects', 'teachers', 'timetable'].includes(customEvent.detail?.key)) {
                 fetchData();
             }
         };
         window.addEventListener('storage-update', handleStorageUpdate);
         return () => window.removeEventListener('storage-update', handleStorageUpdate);
     }, []);
-
 
     const handleSlotClick = (day, time) => {
         setCurrentSlot({ day, time });
@@ -96,40 +85,35 @@ const Timetable = () => {
         setEditModalOpen(true);
     };
 
-    const handleSaveSlot = () => {
+    const handleSaveSlot = async () => {
         const { day, time } = currentSlot;
+        const newTimetable = { ...timetable };
+        if (!newTimetable[selectedClass]) newTimetable[selectedClass] = {};
+        if (!newTimetable[selectedClass][day]) newTimetable[selectedClass][day] = {};
 
-        setTimetable(currentTimetable => {
-            const newTimetable = { ...currentTimetable };
-            if (!newTimetable[selectedClass]) newTimetable[selectedClass] = {};
-            if (!newTimetable[selectedClass][day]) newTimetable[selectedClass][day] = {};
-            
-            if (!currentSelection.subjectId && !currentSelection.teacherId) {
-                if (newTimetable[selectedClass][day][time]) {
-                     delete newTimetable[selectedClass][day][time];
-                }
-            } else {
-                 newTimetable[selectedClass][day][time] = currentSelection;
-            }
-            return newTimetable;
-        });
+        if (!currentSelection.subjectId && !currentSelection.teacherId) {
+            delete newTimetable[selectedClass][day][time];
+        } else {
+            newTimetable[selectedClass][day][time] = currentSelection;
+        }
         
+        await apiSaveTimetableData(newTimetable);
+        setTimetable(newTimetable);
         setEditModalOpen(false);
     };
     
-    const handleApplyAIGeneratedTimetable = (generatedTimetable) => {
-        setTimetable(() => generatedTimetable);
+    const handleApplyAIGeneratedTimetable = async (generatedTimetable: TimetableData) => {
+        await apiSaveTimetableData(generatedTimetable);
+        setTimetable(generatedTimetable);
         setAIModalOpen(false);
     };
 
     const getSlotInfo = (day, time) => {
         const slot = timetable[selectedClass]?.[day]?.[time];
         if (!slot) return null;
-        const subject = subjectMap[slot.subjectId];
-        const teacher = teacherMap[slot.teacherId];
         return {
-            subject: subject?.name || 'Unassigned',
-            teacher: teacher?.name || 'Unassigned',
+            subject: subjectMap[slot.subjectId]?.name || 'Unassigned',
+            teacher: teacherMap[slot.teacherId]?.name || 'Unassigned',
         };
     };
 
@@ -140,11 +124,7 @@ const Timetable = () => {
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                 <div></div>
                 <div className="flex items-center gap-4">
-                    <select
-                        value={selectedClass}
-                        onChange={(e) => setSelectedClass(e.target.value)}
-                        className="input-field"
-                    >
+                    <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="input-field">
                         {classes.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                     <button onClick={() => setAIModalOpen(true)} className="btn btn-primary">

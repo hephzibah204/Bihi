@@ -10,10 +10,10 @@ const BasicLandscape = ({ student, schoolSettings }) => {
             <div className="flex flex-col justify-center">
                  <div className="flex items-center space-x-2">
                     <img src={schoolSettings.schoolLogo || defaultLogo} alt="Logo" className="w-8 h-8"/>
-                    <h1 className="font-bold text-lg">{schoolSettings.schoolName}</h1>
+                    <h1 className="font-bold text-lg break-words">{schoolSettings.schoolName}</h1>
                  </div>
                 <div className="mt-4">
-                    <p className="font-semibold text-2xl">{student.name}</p>
+                    <p className="font-semibold text-2xl break-words">{student.name}</p>
                     <p className="text-gray-600"><strong>Class:</strong> {student.class}</p>
                     <p className="text-gray-600"><strong>Admission No:</strong> {student.admissionNo}</p>
                 </div>

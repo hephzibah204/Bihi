@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import Modal from './Modal';
-import { updateStudents } from '../services/api';
+import { apiUpsertStudent } from '../services/api';
 import ArrowUpTrayIcon from './icons/ArrowUpTrayIcon';
 import { Student } from '../types';
 
@@ -111,16 +111,14 @@ const ImportStudentsModal = ({ isOpen, onClose, onSuccess }) => {
                         student[targetField] = row[index];
                     }
                 });
-                
-                // Add an ID only if there's at least one mapped field
-                if (Object.keys(student).length > 0) {
-                    student.id = `std_${Date.now()}_${Math.random()}`;
-                }
                 return student;
-            }).filter(s => Object.keys(s).length > 1); // Ensure it's not just an empty object with an ID
+            }).filter(s => Object.keys(s).length > 0);
 
-            // Fix: Cast the array of partial students to Student[] to satisfy the update function's type requirement.
-            await updateStudents(existingStudents => [...(existingStudents || []), ...newStudents as Student[]]);
+            // Use the new granular function for each student
+            for (const student of newStudents) {
+                await apiUpsertStudent(student);
+            }
+            
             setStep('success');
 
         } catch (err) {
@@ -151,14 +149,14 @@ const ImportStudentsModal = ({ isOpen, onClose, onSuccess }) => {
 
     const renderUploadStep = () => (
         <>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            <p className="text-sm text-gray-600 mb-4">
                 Upload a CSV file with student data. You'll be able to map the columns in the next step.
             </p>
             <div className="mt-4 flex justify-center items-center w-full">
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-bray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500">
+                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                        <ArrowUpTrayIcon className="w-8 h-8 mb-2 text-gray-500 dark:text-gray-400" />
-                        <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
+                        <ArrowUpTrayIcon className="w-8 h-8 mb-2 text-gray-500" />
+                        <p className="mb-2 text-sm text-gray-500">
                             {file ? file.name : <><span className="font-semibold">Click to upload</span> or drag and drop</>}
                         </p>
                     </div>
@@ -173,12 +171,12 @@ const ImportStudentsModal = ({ isOpen, onClose, onSuccess }) => {
     
     const renderMappingStep = () => (
          <>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            <p className="text-sm text-gray-600 mb-4">
                 Match the columns from your CSV file to the corresponding fields in the application.
             </p>
             <div className="space-y-4 max-h-96 overflow-y-auto">
                 {csvHeaders.map((header, index) => (
-                    <div key={header} className="grid grid-cols-3 gap-4 items-center p-2 rounded-md bg-gray-50 dark:bg-gray-700">
+                    <div key={header} className="grid grid-cols-3 gap-4 items-center p-2 rounded-md bg-gray-50">
                         <div>
                             <p className="text-xs text-gray-500">CSV Column</p>
                             <p className="font-semibold">{header}</p>
@@ -209,7 +207,7 @@ const ImportStudentsModal = ({ isOpen, onClose, onSuccess }) => {
     
      const renderReviewStep = () => (
         <>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            <p className="text-sm text-gray-600 mb-4">
                 Review the first 5 rows to ensure your data is mapped correctly. If it looks good, confirm the import.
             </p>
             <div className="table-container max-h-96 overflow-y-auto">
@@ -219,7 +217,7 @@ const ImportStudentsModal = ({ isOpen, onClose, onSuccess }) => {
                             {TARGET_FIELDS.map(field => <th key={field.key} className="th">{field.label}</th>)}
                         </tr>
                     </thead>
-                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    <tbody className="bg-white divide-y divide-gray-200">
                         {previewData.map((student, index) => (
                             <tr key={index}>
                                 {TARGET_FIELDS.map(field => <td key={field.key} className="td text-xs">{student[field.key]}</td>)}

@@ -2,11 +2,11 @@ import React, { FC } from 'react';
 import HomeIcon from './icons/HomeIcon';
 import CheckBadgeIcon from './icons/CheckBadgeIcon';
 import ShieldExclamationIcon from './icons/ShieldExclamationIcon';
-import BrainCircuitIcon from './icons/BrainCircuitIcon';
 // Fix: Import ParentView from the central types file to break a circular dependency.
 import { ParentView } from '../types';
-import BellIcon from './icons/BellIcon';
 import ClipboardListIcon from './icons/ClipboardListIcon';
+import DocumentDuplicateIcon from './icons/DocumentDuplicateIcon';
+import { PARENT_VIEWS } from '../utils/constants';
 
 interface NavItemProps {
     icon: React.ReactNode;
@@ -33,11 +33,11 @@ interface BottomNavBarProps {
 
 const ParentBottomNavBar: FC<BottomNavBarProps> = ({ activeView, setActiveView }) => {
     const navItems: { view: ParentView; label: string; icon: React.ReactNode }[] = [
-        { view: 'dashboard', label: 'Home', icon: <HomeIcon className="h-6 w-6" /> },
-        { view: 'results', label: 'Results', icon: <ClipboardListIcon className="h-6 w-6" /> },
-        { view: 'attendance', label: 'Attendance', icon: <CheckBadgeIcon className="h-6 w-6" /> },
-        { view: 'behavioral', label: 'Behavior', icon: <ShieldExclamationIcon className="h-6 w-6" /> },
-        { view: 'notifications', label: 'Alerts', icon: <BellIcon className="h-6 w-6" /> },
+        { view: PARENT_VIEWS.DASHBOARD, label: 'Home', icon: <HomeIcon className="h-6 w-6" /> },
+        { view: PARENT_VIEWS.RESULTS, label: 'Results', icon: <ClipboardListIcon className="h-6 w-6" /> },
+        { view: PARENT_VIEWS.ASSIGNMENTS, label: 'Assignments', icon: <DocumentDuplicateIcon className="h-6 w-6" /> },
+        { view: PARENT_VIEWS.ATTENDANCE, label: 'Attendance', icon: <CheckBadgeIcon className="h-6 w-6" /> },
+        { view: PARENT_VIEWS.BEHAVIORAL, label: 'Behavior', icon: <ShieldExclamationIcon className="h-6 w-6" /> },
     ];
 
     return (

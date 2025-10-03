@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { apiGetPlatformSettings, apiGetSchoolSettings, updateSchoolSettings } from '../services/api';
+// FIX: Changed import from updateSchoolSettings to apiSaveSchoolSettings.
+import { apiGetPlatformSettings, apiGetSchoolSettings, apiSaveSchoolSettings } from '../services/api';
 import { usePlanFeatures } from '../contexts/PlanFeaturesContext';
 import { supabase } from '../services/supabaseClient';
 import CheckIcon from './icons/CheckIcon';
@@ -74,10 +75,11 @@ const BillingDashboard = () => {
             onClose: () => {},
             callback: async (response) => {
                 if (response.status === 'success') {
-                    await updateSchoolSettings(currentSettings => ({
-                        ...currentSettings,
+                    // FIX: Changed function call to apiSaveSchoolSettings and passed the new settings object directly.
+                    await apiSaveSchoolSettings({
+                        ...schoolSettings,
                         planId: plan.id,
-                    }));
+                    });
                     window.location.reload();
                 } else {
                     alert('Payment failed. Please try again.');

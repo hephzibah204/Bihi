@@ -1,143 +1,38 @@
-import React, { useState, useEffect } from 'react';
-// Fix: Correctly import DashboardView from the central types file, not from Sidebar.
-import Sidebar from './Sidebar';
-import { DashboardView, SchoolSettings, Student } from '../types';
-import Header from './Header';
-import DashboardContent from './DashboardContent';
-import SandboxBanner from './SandboxBanner';
-import { DEMO_TENANT_ID, demoSchoolSettings, demoStudents, demoSubjects, demoScores, demoAttendance, demoBehavioralRecords, demoActivities, demoFees, demoScratchCards } from '../utils/demoData';
-// Fix: Replaced non-existent `apiSaveActivities` with `updateActivities` to resolve the import error.
-import { apiSaveSchoolSettings, apiSaveStudents, apiSaveSubjects, apiSaveScores, apiSaveAttendance, apiSaveBehavioralRecords, updateActivities, apiSaveFees, apiSaveScratchCards } from '../services/api';
-import DemoRoleSelector from './DemoRoleSelector';
-import StudentDashboard from './StudentDashboard';
-import ParentDashboard from './ParentDashboard';
-import TeacherDashboard from './TeacherDashboard';
-import { TenantProvider } from '../contexts/TenantContext';
-import { PlanFeaturesProvider } from '../contexts/PlanFeaturesContext';
-import AdminBottomNavBar from './AdminBottomNavBar';
-import Chatbot from './Chatbot';
-
-const setupDemoData = async () => {
-    console.log("Setting up demo environment...");
-    try {
-        await Promise.all([
-            apiSaveSchoolSettings(demoSchoolSettings as SchoolSettings, DEMO_TENANT_ID),
-            apiSaveStudents(demoStudents as Student[], DEMO_TENANT_ID),
-            // Fix: The function definition for apiSaveSubjects expects only one argument.
-            apiSaveSubjects(demoSubjects, DEMO_TENANT_ID),
-            apiSaveScores(demoScores, DEMO_TENANT_ID),
-            apiSaveAttendance(demoAttendance, DEMO_TENANT_ID),
-            apiSaveBehavioralRecords(demoBehavioralRecords, DEMO_TENANT_ID),
-            // Fix: The function definition for apiSaveFees expects only one argument.
-            apiSaveFees(demoFees, DEMO_TENANT_ID),
-            // Fix: The function definition for apiSaveScratchCards expects only one argument.
-            apiSaveScratchCards(demoScratchCards, DEMO_TENANT_ID),
-            // Fix: Switched to `updateActivities` and passed a function to match its expected signature, as `apiSaveActivities` was not exported from the API service.
-            updateActivities(() => demoActivities, DEMO_TENANT_ID)
-        ]);
-        console.log("Demo environment setup complete.");
-    } catch (error) {
-        console.error("Failed to set up demo data:", error);
-    }
-};
-
-interface SelectedProfile {
-  role: string;
-  userId?: string;
-}
+import React, { useState } from 'react';
+import DemoSchoolLandingPage from './DemoSchoolLandingPage';
+import Dashboard from './Dashboard';
+import { USER_ROLES } from '../utils/constants';
 
 const DemoPage = () => {
-    const [isSidebarOpen, setSidebarOpen] = useState(false);
-    const [loading, setLoading] = useState(true);
-    const [activeView, setActiveView] = useState<DashboardView>('dashboard');
-    const [selectedProfile, setSelectedProfile] = useState<SelectedProfile | null>(null);
-    // Fix: Add headerTitle state to dynamically update the header.
-    const [headerTitle, setHeaderTitle] = useState('Dashboard');
+    const [selectedProfile, setSelectedProfile] = useState<{ role: string, userId?: string } | null>(null);
 
-    useEffect(() => {
+    React.useEffect(() => {
+        // Set a flag in sessionStorage to indicate demo mode.
+        // The getSubdomain utility will check for this flag.
         sessionStorage.setItem('isDemoMode', 'true');
-        
-        const initDemo = async () => {
-            await setupDemoData();
-            setLoading(false);
-        };
-        initDemo();
-
-        return () => {
-            sessionStorage.removeItem('isDemoMode');
-        };
     }, []);
 
-    // Fix: Add useEffect to update header title when activeView changes.
-    useEffect(() => {
-        const viewName = activeView.replace(/-/g, ' ');
-        setHeaderTitle(viewName.charAt(0).toUpperCase() + viewName.slice(1));
-    }, [activeView]);
+    const handleSelectProfile = (profile: { role: string, userId?: string }) => {
+        const userSession = {
+            role: profile.role,
+            userId: profile.userId,
+            // For Admin/Teacher in demo, we can just set a flag, as the Dashboard handles login state.
+            // For Student/Parent, we need to fake a session.
+        };
 
-
-    const handleDemoLogout = () => {
-        window.location.href = window.location.pathname;
+        if (profile.role === USER_ROLES.STUDENT || profile.role === USER_ROLES.PARENT) {
+            sessionStorage.setItem('activeUser', JSON.stringify(userSession));
+        }
+        
+        setSelectedProfile(profile);
     };
 
-    const handleViewChange = (view: DashboardView) => {
-        setActiveView(view);
-        // Close sidebar on mobile after navigation
-        if (window.innerWidth < 768) {
-            setSidebarOpen(false);
-        }
+    if (selectedProfile) {
+        // The Dashboard component will now operate in demo mode because of the sessionStorage flag.
+        return <Dashboard />;
     }
 
-    if (loading) {
-        return <div className="flex items-center justify-center h-screen bg-gray-100 dark:bg-gray-900">Preparing Demo...</div>;
-    }
-
-    if (!selectedProfile) {
-        return <DemoRoleSelector onSelectProfile={setSelectedProfile} />;
-    }
-
-    // Render the correct dashboard based on the selected role
-    // Using if/else for robust, case-insensitive role matching.
-    const role = selectedProfile.role.toLowerCase();
-
-    if (role === 'student') {
-        return <StudentDashboard isDemo={true} onLogout={handleDemoLogout} demoUserId={selectedProfile.userId} />;
-    }
-    
-    if (role === 'parent') {
-        return <ParentDashboard isDemo={true} onLogout={handleDemoLogout} demoUserId={selectedProfile.userId} />;
-    }
-    
-    if (role === 'teacher') {
-        return <TeacherDashboard isDemo={true} onLogout={handleDemoLogout} />;
-    }
-
-    // Default case for Admin/Bursar roles
-    return (
-        <TenantProvider>
-            <PlanFeaturesProvider>
-                <SandboxBanner />
-                <div className="flex h-screen bg-gray-100 dark:bg-gray-900 pt-12">
-                    <Sidebar
-                        isSidebarOpen={isSidebarOpen}
-                        setSidebarOpen={setSidebarOpen}
-                        activeView={activeView}
-                        setActiveView={handleViewChange}
-                        userRole={selectedProfile.role}
-                    />
-                    <div className="flex-1 flex flex-col overflow-hidden">
-                        <Header title={headerTitle} setSidebarOpen={setSidebarOpen} onLogout={handleDemoLogout} />
-                        <main className="flex-1 overflow-x-hidden overflow-y-auto pb-16 md:pb-0">
-                            <div className="container mx-auto px-6 py-8">
-                                <DashboardContent activeView={activeView} setActiveView={handleViewChange} userRole={selectedProfile.role} />
-                            </div>
-                        </main>
-                        <Chatbot userRole={selectedProfile.role} demoUserId={selectedProfile.userId} />
-                        <AdminBottomNavBar activeView={activeView} setActiveView={handleViewChange} />
-                    </div>
-                </div>
-            </PlanFeaturesProvider>
-        </TenantProvider>
-    );
+    return <DemoSchoolLandingPage onSelectProfile={handleSelectProfile} />;
 };
 
 export default DemoPage;

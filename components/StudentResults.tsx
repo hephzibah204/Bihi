@@ -96,7 +96,7 @@ const StudentResults = ({ demoUserId }) => {
                             <thead><tr><th className="th">Subject</th><th className="th text-center">Total Score</th><th className="th">Remark</th></tr></thead>
                             <tbody>
                                 {allResults[termKey].map((res, index) => (
-                                    <tr key={index}><td className="td font-medium">{res.subjectName}</td><td className="td text-center">{res.total}</td><td className="td">{res.remark}</td></tr>
+                                    <tr key={index}><td className="td font-medium"><div className="truncate max-w-sm" title={res.subjectName}>{res.subjectName}</div></td><td className="td text-center">{res.total}</td><td className="td">{res.remark}</td></tr>
                                 ))}
                             </tbody>
                         </table>

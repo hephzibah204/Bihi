@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Modal from './Modal';
-import { updateStudents } from '../services/api';
+import { apiUpsertStudent } from '../services/api';
 
 // Augment the Window interface to declare 'faceapi' from the CDN-loaded script.
 declare global {
@@ -74,11 +74,10 @@ const FaceEnrollmentModal = ({ isOpen, onClose, student }) => {
             .withFaceDescriptor();
 
         if (detections) {
-            await updateStudents(allStudents => 
-                allStudents.map(s => 
-                    s.id === student.id ? { ...s, faceDescriptor: Array.from(detections.descriptor) } : s
-                )
-            );
+            await apiUpsertStudent({
+                ...student,
+                faceDescriptor: Array.from(detections.descriptor)
+            });
             
             setCaptureStatus('success');
             setTimeout(() => {
@@ -114,7 +113,7 @@ const FaceEnrollmentModal = ({ isOpen, onClose, student }) => {
                     <div className="w-full bg-black rounded-lg overflow-hidden aspect-video mx-auto flex items-center justify-center">
                         {renderCameraView()}
                     </div>
-                    <p className="mt-4 text-gray-600 dark:text-gray-300">
+                    <p className="mt-4 text-gray-600">
                         Please look directly at the camera and ensure your face is well-lit.
                     </p>
                     <button onClick={handleCapture} disabled={captureStatus !== 'idle' || cameraStatus !== 'ready'} className="mt-4 btn btn-primary">

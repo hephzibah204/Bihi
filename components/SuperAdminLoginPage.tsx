@@ -30,17 +30,17 @@ const SuperAdminLoginPage = () => {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
-            <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md dark:bg-gray-800">
+        <div className="flex items-center justify-center min-h-screen bg-gray-100">
+            <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
                 <div className="text-center">
-                    <h1 className="text-3xl font-bold text-gray-800 dark:text-white">
+                    <h1 className="text-3xl font-bold text-gray-800">
                         Super Admin Login
                     </h1>
-                    <p className="mt-2 text-gray-600 dark:text-gray-400">Access the platform dashboard</p>
+                    <p className="mt-2 text-gray-600">Access the platform dashboard</p>
                 </div>
 
                 {error && (
-                    <div className="p-4 text-sm text-red-700 bg-red-100 rounded-lg dark:bg-red-200 dark:text-red-800" role="alert">
+                    <div className="p-4 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">
                         {error}
                     </div>
                 )}

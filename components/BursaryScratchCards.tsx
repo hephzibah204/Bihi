@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiGetScratchCards, apiSaveScratchCards } from '../services/api';
+import { formatDate } from '../utils/dateHelpers';
 
 const generateCardNumber = () => {
     // Generates a 12-digit random number as a string
@@ -74,7 +75,7 @@ const BursaryScratchCards = () => {
                                                 {card.used ? 'Used' : 'Unused'}
                                             </span>
                                         </td>
-                                        <td className="td">{new Date(card.createdAt).toLocaleDateString()}</td>
+                                        <td className="td">{formatDate(card.createdAt)}</td>
                                     </tr>
                                 ))
                             )}

@@ -1,42 +1,49 @@
-import React, { ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 
-interface ErrorBoundaryProps {
-    children?: ReactNode;
+interface Props {
+  children: ReactNode;
 }
 
-interface ErrorBoundaryState {
-    hasError: boolean;
+interface State {
+  hasError: boolean;
 }
 
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-    // Fix: Use a class property to initialize state. This is a more modern and robust
-    // approach that resolves TypeScript errors where `this.state` and `this.props` were
-    // not being correctly identified on the class instance.
-    state: ErrorBoundaryState = { hasError: false };
+class ErrorBoundary extends Component<Props, State> {
+  public state: State = {
+    hasError: false,
+  };
 
-    static getDerivedStateFromError(_: Error): ErrorBoundaryState {
-        // Update state so the next render will show the fallback UI.
-        return { hasError: true };
+  public static getDerivedStateFromError(_: Error): State {
+    return { hasError: true };
+  }
+
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Uncaught error:', error, errorInfo);
+  }
+
+  public render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex h-screen w-screen flex-col items-center justify-center bg-gray-100">
+          <div className="rounded-lg bg-white p-8 text-center shadow-lg">
+            <h1 className="text-2xl font-bold text-red-600">Something went wrong.</h1>
+            <p className="mt-2 text-gray-600">
+              We've logged the issue. Please refresh the page to continue.
+            </p>
+            <button
+              className="mt-6 rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
+              onClick={() => window.location.reload()}
+            >
+              Refresh
+            </button>
+          </div>
+        </div>
+      );
     }
 
-    componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-        // You can also log the error to an error reporting service
-        console.error("Uncaught error:", error, errorInfo);
-    }
-
-    render() {
-        if (this.state.hasError) {
-            // You can render any custom fallback UI
-            return (
-                <div className="flex flex-col items-center justify-center h-screen bg-red-50 text-red-800">
-                    <h1 className="text-2xl font-bold">Something went wrong.</h1>
-                    <p className="mt-2">We're sorry for the inconvenience. Please try refreshing the page.</p>
-                </div>
-            );
-        }
-
-        return this.props.children;
-    }
+    // Fix: Return this.props.children directly.
+    return this.props.children;
+  }
 }
 
 export default ErrorBoundary;

@@ -41,7 +41,7 @@ const SyncStatusIndicator = () => {
     }[syncStatus];
 
     return (
-        <div title={tooltipText} className="fixed bottom-4 right-4 bg-white dark:bg-gray-800 shadow-lg rounded-full p-2 flex items-center space-x-2 text-sm z-50">
+        <div title={tooltipText} className="fixed bottom-4 right-4 bg-white shadow-lg rounded-full p-2 flex items-center space-x-2 text-sm z-50">
             {currentStatus.icon}
             <span className={`font-medium ${currentStatus.color}`}>{currentStatus.text}</span>
         </div>

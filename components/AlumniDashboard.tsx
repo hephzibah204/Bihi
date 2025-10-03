@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { apiGetStudents, apiSendAlumniEmail } from '../services/api';
 import { getSubdomain } from '../utils/subdomain';
@@ -50,7 +47,8 @@ const AlumniDashboard = () => {
                     setLoading(false);
                     return;
                 }
-                const allStudents = await apiGetStudents(tenantId);
+                // Fix: Pass an empty filter object as the first argument and the tenant ID as the second.
+                const allStudents = await apiGetStudents({}, tenantId);
                 const graduatedStudents = allStudents.filter(s => s.status === 'alumni');
                 setAlumni(graduatedStudents);
             } catch (error) {
@@ -164,7 +162,7 @@ const AlumniDashboard = () => {
                 </div>
 
                  <div className="mt-4 flex justify-between items-center">
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                    <p className="text-sm text-gray-600">
                         Showing {filteredAlumni.length} alumni.
                     </p>
                     <div className="flex items-center space-x-2">
@@ -182,7 +180,7 @@ const AlumniDashboard = () => {
                     <>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
                             {visibleAlumni.map(alum => (
-                                 <div key={alum.id} className="p-4 border dark:border-gray-700 rounded-lg flex items-center space-x-4">
+                                 <div key={alum.id} className="p-4 border rounded-lg flex items-center space-x-4">
                                     <img 
                                         src={alum.photo || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(alum.name)}`} 
                                         alt={alum.name} 
@@ -212,7 +210,7 @@ const AlumniDashboard = () => {
 
             <Modal isOpen={isEmailModalOpen} onClose={() => setEmailModalOpen(false)} title="Send Email to Alumni">
                 <div className="p-6 space-y-4">
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                    <p className="text-sm text-gray-600">
                         Your message will be sent to <strong>{filteredAlumni.filter(a => a.parentEmail).length} alumni</strong> with an email address based on your current filters.
                     </p>
                     <div>

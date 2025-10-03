@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiGetAnnouncements, apiGetStudents } from '../services/api';
 import { supabase } from '../services/supabaseClient';
+import { formatDate } from '../utils/dateHelpers';
 
 const NotificationViewer = ({ demoUserId }) => {
     const [notifications, setNotifications] = useState([]);
@@ -80,16 +81,16 @@ const NotificationViewer = ({ demoUserId }) => {
 
     return (
         <div>
-             <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">Notifications</h1>
+             <h1 className="text-2xl font-semibold text-gray-700">Notifications</h1>
              <div className="space-y-4 mt-6">
                 {notifications.length > 0 ? (
                     notifications.map(ann => (
                         <div key={ann.id} className="card p-4">
                             <div className="flex justify-between items-start">
                                 <h2 className="font-bold text-lg">{ann.title}</h2>
-                                <p className="text-sm text-gray-500">{new Date(ann.created_at).toLocaleDateString()}</p>
+                                <p className="text-sm text-gray-500">{formatDate(ann.created_at)}</p>
                             </div>
-                             <p className="mt-2 text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{ann.content}</p>
+                             <p className="mt-2 text-gray-600 whitespace-pre-wrap">{ann.content}</p>
                         </div>
                     ))
                 ) : (

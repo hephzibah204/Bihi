@@ -1,50 +1,33 @@
 import React from 'react';
 import Bars3Icon from './icons/Bars3Icon';
 import LogoutIcon from './icons/LogoutIcon';
-import SunIcon from './icons/SunIcon';
-import MoonIcon from './icons/MoonIcon';
-import { supabase } from '../services/supabaseClient';
-import { useTheme } from '../hooks/useTheme';
 
-const Header = ({ title, setSidebarOpen, onLogout }) => {
-    const { theme, toggleTheme } = useTheme();
+interface HeaderProps {
+    title: string;
+    setSidebarOpen: (isOpen: boolean) => void;
+    onLogout: () => void;
+    isSidebarOpen: boolean;
+}
 
-    const defaultLogoutHandler = async () => {
-        if (supabase) {
-            const { error } = await supabase.auth.signOut();
-            if (error) {
-                console.error('Error logging out:', error.message);
-            }
-        }
-    };
-
-    const handleLogout = onLogout || defaultLogoutHandler;
-
+const Header: React.FC<HeaderProps> = ({ title, setSidebarOpen, onLogout, isSidebarOpen }) => {
     return (
-        <header className="flex-shrink-0 flex justify-between items-center h-16 px-4 md:px-6 bg-card-bg-light dark:bg-card-bg-dark shadow-sm z-10">
-            <div className="flex items-center">
-                <button onClick={() => setSidebarOpen(true)} className="text-slate-500 focus:outline-none md:hidden">
-                    <Bars3Icon className="h-6 w-6" />
-                </button>
-                <h1 className="text-xl font-semibold ml-2 md:ml-0 truncate">{title}</h1>
-            </div>
-
-            <div className="flex items-center space-x-2">
-                <button 
-                    onClick={toggleTheme}
-                    className="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700"
-                    aria-label="Toggle theme"
-                >
-                    {theme === 'dark' ? <SunIcon className="h-6 w-6" /> : <MoonIcon className="h-6 w-6" />}
-                </button>
-                <button 
-                    onClick={handleLogout} 
-                    className="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700"
-                    aria-label="Logout"
-                >
-                    <LogoutIcon className="h-6 w-6" />
-                </button>
-            </div>
+        <header className="flex justify-between items-center h-16 px-6 bg-white dark:bg-gray-800 border-b dark:border-gray-700">
+            <button
+                onClick={() => setSidebarOpen(!isSidebarOpen)}
+                className="md:hidden text-gray-500 dark:text-gray-400 focus:outline-none"
+                aria-label="Open sidebar"
+            >
+                <Bars3Icon className="h-6 w-6" />
+            </button>
+            <h1 className="text-xl font-semibold text-gray-800 dark:text-white">{title}</h1>
+            <button
+                onClick={onLogout}
+                className="flex items-center text-sm text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                aria-label="Logout"
+            >
+                <LogoutIcon className="h-5 w-5 mr-1" />
+                <span className="hidden sm:inline">Logout</span>
+            </button>
         </header>
     );
 };

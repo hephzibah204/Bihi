@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { syncEventBus, isSyncNeeded } from '../services/api';
+import { syncEventBus, isSyncNeeded, processSyncQueue } from '../services/api';
 
 export type SyncStatus = 'synced' | 'syncing' | 'offline' | 'unsynced';
 
@@ -20,8 +20,11 @@ export const useSync = () => {
         };
         syncEventBus.addEventListener('syncStatusChange', handleStatusChange);
 
-        // Also listen for native online/offline events as a fallback
-        const handleOnline = () => setSyncStatus(isSyncNeeded() ? 'unsynced' : 'synced');
+        const handleOnline = () => {
+            setSyncStatus(isSyncNeeded() ? 'unsynced' : 'synced');
+            // Trigger an immediate sync attempt when connection is restored
+            processSyncQueue();
+        };
         const handleOffline = () => setSyncStatus('offline');
         
         window.addEventListener('online', handleOnline);

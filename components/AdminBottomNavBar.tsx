@@ -5,6 +5,7 @@ import ClipboardListIcon from './icons/ClipboardListIcon';
 import ArrowUpOnSquareIcon from './icons/ArrowUpOnSquareIcon';
 import Bars3Icon from './icons/Bars3Icon';
 import { DashboardView } from '../types';
+import { ADMIN_VIEWS } from '../utils/constants';
 
 interface NavItemProps {
     icon: React.ReactNode;
@@ -17,7 +18,7 @@ interface NavItemProps {
 const NavItem: FC<NavItemProps> = ({ icon, label, view, isActive, onClick }) => (
     <button 
         onClick={() => onClick(view)}
-        className={`flex flex-col items-center justify-center w-full pt-2 pb-1 transition-colors duration-200 ${isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400'}`}
+        className={`flex flex-col items-center justify-center w-full pt-2 pb-1 transition-colors duration-200 ${isActive ? 'text-indigo-600' : 'text-gray-500'}`}
     >
         {icon}
         <span className="text-xs mt-1">{label}</span>
@@ -31,11 +32,11 @@ interface BottomNavBarProps {
 
 const AdminBottomNavBar: FC<BottomNavBarProps> = ({ activeView, setActiveView }) => {
     const navItems: { view: DashboardView; label: string; icon: React.ReactNode }[] = [
-        { view: 'dashboard', label: 'Home', icon: <HomeIcon className="h-6 w-6" /> },
-        { view: 'students', label: 'Students', icon: <UsersIcon className="h-6 w-6" /> },
-        { view: 'results', label: 'Scores', icon: <ClipboardListIcon className="h-6 w-6" /> },
-        { view: 'attendance', label: 'Attendance', icon: <ArrowUpOnSquareIcon className="h-6 w-6" /> },
-        { view: 'more', label: 'More', icon: <Bars3Icon className="h-6 w-6" /> },
+        { view: ADMIN_VIEWS.DASHBOARD, label: 'Home', icon: <HomeIcon className="h-6 w-6" /> },
+        { view: ADMIN_VIEWS.STUDENTS, label: 'Students', icon: <UsersIcon className="h-6 w-6" /> },
+        { view: ADMIN_VIEWS.RESULTS, label: 'Scores', icon: <ClipboardListIcon className="h-6 w-6" /> },
+        { view: ADMIN_VIEWS.ATTENDANCE, label: 'Attendance', icon: <ArrowUpOnSquareIcon className="h-6 w-6" /> },
+        { view: ADMIN_VIEWS.MORE, label: 'More', icon: <Bars3Icon className="h-6 w-6" /> },
     ];
 
     return (

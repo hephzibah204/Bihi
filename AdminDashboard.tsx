@@ -1,9 +1,5 @@
-// This component is redundant and no longer in use. Use SuperAdminDashboard.tsx directly. It can be safely deleted.
+// This component is redundant and its functionality is handled by /components/AdminDashboard.tsx.
+// This file can be safely deleted.
 import React from 'react';
-import SuperAdminDashboard from './components/SuperAdminDashboard';
-
-const AdminDashboard = () => {
-  return <SuperAdminDashboard />;
-};
-
+const AdminDashboard = () => null;
 export default AdminDashboard;

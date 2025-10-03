@@ -1,155 +1,63 @@
-import React, { useState, useRef, useEffect } from 'react';
-import PlusIcon from './icons/PlusIcon';
-import { apiLogActivity } from '../services/api';
-import Modal from './Modal';
-import EditIcon from './icons/EditIcon';
-import TrashIcon from './icons/TrashIcon';
-import ConfirmationModal from './ConfirmationModal';
-import useSyncedLocalStorage from '../hooks/useSyncedLocalStorage';
+import React, { useState, useEffect } from 'react';
+import { apiGetSubjects, apiUpsertSubject, apiDeleteSubject } from '../services/api';
 import { Subject } from '../types';
-
-const PAGE_SIZE = 50;
+import Modal from './Modal';
+import PlusIcon from './icons/PlusIcon';
+import ConfirmationModal from './ConfirmationModal';
+import TrashIcon from './icons/TrashIcon';
+import EditIcon from './icons/EditIcon';
 
 const Subjects = () => {
-    const [subjects, setSubjects] = useSyncedLocalStorage<Subject[]>('subjects', []);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    
-    // State for Modals
+    const [subjects, setSubjects] = useState<Subject[]>([]);
+    const [loading, setLoading] = useState(true);
     const [isModalOpen, setModalOpen] = useState(false);
-    const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
-    const [formData, setFormData] = useState({ name: '', classes: [] as string[] });
-    
+    const [editingSubject, setEditingSubject] = useState<Partial<Subject> | null>(null);
     const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
     const [subjectToDelete, setSubjectToDelete] = useState<Subject | null>(null);
-    
-    // State for virtualization/infinite scroll
-    const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-    const loaderRef = useRef(null);
-    
-    // Observer for infinite scroll
-    useEffect(() => {
-        const observer = new IntersectionObserver((entries) => {
-            const first = entries[0];
-            if (first.isIntersecting) {
-                setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, subjects.length));
-            }
-        }, { threshold: 1 });
 
-        const currentLoader = loaderRef.current;
-        if (currentLoader) {
-            observer.observe(currentLoader);
-        }
-
-        return () => {
-            if (currentLoader) {
-                observer.unobserve(currentLoader);
-            }
-        };
-    }, [loaderRef, subjects.length]);
-
-    // Reset visible count if the underlying data changes
-    useEffect(() => {
-        setVisibleCount(PAGE_SIZE);
-    }, [subjects.length]);
-
-    const visibleSubjects = subjects.slice(0, visibleCount);
-
-    // Mock available classes, in a real app this might come from a different source
-    const availableClasses = ['JSS 1', 'JSS 2', 'JSS 3', 'SSS 1', 'SSS 2', 'SSS 3'];
-
-    const handleOpenAddModal = () => {
-        setEditingSubject(null);
-        setFormData({ name: '', classes: [] });
-        setModalOpen(true);
+    const fetchSubjects = async () => {
+        setLoading(true);
+        const data = await apiGetSubjects();
+        setSubjects(data);
+        setLoading(false);
     };
 
-    const handleOpenEditModal = (subject: Subject) => {
+    useEffect(() => {
+        fetchSubjects();
+    }, []);
+
+    const handleOpenModal = (subject: Subject | null = null) => {
         setEditingSubject(subject);
-        setFormData({ name: subject.name, classes: subject.classes });
         setModalOpen(true);
     };
 
-    const handleCloseModal = () => {
+    const handleSaveSubject = async (subjectData: Partial<Subject>) => {
+        await apiUpsertSubject(subjectData);
+        fetchSubjects();
         setModalOpen(false);
-        setEditingSubject(null);
-    };
-    
-    const handleClassToggle = (className: string) => {
-        setFormData(prev => {
-            const newClasses = prev.classes.includes(className)
-                ? prev.classes.filter(c => c !== className)
-                : [...prev.classes, className];
-            return { ...prev, classes: newClasses };
-        });
     };
 
-    const handleSaveSubject = (e: React.FormEvent) => {
-        e.preventDefault();
-        
-        setSubjects(allSubjects => {
-            if (editingSubject) {
-                apiLogActivity({ type: 'SUBJECT_UPDATE', description: `Updated subject: ${formData.name}.` });
-                return allSubjects.map(s => s.id === editingSubject.id ? { ...s, ...formData } : s);
-            } else {
-                const newSubject = { id: `subj_${Date.now()}`, ...formData };
-                apiLogActivity({ type: 'SUBJECT_ADD', description: `Added a new subject: ${newSubject.name}.` });
-                return [...allSubjects, newSubject];
-            }
-        });
-
-        handleCloseModal();
-    };
-    
-    const handleOpenDeleteModal = (subject: Subject) => {
+    const openDeleteModal = (subject: Subject) => {
         setSubjectToDelete(subject);
         setDeleteModalOpen(true);
     };
 
-    const handleConfirmDelete = () => {
+    const handleDeleteSubject = async () => {
         if (!subjectToDelete) return;
-
-        apiLogActivity({ type: 'SUBJECT_DELETE', description: `Deleted subject: ${subjectToDelete.name}.` });
-        
-        setSubjects(allSubjects => allSubjects.filter(s => s.id !== subjectToDelete.id));
-
+        await apiDeleteSubject(subjectToDelete.id);
+        fetchSubjects();
         setDeleteModalOpen(false);
         setSubjectToDelete(null);
     };
+    
+    if (loading) return <div>Loading subjects...</div>;
 
-    const renderContent = () => {
-        if (loading) {
-            return (
-                <div className="card">
-                    <div className="p-6 text-center text-gray-500 dark:text-gray-400">
-                        Loading subjects...
-                    </div>
-                </div>
-            );
-        }
-
-        if (error) {
-            return (
-                 <div className="card">
-                    <div className="p-6 text-center text-red-500">
-                        {error}
-                    </div>
-                </div>
-            );
-        }
-
-        if (subjects.length === 0) {
-            return (
-                <div className="card">
-                    <div className="p-6 text-center text-gray-500 dark:text-gray-400">
-                        No subjects found. Click "Add Subject" to get started.
-                    </div>
-                </div>
-            );
-        }
-
-        return (
-             <div className="table-container">
+    return (
+        <div>
+            <div className="flex justify-end mb-6">
+                <button onClick={() => handleOpenModal()} className="btn btn-primary"><PlusIcon className="w-5 h-5 mr-2"/> Add Subject</button>
+            </div>
+            <div className="table-container">
                 <table className="table">
                     <thead>
                         <tr>
@@ -158,91 +66,56 @@ const Subjects = () => {
                             <th className="th text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                        {visibleSubjects.map((subject) => (
+                    <tbody className="bg-white divide-y">
+                        {subjects.map(subject => (
                             <tr key={subject.id}>
-                                <td className="td font-medium text-gray-900 dark:text-white">{subject.name}</td>
-                                <td className="td text-gray-500 dark:text-gray-400">{subject.classes.join(', ')}</td>
-                                <td className="td text-right">
-                                    <div className="flex justify-end space-x-4">
-                                        <button onClick={() => handleOpenEditModal(subject)} className="text-indigo-600 hover:text-indigo-900" title="Edit Subject">
-                                            <EditIcon className="h-5 w-5" />
-                                        </button>
-                                        <button onClick={() => handleOpenDeleteModal(subject)} className="text-red-500 hover:text-red-700" title="Delete Subject">
-                                            <TrashIcon className="h-5 w-5" />
-                                        </button>
-                                    </div>
+                                <td className="td font-medium">{subject.name}</td>
+                                <td className="td">{subject.classes.join(', ')}</td>
+                                <td className="td text-right space-x-1">
+                                    <button onClick={() => handleOpenModal(subject)} className="icon-button" title="Edit"><EditIcon className="w-5 h-5"/></button>
+                                    <button onClick={() => openDeleteModal(subject)} className="icon-button text-red-500" title="Delete"><TrashIcon className="w-5 h-5"/></button>
                                 </td>
                             </tr>
                         ))}
-                         {visibleCount < subjects.length && (
-                            <tr ref={loaderRef}>
-                                <td colSpan={3} className="text-center p-4 text-gray-500">
-                                    Loading more...
-                                </td>
-                            </tr>
-                        )}
                     </tbody>
                 </table>
             </div>
-        );
+
+            {isModalOpen && <SubjectFormModal subject={editingSubject} onSave={handleSaveSubject} onClose={() => setModalOpen(false)} />}
+            <ConfirmationModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setDeleteModalOpen(false)}
+                onConfirm={handleDeleteSubject}
+                title="Delete Subject"
+                message={`Are you sure you want to delete ${subjectToDelete?.name}?`}
+            />
+        </div>
+    );
+};
+
+const SubjectFormModal = ({ subject, onSave, onClose }) => {
+    // Fix: Correctly initialize state by spreading the subject and then overriding the 'classes' property to be a string, avoiding a duplicate property error.
+    const [formData, setFormData] = useState({ name: '', ...subject, classes: subject?.classes?.join(', ') || '' });
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        const { name, classes } = formData;
+        const classesArray = classes.split(',').map(c => c.trim()).filter(Boolean);
+        onSave({ id: subject?.id, name, classes: classesArray });
     };
 
     return (
-        <div>
-            <div className="hidden md:flex justify-end items-center mb-6">
-                <button onClick={handleOpenAddModal} className="btn btn-primary">
-                    <PlusIcon className="h-5 w-5 mr-2" />
-                    Add Subject
-                </button>
-            </div>
-            {renderContent()}
-
-            <button onClick={handleOpenAddModal} className="fab md:hidden" aria-label="Add Subject">
-                <PlusIcon className="h-6 w-6" />
-            </button>
-
-            <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingSubject ? 'Edit Subject' : 'Add New Subject'}>
-                 <form onSubmit={handleSaveSubject} className="p-6 space-y-4">
-                    <div>
-                        <label className="label">Subject Name</label>
-                        <input 
-                            value={formData.name}
-                            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                            className="input-field" 
-                            required 
-                        />
-                    </div>
-                    <div>
-                        <label className="label">Applicable Classes</label>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
-                            {availableClasses.map(c => (
-                                <label key={c} className="flex items-center space-x-2 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
-                                    <input 
-                                        type="checkbox" 
-                                        checked={formData.classes.includes(c)} 
-                                        onChange={() => handleClassToggle(c)}
-                                        className="rounded text-indigo-600 focus:ring-indigo-500"
-                                    />
-                                    <span>{c}</span>
-                                </label>
-                            ))}
-                        </div>
-                    </div>
-                    <div className="flex justify-end pt-4">
-                        <button type="button" onClick={handleCloseModal} className="btn btn-secondary mr-2">Cancel</button>
-                        <button type="submit" className="btn btn-primary">{editingSubject ? 'Save Changes' : 'Add Subject'}</button>
-                    </div>
-                </form>
-            </Modal>
-             <ConfirmationModal 
-                isOpen={isDeleteModalOpen}
-                onClose={() => setDeleteModalOpen(false)}
-                onConfirm={handleConfirmDelete}
-                title="Delete Subject"
-                message={`Are you sure you want to delete ${subjectToDelete?.name}? This may affect existing results.`}
-            />
-        </div>
+        <Modal isOpen={true} onClose={onClose} title={subject ? 'Edit Subject' : 'Add Subject'}>
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                <div><label className="label">Subject Name</label><input name="name" value={formData.name} onChange={handleChange} className="input-field" required /></div>
+                <div><label className="label">Classes (comma-separated)</label><input name="classes" value={formData.classes} onChange={handleChange} className="input-field" placeholder="e.g., JSS 1, JSS 2" /></div>
+                <div className="flex justify-end pt-2"><button type="submit" className="btn btn-primary">Save Subject</button></div>
+            </form>
+        </Modal>
     );
 };
 

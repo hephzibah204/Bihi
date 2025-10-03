@@ -1,64 +1,36 @@
-import React, { FC, ReactNode, useEffect } from 'react';
+import React, { FC, PropsWithChildren } from 'react';
 import XIcon from './icons/XIcon';
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
-  children: ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
+  size?: 'sm' | 'md' | 'lg' | 'full';
 }
 
-const Modal: FC<ModalProps> = ({ isOpen, onClose, title, children, size = 'lg' }) => {
-  useEffect(() => {
-    const handleEsc = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleEsc);
-    return () => {
-      window.removeEventListener('keydown', handleEsc);
-    };
-  }, [onClose]);
-
+const Modal: FC<PropsWithChildren<ModalProps>> = ({ isOpen, onClose, title, children, size = 'md' }) => {
   if (!isOpen) return null;
 
   const sizeClasses = {
     sm: 'max-w-sm',
     md: 'max-w-md',
-    lg: 'max-w-lg',
-    xl: 'max-w-xl',
-    full: 'max-w-full h-full',
+    lg: 'max-w-3xl',
+    full: 'max-w-6xl',
   };
 
   return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4"
-      aria-labelledby="modal-title"
-      role="dialog"
-      aria-modal="true"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4" onClick={onClose}>
       <div
-        className={`bg-white dark:bg-gray-800 rounded-lg shadow-xl transform transition-all w-full ${sizeClasses[size]} flex flex-col max-h-[90vh]`}
+        className={`bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full ${sizeClasses[size]} flex flex-col max-h-[90vh]`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
-          <h2 id="modal-title" className="text-lg font-semibold text-gray-800 dark:text-white">
-            {title}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-            aria-label="Close modal"
-          >
-            <XIcon className="h-6 w-6" />
+        <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
+          <h2 className="text-xl font-semibold">{title}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <XIcon className="w-6 h-6" />
           </button>
         </div>
-        <div className="overflow-y-auto">
-            {children}
-        </div>
+        <div className="overflow-y-auto">{children}</div>
       </div>
     </div>
   );

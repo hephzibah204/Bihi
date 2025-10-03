@@ -1,20 +1,22 @@
 import React from 'react';
 import ClipboardListIcon from './icons/ClipboardListIcon';
 import ClockIcon from './icons/ClockIcon';
-import BrainCircuitIcon from './icons/BrainCircuitIcon';
 import { StudentView } from '../types';
+import HeadsetIcon from './icons/HeadsetIcon';
+import { STUDENT_VIEWS } from '../utils/constants';
 
 const StudentHome = ({ setActiveView }: { setActiveView: (view: StudentView) => void }) => {
     const quickLinks = [
-        { view: 'results' as StudentView, title: "View My Results", icon: <ClipboardListIcon className="w-8 h-8"/>, description: "Check your latest scores and grades." },
-        { view: 'timetable' as StudentView, title: "Check Timetable", icon: <ClockIcon className="w-8 h-8"/>, description: "See your class schedule for the week." },
+        { view: STUDENT_VIEWS.RESULTS, title: "View My Results", icon: <ClipboardListIcon className="w-8 h-8"/>, description: "Check your latest scores and grades." },
+        { view: STUDENT_VIEWS.AI_TUTOR, title: "AI Academic Tutor", icon: <HeadsetIcon className="w-8 h-8"/>, description: "Have a voice conversation with an AI tutor." },
+        { view: STUDENT_VIEWS.TIMETABLE, title: "Check Timetable", icon: <ClockIcon className="w-8 h-8"/>, description: "See your class schedule for the week." },
     ];
 
     return (
         <div>
             <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">Welcome, Student!</h1>
             <p className="mt-2 text-gray-600 dark:text-gray-300">Here's a quick overview of your portal.</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
                 {quickLinks.map(link => (
                     <button 
                         key={link.view} 

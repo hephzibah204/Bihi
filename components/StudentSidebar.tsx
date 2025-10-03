@@ -1,38 +1,15 @@
-import React, { FC } from 'react';
+import React from 'react';
+import { StudentView } from '../types';
 import HomeIcon from './icons/HomeIcon';
 import ClipboardListIcon from './icons/ClipboardListIcon';
-import UserCircleIcon from './icons/UserCircleIcon';
 import ClockIcon from './icons/ClockIcon';
-import { StudentView } from '../types';
-import BrainCircuitIcon from './icons/BrainCircuitIcon';
+import UserCircleIcon from './icons/UserCircleIcon';
 import BellIcon from './icons/BellIcon';
+import HeadsetIcon from './icons/HeadsetIcon';
+import DocumentDuplicateIcon from './icons/DocumentDuplicateIcon';
+import { STUDENT_VIEWS } from '../utils/constants';
 import Logo from './icons/Logo';
-
-interface NavItemProps {
-    icon: React.ReactNode;
-    children: React.ReactNode;
-    view: StudentView;
-    activeView: StudentView;
-    onClick: (view: StudentView) => void;
-}
-
-const NavItem: FC<NavItemProps> = ({ icon, children, view, activeView, onClick }) => {
-    const isActive = view === activeView;
-    const activeClasses = 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white';
-    const inactiveClasses = 'text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700';
-
-    return (
-        <li>
-            <button 
-                onClick={() => onClick(view)} 
-                className={`flex items-center w-full px-4 py-2 rounded-md transition-colors duration-200 ${isActive ? activeClasses : inactiveClasses}`}
-            >
-                {icon}
-                <span className="mx-4 font-medium">{children}</span>
-            </button>
-        </li>
-    );
-};
+import XIcon from './icons/XIcon';
 
 interface SidebarProps {
     isSidebarOpen: boolean;
@@ -41,29 +18,52 @@ interface SidebarProps {
     setActiveView: (view: StudentView) => void;
 }
 
+const NavLink = ({ icon, label, view, activeView, setActiveView }) => (
+    <button
+        onClick={() => setActiveView(view)}
+        className={`w-full flex items-center px-4 py-2.5 rounded-lg transition-colors duration-200 ${
+            activeView === view
+                ? 'bg-indigo-600 text-white'
+                : 'text-gray-600 hover:bg-gray-100'
+        }`}
+    >
+        {icon}
+        <span className="ml-3">{label}</span>
+    </button>
+);
+
 const StudentSidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView }: SidebarProps) => {
+    const navLinks = [
+        { view: STUDENT_VIEWS.DASHBOARD, label: 'Dashboard', icon: <HomeIcon className="h-5 w-5" /> },
+        { view: STUDENT_VIEWS.RESULTS, label: 'My Results', icon: <ClipboardListIcon className="h-5 w-5" /> },
+        { view: STUDENT_VIEWS.ASSIGNMENTS, label: 'My Assignments', icon: <DocumentDuplicateIcon className="h-5 w-5" /> },
+        { view: STUDENT_VIEWS.AI_TUTOR, label: 'AI Tutor', icon: <HeadsetIcon className="h-5 w-5" /> },
+        { view: STUDENT_VIEWS.TIMETABLE, label: 'Timetable', icon: <ClockIcon className="h-5 w-5" /> },
+        { view: STUDENT_VIEWS.NOTIFICATIONS, label: 'Notifications', icon: <BellIcon className="h-5 w-5" /> },
+        { view: STUDENT_VIEWS.PROFILE, label: 'My Profile', icon: <UserCircleIcon className="h-5 w-5" /> },
+    ];
+
     return (
         <>
             <div 
-                className={`fixed inset-0 bg-black bg-opacity-50 z-20 transition-opacity md:hidden ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                className={`fixed inset-0 z-20 bg-black bg-opacity-50 transition-opacity md:hidden ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
                 onClick={() => setSidebarOpen(false)}
             ></div>
-
-            <aside className={`fixed inset-y-0 left-0 w-64 bg-white dark:bg-gray-800 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-200 ease-in-out z-30 flex flex-col border-r border-gray-200 dark:border-gray-700`}>
-                <div className="flex items-center justify-center h-20 border-b border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center space-x-2">
-                         <Logo className="h-8 w-8" />
-                         <span className="text-gray-800 dark:text-white text-xl font-semibold">Student Portal</span>
-                    </div>
+            <aside 
+                className={`fixed inset-y-0 left-0 z-30 w-64 bg-white transform transition-transform duration-300 md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+            >
+                <div className="flex items-center justify-between h-16 px-4 border-b">
+                     <a href="/" className="flex items-center space-x-2">
+                        <Logo className="h-8 w-8" />
+                        <span className="text-xl font-bold">ReportSheet</span>
+                    </a>
+                    <button className="md:hidden" onClick={() => setSidebarOpen(false)} aria-label="Close sidebar">
+                        <XIcon className="h-6 w-6"/>
+                    </button>
                 </div>
-                <nav className="mt-6 px-2">
-                    <ul className="space-y-2">
-                        <NavItem icon={<HomeIcon className="h-6 w-6" />} view="dashboard" activeView={activeView} onClick={setActiveView}>Dashboard</NavItem>
-                        <NavItem icon={<ClipboardListIcon className="h-6 w-6" />} view="results" activeView={activeView} onClick={setActiveView}>My Results</NavItem>
-                        <NavItem icon={<ClockIcon className="h-6 w-6" />} view="timetable" activeView={activeView} onClick={setActiveView}>Timetable</NavItem>
-                        <NavItem icon={<BellIcon className="h-6 w-6" />} view="notifications" activeView={activeView} onClick={setActiveView}>Notifications</NavItem>
-                        <NavItem icon={<UserCircleIcon className="h-6 w-6" />} view="profile" activeView={activeView} onClick={setActiveView}>My Profile</NavItem>
-                    </ul>
+                <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+                    {/* Fix: The key prop is handled by React and not passed to the component. The explicit props are correct. */}
+                    {navLinks.map(link => <NavLink key={link.view} view={link.view} label={link.label} icon={link.icon} activeView={activeView} setActiveView={setActiveView} />)}
                 </nav>
             </aside>
         </>

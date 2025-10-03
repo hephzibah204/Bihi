@@ -39,22 +39,11 @@ export default {
         });
       }
 
-      // --- HYBRID KEY LOGIC ---
-      const HARDCODED_API_KEY = "PASTE_YOUR_GEMINI_API_KEY_HERE"; 
-
-      const apiKey = env.API_KEY || HARDCODED_API_KEY;
-
-      if (!env.API_KEY) {
-          console.warn('--- SECURITY WARNING ---');
-          console.warn('API_KEY is not configured in Cloudflare secrets. Using hardcoded fallback key.');
-          console.warn('This is NOT recommended for production and exposes your API key if your code is public.');
-      }
+      // --- Use environment variable for API key ---
+      const apiKey = env.API_KEY;
       
-      if (!apiKey || apiKey === "PASTE_YOUR_GEMINI_API_KEY_HERE" || apiKey.startsWith("ey")) {
-        let errorMsg = 'AI service is not configured on the server.';
-        if (apiKey && apiKey.startsWith("ey")) {
-          errorMsg = "Invalid Gemini API key detected in _worker.js. It looks like a Supabase key. Please use a valid Gemini key.";
-        }
+      if (!apiKey) {
+        let errorMsg = 'AI service is not configured on the server. The API_KEY secret is missing.';
         return new Response(JSON.stringify({ error: errorMsg }), {
           status: 500,
           headers,
@@ -78,7 +67,7 @@ export default {
       console.error('Error in Cloudflare Worker:', error);
       let errorMessage = 'An internal server error occurred while contacting the AI service.';
       if (error.message && (error.message.includes('API key not valid') || error.message.includes('invalid'))) {
-          errorMessage = 'The provided AI API key is not valid. Please ensure you have pasted the correct Gemini API key in `_worker.js`.';
+          errorMessage = 'The provided AI API key is not valid. Please check the API_KEY secret in your Cloudflare Worker settings.';
       }
       return new Response(JSON.stringify({ error: errorMessage }), {
         status: 500,

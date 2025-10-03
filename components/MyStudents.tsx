@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { apiGetStudents, apiGetTeachers, apiGetTimetableData } from '../services/api';
 import { supabase } from '../services/supabaseClient';
+import { Student, Teacher } from '../types';
 
 const MyStudents = () => {
-    const [myStudents, setMyStudents] = useState([]);
+    const [myStudents, setMyStudents] = useState<Student[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchMyStudents = async () => {
+            setLoading(true);
             if (!supabase) {
                 setLoading(false);
                 return;
@@ -21,7 +23,7 @@ const MyStudents = () => {
             }
             const { user } = data;
 
-            const [allStudents, allTeachers, timetableData] = await Promise.all([
+            const [allStudents, allTeachers, timetableData]: [Student[], Teacher[], any] = await Promise.all([
                 apiGetStudents(),
                 apiGetTeachers(),
                 apiGetTimetableData()
@@ -34,8 +36,22 @@ const MyStudents = () => {
                 return;
             }
 
-            // Find classes from timetable
-            const teacherClasses = new Set<string>();
+            const studentsToShow: Student[] = [];
+            const studentIdSet = new Set<string>();
+
+            // 1. Primary source: Class Teacher role
+            if (me.classTeacherOf) {
+                const classStudents = allStudents.filter(s => s.class === me.classTeacherOf);
+                classStudents.forEach(student => {
+                    if (!studentIdSet.has(student.id)) {
+                        studentsToShow.push(student);
+                        studentIdSet.add(student.id);
+                    }
+                });
+            }
+
+            // 2. Secondary source: Subject teacher from timetable
+            const teacherClassesFromTimetable = new Set<string>();
             Object.keys(timetableData).forEach(className => {
                 const classTimetable = timetableData[className];
                 Object.keys(classTimetable).forEach(day => {
@@ -43,20 +59,28 @@ const MyStudents = () => {
                     Object.keys(daySlots).forEach(time => {
                         const slot = daySlots[time];
                         if (slot.teacherId === me.id) {
-                            teacherClasses.add(className);
+                            teacherClassesFromTimetable.add(className);
                         }
                     });
                 });
             });
 
-            const myClassesArray = Array.from(teacherClasses);
+            const myTimetableClasses = Array.from(teacherClassesFromTimetable);
+            const studentsInMySubjectClasses = allStudents.filter(s => myTimetableClasses.includes(s.class));
             
-            const studentsInMyClasses = allStudents.filter(s => myClassesArray.includes(s.class));
-            setMyStudents(studentsInMyClasses);
+            studentsInMySubjectClasses.forEach(student => {
+                if (!studentIdSet.has(student.id)) {
+                    studentsToShow.push(student);
+                    studentIdSet.add(student.id);
+                }
+            });
+
+            setMyStudents(studentsToShow);
             setLoading(false);
         };
         fetchMyStudents();
     }, []);
+
 
     if (loading) return <p>Loading students...</p>;
 
@@ -74,7 +98,7 @@ const MyStudents = () => {
                     <tbody className="bg-white dark:bg-gray-800">
                         {myStudents.map(student => (
                             <tr key={student.id}>
-                                <td className="td">{student.name}</td>
+                                <td className="td"><div className="truncate max-w-sm" title={student.name}>{student.name}</div></td>
                                 <td className="td">{student.class}</td>
                                 <td className="td">{student.admissionNo}</td>
                             </tr>

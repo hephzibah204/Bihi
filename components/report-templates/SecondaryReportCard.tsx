@@ -20,6 +20,10 @@ const SecondaryReportCard = ({ student, students, scores, subjects, settings, te
     const attendanceSummary = summarizeAttendance(student.id, attendance);
     const generalRemark = (remarks || []).find(r => r.studentId === student.id && r.term === term && r.session === session)?.generalComment;
 
+    const maxCa1 = settings?.maxCa1 ?? 20;
+    const maxCa2 = settings?.maxCa2 ?? 20;
+    const maxExam = settings?.maxExam ?? 60;
+
     return (
         <div className="bg-white p-6" style={{ width: '210mm', minHeight: '297mm', fontSize: '10px' }}>
             <ReportCardHeader settings={settings} />
@@ -36,9 +40,9 @@ const SecondaryReportCard = ({ student, students, scores, subjects, settings, te
                 <thead>
                     <tr className="border-b bg-gray-50">
                         <th className="text-left py-1 px-2">Subject</th>
-                        <th className="text-center py-1 px-2">CA1 (20)</th>
-                        <th className="text-center py-1 px-2">CA2 (20)</th>
-                        <th className="text-center py-1 px-2">Exam (60)</th>
+                        <th className="text-center py-1 px-2">CA1 ({maxCa1})</th>
+                        <th className="text-center py-1 px-2">CA2 ({maxCa2})</th>
+                        <th className="text-center py-1 px-2">Exam ({maxExam})</th>
                         <th className="text-center py-1 px-2">Total (100)</th>
                         <th className="text-center py-1 px-2">Grade</th>
                         <th className="text-left py-1 px-2">Teacher's Comment</th>

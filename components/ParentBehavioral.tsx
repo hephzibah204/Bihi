@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { apiGetBehavioralRecords, apiGetStudents } from '../services/api';
+import { apiGetBehavioralRecords } from '../services/api';
+import { formatDate } from '../utils/dateHelpers';
 
 const ParentBehavioral = ({ demoUserId }) => {
-    const [records, setRecords] = useState([]);
-    const [child, setChild] = useState(null);
+    const [remarks, setRemarks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
@@ -13,50 +13,54 @@ const ParentBehavioral = ({ demoUserId }) => {
             setError("Child profile not selected.");
             return;
         }
-        const fetchRecords = async () => {
-            setLoading(true);
-            setError('');
+
+        const fetchRemarks = async () => {
             try {
-                const [allRecords, allStudents] = await Promise.all([
-                    apiGetBehavioralRecords(),
-                    apiGetStudents()
-                ]);
-
-                const currentChild = allStudents.find(s => s.id === demoUserId);
-                if (!currentChild) throw new Error("Child's profile not found.");
-                setChild(currentChild);
-                
-                const childRecords = allRecords.filter(rec => rec.studentId === demoUserId);
-                setRecords(childRecords);
-
+                const allRemarks = await apiGetBehavioralRecords();
+                const studentRemarks = allRemarks
+                    .filter(r => r.studentId === demoUserId)
+                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                setRemarks(studentRemarks);
             } catch (err) {
-                setError("Could not load behavioral records.");
-                console.error(err);
+                setError("Could not load behavioral data.");
             } finally {
                 setLoading(false);
             }
         };
-        fetchRecords();
+
+        fetchRemarks();
     }, [demoUserId]);
 
-    if (loading) return <div className="card p-6 text-center">Loading records...</div>;
+    if (loading) return <div className="card p-6 text-center">Loading remarks...</div>;
     if (error) return <div className="card p-6 text-center text-red-500">{error}</div>;
+    
+    const getTypeChip = (type) => {
+        switch (type) {
+            case 'positive': return <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Positive</span>;
+            case 'negative': return <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Negative</span>;
+            default: return <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">Neutral</span>;
+        }
+    };
+
 
     return (
-        <div>
-            <div className="space-y-4 mt-6">
-                {records.length > 0 ? records.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(record => (
-                    <div key={record.id} className="card p-4">
-                        <div className="flex justify-between items-start">
-                            <p className="font-semibold capitalize text-lg">{record.type} Remark</p>
-                            <p className="text-sm text-gray-500">{new Date(record.date).toLocaleDateString()}</p>
-                        </div>
-                        <p className="mt-2">{record.remark}</p>
+        <div className="card">
+            <div className="p-6">
+                <h2 className="text-xl font-semibold">Behavioral Remarks</h2>
+                {remarks.length > 0 ? (
+                    <div className="space-y-4 mt-4">
+                        {remarks.map(remark => (
+                            <div key={remark.id} className="p-4 border rounded-lg">
+                                <div className="flex justify-between items-start">
+                                    {getTypeChip(remark.type)}
+                                    <span className="text-sm text-gray-500">{formatDate(remark.date)}</span>
+                                </div>
+                                <p className="mt-2 text-gray-700">{remark.remark}</p>
+                            </div>
+                        ))}
                     </div>
-                )) : (
-                    <div className="card p-6 text-center">
-                        No behavioral records found.
-                    </div>
+                ) : (
+                    <p className="mt-4 text-center text-gray-500">No behavioral remarks have been recorded.</p>
                 )}
             </div>
         </div>

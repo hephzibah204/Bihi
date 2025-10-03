@@ -8,15 +8,16 @@ import RecentActivityWidget from './RecentActivityWidget';
 import DashboardInsights from './DashboardInsights';
 import { usePlanFeatures } from '../contexts/PlanFeaturesContext';
 import SparklesIcon from './icons/SparklesIcon';
+import { ADMIN_VIEWS } from '../utils/constants';
 
 const DashboardHome = ({ setActiveView }: { setActiveView: (view: DashboardView) => void }) => {
     const { isSubscribed, isLoading } = usePlanFeatures();
 
     const quickLinks = [
-        { view: 'students' as DashboardView, title: "Manage Students", icon: <UsersIcon className="w-8 h-8"/>, description: "Add, edit, or import student records." },
-        { view: 'results' as DashboardView, title: "Enter Scores", icon: <ClipboardListIcon className="w-8 h-8"/>, description: "Input the latest CA and exam scores." },
-        { view: 'report-cards' as DashboardView, title: "Generate Reports", icon: <DocumentArrowDownIcon className="w-8 h-8"/>, description: "Create and print report cards." },
-        { view: 'promotions' as DashboardView, title: "Promote Students", icon: <GraduationCapIcon className="w-8 h-8"/>, description: "Move students to the next class." },
+        { view: ADMIN_VIEWS.STUDENTS, title: "Manage Students", icon: <UsersIcon className="w-8 h-8"/>, description: "Add, edit, or import student records." },
+        { view: ADMIN_VIEWS.RESULTS, title: "Enter Scores", icon: <ClipboardListIcon className="w-8 h-8"/>, description: "Input the latest CA and exam scores." },
+        { view: ADMIN_VIEWS.REPORT_CARDS, title: "Generate Reports", icon: <DocumentArrowDownIcon className="w-8 h-8"/>, description: "Create and print report cards." },
+        { view: ADMIN_VIEWS.PROMOTIONS, title: "Promote Students", icon: <GraduationCapIcon className="w-8 h-8"/>, description: "Move students to the next class." },
     ];
 
     const renderSubscriptionPrompt = () => (
@@ -25,7 +26,7 @@ const DashboardHome = ({ setActiveView }: { setActiveView: (view: DashboardView)
                  <SparklesIcon className="w-12 h-12 mx-auto text-indigo-500" />
                  <h2 className="mt-4 text-xl font-semibold">Welcome to ReportSheet!</h2>
                  <p className="mt-2 text-gray-600 dark:text-gray-300">Your account is active. Subscribe to a plan to unlock all features and start managing your school like a pro.</p>
-                 <button onClick={() => setActiveView('billing')} className="btn btn-primary mt-6">
+                 <button onClick={() => setActiveView(ADMIN_VIEWS.BILLING)} className="btn btn-primary mt-6">
                     View Plans & Subscribe
                 </button>
             </div>

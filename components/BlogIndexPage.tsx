@@ -26,7 +26,7 @@ const BlogIndexPage = () => {
                         <h2 className="text-2xl font-semibold hover:text-indigo-600">
                             <a href={`?view=article&id=${article.id}`}>{article.title}</a>
                         </h2>
-                        <p className="mt-2 text-gray-600 dark:text-gray-300">
+                        <p className="mt-2 text-gray-600">
                             {article.content.substring(0, 150)}...
                         </p>
                     </div>

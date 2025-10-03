@@ -1,2 +1,1 @@
-export const APP_NAME = 'ReportSheet';
-export const LOCAL_STORAGE_THEME_KEY = 'theme';
+// This file is deprecated. Constants have been moved to /utils/constants.ts

@@ -63,41 +63,49 @@ const TeacherSchedule = () => {
     }, []);
 
     const getSubjectName = (subjectId) => subjects.find(s => s.id === subjectId)?.name || 'N/A';
+    
+    const isScheduleEmpty = Object.keys(schedule).length === 0;
 
     if (loading) return <div className="card p-6 text-center">Loading your schedule...</div>;
 
     return (
         <div>
-            <div className="table-container mt-6">
-                <table className="table">
-                    <thead>
-                        <tr>
-                            <th className="th w-1/6">Time</th>
-                            {DAYS.map(day => <th key={day} className="th text-center">{day}</th>)}
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white dark:bg-gray-800">
-                        {TIME_SLOTS.map(time => (
-                            <tr key={time} className="divide-x divide-gray-200 dark:divide-gray-700">
-                                <td className="td font-semibold">{time}</td>
-                                {DAYS.map(day => {
-                                    const slot = schedule[day]?.[time];
-                                    return (
-                                        <td key={day} className="td text-center p-2">
-                                            {slot ? (
-                                                <div>
-                                                    <p className="font-bold text-indigo-600 dark:text-indigo-400">{getSubjectName(slot.subjectId)}</p>
-                                                    <p className="text-sm text-gray-500">{slot.className}</p>
-                                                </div>
-                                            ) : <span className="text-gray-400">-</span>}
-                                        </td>
-                                    );
-                                })}
+            {isScheduleEmpty ? (
+                <div className="card p-8 text-center">
+                    <p className="text-gray-500">Your schedule is empty. Please contact your school administrator to be assigned to classes.</p>
+                </div>
+            ) : (
+                <div className="table-container mt-6">
+                    <table className="table">
+                        <thead>
+                            <tr>
+                                <th className="th w-1/6">Time</th>
+                                {DAYS.map(day => <th key={day} className="th text-center">{day}</th>)}
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody className="bg-white dark:bg-gray-800">
+                            {TIME_SLOTS.map(time => (
+                                <tr key={time} className="divide-x divide-gray-200 dark:divide-gray-700">
+                                    <td className="td font-semibold">{time}</td>
+                                    {DAYS.map(day => {
+                                        const slot = schedule[day]?.[time];
+                                        return (
+                                            <td key={day} className="td text-center p-2">
+                                                {slot ? (
+                                                    <div>
+                                                        <p className="font-bold text-indigo-600 dark:text-indigo-400">{getSubjectName(slot.subjectId)}</p>
+                                                        <p className="text-sm text-gray-500">{slot.className}</p>
+                                                    </div>
+                                                ) : <span className="text-gray-400">-</span>}
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
         </div>
     );
 };

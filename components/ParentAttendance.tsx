@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { apiGetAttendance, apiGetStudents } from '../services/api';
+import { formatDate } from '../utils/dateHelpers';
 
 const ParentAttendance = ({ demoUserId }) => {
-    const [attendance, setAttendance] = useState([]);
-    const [child, setChild] = useState(null);
+    const [attendanceLog, setAttendanceLog] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
@@ -13,74 +13,56 @@ const ParentAttendance = ({ demoUserId }) => {
             setError("Child profile not selected.");
             return;
         }
+
         const fetchAttendance = async () => {
-            setLoading(true);
-            setError('');
             try {
-                const [allAttendanceRecords, allStudents] = await Promise.all([
-                    apiGetAttendance(),
-                    apiGetStudents()
-                ]);
-
-                const currentChild = allStudents.find(s => s.id === demoUserId);
-                if (!currentChild) {
-                    throw new Error("Child's profile not found.");
-                }
-                setChild(currentChild);
-                
-                // Process the attendance records to get a list of dates and statuses for the specific child
-                const childAttendance = allAttendanceRecords.map(record => {
-                    const status = record.statuses[demoUserId];
-                    if (status) {
-                        return { date: record.date, status };
-                    }
-                    return null;
-                }).filter(Boolean); // Filter out nulls for days the child wasn't marked
-
-                setAttendance(childAttendance);
-
+                const allAttendance = await apiGetAttendance();
+                const log = allAttendance
+                    .map(record => ({
+                        date: record.date,
+                        status: record.statuses?.[demoUserId]
+                    }))
+                    .filter(item => item.status)
+                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                setAttendanceLog(log);
             } catch (err) {
-                setError("Could not load attendance records.");
-                console.error(err);
+                setError("Could not load attendance data.");
             } finally {
                 setLoading(false);
             }
         };
+
         fetchAttendance();
     }, [demoUserId]);
 
     if (loading) return <div className="card p-6 text-center">Loading attendance...</div>;
     if (error) return <div className="card p-6 text-center text-red-500">{error}</div>;
 
+    const getStatusChip = (status) => {
+        switch (status) {
+            case 'present': return <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Present</span>;
+            case 'late': return <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Late</span>;
+            case 'absent': return <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Absent</span>;
+            default: return <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">N/A</span>;
+        }
+    };
+
     return (
-        <div>
-            <div className="table-container mt-6">
-                <table className="table">
-                    <thead>
-                        <tr>
-                            <th className="th">Date</th>
-                            <th className="th">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                        {attendance.length > 0 ? [...attendance].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(record => (
-                            <tr key={record.date}>
-                                <td className="td">{new Date(record.date).toLocaleDateString()}</td>
-                                <td className="td">
-                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full capitalize ${
-                                        record.status === 'present' ? 'bg-green-100 text-green-800' :
-                                        record.status === 'late' ? 'bg-yellow-100 text-yellow-800' :
-                                        'bg-red-100 text-red-800'
-                                    }`}>
-                                        {record.status}
-                                    </span>
-                                </td>
-                            </tr>
-                        )) : (
-                            <tr><td colSpan={2} className="td text-center">No attendance records found.</td></tr>
-                        )}
-                    </tbody>
-                </table>
+        <div className="card">
+            <div className="p-6">
+                <h2 className="text-xl font-semibold">Attendance Log</h2>
+                {attendanceLog.length > 0 ? (
+                    <ul className="divide-y mt-4">
+                        {attendanceLog.map(item => (
+                            <li key={item.date} className="py-3 flex justify-between items-center">
+                                <span>{formatDate(item.date)}</span>
+                                {getStatusChip(item.status)}
+                            </li>
+                        ))}
+                    </ul>
+                ) : (
+                    <p className="mt-4 text-center text-gray-500">No attendance records found.</p>
+                )}
             </div>
         </div>
     );

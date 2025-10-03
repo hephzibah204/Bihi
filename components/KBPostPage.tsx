@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiGetKbArticles } from '../services/api';
+import { formatDate } from '../utils/dateHelpers';
 
 const KBPostPage = () => {
     const [article, setArticle] = useState(null);
@@ -27,8 +28,8 @@ const KBPostPage = () => {
     return (
         <article className="prose dark:prose-invert max-w-none">
             <h1>{article.title}</h1>
-            <p className="text-sm text-gray-500">Last updated: {new Date(article.lastUpdated).toLocaleDateString()}</p>
-            <div dangerouslySetInnerHTML={{ __html: article.content.replace(/\n/g, '<br />') }} />
+            <p className="text-sm text-gray-500">Last updated: {formatDate(article.lastUpdated)}</p>
+            <div className="whitespace-pre-wrap">{article.content}</div>
              <a href="?view=kb" className="mt-8 inline-block no-underline hover:text-indigo-600">← Back to Knowledge Base</a>
         </article>
     );

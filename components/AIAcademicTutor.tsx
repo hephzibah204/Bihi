@@ -1,11 +1,333 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { GoogleGenAI, LiveServerMessage, Modality, Blob } from '@google/genai';
+import MicrophoneIcon from './icons/MicrophoneIcon';
+import StopIcon from './icons/StopIcon';
+import HeadsetIcon from './icons/HeadsetIcon';
+import SpinnerIcon from './icons/SpinnerIcon';
+import SparklesIcon from './icons/SparklesIcon';
+import UserCircleIcon from './icons/UserCircleIcon';
 
+
+let CLIENT_SIDE_API_KEY = process.env.API_KEY; // Using environment variable as per guideline
+let ai;
+let keyValidationError = null;
+if (!CLIENT_SIDE_API_KEY) {
+  keyValidationError = "AI Assistant is unavailable. The Gemini API key has not been configured.";
+} else {
+  try {
+    ai = new GoogleGenAI({ apiKey: CLIENT_SIDE_API_KEY });
+  } catch (e) {
+    keyValidationError = `Error initializing AI: ${e.message}`;
+  }
+}
+
+// --- Audio Helper Functions ---
+function encode(bytes) {
+  let binary = '';
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+function decode(base64) {
+  const binaryString = atob(base64);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
+async function decodeAudioData(data, ctx, sampleRate, numChannels) {
+  const dataInt16 = new Int16Array(data.buffer);
+  const frameCount = dataInt16.length / numChannels;
+  const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
+  for (let channel = 0; channel < numChannels; channel++) {
+    const channelData = buffer.getChannelData(channel);
+    for (let i = 0; i < frameCount; i++) {
+      channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
+    }
+  }
+  return buffer;
+}
+
+// --- Component ---
 const AIAcademicTutor = () => {
+    const [sessionPromise, setSessionPromise] = useState(null);
+    const [status, setStatus] = useState('idle'); // idle, connecting, connected, error
+    const [transcripts, setTranscripts] = useState([]);
+    const [isSpeaking, setIsSpeaking] = useState(false);
+
+    const inputAudioContextRef = useRef(null);
+    const outputAudioContextRef = useRef(null);
+    const scriptProcessorRef = useRef(null);
+    const mediaStreamSourceRef = useRef(null);
+    const nextStartTimeRef = useRef(0);
+    const audioSourcesRef = useRef(new Set());
+    const streamRef = useRef(null);
+
+    const transcriptsEndRef = useRef(null);
+    useEffect(() => {
+        transcriptsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [transcripts]);
+
+    useEffect(() => {
+        const handleBeforeUnload = (e) => {
+            if (status === 'connected') {
+                e.preventDefault();
+                e.returnValue = 'You have an active AI Tutor session. Are you sure you want to leave?';
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, [status]);
+
+    const cleanup = () => {
+        if (sessionPromise) {
+            sessionPromise.then(session => session.close());
+            setSessionPromise(null);
+        }
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop());
+            streamRef.current = null;
+        }
+        if (scriptProcessorRef.current) {
+            scriptProcessorRef.current.disconnect();
+            scriptProcessorRef.current = null;
+        }
+        if (mediaStreamSourceRef.current) {
+            mediaStreamSourceRef.current.disconnect();
+            mediaStreamSourceRef.current = null;
+        }
+        if (inputAudioContextRef.current && inputAudioContextRef.current.state !== 'closed') {
+            inputAudioContextRef.current.close();
+            inputAudioContextRef.current = null;
+        }
+        if (outputAudioContextRef.current && outputAudioContextRef.current.state !== 'closed') {
+            outputAudioContextRef.current.close();
+            outputAudioContextRef.current = null;
+        }
+        setStatus('idle');
+        setIsSpeaking(false);
+    };
+
+    useEffect(() => {
+        return () => cleanup();
+    }, []);
+
+    const startSession = async () => {
+        if (keyValidationError) {
+            alert(keyValidationError);
+            return;
+        }
+        setStatus('connecting');
+        setTranscripts([]);
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            streamRef.current = stream;
+             // FIX: Cast `window` to `any` to allow access to the vendor-prefixed `webkitAudioContext` for older browser compatibility without causing a TypeScript error.
+            inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+            outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+            
+            const promise = ai.live.connect({
+                model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+                callbacks: {
+                    onopen: async () => {
+                        setStatus('connected');
+                        mediaStreamSourceRef.current = inputAudioContextRef.current.createMediaStreamSource(stream);
+                        scriptProcessorRef.current = inputAudioContextRef.current.createScriptProcessor(4096, 1, 1);
+                        
+                        scriptProcessorRef.current.onaudioprocess = (audioProcessingEvent) => {
+                            const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
+                            const pcmBlob = createBlob(inputData);
+                            promise.then((session) => {
+                                session.sendRealtimeInput({ media: pcmBlob });
+                            });
+                        };
+                        mediaStreamSourceRef.current.connect(scriptProcessorRef.current);
+                        scriptProcessorRef.current.connect(inputAudioContextRef.current.destination);
+                    },
+                    onmessage: async (message) => {
+                        handleServerMessage(message);
+                    },
+                    onerror: (e) => {
+                        console.error('Session error:', e);
+                        setStatus('error');
+                        setTranscripts(prev => [...prev, { sender: 'system', text: 'A connection error occurred.' }]);
+                        cleanup();
+                    },
+                    onclose: (e) => {
+                        console.log('Session closed');
+                        cleanup();
+                    },
+                },
+                config: {
+                    responseModalities: [Modality.AUDIO],
+                    speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } },
+                    systemInstruction: `Adopt the persona of a friendly, patient, and knowledgeable Nigerian academic tutor. Use Nigerian English phrasing and colloquialisms where appropriate to make the interaction feel more natural for the student (e.g., "Well done o!", "Shey you understand?"). However, maintain clarity and use standard English for key academic concepts. Your main goal is to provide clear, concise, and encouraging explanations for a Nigerian secondary school student. Break down complex topics into simple terms and keep your answers focused.`,
+                    outputAudioTranscription: {},
+                    inputAudioTranscription: {},
+                },
+            });
+            setSessionPromise(promise);
+
+        } catch (err) {
+            console.error("Microphone access denied:", err);
+            setStatus('error');
+            setTranscripts(prev => [...prev, { sender: 'system', text: 'Microphone access was denied. Please allow microphone access to use the tutor.' }]);
+            cleanup();
+        }
+    };
+    
+    const handleServerMessage = async (message) => {
+        // Handle audio playback
+        const audioData = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
+        if (audioData) {
+            setIsSpeaking(true);
+            const ctx = outputAudioContextRef.current;
+            nextStartTimeRef.current = Math.max(nextStartTimeRef.current, ctx.currentTime);
+            const audioBuffer = await decodeAudioData(decode(audioData), ctx, 24000, 1);
+            const source = ctx.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(ctx.destination);
+            source.addEventListener('ended', () => {
+                audioSourcesRef.current.delete(source);
+                if (audioSourcesRef.current.size === 0) {
+                    setIsSpeaking(false);
+                }
+            });
+            source.start(nextStartTimeRef.current);
+            nextStartTimeRef.current += audioBuffer.duration;
+            audioSourcesRef.current.add(source);
+        }
+    
+        // Handle transcription updates
+        setTranscripts(prev => {
+            const newTranscripts = [...prev];
+            const lastTranscript = newTranscripts[newTranscripts.length - 1];
+    
+            if (message.serverContent?.inputTranscription) {
+                const text = message.serverContent.inputTranscription.text;
+                if (lastTranscript && lastTranscript.sender === 'user' && !lastTranscript.isFinal) {
+                    lastTranscript.text += text;
+                } else {
+                    newTranscripts.push({ sender: 'user', text: text, isFinal: false });
+                }
+            } else if (message.serverContent?.outputTranscription) {
+                const text = message.serverContent.outputTranscription.text;
+                if (lastTranscript && lastTranscript.sender === 'ai' && !lastTranscript.isFinal) {
+                    lastTranscript.text += text;
+                } else {
+                    newTranscripts.push({ sender: 'ai', text: text, isFinal: false });
+                }
+            } else if (message.serverContent?.turnComplete) {
+                if (lastTranscript) {
+                    lastTranscript.isFinal = true;
+                }
+            }
+            return newTranscripts;
+        });
+    };
+    
+    const createBlob = (data) => {
+        const l = data.length;
+        const int16 = new Int16Array(l);
+        for (let i = 0; i < l; i++) {
+            int16[i] = data[i] * 32768;
+        }
+        return {
+            data: encode(new Uint8Array(int16.buffer)),
+            mimeType: 'audio/pcm;rate=16000',
+        };
+    };
+
+    const endSession = () => {
+        cleanup();
+    };
+    
+    const getStatusIndicator = () => {
+        if (status === 'connected') {
+            if (isSpeaking) {
+                return (
+                    <div className="flex items-center gap-2 text-sm font-semibold text-green-600">
+                        <div className="w-3 h-3 rounded-full bg-green-400 pulse-dot-animation"></div>
+                        <span>Tutor is speaking...</span>
+                    </div>
+                );
+            }
+            return (
+                 <div className="flex items-center gap-2 text-sm font-semibold text-blue-600">
+                    <div className="w-3 h-3 rounded-full bg-blue-400"></div>
+                    <span>Listening...</span>
+                </div>
+            );
+        }
+        if (status === 'connecting') {
+            return (
+                <div className="flex items-center gap-2 text-sm font-semibold text-gray-500">
+                    <SpinnerIcon className="w-4 h-4 animate-spin"/>
+                    <span>Connecting...</span>
+                </div>
+            );
+        }
+         return (
+             <div className="flex items-center gap-2 text-sm font-semibold text-gray-500">
+                <div className="w-3 h-3 rounded-full bg-gray-400"></div>
+                <span>Session ended</span>
+            </div>
+         );
+    };
+
     return (
-        <div className="card">
-            <div className="p-6">
-                <h2 className="text-xl font-semibold">AI Academic Tutor</h2>
-                <p className="mt-2 text-gray-500">This feature is now integrated into the floating AI Assistant chat button on your dashboard.</p>
+        <div className="flex flex-col h-full max-w-3xl mx-auto gap-6">
+            <div className="card text-center">
+                <div className="p-6">
+                    <HeadsetIcon className="w-12 h-12 mx-auto text-indigo-500" />
+                    <h1 className="text-2xl font-bold mt-2">AI Academic Tutor</h1>
+                    <p className="text-gray-500 mt-1">Have a real-time voice conversation with your personal AI tutor.</p>
+                </div>
+
+                <div className="p-4 border-t flex flex-col items-center gap-4">
+                    <div className="flex items-center gap-2 text-sm font-semibold h-6">{getStatusIndicator()}</div>
+                    {status === 'idle' || status === 'error' ? (
+                        <button onClick={startSession} className="btn btn-primary"><MicrophoneIcon className="w-5 h-5 mr-2" /> Start Session</button>
+                    ) : (
+                        <button onClick={endSession} className="btn btn-secondary bg-red-100 text-red-700 hover:bg-red-200"><StopIcon className="w-5 h-5 mr-2" /> End Session</button>
+                    )}
+                </div>
+            </div>
+
+            <div className="card flex-grow flex flex-col min-h-0">
+                <div className="p-4 border-b">
+                     <h3 className="font-semibold">Live Transcription</h3>
+                </div>
+                <div className="p-6 flex-grow overflow-y-auto flex flex-col space-y-4">
+                    {transcripts.map((t, i) => (
+                        <div key={i} className={`flex items-end gap-3 ${t.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            {t.sender === 'ai' && (
+                                <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-500 flex-shrink-0">
+                                    <SparklesIcon className="w-5 h-5"/>
+                                </div>
+                            )}
+                            <div className={`max-w-[80%] p-3 rounded-2xl ${t.sender === 'ai' ? 'bg-gray-100 rounded-bl-lg' : 'bg-indigo-500 text-white rounded-br-lg'} ${!t.isFinal ? 'opacity-70' : ''}`}>
+                                <p className="text-sm">{t.text}</p>
+                            </div>
+                            {t.sender === 'user' && (
+                                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 flex-shrink-0">
+                                    <UserCircleIcon className="w-6 h-6"/>
+                                </div>
+                            )}
+                             {t.sender === 'system' && <p className="p-3 rounded-lg bg-yellow-100 text-yellow-800 text-sm w-full">{t.text}</p>}
+                        </div>
+                    ))}
+                    <div ref={transcriptsEndRef}></div>
+                </div>
             </div>
         </div>
     );

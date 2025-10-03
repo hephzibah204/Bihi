@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabaseClient';
-import { apiGetSchoolSettings, apiGetStudents } from '../services/api';
+import { apiGetSchoolSettings, apiGetStudents, apiGetScratchCards } from '../services/api';
 import BriefcaseIcon from './icons/BriefcaseIcon';
 import UsersIcon from './icons/UsersIcon';
+import { USER_ROLES } from '../utils/constants';
 
 const PortalLogin = ({ onStudentLoginSuccess }) => {
     const [loading, setLoading] = useState(false);
@@ -16,7 +17,8 @@ const PortalLogin = ({ onStudentLoginSuccess }) => {
 
     // Student/Parent login state
     const [admissionNo, setAdmissionNo] = useState('');
-    const [loginAs, setLoginAs] = useState('student');
+    const [pin, setPin] = useState('');
+    const [loginAs, setLoginAs] = useState(USER_ROLES.STUDENT);
 
     useEffect(() => {
         const fetchSettings = async () => {
@@ -49,15 +51,20 @@ const PortalLogin = ({ onStudentLoginSuccess }) => {
         setLoading(true);
 
         try {
-            const allStudents = await apiGetStudents();
+            const [allStudents, allScratchCards] = await Promise.all([
+                apiGetStudents(),
+                apiGetScratchCards()
+            ]);
+            
             const student = allStudents.find(s => s.admissionNo.toLowerCase() === admissionNo.toLowerCase().trim());
+            const cardExists = allScratchCards.some(c => c.pin === pin.trim());
 
-            if (student) {
+            if (student && cardExists) {
                 const sessionData = { role: loginAs, userId: student.id, studentName: student.name };
                 sessionStorage.setItem('activeUser', JSON.stringify(sessionData));
                 if(onStudentLoginSuccess) onStudentLoginSuccess(sessionData);
             } else {
-                setError("Admission number not found. Please check and try again.");
+                setError("Invalid admission number or PIN. Please check and try again.");
             }
         } catch (err) {
             setError("An error occurred while trying to log in. Please try again.");
@@ -77,8 +84,8 @@ const PortalLogin = ({ onStudentLoginSuccess }) => {
                 onClick={() => setActiveTab(tabName)}
                 className={`flex-1 p-4 text-sm font-medium flex items-center justify-center gap-2 border-b-2 transition-colors ${
                     isActive
-                        ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:hover:text-gray-300'
+                        ? 'border-indigo-500 text-indigo-600'
+                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                 }`}
             >
                 {icon}
@@ -88,17 +95,17 @@ const PortalLogin = ({ onStudentLoginSuccess }) => {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
-            <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md dark:bg-gray-800">
+        <div className="flex items-center justify-center min-h-screen bg-gray-100">
+            <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
                 <div className="text-center">
                     {schoolLogo && <img src={schoolLogo} alt={`${schoolName} Logo`} className="w-20 h-20 mx-auto mb-4 rounded-full" />}
-                    <h1 className="text-3xl font-bold text-gray-800 dark:text-white">
+                    <h1 className="text-3xl font-bold text-gray-800">
                         Welcome to {schoolName}
                     </h1>
-                    <p className="mt-2 text-gray-600 dark:text-gray-400">Please sign in to your portal.</p>
+                    <p className="mt-2 text-gray-600">Please sign in to your portal.</p>
                 </div>
 
-                <div className="border-b border-gray-200 dark:border-gray-700">
+                <div className="border-b border-gray-200">
                     <div className="flex -mb-px">
                         <TabButton tabName="staff" label="Staff" icon={<BriefcaseIcon className="w-5 h-5"/>} />
                         <TabButton tabName="student" label="Student/Parent" icon={<UsersIcon className="w-5 h-5"/>} />
@@ -106,7 +113,7 @@ const PortalLogin = ({ onStudentLoginSuccess }) => {
                 </div>
 
                 {error && (
-                    <div className="p-3 text-sm text-red-700 bg-red-100 rounded-lg dark:bg-red-200 dark:text-red-800" role="alert">
+                    <div className="p-3 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">
                         {error}
                     </div>
                 )}
@@ -134,15 +141,19 @@ const PortalLogin = ({ onStudentLoginSuccess }) => {
                             <input id="admissionNo" type="text" required className="input-field" value={admissionNo} onChange={(e) => setAdmissionNo(e.target.value)} placeholder="e.g., RS-001" />
                         </div>
                         <div>
+                            <label htmlFor="pin" className="label">Result Checker PIN</label>
+                            <input id="pin" type="password" required className="input-field" value={pin} onChange={(e) => setPin(e.target.value)} placeholder="12-digit PIN" />
+                        </div>
+                        <div>
                             <label className="label">I am a...</label>
                              <div className="flex gap-4 mt-2">
                                 <label className="flex items-center">
-                                    <input type="radio" name="role" value="student" checked={loginAs === 'student'} onChange={() => setLoginAs('student')} className="form-radio h-4 w-4 text-indigo-600"/>
-                                    <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Student</span>
+                                    <input type="radio" name="role" value={USER_ROLES.STUDENT} checked={loginAs === USER_ROLES.STUDENT} onChange={() => setLoginAs(USER_ROLES.STUDENT)} className="form-radio h-4 w-4 text-indigo-600"/>
+                                    <span className="ml-2 text-sm text-gray-700">{USER_ROLES.STUDENT}</span>
                                 </label>
                                 <label className="flex items-center">
-                                    <input type="radio" name="role" value="parent" checked={loginAs === 'parent'} onChange={() => setLoginAs('parent')} className="form-radio h-4 w-4 text-indigo-600"/>
-                                    <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Parent</span>
+                                    <input type="radio" name="role" value={USER_ROLES.PARENT} checked={loginAs === USER_ROLES.PARENT} onChange={() => setLoginAs(USER_ROLES.PARENT)} className="form-radio h-4 w-4 text-indigo-600"/>
+                                    <span className="ml-2 text-sm text-gray-700">{USER_ROLES.PARENT}</span>
                                 </label>
                             </div>
                         </div>

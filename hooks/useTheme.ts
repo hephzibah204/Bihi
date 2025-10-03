@@ -1,40 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 
+// This hook is now a no-op to remove dark mode functionality.
+// It ensures any components that still import it do not break.
 export const useTheme = () => {
-  // This state stores the user's preference: 'light', 'dark', or 'system'
-  const [themePref, setThemePref] = useState(() => localStorage.getItem('theme') || 'system');
   
-  // This state stores the actual applied theme: 'light' or 'dark'
-  const [appliedTheme, setAppliedTheme] = useState('light');
-
   useEffect(() => {
+    // Ensure the dark class is removed from the root element on load.
     const root = window.document.documentElement;
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)');
-
-    const updateTheme = () => {
-      const isDark = themePref === 'dark' || (themePref === 'system' && systemPrefersDark.matches);
-      root.classList.toggle('dark', isDark);
-      setAppliedTheme(isDark ? 'dark' : 'light');
-    };
-
-    updateTheme(); // Apply on initial load and when themePref changes
-
-    systemPrefersDark.addEventListener('change', updateTheme);
-    
-    // Update local storage when preference changes
-    localStorage.setItem('theme', themePref);
-
-    return () => {
-      systemPrefersDark.removeEventListener('change', updateTheme);
-    };
-  }, [themePref]);
+    if (root.classList.contains('dark')) {
+        root.classList.remove('dark');
+    }
+  }, []);
 
   const toggleTheme = () => {
-    // When toggling, we explicitly set light or dark, moving away from 'system'
-    const newPref = appliedTheme === 'light' ? 'dark' : 'light';
-    setThemePref(newPref);
+    // Do nothing.
   };
 
-  // Return the applied theme for UI components to use
-  return { theme: appliedTheme, toggleTheme };
+  // Always return 'light' theme.
+  return { theme: 'light', toggleTheme };
 };

@@ -1,6 +1,8 @@
 import React, { useState, FC, useEffect, useRef } from 'react';
 import ChevronDownIcon from './icons/ChevronDownIcon';
 import Logo from './icons/Logo';
+import Bars3Icon from './icons/Bars3Icon';
+import XIcon from './icons/XIcon';
 
 // --- Reusable Icon Component ---
 const CheckIcon: FC<{ className?: string }> = ({ className = "w-6 h-6" }) => (
@@ -75,13 +77,13 @@ interface PricingCardProps {
 const PricingCard: FC<PricingCardProps> = ({ name, price, desc, features, onNavigate, popular = false, billingCycle }) => (
     <div className={`card p-8 flex flex-col h-full ${popular ? 'border-2 border-indigo-500 transform lg:scale-105' : 'border'}`}>
         {popular && <span className="absolute top-0 -translate-y-1/2 bg-indigo-500 text-white text-xs font-semibold px-3 py-1 rounded-full left-1/2 -translate-x-1/2">Most Popular</span>}
-        <h4 className="text-xl font-semibold">{name}</h4>
-        <p className="mt-2 text-slate-500 min-h-[40px]">{desc}</p>
+        <h4 className="text-xl font-semibold text-slate-900">{name}</h4>
+        <p className="mt-2 text-slate-800 min-h-[40px]">{desc}</p>
         <p className="mt-6">
-            <span className="text-4xl font-bold">₦{price[billingCycle].toLocaleString()}</span>
-            <span className="text-lg font-medium text-slate-500">/{billingCycle === 'monthly' ? 'mo' : billingCycle === 'termly' ? 'term' : 'yr'}</span>
+            <span className="text-4xl font-bold text-slate-900">₦{price[billingCycle].toLocaleString()}</span>
+            <span className="text-lg font-medium text-slate-800">/{billingCycle === 'monthly' ? 'mo' : billingCycle === 'termly' ? 'term' : 'yr'}</span>
         </p>
-        <ul className="mt-8 space-y-4 text-slate-600 dark:text-slate-300">
+        <ul className="mt-8 space-y-4 text-slate-800">
             {features.map(feature => (
                 <li key={feature} className="flex items-start">
                     <CheckIcon className="w-5 h-5 text-indigo-500 mr-3 mt-1 flex-shrink-0" />
@@ -104,7 +106,7 @@ const LandingPage = ({ onNavigate }) => {
     const [openFaq, setOpenFaq] = useState<number | null>(0);
 
     return (
-        <div className="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200">
+        <div className="bg-white text-slate-900">
             <Header onNavigate={onNavigate} />
             <main>
                 <HeroSection onNavigate={onNavigate} />
@@ -121,39 +123,107 @@ const LandingPage = ({ onNavigate }) => {
 
 // --- Page Sections (New Structure) ---
 
-const Header = ({ onNavigate }) => (
-     <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-slate-200/50 dark:border-slate-800/50">
-        <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-            <a href="/" className="flex items-center space-x-2">
-                <Logo className="h-8 w-8" />
-                <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-purple-500">
-                    ReportSheet
-                </span>
-            </a>
-            <nav className="hidden md:flex items-center space-x-8 text-slate-600 dark:text-slate-300 font-medium">
-                <a href="#features" className="hover:text-indigo-500 transition-colors">Features</a>
-                <a href="#pricing" className="hover:text-indigo-500 transition-colors">Pricing</a>
-                <a href="#faq" className="hover:text-indigo-500 transition-colors">FAQ</a>
-            </nav>
-            <div className="flex items-center space-x-2">
-                 {/* Fix: Changed onClick to prevent default and call onNavigate with a single argument. */}
-                 <a href="?view=signup" onClick={(e) => { e.preventDefault(); onNavigate('signup'); }} className="btn btn-primary">
-                    Get Started Free
-                </a>
+const Header = ({ onNavigate }) => {
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+    useEffect(() => {
+        if (isMenuOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'auto';
+        }
+        // Cleanup function to restore scrolling when component unmounts
+        return () => {
+            document.body.style.overflow = 'auto';
+        };
+    }, [isMenuOpen]);
+
+    const handleNavClick = (view: string | null) => {
+        setIsMenuOpen(false);
+        if (view) {
+            onNavigate(view);
+        }
+    };
+    
+    const handleAnchorClick = () => {
+        setIsMenuOpen(false);
+    };
+
+    const navLinks = [
+        { href: '#features', label: 'Features' },
+        { href: '#pricing', label: 'Pricing' },
+        { href: '#faq', label: 'FAQ' },
+    ];
+
+    return (
+        <>
+            <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm border-b border-slate-200/50">
+                <div className="container mx-auto px-6 py-4 flex justify-between items-center">
+                    <a href="/" className="flex items-center space-x-2">
+                        <Logo className="h-8 w-8" />
+                        <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-purple-500">
+                            ReportSheet
+                        </span>
+                    </a>
+                    
+                    {/* Desktop Navigation */}
+                    <nav className="hidden md:flex items-center space-x-8 text-slate-600 font-medium">
+                        {navLinks.map(link => (
+                            <a key={link.href} href={link.href} className="hover:text-indigo-500 transition-colors">{link.label}</a>
+                        ))}
+                    </nav>
+                    <div className="hidden md:flex items-center space-x-2">
+                         <a href="?view=signup" onClick={(e) => { e.preventDefault(); handleNavClick('signup'); }} className="btn btn-primary">
+                           Get Started Free
+                       </a>
+                   </div>
+
+                    {/* Mobile Menu Button */}
+                    <div className="md:hidden">
+                        <button onClick={() => setIsMenuOpen(true)} className="p-2 -mr-2" aria-label="Open menu">
+                            <Bars3Icon className="w-6 h-6" />
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            {/* Mobile Menu Overlay */}
+            <div className={`fixed inset-0 z-[100] bg-white transform transition-transform duration-300 ease-in-out ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'} md:hidden`}>
+                <div className="container mx-auto px-6 py-4 flex justify-between items-center border-b border-slate-200/50">
+                    <a href="/" className="flex items-center space-x-2">
+                         <Logo className="h-8 w-8" />
+                         <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-purple-500">
+                            ReportSheet
+                        </span>
+                    </a>
+                    <button onClick={() => setIsMenuOpen(false)} className="p-2 -mr-2" aria-label="Close menu">
+                        <XIcon className="w-6 h-6" />
+                    </button>
+                </div>
+                <nav className="mt-16 flex flex-col items-center space-y-8">
+                     {navLinks.map(link => (
+                        <a key={link.href} href={link.href} onClick={handleAnchorClick} className="text-2xl font-semibold text-slate-700 hover:text-indigo-500">
+                            {link.label}
+                        </a>
+                    ))}
+                    <a href="?view=signup" onClick={(e) => { e.preventDefault(); handleNavClick('signup'); }} className="w-full max-w-xs text-center btn btn-primary text-lg py-3">
+                       Get Started Free
+                   </a>
+                </nav>
             </div>
-        </div>
-    </header>
-);
+        </>
+    );
+};
 
 const HeroSection = ({ onNavigate }) => (
     <section className="pt-48 pb-32 text-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-900/50"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 via-white to-purple-50"></div>
         <div className="container mx-auto px-6 relative">
-            <h2 className="text-5xl md:text-7xl font-extrabold leading-tight text-slate-900 dark:text-white tracking-tighter">
+            <h2 className="text-5xl md:text-7xl font-extrabold leading-tight text-slate-900 tracking-tighter">
                 From Tedious Paperwork to <br />
                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-purple-500">Seamless Progress</span>
             </h2>
-            <p className="mt-6 text-lg md:text-xl max-w-3xl mx-auto text-slate-600 dark:text-slate-300">
+            <p className="mt-6 text-lg md:text-xl max-w-3xl mx-auto text-slate-800">
                 The All-In-One OS for Modern Nigerian Schools. Automate results, engage parents, and empower teachers with our AI-powered platform.
             </p>
             <div className="mt-10 flex flex-col sm:flex-row justify-center items-center gap-4">
@@ -171,14 +241,13 @@ const HeroSection = ({ onNavigate }) => (
 );
 
 const SocialProof = () => (
-    <section className="py-12 bg-slate-100 dark:bg-slate-800">
+    <section className="py-12 bg-white border-y">
         <div className="container mx-auto px-6 text-center">
-            <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Trusted by leading schools across Nigeria</p>
-            {/* Placeholder logos */}
-            <div className="mt-6 flex justify-center items-center space-x-8 opacity-60">
-                <p className="font-bold text-lg">Brightstar Academy</p>
-                <p className="font-bold text-lg">Oakland College</p>
-                <p className="font-bold text-lg">Kingsville Int'l</p>
+            <p className="text-sm font-semibold text-slate-800 uppercase tracking-wider">Trusted by leading schools across Nigeria</p>
+            <div className="mt-6 flex flex-wrap justify-center items-center gap-x-8 gap-y-2 text-slate-800">
+                <span className="font-semibold text-lg">Brightstar Academy</span>
+                <span className="font-semibold text-lg">Oakland College</span>
+                <span className="font-semibold text-lg">Kingsville Int'l</span>
             </div>
         </div>
     </section>
@@ -189,7 +258,7 @@ const ProblemSolution = () => (
         <div className="container mx-auto px-6">
             <div className="text-center mb-16 max-w-3xl mx-auto">
                 <h3 className="text-4xl font-bold tracking-tight">Stop Drowning in Paperwork. Start Inspiring Minds.</h3>
-                <p className="mt-4 text-lg text-slate-600 dark:text-slate-400">Manual processes are slow, error-prone, and steal valuable time from what truly matters: education.</p>
+                <p className="mt-4 text-lg text-slate-800">Manual processes are slow, error-prone, and steal valuable time from what truly matters: education.</p>
             </div>
             <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
                 <FeatureCard title="Reclaim Your Time" desc="Automate result computation, report card generation, and student promotion. Finish in minutes what used to take days." />
@@ -202,8 +271,8 @@ const ProblemSolution = () => (
 
 const FeatureCard = ({ title, desc }) => (
     <div className="card p-8 border-transparent hover:border-indigo-500 hover:shadow-xl">
-        <h4 className="font-bold text-xl mb-2">{title}</h4>
-        <p className="text-slate-600 dark:text-slate-300">{desc}</p>
+        <h4 className="font-bold text-xl mb-2 text-slate-900">{title}</h4>
+        <p className="text-slate-800">{desc}</p>
     </div>
 );
 
@@ -216,11 +285,11 @@ const PricingSection = ({ billingCycle, setBillingCycle, onNavigate }) => {
     ];
 
     return (
-        <section id="pricing" className="py-24 bg-white dark:bg-slate-800">
+        <section id="pricing" className="py-24 bg-white">
             <div className="container mx-auto px-6">
                 <div className="text-center mb-12 max-w-3xl mx-auto">
                     <h3 className="text-4xl font-bold tracking-tight">Simple, Transparent Pricing</h3>
-                    <p className="mt-3 text-lg text-slate-600 dark:text-slate-400">Choose the perfect plan for your school. No hidden fees.</p>
+                    <p className="mt-3 text-lg text-slate-800">Choose the perfect plan for your school. No hidden fees.</p>
                 </div>
                 <div className="flex justify-center mb-12">
                     <div className="pricing-toggle">
@@ -242,7 +311,7 @@ const FAQSection = ({ openFaq, setOpenFaq }) => {
         { q: "Is my school's data safe and secure?", a: "Absolutely. We use industry-standard encryption and secure cloud infrastructure to protect all your data. You own your data, always." },
         { q: "Can ReportSheet be customized for our school?", a: "Yes! While ReportSheet works great out-of-the-box, our Enterprise plan includes options for custom integrations and features to fit your unique needs." },
         { q: "What kind of support do you offer?", a: "We offer standard email support for all plans. The Pro and Enterprise plans include priority support, ensuring you get faster responses when you need them most." },
-        { q: "Is it difficult to get started?", a: "Not at all. We've designed ReportSheet to be incredibly intuitive. You can easily import your existing student data via CSV and be up and running in under an hour." },
+        { q: "Is it difficult to get started?", a: "Not at all. We'vedesigned ReportSheet to be incredibly intuitive. You can easily import your existing student data via CSV and be up and running in under an hour." },
     ];
     return (
         <section id="faq" className="py-24">
@@ -250,7 +319,7 @@ const FAQSection = ({ openFaq, setOpenFaq }) => {
                 <div className="text-center mb-12">
                     <h3 className="text-4xl font-bold tracking-tight">Frequently Asked Questions</h3>
                 </div>
-                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-8">
+                <div className="bg-white rounded-lg shadow-lg p-8">
                     {faqs.map((faq, index) => (
                         <div key={index} className={`faq-item ${openFaq === index ? 'open' : ''}`}>
                             <button onClick={() => setOpenFaq(openFaq === index ? null : index)} className="faq-question">
@@ -258,7 +327,7 @@ const FAQSection = ({ openFaq, setOpenFaq }) => {
                                 <ChevronDownIcon className={`w-6 h-6 text-slate-400 transition-transform ${openFaq === index ? 'rotate-180' : ''}`} />
                             </button>
                             <div className="faq-answer">
-                                <p>{faq.a}</p>
+                                <p className="text-slate-800">{faq.a}</p>
                             </div>
                         </div>
                     ))}
@@ -288,7 +357,7 @@ const OfferSection = ({ onNavigate }) => (
 
 
 const Footer = () => (
-    <footer className="bg-slate-800 dark:bg-black text-white">
+    <footer className="bg-slate-800 text-white">
         <div className="container mx-auto px-6 py-8 text-center text-slate-400">
             <p>&copy; {new Date().getFullYear()} ReportSheet by Hephzibah Edutech. All rights reserved.</p>
         </div>

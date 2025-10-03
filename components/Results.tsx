@@ -1,8 +1,5 @@
-
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { apiGetStudentsForClasses, apiGetSubjects } from '../services/api';
-import useSyncedLocalStorage from '../hooks/useSyncedLocalStorage';
+import { apiGetStudents, apiGetSubjects, apiGetScores, apiUpsertScore, apiGetSchoolSettings } from '../services/api';
 import { Score, Student, Subject } from '../types';
 
 const PAGE_SIZE = 50;
@@ -10,36 +7,38 @@ const PAGE_SIZE = 50;
 const Results = () => {
     const [classes, setClasses] = useState<string[]>([]);
     const [subjects, setSubjects] = useState<Subject[]>([]);
-    const [selectedClass, setSelectedClass] = useState('');
-    const [selectedSubject, setSelectedSubject] = useState('');
+    const [settings, setSettings] = useState(null);
+    const [selectedClass, setSelectedClass] = useState(() => {
+        try { return JSON.parse(sessionStorage.getItem('reportsheet_results_filters') || '{}').selectedClass || '' } catch { return '' }
+    });
+    const [selectedSubject, setSelectedSubject] = useState(() => {
+        try { return JSON.parse(sessionStorage.getItem('reportsheet_results_filters') || '{}').selectedSubject || '' } catch { return '' }
+    });
     const [students, setStudents] = useState<Student[]>([]);
-    const [allScores, setAllScores] = useSyncedLocalStorage<Score[]>('scores', []);
+    const [scores, setScores] = useState<Score[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    // State for virtualization/infinite scroll
     const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
     const loaderRef = useRef(null);
-    
-    // Observer for infinite scroll
+
+    useEffect(() => {
+        try {
+            sessionStorage.setItem('reportsheet_results_filters', JSON.stringify({ selectedClass, selectedSubject }));
+        } catch (e) {
+            console.error("Failed to save results filters", e);
+        }
+    }, [selectedClass, selectedSubject]);
+
     useEffect(() => {
         const observer = new IntersectionObserver((entries) => {
-            const first = entries[0];
-            if (first.isIntersecting) {
-                setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, students.length));
+            if (entries[0].isIntersecting) {
+                setVisibleCount(prev => Math.min(prev + PAGE_SIZE, students.length));
             }
         }, { threshold: 1 });
-
         const currentLoader = loaderRef.current;
-        if (currentLoader) {
-            observer.observe(currentLoader);
-        }
-
-        return () => {
-            if (currentLoader) {
-                observer.unobserve(currentLoader);
-            }
-        };
+        if (currentLoader) observer.observe(currentLoader);
+        return () => { if (currentLoader) observer.unobserve(currentLoader); };
     }, [loaderRef, students.length]);
 
     const visibleStudents = students.slice(0, visibleCount);
@@ -47,101 +46,108 @@ const Results = () => {
     const fetchInitialData = useCallback(async () => {
         setLoading(true);
         try {
-            const allSubjects: Subject[] = await apiGetSubjects();
+            const [allSubjects, schoolSettings]: [Subject[], any] = await Promise.all([
+                apiGetSubjects(),
+                apiGetSchoolSettings()
+            ]);
             setSubjects(allSubjects);
-            const allClasses = [...new Set(allSubjects.flatMap(s => s.classes))];
-            setClasses(allClasses.sort());
+            setSettings(schoolSettings);
+            const allClasses = [...new Set(allSubjects.flatMap(s => s.classes))].sort();
+            setClasses(allClasses);
             if (allClasses.length > 0 && !selectedClass) {
                 setSelectedClass(allClasses[0]);
             }
         } catch (err) {
             setError('Failed to load classes and subjects.');
-            console.error(err);
         } finally {
             setLoading(false);
         }
     }, [selectedClass]);
-
-    const fetchStudentsForClass = useCallback(async () => {
-        if (!selectedClass) {
-            setStudents([]);
-            return;
-        }
-
-        setLoading(true);
-        setError('');
-        try {
-            const fetchedStudents = await apiGetStudentsForClasses([selectedClass]);
-            setStudents(fetchedStudents);
-        } catch (err) {
-            setError('Failed to load students. Please try again.');
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    }, [selectedClass]);
-
 
     useEffect(() => {
         fetchInitialData();
     }, [fetchInitialData]);
 
     useEffect(() => {
-        fetchStudentsForClass();
-        setVisibleCount(PAGE_SIZE);
-    }, [fetchStudentsForClass]);
-    
-    const currentScoresMap = useMemo(() => {
-        if (!selectedSubject) return {};
-        
-        return allScores
-            .filter(score => score.subjectId === selectedSubject)
-            .reduce((acc, score) => {
-                acc[score.studentId] = score;
-                return acc;
-            }, {} as Record<string, Score>);
+        const fetchStudentsAndScores = async () => {
+            if (!selectedClass) {
+                setStudents([]);
+                setScores([]);
+                return;
+            }
 
-    }, [allScores, selectedSubject]);
+            setLoading(true);
+            setError('');
+            try {
+                const fetchedStudents = await apiGetStudents({ classFilter: selectedClass });
+                setStudents(fetchedStudents);
+                setVisibleCount(PAGE_SIZE);
+
+                if (selectedSubject && fetchedStudents.length > 0) {
+                    const studentIds = fetchedStudents.map(s => s.id);
+                    const fetchedScores = await apiGetScores({ studentIds, subjectId: selectedSubject });
+                    setScores(fetchedScores);
+                } else {
+                    setScores([]);
+                }
+            } catch (err) {
+                setError('Failed to load students or scores.');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchStudentsAndScores();
+    }, [selectedClass, selectedSubject]);
+
+    const currentScoresMap = useMemo(() => {
+        return scores.reduce((acc, score) => {
+            acc[score.studentId] = score;
+            return acc;
+        }, {} as Record<string, Score>);
+    }, [scores]);
+
+    const maxCa1 = settings?.maxCa1 ?? 20;
+    const maxCa2 = settings?.maxCa2 ?? 20;
+    const maxExam = settings?.maxExam ?? 60;
 
     const handleScoreChange = useCallback((studentId: string, field: 'ca1' | 'ca2' | 'exam', value: string) => {
-        const numericValue = value === '' ? undefined : Number(value);
-        
-        setAllScores(prevAllScores => {
-            const newScores = [...prevAllScores];
-            const scoreIndex = newScores.findIndex(s => s.studentId === studentId && s.subjectId === selectedSubject);
+        const maxScores = { ca1: maxCa1, ca2: maxCa2, exam: maxExam };
+        const max = maxScores[field];
+        let numericValue = value === '' ? undefined : Number(value);
 
-            if (scoreIndex !== -1) {
-                const updatedScore = { ...newScores[scoreIndex], [field]: numericValue };
-                // If all scores are undefined, remove the score entry to keep data clean
-                if (updatedScore.ca1 === undefined && updatedScore.ca2 === undefined && updatedScore.exam === undefined) {
-                    newScores.splice(scoreIndex, 1);
-                } else {
-                    newScores[scoreIndex] = updatedScore;
-                }
-            } else {
-                if (numericValue !== undefined) {
-                    const newScore: Score = {
-                        studentId,
-                        subjectId: selectedSubject,
-                        term: 'First Term', // TODO: Get from settings
-                        session: '2023/2024', // TODO: Get from settings
-                        ca1: undefined,
-                        ca2: undefined,
-                        exam: undefined,
-                        [field]: numericValue,
-                    };
-                    newScores.push(newScore);
-                }
+        // Clamp the value to be within the valid range
+        if (numericValue !== undefined) {
+            if (numericValue > max) {
+                numericValue = max;
+            } else if (numericValue < 0) {
+                numericValue = 0;
             }
-            return newScores;
+        }
+        
+        const existingScore = scores.find(s => s.studentId === studentId);
+        const newScoreData = {
+            ...(existingScore || {}),
+            studentId,
+            subjectId: selectedSubject,
+            [field]: numericValue,
+        };
+        
+        // Optimistic UI update
+        setScores(prevScores => {
+            const otherScores = prevScores.filter(s => s.studentId !== studentId);
+            return [...otherScores, newScoreData as Score];
         });
-    }, [selectedSubject, setAllScores]);
+        
+        // Debounced save to API
+        apiUpsertScore(newScoreData);
+
+    }, [selectedSubject, scores, maxCa1, maxCa2, maxExam]);
     
     const filteredSubjects = subjects.filter(s => s.classes.includes(selectedClass));
 
     return (
         <div>
-            
             <div className="my-6 grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                 <div>
                     <label htmlFor="class-select" className="label">Select Class</label>
@@ -159,20 +165,20 @@ const Results = () => {
                 </div>
             </div>
 
-            {error && <div className="mb-4 p-3 text-sm text-red-700 bg-red-100 rounded-lg dark:bg-red-200 dark:text-red-800">{error}</div>}
+            {error && <div className="mb-4 p-3 text-sm text-red-700 bg-red-100 rounded-lg">{error}</div>}
 
             <div className="table-container">
                 <table className="table">
                     <thead>
                         <tr>
-                            <th className="th">Student Name</th>
-                            <th className="th text-center">CA 1 (20)</th>
-                            <th className="th text-center">CA 2 (20)</th>
-                            <th className="th text-center">Exam (60)</th>
-                            <th className="th text-center">Total (100)</th>
+                            <th scope="col" className="th">Student Name</th>
+                            <th scope="col" className="th text-center">CA 1 ({maxCa1})</th>
+                            <th scope="col" className="th text-center">CA 2 ({maxCa2})</th>
+                            <th scope="col" className="th text-center">Exam ({maxExam})</th>
+                            <th scope="col" className="th text-center">Total (100)</th>
                         </tr>
                     </thead>
-                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    <tbody className="bg-white divide-y divide-gray-200">
                         {loading ? (
                             <tr><td colSpan={5} className="td text-center">Loading...</td></tr>
                         ) : !selectedClass || !selectedSubject ? (
@@ -186,11 +192,13 @@ const Results = () => {
                                 const total = (score.ca1 || 0) + (score.ca2 || 0) + (score.exam || 0);
                                 return (
                                     <tr key={student.id}>
-                                        <td className="td font-medium text-gray-900 dark:text-white">{student.name}</td>
-                                        <td className="td"><input type="number" max="20" className="input-style-sm w-full" value={score.ca1 ?? ''} onChange={e => handleScoreChange(student.id, 'ca1', e.target.value)} /></td>
-                                        <td className="td"><input type="number" max="20" className="input-style-sm w-full" value={score.ca2 ?? ''} onChange={e => handleScoreChange(student.id, 'ca2', e.target.value)} /></td>
-                                        <td className="td"><input type="number" max="60" className="input-style-sm w-full" value={score.exam ?? ''} onChange={e => handleScoreChange(student.id, 'exam', e.target.value)} /></td>
-                                        <td className="td text-center font-semibold text-gray-700 dark:text-gray-200">{total}</td>
+                                        <td className="td font-medium text-gray-900">
+                                            <div className="truncate max-w-xs" title={student.name}>{student.name}</div>
+                                        </td>
+                                        <td className="td"><input type="number" min="0" max={maxCa1} className="input-style-sm w-full" value={score.ca1 ?? ''} onChange={e => handleScoreChange(student.id, 'ca1', e.target.value)} aria-label={`CA 1 score for ${student.name}`} /></td>
+                                        <td className="td"><input type="number" min="0" max={maxCa2} className="input-style-sm w-full" value={score.ca2 ?? ''} onChange={e => handleScoreChange(student.id, 'ca2', e.target.value)} aria-label={`CA 2 score for ${student.name}`} /></td>
+                                        <td className="td"><input type="number" min="0" max={maxExam} className="input-style-sm w-full" value={score.exam ?? ''} onChange={e => handleScoreChange(student.id, 'exam', e.target.value)} aria-label={`Exam score for ${student.name}`} /></td>
+                                        <td className="td text-center font-semibold text-gray-700">{total}</td>
                                     </tr>
                                 );
                             })}

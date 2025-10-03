@@ -16,12 +16,12 @@ const ClassicLandscape = ({ student, schoolSettings }) => {
                      <div className="flex items-center space-x-2">
                         <img src={schoolSettings.schoolLogo || defaultLogo} alt="Logo" className="w-10 h-10"/>
                         <div>
-                             <h1 className="font-extrabold text-xl text-blue-900">{schoolSettings.schoolName}</h1>
+                             <h1 className="font-extrabold text-xl text-blue-900 break-words">{schoolSettings.schoolName}</h1>
                              <p className="text-xs text-gray-500">{schoolSettings.schoolAddress}</p>
                         </div>
                     </div>
                     <div className="mt-4">
-                        <p className="font-semibold text-2xl">{student.name}</p>
+                        <p className="font-semibold text-2xl break-words">{student.name}</p>
                         <div className="text-sm mt-1">
                             <p><strong>Class:</strong> {student.class}</p>
                             <p><strong>Admission No:</strong> {student.admissionNo}</p>

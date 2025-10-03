@@ -57,7 +57,7 @@ const PublicResultViewer = () => {
     if (resultData) {
         const ReportCardComponent = getReportCardTemplate(resultData.student.class);
         return (
-            <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-4 md:p-8">
+            <div className="min-h-screen bg-gray-100 p-4 md:p-8">
                 <div className="max-w-4xl mx-auto bg-white shadow-lg printable-content">
                     <div className="p-4" id="report-card-public">
                         <ReportCardComponent 
@@ -85,13 +85,13 @@ const PublicResultViewer = () => {
     }
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
-            <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md dark:bg-gray-800">
+        <div className="flex items-center justify-center min-h-screen bg-gray-100">
+            <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
                 <div className="text-center">
-                    <h1 className="text-3xl font-bold text-gray-800 dark:text-white">
+                    <h1 className="text-3xl font-bold text-gray-800">
                         Check Student Result
                     </h1>
-                    <p className="mt-2 text-gray-600 dark:text-gray-400">Enter details to view the report card.</p>
+                    <p className="mt-2 text-gray-600">Enter details to view the report card.</p>
                 </div>
 
                 {error && (

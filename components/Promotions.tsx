@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { apiGetStudents, apiGetSubjects, updateStudents } from '../services/api';
+import { apiGetStudents, apiGetSubjects, apiBatchUpdateStudents } from '../services/api';
 import { Student, Subject } from '../types';
 import GraduationCapIcon from './icons/GraduationCapIcon';
 
@@ -10,72 +10,86 @@ const ArrowRightIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 const Promotions = () => {
-    const [allStudents, setAllStudents] = useState<Student[]>([]);
-    const [allSubjects, setAllSubjects] = useState<Subject[]>([]);
-    const [fromClass, setFromClass] = useState('');
-    const [toClass, setToClass] = useState('');
+    const [studentsInFromClass, setStudentsInFromClass] = useState<Student[]>([]);
+    const [allClasses, setAllClasses] = useState<string[]>([]);
+    const [fromClass, setFromClass] = useState(() => {
+        try { return JSON.parse(sessionStorage.getItem('reportsheet_promotions_filters') || '{}').fromClass || '' } catch { return '' }
+    });
+    const [toClass, setToClass] = useState(() => {
+        try { return JSON.parse(sessionStorage.getItem('reportsheet_promotions_filters') || '{}').toClass || '' } catch { return '' }
+    });
     const [loading, setLoading] = useState(true);
     const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
 
     useEffect(() => {
-        const fetchData = async () => {
+        try {
+            sessionStorage.setItem('reportsheet_promotions_filters', JSON.stringify({ fromClass, toClass }));
+        } catch (e) {
+            console.error("Failed to save promotions filters", e);
+        }
+    }, [fromClass, toClass]);
+
+    useEffect(() => {
+        const fetchInitialData = async () => {
             setLoading(true);
             try {
-                const [studentsData, subjectsData] = await Promise.all([apiGetStudents(), apiGetSubjects()]);
-                setAllStudents(studentsData);
-                setAllSubjects(subjectsData);
+                const subjectsData = await apiGetSubjects();
                 const allClasses = [...new Set(subjectsData.flatMap(s => s.classes))].sort();
+                setAllClasses(allClasses);
                 if (allClasses.length > 0) {
-                    setFromClass(allClasses[0]);
-                    setToClass(allClasses[1] || '');
+                    if (!fromClass) {
+                        setFromClass(allClasses[0]);
+                    }
+                    if (!toClass) {
+                        setToClass(allClasses[1] || '');
+                    }
                 }
             } catch (error) {
-                console.error("Failed to fetch data for promotions:", error);
+                console.error("Failed to fetch subjects for promotions:", error);
             }
             setLoading(false);
         };
-        fetchData();
+        fetchInitialData();
     }, []);
 
-    const studentsInFromClass = useMemo(() => {
-        return allStudents.filter(s => s.class === fromClass && s.status !== 'alumni');
-    }, [allStudents, fromClass]);
+    useEffect(() => {
+        if (!fromClass) return;
 
-    const allClasses = useMemo(() => [...new Set(allSubjects.flatMap(s => s.classes))].sort(), [allSubjects]);
+        const fetchStudentsForClass = async () => {
+            setLoading(true);
+            try {
+                const students = await apiGetStudents({ classFilter: fromClass });
+                setStudentsInFromClass(students.filter(s => s.status !== 'alumni'));
+                setSelectedStudents(new Set());
+            } catch (error) {
+                console.error(`Failed to fetch students for class ${fromClass}:`, error);
+            }
+            setLoading(false);
+        };
+        fetchStudentsForClass();
+    }, [fromClass]);
 
     const handleSelectStudent = (studentId: string) => {
         setSelectedStudents(prev => {
             const newSet = new Set(prev);
-            if (newSet.has(studentId)) {
-                newSet.delete(studentId);
-            } else {
-                newSet.add(studentId);
-            }
+            newSet.has(studentId) ? newSet.delete(studentId) : newSet.add(studentId);
             return newSet;
         });
     };
 
     const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.checked) {
-            setSelectedStudents(new Set(studentsInFromClass.map(s => s.id)));
-        } else {
-            setSelectedStudents(new Set());
-        }
+        setSelectedStudents(e.target.checked ? new Set(studentsInFromClass.map(s => s.id)) : new Set());
     };
 
     const handlePromote = async () => {
         if (selectedStudents.size === 0 || !toClass || fromClass === toClass) return;
-
-        await updateStudents(currentStudents =>
-            currentStudents.map(student =>
-                selectedStudents.has(student.id) ? { ...student, class: toClass } : student
-            )
-        );
-
-        const updatedStudents = allStudents.map(student =>
-            selectedStudents.has(student.id) ? { ...student, class: toClass } : student
-        );
-        setAllStudents(updatedStudents);
+        
+        // FIX: Explicitly typed the 'id' parameter in the map function as a string. This resolves a TypeScript error where 'id' was being inferred as 'unknown', causing a type mismatch.
+        const studentsToUpdate: Partial<Student>[] = Array.from(selectedStudents).map((id: string) => ({ id, class: toClass }));
+        await apiBatchUpdateStudents(studentsToUpdate);
+        
+        // Refresh UI
+        setStudentsInFromClass(prev => prev.filter(s => !selectedStudents.has(s.id)));
         setSelectedStudents(new Set());
         alert(`${selectedStudents.size} students promoted to ${toClass}!`);
     };
@@ -83,23 +97,17 @@ const Promotions = () => {
     const handleGraduate = async () => {
          if (selectedStudents.size === 0) return;
          
-        await updateStudents(currentStudents =>
-            currentStudents.map((student): Student =>
-                selectedStudents.has(student.id) ? { ...student, status: 'alumni', graduationYear: new Date().getFullYear() } : student
-            )
-        );
+        // FIX: Explicitly typed the 'id' parameter in the map function as a string. This resolves a TypeScript error where 'id' was being inferred as 'unknown', causing a type mismatch.
+        const studentsToUpdate: Partial<Student>[] = Array.from(selectedStudents).map((id: string) => ({ id, status: 'alumni', graduationYear: new Date().getFullYear() }));
+        await apiBatchUpdateStudents(studentsToUpdate);
         
-        // Fix: Explicitly type the return value of the map function as Student to prevent TypeScript
-        // from incorrectly widening the 'status' property to a generic string.
-        const updatedStudents = allStudents.map((student): Student =>
-            selectedStudents.has(student.id) ? { ...student, status: 'alumni', graduationYear: new Date().getFullYear() } : student
-        );
-        setAllStudents(updatedStudents);
+        // Refresh UI
+        setStudentsInFromClass(prev => prev.filter(s => !selectedStudents.has(s.id)));
         setSelectedStudents(new Set());
         alert(`${selectedStudents.size} students have been moved to Alumni!`);
     };
 
-    if (loading) return <div className="card p-6 text-center">Loading...</div>;
+    if (loading && studentsInFromClass.length === 0) return <div className="card p-6 text-center">Loading...</div>;
 
     return (
         <div className="card">
@@ -134,13 +142,19 @@ const Promotions = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {studentsInFromClass.map(student => (
-                                <tr key={student.id}>
-                                    <td className="td"><input type="checkbox" checked={selectedStudents.has(student.id)} onChange={() => handleSelectStudent(student.id)} /></td>
-                                    <td className="td">{student.name}</td>
-                                    <td className="td">{student.admissionNo}</td>
-                                </tr>
-                            ))}
+                            {loading ? (
+                                <tr><td colSpan={3} className="td text-center">Loading students...</td></tr>
+                            ) : studentsInFromClass.length > 0 ? (
+                                studentsInFromClass.map(student => (
+                                    <tr key={student.id}>
+                                        <td className="td"><input type="checkbox" checked={selectedStudents.has(student.id)} onChange={() => handleSelectStudent(student.id)} /></td>
+                                        <td className="td"><div className="truncate max-w-sm" title={student.name}>{student.name}</div></td>
+                                        <td className="td">{student.admissionNo}</td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr><td colSpan={3} className="td text-center">No students to promote in this class.</td></tr>
+                            )}
                         </tbody>
                     </table>
                 </div>

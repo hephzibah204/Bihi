@@ -6,6 +6,7 @@ import UsersGroupIcon from './icons/UsersGroupIcon';
 import { apiGetStudents } from '../services/api';
 import { DEMO_TENANT_ID } from '../utils/demoData';
 import ArrowLeftIcon from './icons/ArrowLeftIcon';
+import { USER_ROLES } from '../utils/constants';
 
 interface RoleCardProps {
     icon: React.ReactNode;
@@ -40,9 +41,10 @@ const DemoSchoolLandingPage: FC<DemoSchoolLandingPageProps> = ({ onSelectProfile
     const [loading, setLoading] = useState(false);
 
     const handleRoleClick = async (role: string) => {
-        if (role === 'Student' || role === 'Parent') {
+        if (role === USER_ROLES.STUDENT || role === USER_ROLES.PARENT) {
             setLoading(true);
-            const demoStudents = await apiGetStudents(DEMO_TENANT_ID);
+            // Fix: Pass an empty filter object as the first argument and the tenant ID as the second.
+            const demoStudents = await apiGetStudents({}, DEMO_TENANT_ID);
             setStudents(demoStudents);
             setSelectionStep(role);
             setLoading(false);
@@ -55,7 +57,7 @@ const DemoSchoolLandingPage: FC<DemoSchoolLandingPageProps> = ({ onSelectProfile
         return <div className="flex items-center justify-center h-screen">Loading students...</div>;
     }
 
-    if (selectionStep === 'Student' || selectionStep === 'Parent') {
+    if (selectionStep === USER_ROLES.STUDENT || selectionStep === USER_ROLES.PARENT) {
         return (
              <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
                 <h1 className="text-3xl font-bold text-center mb-6">Select a {selectionStep} profile to view</h1>
@@ -94,27 +96,27 @@ const DemoSchoolLandingPage: FC<DemoSchoolLandingPageProps> = ({ onSelectProfile
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <RoleCard 
                         icon={<UsersIcon className="w-6 h-6" />}
-                        title="Admin"
+                        title={USER_ROLES.ADMIN}
                         description="Manage school settings, students, teachers, and view analytics."
-                        onClick={() => handleRoleClick('Admin')}
+                        onClick={() => handleRoleClick(USER_ROLES.ADMIN)}
                     />
                     <RoleCard 
                         icon={<BriefcaseIcon className="w-6 h-6" />}
-                        title="Teacher"
+                        title={USER_ROLES.TEACHER}
                         description="Manage your classes, enter scores, and generate report cards."
-                        onClick={() => handleRoleClick('Teacher')}
+                        onClick={() => handleRoleClick(USER_ROLES.TEACHER)}
                     />
                     <RoleCard 
                         icon={<AcademicCapIcon className="w-6 h-6" />}
-                        title="Student"
+                        title={USER_ROLES.STUDENT}
                         description="View your results, check your timetable, and access the AI tutor."
-                        onClick={() => handleRoleClick('Student')}
+                        onClick={() => handleRoleClick(USER_ROLES.STUDENT)}
                     />
                     <RoleCard 
                         icon={<UsersGroupIcon className="w-6 h-6" />}
-                        title="Parent"
+                        title={USER_ROLES.PARENT}
                         description="Monitor your child's performance, attendance, and results."
-                        onClick={() => handleRoleClick('Parent')}
+                        onClick={() => handleRoleClick(USER_ROLES.PARENT)}
                     />
                 </div>
             </main>

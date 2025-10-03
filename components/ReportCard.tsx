@@ -4,6 +4,7 @@ import DocumentArrowDownIcon from './icons/DocumentArrowDownIcon';
 import SparklesIcon from './icons/SparklesIcon';
 import ChartBarIcon from './icons/ChartBarIcon';
 import { DashboardView } from '../types';
+import { ADMIN_VIEWS } from '../utils/constants';
 
 interface ReportCardProps {
     setActiveView: (view: DashboardView) => void;
@@ -27,29 +28,29 @@ const ReportCard = ({ setActiveView }: ReportCardProps) => {
             title: 'AI Comment Generator',
             description: 'Use AI to write insightful and personalized student comments.',
             icon: <SparklesIcon className="w-8 h-8" />,
-            action: () => setActiveView('ai-tools'),
+            action: () => setActiveView(ADMIN_VIEWS.AI_TOOLS),
         },
         {
             title: 'Performance Analytics',
             description: 'View class performance, subject averages, and trends.',
             icon: <ChartBarIcon className="w-8 h-8" />,
-            action: () => setActiveView('analytics'),
+            action: () => setActiveView(ADMIN_VIEWS.ANALYTICS),
         },
     ];
 
     return (
         <div>
-            <p className="mt-2 text-gray-600 dark:text-gray-300">
+            <p className="mt-2 text-gray-600">
                 Manage all aspects of report card generation and analysis from here.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
                 {hubItems.map(item => (
                     <button key={item.title} onClick={item.action} className="card p-6 text-left hover:shadow-lg hover:scale-105 transition-transform duration-200">
-                        <div className="text-indigo-500 w-16 h-16 flex items-center justify-center bg-indigo-100 dark:bg-gray-700 rounded-lg">
+                        <div className="text-indigo-500 w-16 h-16 flex items-center justify-center bg-indigo-100 rounded-lg">
                             {item.icon}
                         </div>
                         <h3 className="mt-4 text-lg font-semibold">{item.title}</h3>
-                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{item.description}</p>
+                        <p className="mt-1 text-sm text-gray-500">{item.description}</p>
                     </button>
                 ))}
             </div>

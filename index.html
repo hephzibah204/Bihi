@@ -87,14 +87,6 @@
         --text-primary-light: #0f172a;
         --text-secondary-light: #64748b;
         --border-light: #e2e8f0;
-
-        /* Dark Theme */
-        --bg-dark: #020617;
-        --bg-subtle-dark: #0f172a;
-        --card-bg-dark: #1e293b;
-        --text-primary-dark: #f8fafc;
-        --text-secondary-dark: #94a3b8;
-        --border-dark: #334155;
         
         --print-font-size: 10px;
       }
@@ -106,10 +98,17 @@
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
       }
-
-      .dark body {
-        background-color: var(--bg-dark);
-        color: var(--text-primary-dark);
+      
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border-width: 0;
       }
       
       /* Button Styles */
@@ -126,13 +125,17 @@
       .btn-primary:hover { filter: brightness(1.15); }
 
       .btn-secondary { background-color: var(--card-bg-light); color: var(--text-primary-light); border-color: var(--border-light); }
-      .dark .btn-secondary { background-color: var(--card-bg-dark); border-color: var(--border-dark); color: var(--text-primary-dark); }
       .btn-secondary:hover { background-color: var(--bg-subtle-light); border-color: #cbd5e1; }
-      .dark .btn-secondary:hover { background-color: #334155; }
+
+      .icon-button { 
+        display: inline-flex; justify-content: center; align-items: center; padding: 0.5rem;
+        border-radius: 9999px; transition: var(--transition-base); color: var(--text-secondary-light);
+      }
+      .icon-button:hover { background-color: var(--bg-subtle-light); color: var(--text-primary-light); }
+      .icon-button:focus-visible { outline: 2px solid transparent; outline-offset: 2px; box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand-color-primary) 20%, transparent); }
       
       /* Form Styles */
       .label { display: block; font-size: 0.875rem; font-weight: 500; color: var(--text-secondary-light); margin-bottom: 0.5rem; }
-      .dark .label { color: var(--text-secondary-dark); }
 
       .input-field {
         display: block; width: 100%; padding: 0.75rem 1rem; 
@@ -140,26 +143,19 @@
         border-radius: var(--radius-md); box-shadow: var(--shadow-sm);
         transition: var(--transition-base); font-size: 1rem;
       }
-      .dark .input-field { background-color: var(--card-bg-dark); border-color: var(--border-dark); color: var(--text-primary-dark); }
       .input-field:focus { outline: 2px solid transparent; outline-offset: 2px; border-color: var(--brand-color-primary); box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand-color-primary) 20%, transparent); }
       
       /* Table Styles */
       .table-container { border: 1px solid var(--border-light); border-radius: var(--radius-lg); overflow-x: auto; background-color: var(--card-bg-light); box-shadow: var(--shadow-md); }
-      .dark .table-container { border-color: var(--border-dark); background-color: var(--card-bg-dark); }
       .table { width: 100%; min-width: 640px; }
       .th { padding: 1rem 1.5rem; background-color: var(--bg-subtle-light); text-align: left; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary-light); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border-light); }
-      .dark .th { background-color: var(--bg-subtle-dark); color: var(--text-secondary-dark); border-bottom-color: var(--border-dark); }
       .td { padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-light); }
-      .dark .td { border-bottom-color: var(--border-dark); }
       .table tbody tr:last-child .td { border-bottom: none; }
       .table tbody tr:nth-child(even) { background-color: var(--bg-subtle-light); }
-      .dark .table tbody tr:nth-child(even) { background-color: var(--bg-subtle-dark); }
       .table tbody tr:hover { background-color: color-mix(in srgb, var(--brand-color-light) 50%, transparent); }
-      .dark .table tbody tr:hover { background-color: #334155; }
       
       /* Card Styles */
       .card { background-color: var(--card-bg-light); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); border: 1px solid var(--border-light); transition: var(--transition-base); }
-      .dark .card { background-color: var(--card-bg-dark); border-color: var(--border-dark); }
       
       /* --- Adaptive UI Styles --- */
       
@@ -174,10 +170,6 @@
         border-top: 1px solid var(--border-light);
         z-index: 40;
         box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
-      }
-      .dark .bottom-nav {
-        background-color: var(--card-bg-dark);
-        border-top-color: var(--border-dark);
       }
       .main-content-mobile-padding {
         padding-bottom: 70px; /* Space for bottom nav */
@@ -205,10 +197,9 @@
       }
       
       /* --- Sales Page Specific Styles --- */
-      .pricing-toggle { display: inline-flex; background-color: var(--bg-subtle-light); dark:bg-subtle-dark; border-radius: var(--radius-md); padding: 0.25rem; }
+      .pricing-toggle { display: inline-flex; background-color: var(--bg-subtle-light); border-radius: var(--radius-md); padding: 0.25rem; }
       .pricing-toggle button { padding: 0.5rem 1rem; border: none; background: transparent; border-radius: 0.375rem; font-weight: 600; transition: var(--transition-base); }
-      .pricing-toggle button.active { background-color: white; box-shadow: var(--shadow-md); color: var(--brand-color-primary); }
-      .dark .pricing-toggle button.active { background-color: var(--card-bg-dark); color: white; }
+      .pricing-toggle button[aria-pressed="true"] { background-color: white; box-shadow: var(--shadow-md); color: var(--brand-color-primary); }
 
       .countdown-timer { display: flex; gap: 1rem; color: white; }
       .countdown-timer > div { text-align: center; }
@@ -216,13 +207,27 @@
       .countdown-timer .label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8; }
       
       .faq-item { border-bottom: 1px solid var(--border-light); }
-      .dark .faq-item { border-bottom-color: var(--border-dark); }
       .faq-item:last-child { border-bottom: none; }
       .faq-question { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 0; font-size: 1.125rem; font-weight: 600; text-align: left; }
       .faq-answer { overflow: hidden; max-height: 0; transition: max-height 0.5s cubic-bezier(0, 1, 0, 1); }
-      .faq-item.open .faq-answer { max-height: 1000px; transition: max-height 1s ease-in-out; }
+      .faq-item[data-open="true"] .faq-answer { max-height: 1000px; transition: max-height 1s ease-in-out; }
       .faq-answer p { padding-bottom: 1.5rem; color: var(--text-secondary-light); }
-      .dark .faq-answer p { color: var(--text-secondary-dark); }
+
+      /* AI Tutor Styles */
+      @keyframes pulse-dot {
+        0%, 100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.5);
+          opacity: 0.7;
+        }
+      }
+      .pulse-dot-animation {
+        animation: pulse-dot 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+
 
       /* Desktop Styles: Applied on md screens and up */
       @media (min-width: 768px) {

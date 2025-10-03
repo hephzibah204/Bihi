@@ -1,7 +1,6 @@
-
-
 import React, { useState, useEffect, useRef } from 'react';
-import { apiGetStudentsForClasses, apiGetSubjects, apiGetSchoolSettings } from '../services/api';
+// Fix: Replaced non-existent apiGetStudentsForClasses with apiGetStudents.
+import { apiGetStudents, apiGetSubjects, apiGetSchoolSettings } from '../services/api';
 import ClassicIDCard from './id-cards/ClassicIDCard';
 import ModernIDCard from './id-cards/ModernIDCard';
 import MinimalistIDCard from './id-cards/MinimalistIDCard';
@@ -77,7 +76,8 @@ const IDCardGenerator = () => {
         const fetchStudents = async () => {
             setStudentsLoading(true);
             try {
-                const fetchedStudents = await apiGetStudentsForClasses([selectedClass]);
+                // Fix: Updated function call to use a filter object as expected by apiGetStudents.
+                const fetchedStudents = await apiGetStudents({ classFilter: selectedClass });
                 setStudents(fetchedStudents);
                 setSelectedStudent(fetchedStudents[0] || null);
             } catch (error) {

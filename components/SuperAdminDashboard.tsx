@@ -16,6 +16,7 @@ import QuestionMarkCircleIcon from './icons/QuestionMarkCircleIcon';
 import AdminBillingPage from './AdminBillingPage';
 import BanknotesIcon from './icons/BanknotesIcon';
 import Chatbot from './Chatbot';
+import { USER_ROLES } from '../utils/constants';
 
 type AdminView = 'analytics' | 'tenants' | 'plans' | 'content' | 'kb-manager' | 'customization' | 'billing';
 
@@ -70,7 +71,7 @@ const SuperAdminDashboard = () => {
         return (
              <button 
                 onClick={() => setActiveView(view)} 
-                className={`w-full text-left px-4 py-3 flex items-center rounded-md ${isActive ? 'bg-gray-100 dark:bg-gray-700' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                className={`w-full text-left px-4 py-3 flex items-center rounded-md ${isActive ? 'bg-gray-100' : 'hover:bg-gray-100'}`}
              >
                  {icon}
                  <span className="ml-3">{label}</span>
@@ -87,10 +88,10 @@ const SuperAdminDashboard = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex">
-            <aside className="w-64 bg-white dark:bg-gray-800 shadow-md flex flex-col">
+        <div className="min-h-screen bg-gray-100 flex">
+            <aside className="w-64 bg-white shadow-md flex flex-col">
                 <div className="p-6">
-                    <h1 className="text-xl font-semibold text-gray-700 dark:text-gray-200">Super Admin</h1>
+                    <h1 className="text-xl font-semibold text-gray-700">Super Admin</h1>
                 </div>
                 <nav className="flex-1 px-4 space-y-2">
                     <NavButton view="analytics" icon={<ChartPieIcon className="w-5 h-5"/>} label="Analytics" />
@@ -109,7 +110,7 @@ const SuperAdminDashboard = () => {
                 {renderView()}
             </main>
             {/* FIX: Pass the required 'userRole' prop to the Chatbot component. */}
-            <Chatbot userRole="Admin" />
+            <Chatbot userRole={USER_ROLES.ADMIN} />
         </div>
     );
 };

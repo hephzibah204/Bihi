@@ -24,6 +24,8 @@ import CommentGenerator from './CommentGenerator';
 import BroadsheetAnalysis from './BroadsheetAnalysis';
 import { usePlanFeatures } from '../contexts/PlanFeaturesContext';
 import UpgradePrompt from './UpgradePrompt';
+import Assignments from './Assignments';
+import { ADMIN_VIEWS } from '../utils/constants';
 
 
 interface DashboardContentProps {
@@ -48,41 +50,42 @@ const AiTools = () => (
 const DashboardContent = ({ activeView, setActiveView, userRole }: DashboardContentProps) => {
     const { isSubscribed, hasFeature, isLoading } = usePlanFeatures();
 
-    const handleUpgrade = () => setActiveView('billing');
+    const handleUpgrade = () => setActiveView(ADMIN_VIEWS.BILLING);
 
     if (isLoading) {
         return <div className="card p-6">Loading subscription status...</div>;
     }
     
     // Always allow access to these pages
-    if (activeView === 'settings') return <SchoolSettings />;
-    if (activeView === 'billing') return <BillingDashboard />;
+    if (activeView === ADMIN_VIEWS.SETTINGS) return <SchoolSettings />;
+    if (activeView === ADMIN_VIEWS.BILLING) return <BillingDashboard />;
     
     if (!isSubscribed) {
         // For unsubscribed users, only show the dashboard prompt
-        if (activeView === 'dashboard') {
+        if (activeView === ADMIN_VIEWS.DASHBOARD) {
             return <DashboardHome setActiveView={setActiveView} />;
         }
         return <UpgradePrompt featureName="this feature" onUpgradeClick={handleUpgrade} />;
     }
 
     switch(activeView) {
-        case 'dashboard': return <DashboardHome setActiveView={setActiveView} />;
-        case 'students': return <Students />;
-        case 'teachers': return <Teachers />;
-        case 'subjects': return <Subjects />;
-        case 'results': return <Results />;
-        case 'report-cards': return <ReportCard setActiveView={setActiveView} />;
-        case 'promotions': return <Promotions />;
-        case 'id-cards': return <IDCardGenerator />;
-        case 'timetable': return <Timetable />;
-        case 'attendance': return <Attendance />;
-        case 'behavioral': return <BehavioralRemarks />;
-        case 'bursary': return <Bursary />;
-        case 'communications': return <CommunicationsDashboard />;
-        case 'analytics':
+        case ADMIN_VIEWS.DASHBOARD: return <DashboardHome setActiveView={setActiveView} />;
+        case ADMIN_VIEWS.STUDENTS: return <Students />;
+        case ADMIN_VIEWS.TEACHERS: return <Teachers />;
+        case ADMIN_VIEWS.SUBJECTS: return <Subjects />;
+        case ADMIN_VIEWS.ASSIGNMENTS: return <Assignments />;
+        case ADMIN_VIEWS.RESULTS: return <Results />;
+        case ADMIN_VIEWS.REPORT_CARDS: return <ReportCard setActiveView={setActiveView} />;
+        case ADMIN_VIEWS.PROMOTIONS: return <Promotions />;
+        case ADMIN_VIEWS.ID_CARDS: return <IDCardGenerator />;
+        case ADMIN_VIEWS.TIMETABLE: return <Timetable />;
+        case ADMIN_VIEWS.ATTENDANCE: return <Attendance />;
+        case ADMIN_VIEWS.BEHAVIORAL: return <BehavioralRemarks />;
+        case ADMIN_VIEWS.BURSARY: return <Bursary />;
+        case ADMIN_VIEWS.COMMUNICATIONS: return <CommunicationsDashboard />;
+        case ADMIN_VIEWS.ANALYTICS:
              return hasFeature('hasAnalytics') ? <AdvancedAnalytics /> : <UpgradePrompt featureName="Advanced Analytics" onUpgradeClick={handleUpgrade} />;
-        case 'ai-tools':
+        case ADMIN_VIEWS.AI_TOOLS:
             return hasFeature('hasAI') ? <AiTools /> : <UpgradePrompt featureName="AI Tools" onUpgradeClick={handleUpgrade} />;
         default:
             return <DashboardHome setActiveView={setActiveView} />;

@@ -1,401 +1,177 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import PlusIcon from './icons/PlusIcon';
-import { apiGetSubjects, apiLogActivity } from '../services/api';
-import ImportStudentsModal from './ImportStudentsModal';
-import ArrowUpTrayIcon from './icons/ArrowUpTrayIcon';
+import React, { useState, useEffect, useMemo } from 'react';
+import { apiGetStudents, apiUpsertStudent, apiDeleteStudent } from '../services/api';
+import { Student } from '../types';
 import Modal from './Modal';
+import PlusIcon from './icons/PlusIcon';
 import EditIcon from './icons/EditIcon';
 import TrashIcon from './icons/TrashIcon';
-import ConfirmationModal from './ConfirmationModal';
 import FaceIdIcon from './icons/FaceIdIcon';
+import QrCodeIcon from './icons/QrCodeIcon';
+import ArrowUpTrayIcon from './icons/ArrowUpTrayIcon';
 import FaceEnrollmentModal from './FaceEnrollmentModal';
-import useSyncedLocalStorage from '../hooks/useSyncedLocalStorage';
-import { Student, Subject } from '../types';
-import SearchIcon from './icons/SearchIcon';
-
-const PAGE_SIZE = 50;
+import ImportStudentsModal from './ImportStudentsModal';
+import { useQRCodeGenerator } from '../hooks/useQRCodeGenerator';
+import ConfirmationModal from './ConfirmationModal';
 
 const Students = () => {
-    const [students, setStudents] = useSyncedLocalStorage<Student[]>('students', []);
-    const [classes, setClasses] = useState<string[]>([]);
+    const [students, setStudents] = useState<Student[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [isImportModalOpen, setImportModalOpen] = useState(false);
-    
-    // State for Add/Edit Modal
-    const [isModalOpen, setModalOpen] = useState(false);
-    const [editingStudent, setEditingStudent] = useState<Student | null>(null);
-    const [formData, setFormData] = useState<Partial<Student>>({ name: '', admissionNo: '', class: '', gender: 'Male', dob: '', parentEmail: '' });
-
-    // State for Delete Confirmation Modal
-    const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
-    const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
-
-    // State for Face Enrollment Modal
-    const [enrollmentStudent, setEnrollmentStudent] = useState<Student | null>(null);
-
-    // Filter states
     const [searchTerm, setSearchTerm] = useState('');
-    const [classFilter, setClassFilter] = useState('');
-    const [genderFilter, setGenderFilter] = useState('');
+    const [isModalOpen, setModalOpen] = useState(false);
+    const [editingStudent, setEditingStudent] = useState<Partial<Student> | null>(null);
+    const [isEnrollModalOpen, setEnrollModalOpen] = useState(false);
+    const [isQRModalOpen, setQRModalOpen] = useState(false);
+    const [isImportModalOpen, setImportModalOpen] = useState(false);
+    const [studentForAction, setStudentForAction] = useState<Student | null>(null);
+    const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
 
-    const filteredStudents = useMemo(() => {
-        return students.filter(student => {
-            const searchLower = searchTerm.toLowerCase();
-            const nameMatch = student.name.toLowerCase().includes(searchLower);
-            const admissionNoMatch = student.admissionNo.toLowerCase().includes(searchLower);
-            const classMatch = !classFilter || student.class === classFilter;
-            const genderMatch = !genderFilter || student.gender === genderFilter;
-            return (nameMatch || admissionNoMatch) && classMatch && genderMatch;
-        });
-    }, [students, searchTerm, classFilter, genderFilter]);
+    const qrCodeUrl = useQRCodeGenerator(studentForAction?.admissionNo || '');
 
-    // State for virtualization/infinite scroll
-    const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-    const loaderRef = useRef(null);
-    
-
-    // Observer for infinite scroll
-    useEffect(() => {
-        const observer = new IntersectionObserver((entries) => {
-            const first = entries[0];
-            if (first.isIntersecting) {
-                setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, filteredStudents.length));
-            }
-        }, { threshold: 1 });
-
-        const currentLoader = loaderRef.current;
-        if (currentLoader) {
-            observer.observe(currentLoader);
-        }
-
-        return () => {
-            if (currentLoader) {
-                observer.unobserve(currentLoader);
-            }
-        };
-    }, [loaderRef, filteredStudents.length]);
-    
-    // Reset visible count if the underlying data changes
-    useEffect(() => {
-        setVisibleCount(PAGE_SIZE);
-    }, [filteredStudents]);
-
-    const visibleStudents = filteredStudents.slice(0, visibleCount);
-
-    const fetchClasses = async () => {
-        try {
-            const fetchedSubjects: Subject[] = await apiGetSubjects();
-            const allClasses = [...new Set(fetchedSubjects.flatMap(s => s.classes))].sort();
-            setClasses(allClasses);
-            if (!formData.class && allClasses.length > 0) {
-                setFormData(prev => ({ ...prev, class: allClasses[0] }));
-            }
-        } catch (err) {
-            console.error("Failed to fetch classes:", err);
-            setError("Could not load class data. Please try again.");
-        }
+    const fetchStudents = async () => {
+        setLoading(true);
+        const data = await apiGetStudents();
+        setStudents(data);
+        setLoading(false);
     };
 
     useEffect(() => {
-        setLoading(true);
-        fetchClasses();
-        setLoading(false);
+        fetchStudents();
     }, []);
 
-    const handleImportSuccess = () => {
-        setImportModalOpen(false);
-        // The useSyncedLocalStorage hook will automatically update the student list.
-    };
-    
-    const handleClearFilters = () => {
-        setSearchTerm('');
-        setClassFilter('');
-        setGenderFilter('');
-    };
+    const filteredStudents = useMemo(() => {
+        return students.filter(s =>
+            s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            s.admissionNo.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [students, searchTerm]);
 
-    // --- CRUD Handlers ---
-
-    const handleOpenAddModal = () => {
-        setEditingStudent(null);
-        setFormData({ name: '', admissionNo: '', class: classes[0] || '', gender: 'Male', dob: '', parentEmail: '' });
-        setModalOpen(true);
-    };
-
-    const handleOpenEditModal = (student: Student) => {
+    const handleOpenModal = (student: Student | null = null) => {
         setEditingStudent(student);
-        setFormData(student);
         setModalOpen(true);
     };
-    
-    const handleCloseModal = () => {
+
+    const handleSaveStudent = async (studentData: Partial<Student>) => {
+        await apiUpsertStudent(studentData);
+        fetchStudents();
         setModalOpen(false);
-        setEditingStudent(null);
     };
 
-    const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({...prev, [name]: value}));
-    };
-
-    const handleSaveStudent = (e: React.FormEvent) => {
-        e.preventDefault();
-        
-        setStudents(allStudents => {
-            if (editingStudent) {
-                apiLogActivity({ type: 'STUDENT_UPDATE', description: `Updated details for ${formData.name}.` });
-                return allStudents.map(s => s.id === editingStudent.id ? { ...s, ...formData } as Student : s);
-            } else {
-                const newStudent = {
-                    id: `std_${Date.now()}`,
-                    ...formData
-                } as Student;
-                apiLogActivity({ type: 'STUDENT_ADD', description: `Added a new student: ${newStudent.name}.` });
-                return [...allStudents, newStudent];
-            }
-        });
-
-        handleCloseModal();
-    };
-
-    const handleOpenDeleteModal = (student: Student) => {
-        setStudentToDelete(student);
+    const openDeleteModal = (student: Student) => {
+        setStudentForAction(student);
         setDeleteModalOpen(true);
     };
-
-    const handleConfirmDelete = () => {
-        if (!studentToDelete) return;
-        
-        apiLogActivity({ type: 'STUDENT_DELETE', description: `Deleted student: ${studentToDelete.name}.` });
-        
-        setStudents(allStudents => allStudents.filter(s => s.id !== studentToDelete.id));
-
+    
+    const handleDeleteStudent = async () => {
+        if (!studentForAction) return;
+        await apiDeleteStudent(studentForAction.id);
+        fetchStudents();
         setDeleteModalOpen(false);
-        setStudentToDelete(null);
+        setStudentForAction(null);
     };
 
-    const handleEnrollmentClose = () => {
-        setEnrollmentStudent(null);
-        // Data will be updated by the hook after FaceEnrollmentModal saves.
-    }
-
-    const renderContent = () => {
-        if (loading) {
-            return (
-                <div className="card">
-                    <div className="p-6 text-center text-gray-500 dark:text-gray-400">
-                        Loading students...
-                    </div>
-                </div>
-            );
-        }
-
-        if (error) {
-            return (
-                 <div className="card">
-                    <div className="p-6 text-center text-red-500">
-                        {error}
-                    </div>
-                </div>
-            );
-        }
-
-        if (students.length === 0) {
-            return (
-                <div className="card">
-                    <div className="p-6 text-center text-gray-500 dark:text-gray-400">
-                        No students found. Click "Add Student" to get started.
-                    </div>
-                </div>
-            );
-        }
-
-        if (filteredStudents.length === 0) {
-            return (
-                <div className="card">
-                    <div className="p-6 text-center text-gray-500 dark:text-gray-400">
-                        No students match the current filters.
-                    </div>
-                </div>
-            );
-        }
-
-        return (
-             <div className="table-container">
-                <table className="table">
-                    <thead>
-                        <tr>
-                            <th className="th">Photo</th>
-                            <th className="th">Name</th>
-                            <th className="th">Admission No.</th>
-                            <th className="th">Class</th>
-                            <th className="th">Gender</th>
-                            <th className="th text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                        {visibleStudents.map((student) => (
-                            <tr key={student.id}>
-                                <td className="td">
-                                    <img 
-                                      src={student.photo || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(student.name)}`} 
-                                      alt={student.name} 
-                                      className="h-10 w-10 rounded-full object-cover" 
-                                    />
-                                </td>
-                                <td className="td font-medium text-gray-900 dark:text-white">{student.name}</td>
-                                <td className="td text-gray-500 dark:text-gray-400">{student.admissionNo}</td>
-                                <td className="td text-gray-500 dark:text-gray-400">{student.class}</td>
-                                <td className="td text-gray-500 dark:text-gray-400">{student.gender}</td>
-                                <td className="td text-right">
-                                    <div className="flex justify-end space-x-4">
-                                        <button onClick={() => setEnrollmentStudent(student)} className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-200" title="Enroll Face ID">
-                                            <FaceIdIcon className="h-5 w-5" />
-                                        </button>
-                                        <button onClick={() => handleOpenEditModal(student)} className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-200" title="Edit Student">
-                                            <EditIcon className="h-5 w-5" />
-                                        </button>
-                                        <button onClick={() => handleOpenDeleteModal(student)} className="text-red-500 hover:text-red-700" title="Delete Student">
-                                            <TrashIcon className="h-5 w-5" />
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                         {visibleCount < filteredStudents.length && (
-                            <tr ref={loaderRef}>
-                                <td colSpan={6} className="text-center p-4 text-gray-500">
-                                    Loading more...
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
-        );
+    const handleEnrollFace = (student: Student) => {
+        setStudentForAction(student);
+        setEnrollModalOpen(true);
     };
+
+    const handleShowQR = (student: Student) => {
+        setStudentForAction(student);
+        setQRModalOpen(true);
+    };
+
+    if (loading) return <div>Loading students...</div>;
 
     return (
         <div>
-            <div className="hidden md:flex justify-end items-center mb-6">
+            <div className="flex justify-between items-center mb-6">
+                <input
+                    type="text"
+                    placeholder="Search students..."
+                    className="input-field max-w-sm"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
                 <div className="flex space-x-2">
-                     <button onClick={() => setImportModalOpen(true)} className="btn btn-secondary">
-                        <ArrowUpTrayIcon className="h-5 w-5 mr-2" />
-                        Import Students
-                    </button>
-                    <button onClick={handleOpenAddModal} className="btn btn-primary">
-                        <PlusIcon className="h-5 w-5 mr-2" />
-                        Add Student
-                    </button>
+                    <button onClick={() => setImportModalOpen(true)} className="btn btn-secondary"><ArrowUpTrayIcon className="w-5 h-5 mr-2"/> Import</button>
+                    <button onClick={() => handleOpenModal()} className="btn btn-primary"><PlusIcon className="w-5 h-5 mr-2"/> Add Student</button>
                 </div>
             </div>
-            
-            <div className="card mb-6">
-                <div className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                    <div className="md:col-span-2">
-                        <label className="label">Search by Name or Admission No.</label>
-                        <div className="relative">
-                            <input
-                                type="text"
-                                className="input-field pl-10"
-                                placeholder="Search students..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                        </div>
-                    </div>
-                    <div>
-                        <label className="label">Filter by Class</label>
-                        <select className="input-field" value={classFilter} onChange={(e) => setClassFilter(e.target.value)}>
-                            <option value="">All Classes</option>
-                            {classes.map(c => <option key={c} value={c}>{c}</option>)}
-                        </select>
-                    </div>
-                    <div>
-                        <label className="label">Filter by Gender</label>
-                        <select className="input-field" value={genderFilter} onChange={(e) => setGenderFilter(e.target.value)}>
-                            <option value="">All Genders</option>
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
-                        </select>
-                    </div>
-                </div>
-                {(searchTerm || classFilter || genderFilter) && (
-                    <div className="p-4 border-t dark:border-gray-700 flex justify-between items-center">
-                        <p className="text-sm text-gray-600 dark:text-gray-300">
-                            Found {filteredStudents.length} student(s) matching your criteria.
-                        </p>
-                        <button onClick={handleClearFilters} className="btn btn-secondary text-sm">Clear Filters</button>
-                    </div>
-                )}
+            <div className="table-container">
+                <table className="table">
+                    <thead>
+                        <tr>
+                            <th className="th">Name</th>
+                            <th className="th">Admission No.</th>
+                            <th className="th">Class</th>
+                            <th className="th text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y">
+                        {filteredStudents.map(student => (
+                            <tr key={student.id}>
+                                <td className="td font-medium">{student.name}</td>
+                                <td className="td">{student.admissionNo}</td>
+                                <td className="td">{student.class}</td>
+                                <td className="td text-right space-x-2">
+                                    <button onClick={() => handleEnrollFace(student)} className="icon-button" title="Enroll Face ID"><FaceIdIcon className="w-5 h-5"/></button>
+                                    <button onClick={() => handleShowQR(student)} className="icon-button" title="Show QR Code"><QrCodeIcon className="w-5 h-5"/></button>
+                                    <button onClick={() => handleOpenModal(student)} className="icon-button" title="Edit"><EditIcon className="w-5 h-5"/></button>
+                                    <button onClick={() => openDeleteModal(student)} className="icon-button text-red-500" title="Delete"><TrashIcon className="w-5 h-5"/></button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             </div>
 
-            {renderContent()}
-
-            <button onClick={handleOpenAddModal} className="fab md:hidden" aria-label="Add Student">
-                <PlusIcon className="h-6 w-6" />
-            </button>
-
-            <ImportStudentsModal 
-                isOpen={isImportModalOpen}
-                onClose={() => setImportModalOpen(false)}
-                onSuccess={handleImportSuccess}
-            />
-             <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingStudent ? 'Edit Student' : 'Add New Student'}>
-                <form onSubmit={handleSaveStudent} className="p-6 space-y-4">
-                    <div>
-                        <label className="label">Full Name</label>
-                        <input name="name" value={formData.name || ''} onChange={handleFormChange} className="input-field" required />
+            {isModalOpen && <StudentFormModal student={editingStudent} onSave={handleSaveStudent} onClose={() => setModalOpen(false)} />}
+            {isEnrollModalOpen && studentForAction && <FaceEnrollmentModal isOpen={isEnrollModalOpen} onClose={() => setEnrollModalOpen(false)} student={studentForAction} />}
+            {isImportModalOpen && <ImportStudentsModal isOpen={isImportModalOpen} onClose={() => setImportModalOpen(false)} onSuccess={fetchStudents} />}
+            {isQRModalOpen && studentForAction && (
+                <Modal isOpen={isQRModalOpen} onClose={() => setQRModalOpen(false)} title={`QR Code for ${studentForAction.name}`}>
+                    <div className="p-6 text-center">
+                        {qrCodeUrl ? <img src={qrCodeUrl} alt="QR Code" className="mx-auto" /> : <p>Generating QR Code...</p>}
+                        <p className="mt-2 font-mono">{studentForAction.admissionNo}</p>
                     </div>
-                    <div>
-                        <label className="label">Admission No.</label>
-                        <input name="admissionNo" value={formData.admissionNo || ''} onChange={handleFormChange} className="input-field" required />
-                    </div>
-                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label className="label">Class</label>
-                            <select name="class" value={formData.class || ''} onChange={handleFormChange} className="input-field" required>
-                                {classes.map(c => <option key={c} value={c}>{c}</option>)}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="label">Gender</label>
-                            <select name="gender" value={formData.gender || ''} onChange={handleFormChange} className="input-field" required>
-                                <option value="Male">Male</option>
-                                <option value="Female">Female</option>
-                            </select>
-                        </div>
-                    </div>
-                     <div>
-                        <label className="label">Date of Birth</label>
-                        <input name="dob" type="date" value={formData.dob || ''} onChange={handleFormChange} className="input-field" />
-                    </div>
-                     <div>
-                        <label className="label">Parent's Email</label>
-                        <input name="parentEmail" type="email" value={formData.parentEmail || ''} onChange={handleFormChange} className="input-field" placeholder="parent@example.com" />
-                    </div>
-                    <div className="flex justify-end pt-4">
-                        <button type="button" onClick={handleCloseModal} className="btn btn-secondary mr-2">Cancel</button>
-                        <button type="submit" className="btn btn-primary">{editingStudent ? 'Save Changes' : 'Add Student'}</button>
-                    </div>
-                </form>
-            </Modal>
-             <ConfirmationModal 
+                </Modal>
+            )}
+             <ConfirmationModal
                 isOpen={isDeleteModalOpen}
                 onClose={() => setDeleteModalOpen(false)}
-                onConfirm={handleConfirmDelete}
+                onConfirm={handleDeleteStudent}
                 title="Delete Student"
-                message={`Are you sure you want to permanently delete ${studentToDelete?.name}? This action cannot be undone.`}
+                message={`Are you sure you want to delete ${studentForAction?.name}? This action cannot be undone.`}
             />
-            {enrollmentStudent && (
-                 <FaceEnrollmentModal 
-                    isOpen={!!enrollmentStudent}
-                    onClose={handleEnrollmentClose}
-                    student={enrollmentStudent}
-                />
-            )}
         </div>
+    );
+};
+
+const StudentFormModal = ({ student, onSave, onClose }) => {
+    const [formData, setFormData] = useState<Partial<Student>>({
+        name: '', admissionNo: '', class: '', gender: 'Male', dob: '', parentEmail: '', ...student
+    });
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        onSave(formData);
+    };
+
+    return (
+        <Modal isOpen={true} onClose={onClose} title={student ? 'Edit Student' : 'Add Student'}>
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                <div><label className="label">Full Name</label><input name="name" value={formData.name} onChange={handleChange} className="input-field" required /></div>
+                <div><label className="label">Admission No.</label><input name="admissionNo" value={formData.admissionNo} onChange={handleChange} className="input-field" required /></div>
+                <div><label className="label">Class</label><input name="class" value={formData.class} onChange={handleChange} className="input-field" required /></div>
+                <div><label className="label">Gender</label><select name="gender" value={formData.gender} onChange={handleChange} className="input-field"><option>Male</option><option>Female</option></select></div>
+                <div><label className="label">Date of Birth</label><input type="date" name="dob" value={formData.dob} onChange={handleChange} className="input-field" /></div>
+                <div><label className="label">Parent's Email</label><input type="email" name="parentEmail" value={formData.parentEmail} onChange={handleChange} className="input-field" /></div>
+                <div className="flex justify-end pt-2"><button type="submit" className="btn btn-primary">Save Student</button></div>
+            </form>
+        </Modal>
     );
 };
 

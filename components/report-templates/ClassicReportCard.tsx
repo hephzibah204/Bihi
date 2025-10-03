@@ -18,6 +18,10 @@ const ClassicReportCard = ({ student, students, scores, subjects, settings, term
     const performance = calculateOverallPerformance(student.id, student.class, students, scores, subjects, term, session);
     const generalRemark = (remarks || []).find(r => r.studentId === student.id && r.term === term && r.session === session)?.generalComment;
 
+    const maxCa1 = settings?.maxCa1 ?? 20;
+    const maxCa2 = settings?.maxCa2 ?? 20;
+    const maxExam = settings?.maxExam ?? 60;
+
     return (
         <div className="bg-white p-8 border-4 border-blue-900" style={{ width: '210mm', minHeight: '297mm', fontSize: '10px' }}>
             <ReportCardHeader settings={settings} />
@@ -31,9 +35,9 @@ const ClassicReportCard = ({ student, students, scores, subjects, settings, term
                 <thead className="bg-blue-100">
                     <tr>
                         <th className="p-2 border border-blue-300 text-left">Subject</th>
-                        <th className="p-2 border border-blue-300">CA1 (20)</th>
-                        <th className="p-2 border border-blue-300">CA2 (20)</th>
-                        <th className="p-2 border border-blue-300">Exam (60)</th>
+                        <th className="p-2 border border-blue-300">CA1 ({maxCa1})</th>
+                        <th className="p-2 border border-blue-300">CA2 ({maxCa2})</th>
+                        <th className="p-2 border border-blue-300">Exam ({maxExam})</th>
                         <th className="p-2 border border-blue-300">Total (100)</th>
                         <th className="p-2 border border-blue-300">Grade</th>
                     </tr>

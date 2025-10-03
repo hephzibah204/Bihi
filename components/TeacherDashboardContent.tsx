@@ -7,6 +7,7 @@ import Results from './Results';
 import TeacherSchedule from './TeacherSchedule';
 import LessonPlanner from './LessonPlanner';
 import CommentGenerator from './CommentGenerator';
+import { TEACHER_VIEWS } from '../utils/constants';
 
 
 interface TeacherDashboardContentProps {
@@ -26,15 +27,15 @@ const AiTools = () => (
 
 const TeacherDashboardContent = ({ activeView, setActiveView }: TeacherDashboardContentProps) => {
     switch(activeView) {
-        case 'dashboard':
+        case TEACHER_VIEWS.DASHBOARD:
             return <TeacherHome setActiveView={setActiveView} />;
-        case 'my-students':
+        case TEACHER_VIEWS.MY_STUDENTS:
             return <MyStudents />;
-        case 'enter-scores':
+        case TEACHER_VIEWS.ENTER_SCORES:
             return <Results />;
-        case 'my-schedule':
+        case TEACHER_VIEWS.MY_SCHEDULE:
             return <TeacherSchedule />;
-        case 'ai-tools':
+        case TEACHER_VIEWS.AI_TOOLS:
             return <AiTools />;
         default:
             return <TeacherHome setActiveView={setActiveView} />;

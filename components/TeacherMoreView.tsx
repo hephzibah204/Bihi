@@ -4,6 +4,7 @@ import LogoutIcon from './icons/LogoutIcon';
 import { supabase } from '../services/supabaseClient';
 import CalendarDaysIcon from './icons/CalendarDaysIcon';
 import BrainCircuitIcon from './icons/BrainCircuitIcon';
+import { TEACHER_VIEWS } from '../utils/constants';
 
 interface TeacherMoreViewProps {
     setActiveView: (view: TeacherView) => void;
@@ -18,8 +19,8 @@ const TeacherMoreView: FC<TeacherMoreViewProps> = ({ setActiveView }) => {
     };
     
     const menuItems = [
-        { view: 'my-schedule', icon: <CalendarDaysIcon className="h-6 w-6" />, label: 'My Schedule' },
-        { view: 'ai-tools', icon: <BrainCircuitIcon className="h-6 w-6" />, label: 'AI Tools' },
+        { view: TEACHER_VIEWS.MY_SCHEDULE, icon: <CalendarDaysIcon className="h-6 w-6" />, label: 'My Schedule' },
+        { view: TEACHER_VIEWS.AI_TOOLS, icon: <BrainCircuitIcon className="h-6 w-6" />, label: 'AI Tools' },
     ];
 
     return (

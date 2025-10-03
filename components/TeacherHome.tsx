@@ -4,14 +4,15 @@ import CalendarDaysIcon from './icons/CalendarDaysIcon';
 import UsersIcon from './icons/UsersIcon';
 import BrainCircuitIcon from './icons/BrainCircuitIcon';
 import { TeacherView } from '../types';
+import { TEACHER_VIEWS } from '../utils/constants';
 
 const TeacherHome = ({ setActiveView }: { setActiveView: (view: TeacherView) => void }) => {
     // Fix: Explicitly type the `quickLinks` array to ensure `link.view` is of type `TeacherView`, not a generic `string`.
     const quickLinks: { view: TeacherView; title: string; icon: React.ReactNode; description: string; }[] = [
-        { view: 'enter-scores', title: "Enter Scores", icon: <ClipboardListIcon className="w-8 h-8"/>, description: "Input the latest CA and exam scores." },
-        { view: 'my-schedule', title: "View My Schedule", icon: <CalendarDaysIcon className="w-8 h-8"/>, description: "Check your weekly teaching timetable." },
-        { view: 'my-students', title: "My Students", icon: <UsersIcon className="w-8 h-8"/>, description: "View students in your assigned classes." },
-        { view: 'ai-tools', title: "AI Teacher Tools", icon: <BrainCircuitIcon className="w-8 h-8"/>, description: "Use AI to plan lessons and write comments." },
+        { view: TEACHER_VIEWS.ENTER_SCORES, title: "Enter Scores", icon: <ClipboardListIcon className="w-8 h-8"/>, description: "Input the latest CA and exam scores." },
+        { view: TEACHER_VIEWS.MY_SCHEDULE, title: "View My Schedule", icon: <CalendarDaysIcon className="w-8 h-8"/>, description: "Check your weekly teaching timetable." },
+        { view: TEACHER_VIEWS.MY_STUDENTS, title: "My Students", icon: <UsersIcon className="w-8 h-8"/>, description: "View students in your assigned classes." },
+        { view: TEACHER_VIEWS.AI_TOOLS, title: "AI Teacher Tools", icon: <BrainCircuitIcon className="w-8 h-8"/>, description: "Use AI to plan lessons and write comments." },
     ];
 
     return (

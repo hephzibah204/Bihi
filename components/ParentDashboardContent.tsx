@@ -1,32 +1,36 @@
 import React from 'react';
+import { ParentView } from '../types';
 import ParentHome from './ParentHome';
+import ParentResults from './ParentResults';
 import ParentAttendance from './ParentAttendance';
 import ParentBehavioral from './ParentBehavioral';
-// Fix: Import ParentView from the central types file to break a circular dependency.
-import { ParentView } from '../types';
 import NotificationViewer from './NotificationViewer';
-import ParentResults from './ParentResults';
+import ParentAssignments from './ParentAssignments';
+import { PARENT_VIEWS } from '../utils/constants';
+
 
 interface ParentDashboardContentProps {
     activeView: ParentView;
-    demoUserId?: string | null;
     setActiveView: (view: ParentView) => void;
+    demoUserId?: string | null;
 }
 
-const ParentDashboardContent = ({ activeView, demoUserId, setActiveView }: ParentDashboardContentProps) => {
+const ParentDashboardContent = ({ activeView, setActiveView, demoUserId }: ParentDashboardContentProps) => {
     switch(activeView) {
-        case 'dashboard':
-            return <ParentHome demoUserId={demoUserId} setActiveView={setActiveView} />;
-        case 'results':
+        case PARENT_VIEWS.DASHBOARD:
+            return <ParentHome setActiveView={setActiveView} demoUserId={demoUserId} />;
+        case PARENT_VIEWS.RESULTS:
             return <ParentResults demoUserId={demoUserId} />;
-        case 'attendance':
+        case PARENT_VIEWS.ATTENDANCE:
             return <ParentAttendance demoUserId={demoUserId} />;
-        case 'behavioral':
+        case PARENT_VIEWS.BEHAVIORAL:
             return <ParentBehavioral demoUserId={demoUserId} />;
-        case 'notifications':
+        case PARENT_VIEWS.NOTIFICATIONS:
             return <NotificationViewer demoUserId={demoUserId} />;
+         case PARENT_VIEWS.ASSIGNMENTS:
+            return <ParentAssignments demoUserId={demoUserId} />;
         default:
-            return <ParentHome demoUserId={demoUserId} setActiveView={setActiveView} />;
+            return <ParentHome setActiveView={setActiveView} demoUserId={demoUserId} />;
     }
 };
 

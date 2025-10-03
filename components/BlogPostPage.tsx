@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiGetPlatformSettings } from '../services/api';
+import { formatDate } from '../utils/dateHelpers';
 
 const BlogPostPage = () => {
     const [article, setArticle] = useState(null);
@@ -25,10 +26,10 @@ const BlogPostPage = () => {
     if (!article) return <div><h1 className="text-2xl">Article not found.</h1><a href="?view=blog">Back to Knowledge Base</a></div>;
 
     return (
-        <article className="prose dark:prose-invert max-w-none">
+        <article className="prose max-w-none">
             <h1>{article.title}</h1>
-            <p className="text-sm text-gray-500">Last updated: {new Date(article.lastUpdated).toLocaleDateString()}</p>
-            <div dangerouslySetInnerHTML={{ __html: article.content.replace(/\n/g, '<br />') }} />
+            <p className="text-sm text-gray-500">Last updated: {formatDate(article.lastUpdated)}</p>
+            <div className="whitespace-pre-wrap">{article.content}</div>
              <a href="?view=blog" className="mt-8 inline-block">← Back to all articles</a>
         </article>
     );

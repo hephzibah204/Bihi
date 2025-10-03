@@ -10,7 +10,7 @@ const ModernIDCard = ({ student, schoolSettings }) => {
             
             <div className="flex items-center space-x-2 z-10">
                  <img src={schoolSettings.schoolLogo || defaultLogo} alt="School Logo" className="w-10 h-10 rounded-full bg-white p-1"/>
-                 <h1 className="font-semibold text-base">{schoolSettings.schoolName}</h1>
+                 <h1 className="font-semibold text-base break-words">{schoolSettings.schoolName}</h1>
             </div>
 
             <div className="mt-6 flex items-center space-x-4 z-10">
@@ -18,7 +18,7 @@ const ModernIDCard = ({ student, schoolSettings }) => {
                      <img src={student.photo} alt={student.name} className="w-full h-full object-cover"/>
                 </div>
                 <div>
-                     <h2 className="text-lg font-bold leading-tight">{student.name}</h2>
+                     <h2 className="text-lg font-bold leading-tight break-words">{student.name}</h2>
                      <p className="text-sm text-indigo-300">{student.class}</p>
                 </div>
             </div>

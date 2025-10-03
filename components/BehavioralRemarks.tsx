@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { apiGetStudents, apiGetSubjects } from '../services/api';
+import { apiGetStudents, apiGetSubjects, apiGetBehavioralRecords, apiUpsertBehavioralRecord } from '../services/api';
 import Modal from './Modal';
 import PlusIcon from './icons/PlusIcon';
-import useSyncedLocalStorage from '../hooks/useSyncedLocalStorage';
-import { Student, Subject } from '../types';
+import { Student, Subject, BehavioralLogEntry } from '../types';
+import { formatDate } from '../utils/dateHelpers';
 
 const BehavioralRemarks = () => {
-    const [allRecords, setAllRecords] = useSyncedLocalStorage('behavioral', []);
-    const [allStudents, setAllStudents] = useState<Student[]>([]);
-    const [studentMap, setStudentMap] = useState({});
+    const [allRecords, setAllRecords] = useState<BehavioralLogEntry[]>([]);
+    const [studentsInClass, setStudentsInClass] = useState<Student[]>([]);
+    const [studentMap, setStudentMap] = useState<Record<string, Student>>({});
     const [classes, setClasses] = useState<string[]>([]);
     const [selectedClass, setSelectedClass] = useState('');
     const [loading, setLoading] = useState(true);
@@ -23,8 +23,6 @@ const BehavioralRemarks = () => {
                 apiGetStudents(),
             ]);
 
-            setAllStudents(studentsData);
-
             const sMap = studentsData.reduce((acc, student) => {
                 acc[student.id] = student;
                 return acc;
@@ -37,7 +35,7 @@ const BehavioralRemarks = () => {
                 setSelectedClass(allClasses[0]);
             }
         } catch (error) {
-            console.error("Failed to load behavioral data:", error);
+            console.error("Failed to load initial behavioral data:", error);
         } finally {
             setLoading(false);
         }
@@ -47,30 +45,39 @@ const BehavioralRemarks = () => {
         fetchInitialData();
     }, []);
 
-     useEffect(() => {
-        const handleStorageUpdate = (event: Event) => {
-            const customEvent = event as CustomEvent;
-            const key = customEvent.detail?.key;
-            if (['students', 'subjects'].includes(key)) {
-                fetchInitialData();
-            }
-        };
-        window.addEventListener('storage-update', handleStorageUpdate);
-        return () => window.removeEventListener('storage-update', handleStorageUpdate);
-    }, []);
-
-    const handleAddRecord = () => {
-        if (!newRecord.studentId || !newRecord.remark) {
-            alert('Please select a student and enter a remark.');
-            return;
+    const fetchClassData = async () => {
+        if (!selectedClass) return;
+        setLoading(true);
+        try {
+            const [students, records] = await Promise.all([
+                apiGetStudents({ classFilter: selectedClass }),
+                apiGetBehavioralRecords({ classFilter: selectedClass })
+            ]);
+            setStudentsInClass(students);
+            setAllRecords(records);
+        } catch (error) {
+            console.error("Failed to load class-specific data:", error);
+        } finally {
+            setLoading(false);
         }
+    };
+
+    useEffect(() => {
+        fetchClassData();
+    }, [selectedClass]);
+
+    const handleAddRecord = async () => {
+        if (!newRecord.studentId || !newRecord.remark) return;
         const recordToAdd = {
             ...newRecord,
-            id: `bhv_${Date.now()}`,
+            teacherId: '', // In a real app, get from session
             date: new Date().toISOString(),
-        };
+        } as Partial<BehavioralLogEntry>;
         
-        setAllRecords(currentRecords => [...(currentRecords || []), recordToAdd]);
+        apiUpsertBehavioralRecord(recordToAdd);
+        
+        // Optimistic update
+        setAllRecords(prev => [...prev, { ...recordToAdd, id: `bhv_${Date.now()}` } as BehavioralLogEntry]);
         
         setModalOpen(false);
         setNewRecord({ studentId: '', type: 'positive', remark: '' });
@@ -78,9 +85,7 @@ const BehavioralRemarks = () => {
 
     const getStudentName = (studentId) => studentMap[studentId]?.name || 'Unknown Student';
 
-    const studentsForModal = allStudents.filter(s => s.class === selectedClass);
-    const recordsForView = (allRecords || []).filter(rec => studentMap[rec.studentId]?.class === selectedClass);
-
+    const recordsForView = allRecords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     return (
         <div>
@@ -107,22 +112,22 @@ const BehavioralRemarks = () => {
                             <th className="th">Date</th>
                         </tr>
                     </thead>
-                    <tbody className="bg-white dark:bg-gray-800 divide-y dark:divide-gray-700">
+                    <tbody className="bg-white divide-y">
                         {loading ? (
                             <tr><td colSpan={4} className="td text-center">Loading records...</td></tr>
                         ) : recordsForView.length === 0 ? (
                              <tr><td colSpan={4} className="td text-center">No records for this class.</td></tr>
                         ) : (
-                            recordsForView.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(rec => (
+                            recordsForView.map(rec => (
                                 <tr key={rec.id}>
-                                    <td className="td font-medium">{getStudentName(rec.studentId)}</td>
-                                    <td className="td">{rec.remark}</td>
+                                    <td className="td font-medium"><div className="truncate max-w-xs" title={getStudentName(rec.studentId)}>{getStudentName(rec.studentId)}</div></td>
+                                    <td className="td"><div className="truncate max-w-sm" title={rec.remark}>{rec.remark}</div></td>
                                     <td className="td">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${rec.type === 'positive' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${rec.type === 'positive' ? 'bg-green-100 text-green-800' : rec.type === 'negative' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>
                                             {rec.type}
                                         </span>
                                     </td>
-                                    <td className="td">{new Date(rec.date).toLocaleDateString()}</td>
+                                    <td className="td">{formatDate(rec.date)}</td>
                                 </tr>
                             ))
                         )}
@@ -137,7 +142,7 @@ const BehavioralRemarks = () => {
                         <label className="label">Student</label>
                         <select className="input-field" value={newRecord.studentId} onChange={e => setNewRecord({...newRecord, studentId: e.target.value})}>
                             <option value="">-- Select Student --</option>
-                            {studentsForModal.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                            {studentsInClass.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </select>
                     </div>
                     <div>
@@ -145,6 +150,7 @@ const BehavioralRemarks = () => {
                         <select className="input-field" value={newRecord.type} onChange={e => setNewRecord({...newRecord, type: e.target.value})}>
                             <option value="positive">Positive</option>
                             <option value="negative">Negative</option>
+                            <option value="neutral">Neutral</option>
                         </select>
                     </div>
                     <div>

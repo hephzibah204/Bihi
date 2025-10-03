@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { apiGetFees, apiGetStudentsForClasses, apiGetSubjects } from '../services/api';
+// Fix: Replaced non-existent apiGetStudentsForClasses with apiGetStudents.
+import { apiGetFees, apiGetStudents, apiGetSubjects } from '../services/api';
 import { Subject } from '../types';
+import { formatDate } from '../utils/dateHelpers';
 
 const BursaryInvoice = () => {
     const [classes, setClasses] = useState([]);
@@ -26,7 +28,8 @@ const BursaryInvoice = () => {
     useEffect(() => {
         if (!selectedClass) return;
         const fetchStudents = async () => {
-            const classStudents = await apiGetStudentsForClasses([selectedClass]);
+            // Fix: Updated function call to use a filter object as expected by apiGetStudents.
+            const classStudents = await apiGetStudents({ classFilter: selectedClass });
             setStudents(classStudents);
             setSelectedStudent(classStudents.length > 0 ? classStudents[0] : null);
         };
@@ -41,7 +44,7 @@ const BursaryInvoice = () => {
             student: selectedStudent,
             items: studentFees,
             total: total,
-            date: new Date().toLocaleDateString(),
+            date: formatDate(new Date().toISOString()),
         });
     };
 

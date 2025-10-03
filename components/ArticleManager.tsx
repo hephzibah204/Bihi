@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { apiGetPlatformSettings, apiSavePlatformSettings } from '../services/api';
 import Modal from './Modal';
 import PlusIcon from './icons/PlusIcon';
+import { formatDate } from '../utils/dateHelpers';
+import EditIcon from './icons/EditIcon';
+import TrashIcon from './icons/TrashIcon';
 
 const ArticleManager = () => {
     const [articles, setArticles] = useState([]);
@@ -70,10 +73,10 @@ const ArticleManager = () => {
                                 <tr key={article.id}>
                                     <td className="td font-medium">{article.title}</td>
                                     <td className="td">{article.status}</td>
-                                    <td className="td">{new Date(article.lastUpdated).toLocaleDateString()}</td>
-                                    <td className="td text-right">
-                                        <button onClick={() => handleOpenModal(article)} className="text-indigo-600 mr-4">Edit</button>
-                                        <button onClick={() => handleDelete(article.id)} className="text-red-500">Delete</button>
+                                    <td className="td">{formatDate(article.lastUpdated)}</td>
+                                    <td className="td text-right space-x-1">
+                                        <button onClick={() => handleOpenModal(article)} className="icon-button" title="Edit"><EditIcon className="w-5 h-5"/></button>
+                                        <button onClick={() => handleDelete(article.id)} className="icon-button text-red-500" title="Delete"><TrashIcon className="w-5 h-5"/></button>
                                     </td>
                                 </tr>
                             ))}
@@ -88,7 +91,7 @@ const ArticleManager = () => {
                         <input value={articleData.title} onChange={e => setArticleData({...articleData, title: e.target.value})} className="input-field" />
                     </div>
                     <div>
-                        <label className="label">Content (Markdown supported)</label>
+                        <label className="label">Content</label>
                         <textarea rows={10} value={articleData.content} onChange={e => setArticleData({...articleData, content: e.target.value})} className="input-field"></textarea>
                     </div>
                     <div>

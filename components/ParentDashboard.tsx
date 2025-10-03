@@ -1,22 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import ParentSidebar from './ParentSidebar';
-import Header from './Header';
 import ParentDashboardContent from './ParentDashboardContent';
-import ParentBottomNavBar from './ParentBottomNavBar';
-import SandboxBanner from './SandboxBanner';
+import Header from './Header';
 import { ParentView } from '../types';
+import SyncStatusIndicator from './SyncStatusIndicator';
+import ParentBottomNavBar from './ParentBottomNavBar';
+import { PARENT_VIEWS } from '../utils/constants';
 import Chatbot from './Chatbot';
+import { USER_ROLES } from '../utils/constants';
 
-interface ParentDashboardProps {
-    isDemo?: boolean;
-    onLogout?: (() => void) | null;
-    demoUserId?: string | null;
-}
-
-const ParentDashboard: React.FC<ParentDashboardProps> = ({ isDemo = false, onLogout = null, demoUserId = null }) => {
+const ParentDashboard = ({ onLogout, demoUserId }) => {
     const [isSidebarOpen, setSidebarOpen] = useState(false);
-    const [activeView, setActiveView] = useState<ParentView>('dashboard');
-    const [headerTitle, setHeaderTitle] = useState('Dashboard');
+    const [activeView, setActiveView] = useState<ParentView>(PARENT_VIEWS.DASHBOARD);
+    const [headerTitle, setHeaderTitle] = useState('Parent Dashboard');
+
+    useEffect(() => {
+        const viewName = activeView.replace(/-/g, ' ');
+        const capitalizedTitle = viewName.charAt(0).toUpperCase() + viewName.slice(1);
+        setHeaderTitle(capitalizedTitle);
+    }, [activeView]);
 
     const handleViewChange = (view: ParentView) => {
         setActiveView(view);
@@ -25,33 +27,21 @@ const ParentDashboard: React.FC<ParentDashboardProps> = ({ isDemo = false, onLog
         }
     };
 
-    useEffect(() => {
-        const viewName = activeView.replace(/-/g, ' ').replace('ai', 'AI');
-        setHeaderTitle(viewName.charAt(0).toUpperCase() + viewName.slice(1));
-    }, [activeView]);
-
     return (
-        <>
-            {isDemo && <SandboxBanner />}
-            <div className={`flex h-screen bg-gray-100 dark:bg-gray-900 ${isDemo ? 'pt-12' : ''}`}>
-                <ParentSidebar 
-                    isSidebarOpen={isSidebarOpen} 
-                    setSidebarOpen={setSidebarOpen} 
-                    activeView={activeView}
-                    setActiveView={handleViewChange}
-                />
-                <div className="flex-1 flex flex-col overflow-hidden">
-                    <Header title={headerTitle} setSidebarOpen={setSidebarOpen} onLogout={onLogout} />
-                    <main className="flex-1 overflow-x-hidden overflow-y-auto pb-16 md:pb-0">
-                        <div className="container mx-auto px-6 py-8">
-                            <ParentDashboardContent activeView={activeView} demoUserId={demoUserId} setActiveView={handleViewChange} />
-                        </div>
-                    </main>
-                    <ParentBottomNavBar activeView={activeView} setActiveView={handleViewChange} />
-                </div>
-                <Chatbot userRole="Parent" demoUserId={demoUserId} />
+        <div className="flex h-screen bg-gray-100">
+            <ParentSidebar isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} activeView={activeView} setActiveView={handleViewChange} />
+            <div className="flex-1 flex flex-col overflow-hidden main-content-mobile-padding">
+                <Header title={headerTitle} setSidebarOpen={setSidebarOpen} onLogout={onLogout} isSidebarOpen={isSidebarOpen} />
+                <main className="flex-1 overflow-x-hidden overflow-y-auto">
+                    <div className="container mx-auto px-6 py-8">
+                        <ParentDashboardContent activeView={activeView} setActiveView={handleViewChange} demoUserId={demoUserId} />
+                    </div>
+                </main>
+                <ParentBottomNavBar activeView={activeView} setActiveView={handleViewChange} />
             </div>
-        </>
+            <SyncStatusIndicator />
+            <Chatbot userRole={USER_ROLES.PARENT} demoUserId={demoUserId} />
+        </div>
     );
 };
 
