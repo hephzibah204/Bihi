@@ -1,124 +1,48 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { apiGetStudentsForClasses, apiGetSubjects, updateStudents, apiGetStudents, apiGetScores, apiGetSchoolSettings } from '../services/api';
-import { Student, Subject, Score } from '../types';
-import SparklesIcon from './icons/SparklesIcon';
-import SpinnerIcon from './icons/SpinnerIcon';
-import { generateText } from '../services/geminiService';
-import Tooltip from './Tooltip';
+import React, { useState, useEffect, useMemo } from 'react';
+import { apiGetStudents, apiGetSubjects, updateStudents } from '../services/api';
+import { Student, Subject } from '../types';
+import GraduationCapIcon from './icons/GraduationCapIcon';
 
-const PAGE_SIZE = 50;
-
-type SuggestionStatus = 'Promote' | 'Consider' | 'Repeat';
-
-interface AISuggestion {
-    studentId: string;
-    suggestion: SuggestionStatus;
-    justification: string;
-}
-
+const ArrowRightIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+  </svg>
+);
 
 const Promotions = () => {
-    const [classes, setClasses] = useState<string[]>([]);
+    const [allStudents, setAllStudents] = useState<Student[]>([]);
+    const [allSubjects, setAllSubjects] = useState<Subject[]>([]);
     const [fromClass, setFromClass] = useState('');
     const [toClass, setToClass] = useState('');
-    const [studentsInClass, setStudentsInClass] = useState<Student[]>([]);
+    const [loading, setLoading] = useState(true);
     const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
-    const [loading, setLoading] = useState(false);
-    const [promoting, setPromoting] = useState(false);
-    const [notification, setNotification] = useState('');
-    const [isOnline, setIsOnline] = useState(navigator.onLine);
 
-
-    // New AI Feature State
-    const [aiSuggestions, setAiSuggestions] = useState<Record<string, AISuggestion>>({});
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [analysisError, setAnalysisError] = useState('');
-
-    // State for virtualization/infinite scroll
-    const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-    const loaderRef = useRef(null);
-
-    // Network status listener
     useEffect(() => {
-        const handleOnline = () => setIsOnline(true);
-        const handleOffline = () => setIsOnline(false);
-        window.addEventListener('online', handleOnline);
-        window.addEventListener('offline', handleOffline);
-        return () => {
-            window.removeEventListener('online', handleOnline);
-            window.removeEventListener('offline', handleOffline);
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const [studentsData, subjectsData] = await Promise.all([apiGetStudents(), apiGetSubjects()]);
+                setAllStudents(studentsData);
+                setAllSubjects(subjectsData);
+                const allClasses = [...new Set(subjectsData.flatMap(s => s.classes))].sort();
+                if (allClasses.length > 0) {
+                    setFromClass(allClasses[0]);
+                    setToClass(allClasses[1] || '');
+                }
+            } catch (error) {
+                console.error("Failed to fetch data for promotions:", error);
+            }
+            setLoading(false);
         };
+        fetchData();
     }, []);
 
-    // Observer for infinite scroll
-    useEffect(() => {
-        const observer = new IntersectionObserver((entries) => {
-            const first = entries[0];
-            if (first.isIntersecting) {
-                setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, studentsInClass.length));
-            }
-        }, { threshold: 1 });
+    const studentsInFromClass = useMemo(() => {
+        return allStudents.filter(s => s.class === fromClass && s.status !== 'alumni');
+    }, [allStudents, fromClass]);
 
-        const currentLoader = loaderRef.current;
-        if (currentLoader) {
-            observer.observe(currentLoader);
-        }
+    const allClasses = useMemo(() => [...new Set(allSubjects.flatMap(s => s.classes))].sort(), [allSubjects]);
 
-        return () => {
-            if (currentLoader) {
-                observer.unobserve(currentLoader);
-            }
-        };
-    }, [loaderRef, studentsInClass.length]);
-
-    const visibleStudents = studentsInClass.slice(0, visibleCount);
-
-    const fetchClasses = async () => {
-        const allSubjects: Subject[] = await apiGetSubjects();
-        const allClasses = [...new Set(allSubjects.flatMap(s => s.classes))].sort();
-        setClasses(allClasses);
-        if (allClasses.length > 1) {
-            if (!fromClass) setFromClass(allClasses[0]);
-            if (!toClass) setToClass(allClasses[1]);
-        }
-    };
-    
-    const fetchStudents = async () => {
-        if (!fromClass) {
-            setStudentsInClass([]);
-            return;
-        }
-        setLoading(true);
-        // Clear suggestions when class changes
-        setAiSuggestions({});
-        const students = await apiGetStudentsForClasses([fromClass]);
-        setStudentsInClass(students.filter(s => s.status !== 'alumni'));
-        setLoading(false);
-    };
-
-    useEffect(() => {
-        fetchClasses();
-    }, []);
-
-    useEffect(() => {
-        fetchStudents();
-        setVisibleCount(PAGE_SIZE); // Reset count when class changes
-    }, [fromClass]);
-
-    useEffect(() => {
-        const handleStorageUpdate = (event: Event) => {
-            const customEvent = event as CustomEvent;
-            const key = customEvent.detail?.key;
-            if (key === 'subjects') {
-                fetchClasses();
-            } else if (key === 'students') {
-                fetchStudents();
-            }
-        };
-        window.addEventListener('storage-update', handleStorageUpdate);
-        return () => window.removeEventListener('storage-update', handleStorageUpdate);
-    }, [fromClass]);
-    
     const handleSelectStudent = (studentId: string) => {
         setSelectedStudents(prev => {
             const newSet = new Set(prev);
@@ -131,261 +55,105 @@ const Promotions = () => {
         });
     };
 
-    const handleSelectAll = () => {
-        if (selectedStudents.size === studentsInClass.length) {
-            setSelectedStudents(new Set());
+    const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.checked) {
+            setSelectedStudents(new Set(studentsInFromClass.map(s => s.id)));
         } else {
-            setSelectedStudents(new Set(studentsInClass.map(s => s.id)));
+            setSelectedStudents(new Set());
         }
     };
-    
+
     const handlePromote = async () => {
-        if (selectedStudents.size === 0) {
-            alert('Please select students to promote.');
-            return;
-        }
-        
-        setPromoting(true);
-        setNotification('');
+        if (selectedStudents.size === 0 || !toClass || fromClass === toClass) return;
 
-        const lastClass = classes[classes.length - 1];
-        const isGraduating = fromClass === lastClass;
-        
-        if (isGraduating) {
-            if (!window.confirm(`You are about to graduate ${selectedStudents.size} student(s) from the final class. This will mark them as alumni. Continue?`)) {
-                setPromoting(false);
-                return;
-            }
-        } else {
-            if (fromClass === toClass) {
-                alert('Cannot promote students to the same class.');
-                setPromoting(false);
-                return;
-            }
-        }
+        await updateStudents(currentStudents =>
+            currentStudents.map(student =>
+                selectedStudents.has(student.id) ? { ...student, class: toClass } : student
+            )
+        );
 
-        try {
-            await updateStudents(allStudents => {
-                return allStudents.map(student => {
-                    if (selectedStudents.has(student.id)) {
-                        if (isGraduating) {
-                            return { 
-                                ...student, 
-                                status: 'alumni', 
-                                graduationYear: new Date().getFullYear(),
-                                class: `Graduated (${new Date().getFullYear()})`
-                            };
-                        } else {
-                            return { ...student, class: toClass };
-                        }
-                    }
-                    return student;
-                });
-            });
-
-            // Optimistic UI update
-            setStudentsInClass(prevStudents => prevStudents.filter(s => !selectedStudents.has(s.id)));
-            setSelectedStudents(new Set());
-
-            const successMessage = isGraduating
-                ? `${selectedStudents.size} student(s) graduated successfully!`
-                : `${selectedStudents.size} student(s) promoted successfully to ${toClass}!`;
-
-            setNotification(successMessage);
-            setTimeout(() => setNotification(''), 5000);
-
-        } catch (error) {
-            console.error("Operation failed:", error);
-            alert("An error occurred during the operation.");
-        } finally {
-            setPromoting(false);
-        }
+        const updatedStudents = allStudents.map(student =>
+            selectedStudents.has(student.id) ? { ...student, class: toClass } : student
+        );
+        setAllStudents(updatedStudents);
+        setSelectedStudents(new Set());
+        alert(`${selectedStudents.size} students promoted to ${toClass}!`);
     };
     
-    const handleAiSuggest = async () => {
-        if (!fromClass || !isOnline) return;
-        setIsAnalyzing(true);
-        setAnalysisError('');
-        setAiSuggestions({});
-
-        try {
-            const [scores, subjects, settings] = await Promise.all([
-                apiGetScores(),
-                apiGetSubjects(),
-                apiGetSchoolSettings()
-            ]);
-
-            const passMark = settings?.gradingSystem?.find(g => g.remark.toLowerCase() === 'pass')?.from || 45;
-            const coreSubjects = ['mathematics', 'english language'];
-
-            const studentPerformanceData = studentsInClass.map(student => {
-                const studentScores = scores.filter(s => s.studentId === student.id);
-                const scoresSummary = studentScores.map(score => {
-                    const subject = subjects.find(sub => sub.id === score.subjectId);
-                    const total = (score.ca1 || 0) + (score.ca2 || 0) + (score.exam || 0);
-                    return { subject: subject?.name || 'Unknown', total };
-                });
-                return { studentId: student.id, name: student.name, scores: scoresSummary };
-            });
-
-            const prompt = `
-                You are an expert AI educational assistant for a Nigerian school. Your task is to analyze student performance for the entire session and recommend promotion status.
-
-                School's Pass Mark: ${passMark}%. Core subjects are Mathematics and English Language.
-                Class to Analyze: ${fromClass}
-
-                Student Data:
-                ${JSON.stringify(studentPerformanceData)}
-
-                Based on this data, provide a promotion recommendation for each student.
-                - "Promote": Strong overall average and clear passes in core subjects.
-                - "Consider": Borderline average or failure in one core subject.
-                - "Repeat": Low overall average and failure in multiple core subjects.
-
-                Provide a brief, one-sentence justification for each decision. Your output MUST be a valid JSON array with this exact structure, with no extra text or markdown:
-                [
-                  { "studentId": "...", "suggestion": "Promote" | "Consider" | "Repeat", "justification": "..." }
-                ]
-            `;
-            
-            const responseText = await generateText(prompt);
-            const suggestions: AISuggestion[] = JSON.parse(responseText.replace(/```json/g, "").replace(/```/g, ""));
-            
-            const suggestionsMap = suggestions.reduce((acc, s) => {
-                acc[s.studentId] = s;
-                return acc;
-            }, {});
-
-            setAiSuggestions(suggestionsMap);
-
-        } catch (err) {
-            console.error("AI Suggestion Error:", err);
-            setAnalysisError("Failed to get AI suggestions. Please check your connection or try again.");
-        } finally {
-            setIsAnalyzing(false);
-        }
+    const handleGraduate = async () => {
+         if (selectedStudents.size === 0) return;
+         
+        await updateStudents(currentStudents =>
+            currentStudents.map((student): Student =>
+                selectedStudents.has(student.id) ? { ...student, status: 'alumni', graduationYear: new Date().getFullYear() } : student
+            )
+        );
+        
+        // Fix: Explicitly type the return value of the map function as Student to prevent TypeScript
+        // from incorrectly widening the 'status' property to a generic string.
+        const updatedStudents = allStudents.map((student): Student =>
+            selectedStudents.has(student.id) ? { ...student, status: 'alumni', graduationYear: new Date().getFullYear() } : student
+        );
+        setAllStudents(updatedStudents);
+        setSelectedStudents(new Set());
+        alert(`${selectedStudents.size} students have been moved to Alumni!`);
     };
 
-    const handleSelectPromoted = () => {
-        const promotedIds = Object.values(aiSuggestions)
-            .filter(s => s.suggestion === 'Promote')
-            .map(s => s.studentId);
-        setSelectedStudents(new Set(promotedIds));
-    };
-
-
-    const isFinalClass = fromClass === classes[classes.length - 1];
-
-    const SuggestionBadge = ({ suggestion }: { suggestion: SuggestionStatus }) => {
-        const styles = {
-            Promote: 'bg-green-100 text-green-800',
-            Consider: 'bg-yellow-100 text-yellow-800',
-            Repeat: 'bg-red-100 text-red-800'
-        };
-        return <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${styles[suggestion]}`}>{suggestion}</span>
-    };
+    if (loading) return <div className="card p-6 text-center">Loading...</div>;
 
     return (
-        <div>
-            <p className="mt-2 text-gray-600 dark:text-gray-300">Promote students to the next class or graduate them from the final class.</p>
-
-            {notification && <div className="my-4 p-3 text-sm text-green-700 bg-green-100 rounded-lg">{notification}</div>}
-            {analysisError && <div className="my-4 p-3 text-sm text-red-700 bg-red-100 rounded-lg">{analysisError}</div>}
-
-
-            <div className="card mt-6">
-                <div className="p-6 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                    <div>
-                        <label className="label">Promote From</label>
+        <div className="card">
+            <div className="p-6">
+                <h2 className="text-xl font-semibold">Student Promotions</h2>
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+                    <div className="lg:col-span-2">
+                        <label className="label">From Class</label>
                         <select className="input-field" value={fromClass} onChange={e => setFromClass(e.target.value)}>
-                            {classes.map(c => <option key={c} value={c}>{c}</option>)}
+                            {allClasses.map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
                     </div>
-                    <div>
-                        <label className="label">Promote To</label>
-                        <select className="input-field" value={toClass} onChange={e => setToClass(e.target.value)} disabled={isFinalClass}>
-                             {classes.map(c => <option key={c} value={c}>{c}</option>)}
-                        </select>
-                        {isFinalClass && <p className="text-xs text-indigo-600 mt-1">Students in the final class will be graduated.</p>}
+                    <div className="flex items-center justify-center pt-6">
+                         <ArrowRightIcon className="h-6 w-6 text-gray-400"/>
                     </div>
-                    <Tooltip text="Requires an internet connection">
-                        <div className="w-full"> {/* Wrapper div for tooltip on disabled element */}
-                            <button onClick={handleAiSuggest} className="btn btn-secondary w-full" disabled={isAnalyzing || !fromClass || !isOnline}>
-                                {isAnalyzing ? <SpinnerIcon className="w-5 h-5 animate-spin mr-2" /> : <SparklesIcon className="w-5 h-5 mr-2" />}
-                                {isAnalyzing ? 'Analyzing...' : 'AI Suggestions'}
-                            </button>
-                        </div>
-                    </Tooltip>
-                    <button onClick={handlePromote} className="btn btn-primary" disabled={promoting}>
-                        {promoting ? 'Processing...' : isFinalClass ? `Graduate ${selectedStudents.size}` : `Promote ${selectedStudents.size}`}
+                    <div className="lg:col-span-2">
+                        <label className="label">To Class</label>
+                        <select className="input-field" value={toClass} onChange={e => setToClass(e.target.value)}>
+                            <option value="">-- Select Destination --</option>
+                            {allClasses.filter(c => c !== fromClass).map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                    </div>
+                </div>
+                
+                <div className="table-container mt-6">
+                    <table className="table">
+                        <thead>
+                            <tr>
+                                <th className="th w-12"><input type="checkbox" onChange={handleSelectAll} checked={selectedStudents.size === studentsInFromClass.length && studentsInFromClass.length > 0} /></th>
+                                <th className="th">Student Name</th>
+                                <th className="th">Admission No.</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {studentsInFromClass.map(student => (
+                                <tr key={student.id}>
+                                    <td className="td"><input type="checkbox" checked={selectedStudents.has(student.id)} onChange={() => handleSelectStudent(student.id)} /></td>
+                                    <td className="td">{student.name}</td>
+                                    <td className="td">{student.admissionNo}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div className="mt-6 flex justify-end gap-4">
+                     <button onClick={handleGraduate} disabled={selectedStudents.size === 0} className="btn btn-secondary">
+                        <GraduationCapIcon className="w-5 h-5 mr-2" />
+                        Graduate Selected ({selectedStudents.size})
+                    </button>
+                    <button onClick={handlePromote} disabled={selectedStudents.size === 0 || !toClass || fromClass === toClass} className="btn btn-primary">
+                        Promote Selected ({selectedStudents.size})
                     </button>
                 </div>
-            </div>
-
-            <div className="table-container mt-6">
-                 {Object.keys(aiSuggestions).length > 0 && (
-                    <div className="p-4 bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700 flex justify-between items-center">
-                        <p className="text-sm text-gray-600 dark:text-gray-300">AI analysis complete. Review the suggestions and make your selections.</p>
-                        <button onClick={handleSelectPromoted} className="btn btn-secondary text-sm">Select All 'Promote'</button>
-                    </div>
-                 )}
-                <table className="table">
-                    <thead>
-                        <tr>
-                            <th className="th w-12">
-                                <input type="checkbox" className="rounded"
-                                    checked={selectedStudents.size === studentsInClass.length && studentsInClass.length > 0}
-                                    onChange={handleSelectAll}
-                                />
-                            </th>
-                            <th className="th">Student Name</th>
-                            <th className="th">Admission No.</th>
-                            <th className="th">AI Suggestion</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white dark:bg-gray-800">
-                        {loading ? (
-                            <tr><td colSpan={4} className="td text-center">Loading students...</td></tr>
-                        ) : studentsInClass.length === 0 ? (
-                             <tr><td colSpan={4} className="td text-center">No students in this class.</td></tr>
-                        ) : (
-                            <>
-                                {visibleStudents.map(student => {
-                                    const suggestion = aiSuggestions[student.id];
-                                    return (
-                                        <tr key={student.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                                            <td className="td">
-                                                <input type="checkbox" className="rounded"
-                                                    checked={selectedStudents.has(student.id)}
-                                                    onChange={() => handleSelectStudent(student.id)}
-                                                />
-                                            </td>
-                                            <td className="td font-medium">{student.name}</td>
-                                            <td className="td">{student.admissionNo}</td>
-                                            <td className="td">
-                                                {suggestion ? (
-                                                    <div>
-                                                        <SuggestionBadge suggestion={suggestion.suggestion} />
-                                                        <p className="text-xs text-gray-500 mt-1">{suggestion.justification}</p>
-                                                    </div>
-                                                ) : isAnalyzing ? (
-                                                    <span className="text-xs text-gray-400">Analyzing...</span>
-                                                ) : null}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                                {visibleCount < studentsInClass.length && (
-                                    <tr ref={loaderRef}>
-                                        <td colSpan={4} className="text-center p-4 text-gray-500">
-                                            Loading more...
-                                        </td>
-                                    </tr>
-                                )}
-                            </>
-                        )}
-                    </tbody>
-                </table>
             </div>
         </div>
     );

@@ -39,10 +39,23 @@ export default {
         });
       }
 
-      // Get the API key securely from the Cloudflare environment secrets
-      const apiKey = env.API_KEY;
-      if (!apiKey) {
-        console.error('API_KEY is not configured in the worker environment');
+      // --- HYBRID KEY LOGIC ---
+      // 1. Try to get the key from Cloudflare secrets (SECURE METHOD)
+      // 2. If not found, use the hardcoded key (INSECURE FALLBACK)
+
+      // WARNING: THIS IS AN INSECURE FALLBACK. DO NOT USE IN PRODUCTION.
+      const HARDCODED_API_KEY = "AIzaSyD26-Xj5UtHY6IKCgLh3nDlOKyHhbr-eK4"; 
+
+      const apiKey = env.API_KEY || HARDCODED_API_KEY;
+
+      if (!env.API_KEY) {
+          console.warn('--- SECURITY WARNING ---');
+          console.warn('API_KEY is not configured in Cloudflare secrets. Using hardcoded fallback key.');
+          console.warn('This is NOT recommended for production and exposes your API key if your code is public.');
+      }
+      
+      if (!apiKey || apiKey === "YOUR_GEMINI_API_KEY_HERE") {
+        console.error('API_KEY is not configured in Cloudflare secrets and no hardcoded key is provided.');
         return new Response(JSON.stringify({ error: 'AI service is not configured on the server.' }), {
           status: 500,
           headers,

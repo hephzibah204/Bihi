@@ -119,7 +119,8 @@ const ImportStudentsModal = ({ isOpen, onClose, onSuccess }) => {
                 return student;
             }).filter(s => Object.keys(s).length > 1); // Ensure it's not just an empty object with an ID
 
-            await updateStudents(existingStudents => [...(existingStudents || []), ...newStudents]);
+            // Fix: Cast the array of partial students to Student[] to satisfy the update function's type requirement.
+            await updateStudents(existingStudents => [...(existingStudents || []), ...newStudents as Student[]]);
             setStep('success');
 
         } catch (err) {

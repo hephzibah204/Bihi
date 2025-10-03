@@ -51,10 +51,18 @@ export const PlanFeaturesProvider = ({ children }: PropsWithChildren<{}>) => {
 
     const hasFeature = (featureKey: string): boolean => {
         if (!isSubscribed || !activePlan) return false;
-        return !!activePlan.features?.[featureKey];
+        // Correctly handle boolean or number feature flags
+        const featureValue = activePlan.features?.[featureKey];
+        if (typeof featureValue === 'boolean') {
+            return featureValue;
+        }
+        if (typeof featureValue === 'number') {
+            return featureValue > 0;
+        }
+        return false;
     };
 
-    const value = {
+    const value: PlanFeaturesContextType = {
         isSubscribed,
         hasFeature,
         isLoading,

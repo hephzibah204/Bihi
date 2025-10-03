@@ -3,7 +3,6 @@ import HomeIcon from './icons/HomeIcon';
 import UsersIcon from './icons/UsersIcon';
 import ClipboardListIcon from './icons/ClipboardListIcon';
 import CalendarDaysIcon from './icons/CalendarDaysIcon';
-import CommentGenerator from './CommentGenerator';
 import BrainCircuitIcon from './icons/BrainCircuitIcon';
 import { TeacherView } from '../types';
 import Logo from './icons/Logo';

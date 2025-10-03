@@ -9,7 +9,7 @@ const PlanManager = () => {
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setModalOpen] = useState(false);
     const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
-    const [planData, setPlanData] = useState({
+    const [planData, setPlanData] = useState<Partial<Plan>>({
         name: '', price_monthly: 0, price_termly: 0, price_yearly: 0,
         features: { hasAI: false, hasAnalytics: false, maxStudents: 500 }
     });
@@ -41,22 +41,28 @@ const PlanManager = () => {
         }
         setModalOpen(true);
     };
+    
+    const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value, type, checked } = e.target;
+        if (name.startsWith('features.')) {
+            const featureKey = name.split('.')[1];
+            setPlanData(prev => ({...prev, features: {...prev.features, [featureKey]: type === 'checkbox' ? checked : Number(value) }}));
+        } else {
+            setPlanData(prev => ({ ...prev, [name]: type === 'number' ? Number(value) : value }));
+        }
+    };
 
     const handleSubmit = async () => {
         let updatedPlans;
         if (editingPlan) {
-            updatedPlans = plans.map(p => p.id === editingPlan.id ? { ...planData, id: p.id } : p);
+            updatedPlans = plans.map(p => p.id === editingPlan.id ? { ...(planData as Plan), id: p.id } : p);
         } else {
-            updatedPlans = [...plans, { ...planData, id: `plan_${Date.now()}` }];
+            updatedPlans = [...plans, { ...(planData as Plan), id: `plan_${Date.now()}` }];
         }
         await handleSave(updatedPlans);
         setModalOpen(false);
     };
     
-    const handleFeatureChange = (feature, value) => {
-        setPlanData(prev => ({...prev, features: {...prev.features, [feature]: value }}));
-    };
-
     if (loading) return <p>Loading plans...</p>;
 
     return (
@@ -68,13 +74,14 @@ const PlanManager = () => {
                 </div>
                 <div className="table-container mt-4">
                     <table className="table">
-                        <thead><tr><th className="th">Name</th><th className="th">Monthly Price</th><th className="th">Features</th><th className="th">Actions</th></tr></thead>
+                        <thead><tr><th className="th">Name</th><th className="th">Monthly</th><th className="th">Termly</th><th className="th">Yearly</th><th className="th">Actions</th></tr></thead>
                         <tbody>
                             {plans.map(plan => (
                                 <tr key={plan.id}>
                                     <td className="td">{plan.name}</td>
                                     <td className="td">₦{plan.price_monthly.toLocaleString()}</td>
-                                    <td className="td text-xs">{Object.entries(plan.features).map(([key, val]) => `${key}: ${val}`).join(', ')}</td>
+                                    <td className="td">₦{plan.price_termly.toLocaleString()}</td>
+                                    <td className="td">₦{plan.price_yearly.toLocaleString()}</td>
                                     <td className="td"><button onClick={() => handleOpenModal(plan)} className="text-indigo-600">Edit</button></td>
                                 </tr>
                             ))}
@@ -84,12 +91,19 @@ const PlanManager = () => {
             </div>
             <Modal isOpen={isModalOpen} onClose={() => setModalOpen(false)} title={editingPlan ? 'Edit Plan' : 'Add New Plan'}>
                 <div className="p-6 space-y-4">
-                    <input value={planData.name} onChange={e => setPlanData({...planData, name: e.target.value})} placeholder="Plan Name" className="input-field" />
-                    <input type="number" value={planData.price_monthly} onChange={e => setPlanData({...planData, price_monthly: Number(e.target.value)})} placeholder="Monthly Price" className="input-field" />
-                    <div className="space-y-2">
-                        <label className="flex items-center"><input type="checkbox" checked={planData.features.hasAI} onChange={e => handleFeatureChange('hasAI', e.target.checked)} /> Has AI Tools</label>
-                        <label className="flex items-center"><input type="checkbox" checked={planData.features.hasAnalytics} onChange={e => handleFeatureChange('hasAnalytics', e.target.checked)} /> Has Analytics</label>
-                        <input type="number" value={planData.features.maxStudents} onChange={e => handleFeatureChange('maxStudents', Number(e.target.value))} placeholder="Max Students" className="input-field" />
+                    <div><label className="label">Plan Name</label><input name="name" value={planData.name} onChange={handleFormChange} className="input-field" /></div>
+                    <div className="grid grid-cols-3 gap-4">
+                        <div><label className="label">Monthly Price</label><input type="number" name="price_monthly" value={planData.price_monthly} onChange={handleFormChange} className="input-field" /></div>
+                        <div><label className="label">Termly Price</label><input type="number" name="price_termly" value={planData.price_termly} onChange={handleFormChange} className="input-field" /></div>
+                        <div><label className="label">Yearly Price</label><input type="number" name="price_yearly" value={planData.price_yearly} onChange={handleFormChange} className="input-field" /></div>
+                    </div>
+                    <div>
+                        <h4 className="font-semibold mt-4">Features</h4>
+                        <div className="space-y-2 mt-2">
+                             <div><label className="label">Max Students</label><input type="number" name="features.maxStudents" value={planData.features.maxStudents} onChange={handleFormChange} className="input-field" /></div>
+                            <label className="flex items-center space-x-2"><input type="checkbox" name="features.hasAI" checked={planData.features.hasAI} onChange={handleFormChange} /> <span>Enable AI Tools</span></label>
+                            <label className="flex items-center space-x-2"><input type="checkbox" name="features.hasAnalytics" checked={planData.features.hasAnalytics} onChange={handleFormChange} /> <span>Enable Advanced Analytics</span></label>
+                        </div>
                     </div>
                     <button onClick={handleSubmit} className="btn btn-primary">Save Plan</button>
                 </div>

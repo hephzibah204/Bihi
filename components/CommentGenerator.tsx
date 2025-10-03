@@ -1,103 +1,63 @@
 import React, { useState } from 'react';
 import { generateText } from '../services/geminiService';
 import SparklesIcon from './icons/SparklesIcon';
-import { generateFallbackComment } from '../services/fallbackAiService';
+import SpinnerIcon from './icons/SpinnerIcon';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
-import WifiSlashIcon from './icons/WifiSlashIcon';
+import { generateFallbackComment } from '../services/fallbackAiService';
 
 const CommentGenerator = () => {
-    const [studentName, setStudentName] = useState('');
-    const [performance, setPerformance] = useState('');
-    const [comment, setComment] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-    const [isOfflineResult, setIsOfflineResult] = useState(false);
+    const [studentInfo, setStudentInfo] = useState('');
+    const [generatedComment, setGeneratedComment] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
     const isOnline = useOnlineStatus();
 
     const handleGenerate = async () => {
-        if (!studentName || !performance) {
-            alert("Please enter both student name and performance summary.");
-            return;
-        }
-        setLoading(true);
-        setComment('');
-        setError('');
-        setIsOfflineResult(false);
-
-        const useFallback = async () => {
-            console.warn("Using offline fallback for comment generation.");
-            const fallbackComment = generateFallbackComment({
-                studentName,
-                performanceSummary: performance,
-            });
-            setComment(fallbackComment);
-            setIsOfflineResult(true);
-        };
-
-        if (!isOnline) {
-            await useFallback();
-            setLoading(false);
-            return;
-        }
-
+        if (!studentInfo) return;
+        setIsLoading(true);
+        setGeneratedComment('');
+        
         try {
-            const prompt = `
-                You are a helpful assistant for a teacher in a Nigerian school.
-                Generate a constructive and encouraging report card comment for a student.
-                The comment should be about 2-3 sentences long.
+            let comment;
+            const prompt = `Generate a constructive and encouraging report card comment (2-3 sentences) for a student based on the following performance summary: "${studentInfo}"`;
 
-                Student's Name: ${studentName}
-                Performance Summary: ${performance}
-
-                Generate the comment now.
-            `;
-            const generatedComment = await generateText(prompt);
-            
-            if (generatedComment.startsWith("Sorry, there was an error")) {
-                throw new Error(generatedComment);
+            if (isOnline) {
+                comment = await generateText(prompt);
+            } else {
+                comment = generateFallbackComment({ studentName: 'The student', performanceSummary: studentInfo });
             }
-            
-            setComment(generatedComment);
-        } catch (e) {
-            await useFallback();
+            setGeneratedComment(comment);
+        } catch (error) {
+            console.error("Failed to generate comment:", error);
+            setGeneratedComment("Sorry, I couldn't generate a comment right now. Please try again.");
         } finally {
-            setLoading(false);
+            setIsLoading(false);
         }
     };
 
     return (
         <div className="card">
             <div className="p-6">
-                <h2 className="text-xl font-semibold">AI Report Card Comment Generator</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <div>
-                        <label className="label">Student Name</label>
-                        <input type="text" className="input-field" value={studentName} onChange={e => setStudentName(e.target.value)} placeholder="e.g., Adebayo Chinedu" />
-                    </div>
-                    <div>
-                        <label className="label">Performance Summary</label>
-                        <input type="text" className="input-field" value={performance} onChange={e => setPerformance(e.target.value)} placeholder="e.g., Excellent in Maths, struggles with English grammar" />
-                    </div>
-                </div>
+                <h2 className="text-xl font-semibold">AI Comment Generator</h2>
+                <p className="mt-2 text-sm text-gray-500">
+                    Enter a student's performance summary (e.g., "Good in maths, struggles with reading comprehension") to get a personalized comment.
+                </p>
                 <div className="mt-4">
-                     <button onClick={handleGenerate} className="btn btn-primary" disabled={loading}>
-                        <SparklesIcon className="w-5 h-5 mr-2" />
-                        {loading ? 'Generating...' : 'Generate Comment'}
-                    </button>
+                    <textarea
+                        className="input-field"
+                        rows={3}
+                        value={studentInfo}
+                        onChange={(e) => setStudentInfo(e.target.value)}
+                        placeholder="e.g., Excels in creative writing, but needs to show workings in mathematics..."
+                    />
                 </div>
-                
-                {error && <div className="mt-4 text-red-500">{error}</div>}
-
-                {comment && !error && (
-                    <div className="mt-6 border-t pt-4">
-                        <h3 className="text-lg font-semibold">Generated Comment:</h3>
-                        {isOfflineResult && (
-                            <div className="my-2 p-2 bg-yellow-100 text-yellow-800 text-sm rounded-md flex items-center">
-                                <WifiSlashIcon className="w-5 h-5 mr-2 flex-shrink-0" />
-                                <span>You are offline. This is a basic comment generated by the app.</span>
-                            </div>
-                        )}
-                        <p className="mt-2 p-4 bg-gray-100 dark:bg-gray-700 rounded-md">{comment}</p>
+                <button onClick={handleGenerate} className="btn btn-primary mt-2" disabled={isLoading || !studentInfo}>
+                    {isLoading ? <SpinnerIcon className="w-5 h-5 animate-spin" /> : <SparklesIcon className="w-5 h-5" />}
+                    <span className="ml-2">{isLoading ? 'Generating...' : 'Generate Comment'}</span>
+                </button>
+                {generatedComment && (
+                    <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-700 rounded-md">
+                        <h4 className="font-semibold text-sm">Suggested Comment:</h4>
+                        <p className="mt-1 text-gray-800 dark:text-gray-200">{generatedComment}</p>
                     </div>
                 )}
             </div>

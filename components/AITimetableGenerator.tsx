@@ -1,83 +1,83 @@
 import React, { useState } from 'react';
 import Modal from './Modal';
 import { generateText } from '../services/geminiService';
+import SpinnerIcon from './icons/SpinnerIcon';
+import BrainCircuitIcon from './icons/BrainCircuitIcon';
 
 const AITimetableGenerator = ({ isOpen, onClose, onApply, subjects, teachers, classes, timeSlots, days }) => {
-    const [loading, setLoading] = useState(false);
-    const [generatedJson, setGeneratedJson] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [generatedTimetable, setGeneratedTimetable] = useState(null);
     const [error, setError] = useState('');
 
-    const generateTimetable = async () => {
-        setLoading(true);
+    const handleGenerate = async () => {
+        setIsLoading(true);
         setError('');
-        setGeneratedJson(null);
+        setGeneratedTimetable(null);
 
         const prompt = `
-            You are a school timetable generator. Your task is to create a valid weekly timetable in JSON format.
-            Here are the constraints and data:
-            - School classes: ${classes.join(', ')}
-            - Available subjects: ${subjects.map(s => `${s.name} (for classes: ${s.classes.join(', ')})`).join('; ')}
-            - Available teachers: ${teachers.map(t => t.name).join(', ')}
-            - Days of the week: ${days.join(', ')}
-            - Time slots per day: ${timeSlots.join(', ')}
+            You are an AI assistant that creates a school timetable.
+            Generate a JSON object representing a timetable. The top-level keys should be class names.
+            Each class should have keys for each day of the week.
+            Each day should have keys for each time slot, with a value of an object containing 'subjectId' and 'teacherId'.
+            
+            Constraints:
+            - A teacher cannot be in two places at once.
+            - A class cannot have two subjects at once.
+            - Distribute core subjects like Mathematics and English across different days.
 
-            Rules:
-            1. A teacher cannot be in two different classes at the same time.
-            2. Core subjects like Mathematics and English should be spread out and not clustered.
-            3. No class should have the same subject twice in one day.
-            4. Ensure every class has a schedule for every time slot on every day.
-            5. Assign a valid teacher to each subject slot. The teacher does not have to be subject-specific for this task.
+            Available Data:
+            Classes: ${JSON.stringify(classes)}
+            Subjects: ${JSON.stringify(subjects.map(s => ({ id: s.id, name: s.name, classes: s.classes })))}
+            Teachers: ${JSON.stringify(teachers.map(t => ({ id: t.id, name: t.name })))}
+            Days: ${JSON.stringify(days)}
+            Time Slots: ${JSON.stringify(timeSlots)}
 
-            Your output MUST be a JSON object with the following structure. Do not include any text or markdown formatting before or after the JSON object.
-            The structure should be: { "className": { "day": { "timeSlot": { "subjectId": "...", "teacherId": "..." } } } }
-
-            Here are the IDs to use:
-            - Subject IDs: ${JSON.stringify(subjects.map(s => ({ id: s.id, name: s.name })))}
-            - Teacher IDs: ${JSON.stringify(teachers.map(t => ({ id: t.id, name: t.name })))}
-
-            Now, generate the timetable.
+            Return ONLY the JSON object. Do not include any other text or markdown.
+            Example for one class: { "JSS 1": { "Monday": { "8:00 - 9:00": { "subjectId": "subj_1", "teacherId": "teacher_1" } } } }
         `;
 
         try {
             const response = await generateText(prompt);
-            // Clean the response to ensure it's valid JSON
-            const jsonString = response.replace(/```json/g, '').replace(/```/g, '').trim();
-            const parsedJson = JSON.parse(jsonString);
-            setGeneratedJson(parsedJson);
-        } catch (err) {
-            console.error("AI generation or parsing failed:", err);
-            setError("Failed to generate a valid timetable. The AI's response was not in the correct format. Please try again.");
+            const cleanedResponse = response.replace(/```json/g, '').replace(/```/g, '').trim();
+            const parsedTimetable = JSON.parse(cleanedResponse);
+            setGeneratedTimetable(parsedTimetable);
+        } catch (e) {
+            console.error("AI Timetable Generation Error:", e);
+            setError("Failed to generate timetable. The AI returned an invalid format or an error occurred. Please try again.");
         } finally {
-            setLoading(false);
+            setIsLoading(false);
         }
     };
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="AI Timetable Generator" size="lg">
             <div className="p-6">
-                <p className="text-gray-600 dark:text-gray-300">
-                    Let AI create a balanced timetable for all classes based on your school's subjects and teachers. This process can take a minute.
-                </p>
-                <div className="mt-6 flex justify-center">
-                    <button onClick={generateTimetable} className="btn btn-primary" disabled={loading}>
-                        {loading ? 'Generating...' : '✨ Generate New Timetable'}
-                    </button>
-                </div>
-                
-                {error && <div className="mt-4 p-3 text-sm text-red-700 bg-red-100 rounded-lg">{error}</div>}
+                {error && <p className="text-red-500 mb-4">{error}</p>}
 
-                {generatedJson && (
-                    <div className="mt-6">
-                        <h3 className="font-semibold">Generation Complete!</h3>
-                        <p className="text-sm text-gray-500">Review the generated timetable below. Applying it will overwrite the current schedule.</p>
-                        <div className="mt-4 max-h-64 overflow-y-auto bg-gray-100 dark:bg-gray-700 p-4 rounded-md">
-                            <pre className="text-xs">{JSON.stringify(generatedJson, null, 2)}</pre>
+                {generatedTimetable ? (
+                    <div>
+                        <h3 className="font-semibold">Generated Timetable Preview</h3>
+                        <p className="text-sm text-gray-500">Review the generated timetable. If it looks good, apply it.</p>
+                        <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-800 rounded max-h-96 overflow-auto">
+                            <pre className="text-xs">{JSON.stringify(generatedTimetable, null, 2)}</pre>
                         </div>
-                         <div className="mt-6 flex justify-end">
-                            <button onClick={() => onApply(generatedJson)} className="btn btn-primary">
-                                Apply Timetable
-                            </button>
+                         <div className="flex justify-end gap-2 mt-6">
+                            <button onClick={handleGenerate} className="btn btn-secondary">Regenerate</button>
+                            <button onClick={() => onApply(generatedTimetable)} className="btn btn-primary">Apply Timetable</button>
                         </div>
+                    </div>
+                ) : (
+                    <div className="text-center">
+                        <BrainCircuitIcon className="w-16 h-16 mx-auto text-indigo-500" />
+                        <h3 className="text-lg font-semibold mt-4">Generate Timetable with AI</h3>
+                        <p className="mt-2 text-gray-600 dark:text-gray-300 max-w-md mx-auto">
+                            Let AI create an optimized timetable based on your school's classes, subjects, and teachers.
+                            This process may take a moment.
+                        </p>
+                        <button onClick={handleGenerate} className="btn btn-primary mt-6" disabled={isLoading}>
+                            {isLoading && <SpinnerIcon className="w-5 h-5 mr-2 animate-spin" />}
+                            {isLoading ? 'Generating...' : 'Start Generation'}
+                        </button>
                     </div>
                 )}
             </div>

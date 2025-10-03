@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 // Fix: Correctly import DashboardView from the central types file, not from Sidebar.
 import Sidebar from './Sidebar';
-import { DashboardView } from '../types';
+import { DashboardView, SchoolSettings, Student } from '../types';
 import Header from './Header';
 import DashboardContent from './DashboardContent';
 import SandboxBanner from './SandboxBanner';
@@ -21,8 +21,8 @@ const setupDemoData = async () => {
     console.log("Setting up demo environment...");
     try {
         await Promise.all([
-            apiSaveSchoolSettings(demoSchoolSettings, DEMO_TENANT_ID),
-            apiSaveStudents(demoStudents, DEMO_TENANT_ID),
+            apiSaveSchoolSettings(demoSchoolSettings as SchoolSettings, DEMO_TENANT_ID),
+            apiSaveStudents(demoStudents as Student[], DEMO_TENANT_ID),
             // Fix: The function definition for apiSaveSubjects expects only one argument.
             apiSaveSubjects(demoSubjects, DEMO_TENANT_ID),
             apiSaveScores(demoScores, DEMO_TENANT_ID),

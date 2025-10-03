@@ -5,7 +5,7 @@ const AIAcademicTutor = () => {
         <div className="card">
             <div className="p-6">
                 <h2 className="text-xl font-semibold">AI Academic Tutor</h2>
-                <p className="mt-2 text-gray-500">This feature is coming soon!</p>
+                <p className="mt-2 text-gray-500">This feature is now integrated into the floating AI Assistant chat button on your dashboard.</p>
             </div>
         </div>
     );

@@ -1,3 +1,7 @@
+import { Student as StudentType } from './types';
+import { Teacher as TeacherType } from './components/Teachers';
+import { Subject as SubjectType } from './types';
+
 export interface Student {
   id: string;
   name: string;
@@ -57,7 +61,6 @@ export interface Plan {
   features: {
     [key: string]: boolean | number;
     hasAI: boolean;
-// Fix: Added hasAnalytics to the Plan features to match its usage in components.
     hasAnalytics: boolean;
     maxStudents: number;
   }

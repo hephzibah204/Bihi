@@ -34,7 +34,6 @@ const DashboardHome = ({ setActiveView }: { setActiveView: (view: DashboardView)
 
     return (
         <div>
-            
             <p className="mt-2 text-gray-600 dark:text-gray-300">Here are some quick actions to get you started.</p>
             
             {isLoading ? (

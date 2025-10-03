@@ -34,7 +34,6 @@ interface DashboardContentProps {
 
 const AiTools = () => (
     <div>
-        
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
             <CommentGenerator />
             <LessonPlanner />
@@ -46,7 +45,6 @@ const AiTools = () => (
     </div>
 );
 
-
 const DashboardContent = ({ activeView, setActiveView, userRole }: DashboardContentProps) => {
     const { isSubscribed, hasFeature, isLoading } = usePlanFeatures();
 
@@ -56,13 +54,12 @@ const DashboardContent = ({ activeView, setActiveView, userRole }: DashboardCont
         return <div className="card p-6">Loading subscription status...</div>;
     }
     
-    // Allow access to these pages even if not subscribed
-    if (activeView === 'settings' || activeView === 'billing') {
-        if (activeView === 'settings') return <SchoolSettings />;
-        if (activeView === 'billing') return <BillingDashboard />;
-    }
+    // Always allow access to these pages
+    if (activeView === 'settings') return <SchoolSettings />;
+    if (activeView === 'billing') return <BillingDashboard />;
     
     if (!isSubscribed) {
+        // For unsubscribed users, only show the dashboard prompt
         if (activeView === 'dashboard') {
             return <DashboardHome setActiveView={setActiveView} />;
         }
@@ -70,40 +67,23 @@ const DashboardContent = ({ activeView, setActiveView, userRole }: DashboardCont
     }
 
     switch(activeView) {
-        case 'dashboard':
-            return <DashboardHome setActiveView={setActiveView} />;
-        case 'students':
-            return <Students />;
-        case 'teachers':
-            return <Teachers />;
-        case 'subjects':
-            return <Subjects />;
-        case 'results':
-            return <Results />;
-        case 'report-cards':
-            return <ReportCard setActiveView={setActiveView} />;
-        case 'promotions':
-            return <Promotions />;
-        case 'id-cards':
-            return <IDCardGenerator />;
-        case 'timetable':
-            return <Timetable />;
-        case 'attendance':
-            return <Attendance />;
-        case 'behavioral':
-            return <BehavioralRemarks />;
-        case 'bursary':
-            return <Bursary />;
-        case 'communications':
-            return <CommunicationsDashboard />;
+        case 'dashboard': return <DashboardHome setActiveView={setActiveView} />;
+        case 'students': return <Students />;
+        case 'teachers': return <Teachers />;
+        case 'subjects': return <Subjects />;
+        case 'results': return <Results />;
+        case 'report-cards': return <ReportCard setActiveView={setActiveView} />;
+        case 'promotions': return <Promotions />;
+        case 'id-cards': return <IDCardGenerator />;
+        case 'timetable': return <Timetable />;
+        case 'attendance': return <Attendance />;
+        case 'behavioral': return <BehavioralRemarks />;
+        case 'bursary': return <Bursary />;
+        case 'communications': return <CommunicationsDashboard />;
         case 'analytics':
-// Fix: Corrected feature key from 'ANALYTICS' to 'hasAnalytics' to match plan definition.
              return hasFeature('hasAnalytics') ? <AdvancedAnalytics /> : <UpgradePrompt featureName="Advanced Analytics" onUpgradeClick={handleUpgrade} />;
         case 'ai-tools':
             return hasFeature('hasAI') ? <AiTools /> : <UpgradePrompt featureName="AI Tools" onUpgradeClick={handleUpgrade} />;
-        // Fix: Removed redundant 'billing' and 'settings' cases. They are handled in the guard clause above,
-        // and leaving them here causes a TypeScript error because control flow analysis
-        // knows they are unreachable.
         default:
             return <DashboardHome setActiveView={setActiveView} />;
     }

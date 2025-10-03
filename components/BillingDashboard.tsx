@@ -49,7 +49,22 @@ const BillingDashboard = () => {
             return;
         }
         
-        const price = plan[`price_${billingCycle}`] * 100; // Price in kobo
+        // Fix: Correctly access plan price from the root of the plan object, not from 'features'. This avoids type errors with arithmetic operations on potential boolean values.
+        let priceValue;
+        switch (billingCycle) {
+            case 'monthly':
+                priceValue = plan.price_monthly;
+                break;
+            case 'termly':
+                priceValue = plan.price_termly;
+                break;
+            case 'yearly':
+                priceValue = plan.price_yearly;
+                break;
+            default:
+                priceValue = plan.price_monthly;
+        }
+        const price = priceValue * 100; // Price in kobo
 
         const handler = window.PaystackPop.setup({
             key: paystackKey,
@@ -59,12 +74,10 @@ const BillingDashboard = () => {
             onClose: () => {},
             callback: async (response) => {
                 if (response.status === 'success') {
-                    // Payment successful, update the user's plan
                     await updateSchoolSettings(currentSettings => ({
                         ...currentSettings,
                         planId: plan.id,
                     }));
-                    // Reload the page to reflect the new subscription status
                     window.location.reload();
                 } else {
                     alert('Payment failed. Please try again.');
@@ -74,7 +87,6 @@ const BillingDashboard = () => {
         handler.openIframe();
     };
 
-
     const renderCurrentPlan = () => (
         <div className="card">
             <div className="p-6">
@@ -82,7 +94,6 @@ const BillingDashboard = () => {
                 <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
                     <p><strong>Current Plan:</strong> {planName}</p>
                     <p><strong>Status:</strong> {isSubscribed ? 'Active' : 'Not Subscribed'}</p>
-                    {isSubscribed && <p><strong>Next Billing Date:</strong> September 1, 2024</p>}
                 </div>
             </div>
         </div>
@@ -106,20 +117,37 @@ const BillingDashboard = () => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {allPlans.map(plan => (
-                            <div key={plan.id} className="p-6 border dark:border-gray-700 rounded-lg flex flex-col">
-                                <h3 className="text-lg font-bold">{plan.name}</h3>
-                                <p className="mt-4 text-3xl font-bold">₦{plan[`price_${billingCycle}`].toLocaleString()}</p>
-                                <ul className="mt-6 space-y-2 text-sm text-gray-600 dark:text-gray-300">
-                                    <li className="flex items-center"><CheckIcon className="w-4 h-4 mr-2 text-green-500"/> Up to {plan.features.maxStudents} students</li>
-                                    <li className={`flex items-center ${plan.features.hasAI ? '' : 'text-gray-400 line-through'}`}><CheckIcon className="w-4 h-4 mr-2 text-green-500"/> AI Assistant Tools</li>
-                                    <li className={`flex items-center ${plan.features.hasAnalytics ? '' : 'text-gray-400 line-through'}`}><CheckIcon className="w-4 h-4 mr-2 text-green-500"/> Advanced Analytics</li>
-                                </ul>
-                                <button onClick={() => handleSubscribe(plan)} className="btn btn-primary mt-auto">
-                                    {isSubscribed ? 'Switch Plan' : 'Subscribe'}
-                                </button>
-                            </div>
-                        ))}
+                        {allPlans.map(plan => {
+                            let priceForDisplay;
+                            switch (billingCycle) {
+                                case 'monthly':
+                                    priceForDisplay = plan.price_monthly;
+                                    break;
+                                case 'termly':
+                                    priceForDisplay = plan.price_termly;
+                                    break;
+                                case 'yearly':
+                                    priceForDisplay = plan.price_yearly;
+                                    break;
+                                default:
+                                    priceForDisplay = plan.price_monthly;
+                            }
+
+                            return (
+                                <div key={plan.id} className="p-6 border dark:border-gray-700 rounded-lg flex flex-col">
+                                    <h3 className="text-lg font-bold">{plan.name}</h3>
+                                    <p className="mt-4 text-3xl font-bold">₦{priceForDisplay.toLocaleString()}</p>
+                                    <ul className="mt-6 space-y-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <li className="flex items-center"><CheckIcon className="w-4 h-4 mr-2 text-green-500"/> Up to {plan.features.maxStudents} students</li>
+                                        <li className={`flex items-center ${plan.features.hasAI ? '' : 'text-gray-400 line-through'}`}><CheckIcon className="w-4 h-4 mr-2 text-green-500"/> AI Assistant Tools</li>
+                                        <li className={`flex items-center ${plan.features.hasAnalytics ? '' : 'text-gray-400 line-through'}`}><CheckIcon className="w-4 h-4 mr-2 text-green-500"/> Advanced Analytics</li>
+                                    </ul>
+                                    <button onClick={() => handleSubscribe(plan)} className="btn btn-primary mt-auto">
+                                        {isSubscribed ? 'Switch Plan' : 'Subscribe'}
+                                    </button>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             </div>
