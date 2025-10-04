@@ -59,6 +59,7 @@ const PlatformSettings = () => {
         await apiSavePlatformSettings(updatedSettings);
         setSettings(updatedSettings);
         setSaving(false);
+        alert('Settings saved!');
     };
     
     if (loading) return <p>Loading settings...</p>;

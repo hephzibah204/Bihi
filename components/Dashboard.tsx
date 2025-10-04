@@ -27,6 +27,7 @@ const Dashboard = () => {
     const [loading, setLoading] = useState(true);
     const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [activeView, setActiveView] = useState<DashboardView>(ADMIN_VIEWS.DASHBOARD);
+    const [profileStudentId, setProfileStudentId] = useState<string | null>(null);
     const [headerTitle, setHeaderTitle] = useState('Dashboard');
     const { syncStatus } = useSync();
     const [isLogoutModalOpen, setLogoutModalOpen] = useState(false);
@@ -135,11 +136,17 @@ const Dashboard = () => {
     };
 
     useEffect(() => {
-        const viewName = activeView.replace(/-/g, ' ');
-        const capitalizedTitle = viewName.charAt(0).toUpperCase() + viewName.slice(1);
-        setHeaderTitle(capitalizedTitle);
-        document.title = `${capitalizedTitle} | ReportSheet`;
+        let title = 'Dashboard';
+        if(activeView === ADMIN_VIEWS.STUDENT_PROFILE) {
+            title = 'Student Profile';
+        } else {
+            const viewName = activeView.replace(/-/g, ' ');
+            title = viewName.charAt(0).toUpperCase() + viewName.slice(1);
+        }
+        setHeaderTitle(title);
+        document.title = `${title} | ReportSheet`;
     }, [activeView]);
+
 
     const handleViewChange = (view: DashboardView) => {
         setActiveView(view);
@@ -147,6 +154,11 @@ const Dashboard = () => {
             setSidebarOpen(false);
         }
     }
+    
+    const handleViewStudentProfile = (studentId: string) => {
+        setProfileStudentId(studentId);
+        handleViewChange(ADMIN_VIEWS.STUDENT_PROFILE);
+    };
 
     if (loading) {
         return <div className="flex items-center justify-center h-screen">Authenticating...</div>;
@@ -185,7 +197,13 @@ const Dashboard = () => {
                             <div className="container mx-auto px-6 py-8">
                                 {activeView === ADMIN_VIEWS.MORE 
                                     ? <MoreView setActiveView={handleViewChange} /> 
-                                    : <DashboardContent activeView={activeView} setActiveView={handleViewChange} userRole={userRole} />
+                                    : <DashboardContent 
+                                        activeView={activeView} 
+                                        setActiveView={handleViewChange} 
+                                        userRole={userRole}
+                                        profileStudentId={profileStudentId}
+                                        onViewStudentProfile={handleViewStudentProfile}
+                                      />
                                 }
                             </div>
                         </main>

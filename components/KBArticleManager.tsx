@@ -5,6 +5,7 @@ import PlusIcon from './icons/PlusIcon';
 import { formatDate } from '../utils/dateHelpers';
 import EditIcon from './icons/EditIcon';
 import TrashIcon from './icons/TrashIcon';
+import RichTextEditor from './RichTextEditor';
 
 const KBArticleManager = () => {
     const [articles, setArticles] = useState([]);
@@ -87,7 +88,7 @@ const KBArticleManager = () => {
                     </table>
                 </div>
             </div>
-             <Modal isOpen={isModalOpen} onClose={() => setModalOpen(false)} title={editingArticle ? 'Edit KB Article' : 'New KB Article'}>
+             <Modal isOpen={isModalOpen} onClose={() => setModalOpen(false)} title={editingArticle ? 'Edit KB Article' : 'New KB Article'} size="lg">
                  <div className="p-6 space-y-4">
                     <div>
                         <label className="label">Title</label>
@@ -95,7 +96,10 @@ const KBArticleManager = () => {
                     </div>
                     <div>
                         <label className="label">Content</label>
-                        <textarea rows={10} value={articleData.content} onChange={e => setArticleData({...articleData, content: e.target.value})} className="input-field"></textarea>
+                        <RichTextEditor
+                            value={articleData.content}
+                            onChange={(content) => setArticleData(prev => ({ ...prev, content }))}
+                        />
                     </div>
                     <div>
                         <label className="label">Status</label>

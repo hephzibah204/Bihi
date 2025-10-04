@@ -3,6 +3,7 @@ import { apiGetPlatformSettings, apiSavePlatformSettings } from '../services/api
 import { Plan } from '../types';
 import Modal from './Modal';
 import PlusIcon from './icons/PlusIcon';
+import { CONTROLLABLE_FEATURES } from '../utils/constants';
 
 const PlanManager = () => {
     const [plans, setPlans] = useState<Plan[]>([]);
@@ -11,7 +12,7 @@ const PlanManager = () => {
     const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
     const [planData, setPlanData] = useState<Partial<Plan>>({
         name: '', price_monthly: 0, price_termly: 0, price_yearly: 0,
-        features: { hasAI: false, hasAnalytics: false, maxStudents: 500 }
+        features: { maxStudents: 500 }
     });
 
     useEffect(() => {
@@ -36,8 +37,10 @@ const PlanManager = () => {
             setEditingPlan(plan);
             setPlanData(plan);
         } else {
+            const defaultFeatures = { maxStudents: 500 };
+            CONTROLLABLE_FEATURES.forEach(f => defaultFeatures[f.key] = false);
             setEditingPlan(null);
-            setPlanData({ name: '', price_monthly: 0, price_termly: 0, price_yearly: 0, features: { hasAI: false, hasAnalytics: false, maxStudents: 500 } });
+            setPlanData({ name: '', price_monthly: 0, price_termly: 0, price_yearly: 0, features: defaultFeatures });
         }
         setModalOpen(true);
     };
@@ -89,25 +92,40 @@ const PlanManager = () => {
                     </table>
                 </div>
             </div>
-            <Modal isOpen={isModalOpen} onClose={() => setModalOpen(false)} title={editingPlan ? 'Edit Plan' : 'Add New Plan'}>
-                <div className="p-6 space-y-4">
-                    <div><label className="label">Plan Name</label><input name="name" value={planData.name} onChange={handleFormChange} className="input-field" /></div>
-                    <div className="grid grid-cols-3 gap-4">
-                        <div><label className="label">Monthly Price</label><input type="number" name="price_monthly" value={planData.price_monthly} onChange={handleFormChange} className="input-field" /></div>
-                        <div><label className="label">Termly Price</label><input type="number" name="price_termly" value={planData.price_termly} onChange={handleFormChange} className="input-field" /></div>
-                        <div><label className="label">Yearly Price</label><input type="number" name="price_yearly" value={planData.price_yearly} onChange={handleFormChange} className="input-field" /></div>
-                    </div>
-                    <div>
-                        <h4 className="font-semibold mt-4">Features</h4>
-                        <div className="space-y-2 mt-2">
-                             <div><label className="label">Max Students</label><input type="number" name="features.maxStudents" value={planData.features.maxStudents} onChange={handleFormChange} className="input-field" /></div>
-                            <label className="flex items-center space-x-2"><input type="checkbox" name="features.hasAI" checked={planData.features.hasAI} onChange={handleFormChange} /> <span>Enable AI Tools</span></label>
-                            <label className="flex items-center space-x-2"><input type="checkbox" name="features.hasAnalytics" checked={planData.features.hasAnalytics} onChange={handleFormChange} /> <span>Enable Advanced Analytics</span></label>
+            {isModalOpen && 
+                <Modal isOpen={isModalOpen} onClose={() => setModalOpen(false)} title={editingPlan ? 'Edit Plan' : 'Add New Plan'} size="lg">
+                    <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+                        <div><label className="label">Plan Name</label><input name="name" value={planData.name} onChange={handleFormChange} className="input-field" /></div>
+                        <div className="grid grid-cols-3 gap-4">
+                            <div><label className="label">Monthly Price</label><input type="number" name="price_monthly" value={planData.price_monthly} onChange={handleFormChange} className="input-field" /></div>
+                            <div><label className="label">Termly Price</label><input type="number" name="price_termly" value={planData.price_termly} onChange={handleFormChange} className="input-field" /></div>
+                            <div><label className="label">Yearly Price</label><input type="number" name="price_yearly" value={planData.price_yearly} onChange={handleFormChange} className="input-field" /></div>
+                        </div>
+                        <div>
+                            <h4 className="font-semibold mt-4">Features</h4>
+                            <div className="space-y-2 mt-2">
+                                <div><label className="label">Max Students</label><input type="number" name="features.maxStudents" value={planData.features?.maxStudents || 0} onChange={handleFormChange} className="input-field" /></div>
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
+                                    {CONTROLLABLE_FEATURES.map(feature => (
+                                        <label key={feature.key} className="flex items-center space-x-2">
+                                            <input 
+                                                type="checkbox" 
+                                                name={`features.${feature.key}`} 
+                                                checked={!!planData.features?.[feature.key]} 
+                                                onChange={handleFormChange} 
+                                            /> 
+                                            <span>{feature.name}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex justify-end pt-4">
+                            <button onClick={handleSubmit} className="btn btn-primary">Save Plan</button>
                         </div>
                     </div>
-                    <button onClick={handleSubmit} className="btn btn-primary">Save Plan</button>
-                </div>
-            </Modal>
+                </Modal>
+            }
         </div>
     );
 };

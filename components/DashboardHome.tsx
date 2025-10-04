@@ -9,9 +9,10 @@ import DashboardInsights from './DashboardInsights';
 import { usePlanFeatures } from '../contexts/PlanFeaturesContext';
 import SparklesIcon from './icons/SparklesIcon';
 import { ADMIN_VIEWS } from '../utils/constants';
+import PlanSelector from './PlanSelector';
 
 const DashboardHome = ({ setActiveView }: { setActiveView: (view: DashboardView) => void }) => {
-    const { isSubscribed, isLoading } = usePlanFeatures();
+    const { isSubscribed, planName, isLoading } = usePlanFeatures();
 
     const quickLinks = [
         { view: ADMIN_VIEWS.STUDENTS, title: "Manage Students", icon: <UsersIcon className="w-8 h-8"/>, description: "Add, edit, or import student records." },
@@ -21,21 +22,21 @@ const DashboardHome = ({ setActiveView }: { setActiveView: (view: DashboardView)
     ];
 
     const renderSubscriptionPrompt = () => (
-        <div className="card bg-indigo-50 dark:bg-indigo-900/50 my-6">
-            <div className="p-6 text-center">
-                 <SparklesIcon className="w-12 h-12 mx-auto text-indigo-500" />
-                 <h2 className="mt-4 text-xl font-semibold">Welcome to ReportSheet!</h2>
-                 <p className="mt-2 text-gray-600 dark:text-gray-300">Your account is active. Subscribe to a plan to unlock all features and start managing your school like a pro.</p>
-                 <button onClick={() => setActiveView(ADMIN_VIEWS.BILLING)} className="btn btn-primary mt-6">
-                    View Plans & Subscribe
-                </button>
+        <>
+            <div className="card bg-indigo-50 dark:bg-indigo-900/50 my-6">
+                <div className="p-6 text-center">
+                     <SparklesIcon className="w-12 h-12 mx-auto text-indigo-500" />
+                     <h2 className="mt-4 text-xl font-semibold">Welcome to ReportSheet!</h2>
+                     <p className="mt-2 text-gray-600 dark:text-gray-300">Your account is active. Subscribe to a plan to unlock all features and start managing your school like a pro.</p>
+                </div>
             </div>
-        </div>
+            <PlanSelector isSubscribed={isSubscribed} planName={planName} />
+        </>
     );
 
     return (
         <div>
-            <p className="mt-2 text-gray-600 dark:text-gray-300">Here are some quick actions to get you started.</p>
+            {isSubscribed && <p className="mt-2 text-gray-600 dark:text-gray-300">Here are some quick actions to get you started.</p>}
             
             {isLoading ? (
                 <div className="card mt-6 p-6 text-center">Loading...</div>

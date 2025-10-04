@@ -7,6 +7,8 @@ import CheckIcon from './icons/CheckIcon';
 import XIcon from './icons/XIcon';
 import { Student, Subject } from '../types';
 import { formatDate } from '../utils/dateHelpers';
+import { exportToCSV } from '../utils/csvExporter';
+import ArrowDownTrayIcon from './icons/ArrowDownTrayIcon';
 
 declare global {
     interface Window {
@@ -21,7 +23,7 @@ const Attendance = () => {
     const [students, setStudents] = useState<Student[]>([]);
     const [attendance, setAttendance] = useState({});
     const [loading, setLoading] = useState(false);
-    const [currentDate] = useState(new Date().toISOString().split('T')[0]);
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     
     const [isScannerOpen, setScannerOpen] = useState(false);
     const [scanResult, setScanResult] = useState({ message: '', type: '' });
@@ -74,23 +76,23 @@ const Attendance = () => {
             setLoading(true);
             const [fetchedStudents, dailyAttendance] = await Promise.all([
                 apiGetStudents({ classFilter: selectedClass }),
-                apiGetAttendance({ date: currentDate })
+                apiGetAttendance({ date: selectedDate })
             ]);
             setStudents(fetchedStudents);
             setAttendance(dailyAttendance[0]?.statuses || {});
             setLoading(false);
         };
         fetchStudentsAndAttendance();
-    }, [selectedClass, currentDate]);
+    }, [selectedClass, selectedDate]);
 
     useEffect(() => {
         if (Object.keys(attendance).length === 0) return; // Don't save on initial empty state
         if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
         saveTimeoutRef.current = setTimeout(() => {
-            apiSaveAttendanceRecord({ date: currentDate, statuses: attendanceRef.current });
+            apiSaveAttendanceRecord({ date: selectedDate, statuses: attendanceRef.current });
         }, 1000);
         return () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); };
-    }, [attendance, currentDate]);
+    }, [attendance, selectedDate]);
 
     const handleStatusChange = useCallback((studentId: string, status: string) => {
         setAttendance(prev => ({ ...prev, [studentId]: status }));
@@ -165,6 +167,15 @@ const Attendance = () => {
         }, 2000);
     };
 
+    const handleExport = () => {
+        const dataToExport = students.map(student => ({
+            student_name: student.name,
+            admission_no: student.admissionNo,
+            status: attendance[student.id] || 'N/A'
+        }));
+        exportToCSV(dataToExport, `attendance_${selectedClass}_${selectedDate}.csv`);
+    };
+
     const handleCloseScanner = () => { setScannerOpen(false); setScanResult({ message: '', type: '' }); };
     const handleCloseRecognition = () => { setRecognitionModalOpen(false); setRecognitionStatus({ message: 'Align your face in the frame.', type: 'info'}); };
 
@@ -175,9 +186,17 @@ const Attendance = () => {
                     <select value={selectedClass} onChange={e => setSelectedClass(e.target.value)} className="input-field">
                         {classes.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
-                    <div className="p-2 bg-white rounded-md shadow-sm"><strong>Date:</strong> {formatDate(currentDate)}</div>
+                    <input
+                        type="date"
+                        value={selectedDate}
+                        onChange={e => setSelectedDate(e.target.value)}
+                        className="input-field"
+                        aria-label="Select attendance date"
+                        max={new Date().toISOString().split('T')[0]}
+                    />
                 </div>
                  <div className="flex space-x-2">
+                    <button onClick={handleExport} className="btn btn-secondary" disabled={students.length === 0}><ArrowDownTrayIcon className="w-5 h-5 mr-2" /> Export</button>
                     <button onClick={() => setRecognitionModalOpen(true)} className="btn btn-secondary"><FaceIdIcon className="w-5 h-5 mr-2" /> Facial Recognition</button>
                     <button onClick={() => setScannerOpen(true)} className="btn btn-secondary"><QrCodeIcon className="w-5 h-5 mr-2" /> QR Code Scan</button>
                 </div>

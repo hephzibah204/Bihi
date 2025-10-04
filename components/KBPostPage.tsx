@@ -29,7 +29,7 @@ const KBPostPage = () => {
         <article className="prose dark:prose-invert max-w-none">
             <h1>{article.title}</h1>
             <p className="text-sm text-gray-500">Last updated: {formatDate(article.lastUpdated)}</p>
-            <div className="whitespace-pre-wrap">{article.content}</div>
+            <div className="prose-content" dangerouslySetInnerHTML={{ __html: article.content }} />
              <a href="?view=kb" className="mt-8 inline-block no-underline hover:text-indigo-600">← Back to Knowledge Base</a>
         </article>
     );

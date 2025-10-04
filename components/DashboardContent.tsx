@@ -26,12 +26,17 @@ import { usePlanFeatures } from '../contexts/PlanFeaturesContext';
 import UpgradePrompt from './UpgradePrompt';
 import Assignments from './Assignments';
 import { ADMIN_VIEWS } from '../utils/constants';
+import GeneralRemarks from './GeneralRemarks';
+import StudentProfilePage from './StudentProfilePage';
+import AlumniDashboard from './AlumniDashboard';
 
 
 interface DashboardContentProps {
     activeView: DashboardView;
     setActiveView: (view: DashboardView) => void;
     userRole: string;
+    profileStudentId?: string;
+    onViewStudentProfile?: (studentId: string) => void;
 }
 
 const AiTools = () => (
@@ -47,7 +52,7 @@ const AiTools = () => (
     </div>
 );
 
-const DashboardContent = ({ activeView, setActiveView, userRole }: DashboardContentProps) => {
+const DashboardContent = ({ activeView, setActiveView, userRole, profileStudentId, onViewStudentProfile }: DashboardContentProps) => {
     const { isSubscribed, hasFeature, isLoading } = usePlanFeatures();
 
     const handleUpgrade = () => setActiveView(ADMIN_VIEWS.BILLING);
@@ -70,11 +75,13 @@ const DashboardContent = ({ activeView, setActiveView, userRole }: DashboardCont
 
     switch(activeView) {
         case ADMIN_VIEWS.DASHBOARD: return <DashboardHome setActiveView={setActiveView} />;
-        case ADMIN_VIEWS.STUDENTS: return <Students />;
+        case ADMIN_VIEWS.STUDENTS: return <Students onViewProfile={onViewStudentProfile} />;
+        case ADMIN_VIEWS.STUDENT_PROFILE: return <StudentProfilePage studentId={profileStudentId} setActiveView={setActiveView} />;
         case ADMIN_VIEWS.TEACHERS: return <Teachers />;
         case ADMIN_VIEWS.SUBJECTS: return <Subjects />;
         case ADMIN_VIEWS.ASSIGNMENTS: return <Assignments />;
         case ADMIN_VIEWS.RESULTS: return <Results />;
+        case ADMIN_VIEWS.GENERAL_REMARKS: return <GeneralRemarks />;
         case ADMIN_VIEWS.REPORT_CARDS: return <ReportCard setActiveView={setActiveView} />;
         case ADMIN_VIEWS.PROMOTIONS: return <Promotions />;
         case ADMIN_VIEWS.ID_CARDS: return <IDCardGenerator />;
@@ -83,10 +90,12 @@ const DashboardContent = ({ activeView, setActiveView, userRole }: DashboardCont
         case ADMIN_VIEWS.BEHAVIORAL: return <BehavioralRemarks />;
         case ADMIN_VIEWS.BURSARY: return <Bursary />;
         case ADMIN_VIEWS.COMMUNICATIONS: return <CommunicationsDashboard />;
+        case ADMIN_VIEWS.ALUMNI:
+             return hasFeature('alumni') ? <AlumniDashboard /> : <UpgradePrompt featureName="Alumni Management" onUpgradeClick={handleUpgrade} />;
         case ADMIN_VIEWS.ANALYTICS:
-             return hasFeature('hasAnalytics') ? <AdvancedAnalytics /> : <UpgradePrompt featureName="Advanced Analytics" onUpgradeClick={handleUpgrade} />;
+             return hasFeature('analytics') ? <AdvancedAnalytics /> : <UpgradePrompt featureName="Advanced Analytics" onUpgradeClick={handleUpgrade} />;
         case ADMIN_VIEWS.AI_TOOLS:
-            return hasFeature('hasAI') ? <AiTools /> : <UpgradePrompt featureName="AI Tools" onUpgradeClick={handleUpgrade} />;
+            return hasFeature('ai-tools') ? <AiTools /> : <UpgradePrompt featureName="AI Tools" onUpgradeClick={handleUpgrade} />;
         default:
             return <DashboardHome setActiveView={setActiveView} />;
     }

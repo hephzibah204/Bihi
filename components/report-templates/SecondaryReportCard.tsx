@@ -28,11 +28,19 @@ const SecondaryReportCard = ({ student, students, scores, subjects, settings, te
         <div className="bg-white p-6" style={{ width: '210mm', minHeight: '297mm', fontSize: '10px' }}>
             <ReportCardHeader settings={settings} />
             
-            <div className="grid grid-cols-4 gap-x-2 my-4">
-                <span><strong>Name:</strong> {student.name}</span>
-                <span><strong>Class:</strong> {student.class}</span>
-                <span><strong>Session:</strong> {session}</span>
-                <span><strong>Term:</strong> {term}</span>
+            <div className="flex items-center space-x-4 my-4">
+                <img 
+                    src={student.photo || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(student.name)}`} 
+                    alt="Student" 
+                    className="w-24 h-24 object-cover rounded-md border"
+                />
+                <div className="grid grid-cols-3 gap-x-2">
+                    <span><strong>Name:</strong> {student.name}</span>
+                    <span><strong>Class:</strong> {student.class}</span>
+                    <span><strong>Session:</strong> {session}</span>
+                    <span><strong>Term:</strong> {term}</span>
+                    <span><strong>Admission No:</strong> {student.admissionNo}</span>
+                </div>
             </div>
             
             <h3 className="font-bold text-md mt-4 mb-2 border-b">ACADEMIC PERFORMANCE</h3>

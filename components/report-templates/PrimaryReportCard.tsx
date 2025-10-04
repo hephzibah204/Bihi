@@ -24,11 +24,18 @@ const PrimaryReportCard = ({ student, students, scores, subjects, settings, term
         <div className="bg-white p-6" style={{ width: '210mm', minHeight: '297mm', fontSize: '10px' }}>
             <ReportCardHeader settings={settings} />
             
-            <div className="grid grid-cols-2 gap-x-4 my-4">
-                <div><strong>Name:</strong> {student.name}</div>
-                <div><strong>Class:</strong> {student.class}</div>
-                <div><strong>Session:</strong> {session}</div>
-                <div><strong>Term:</strong> {term}</div>
+            <div className="flex items-center space-x-4 my-4">
+                 <img 
+                    src={student.photo || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(student.name)}`} 
+                    alt="Student" 
+                    className="w-20 h-20 object-cover rounded-md border"
+                />
+                <div className="grid grid-cols-2 gap-x-4">
+                    <div><strong>Name:</strong> {student.name}</div>
+                    <div><strong>Class:</strong> {student.class}</div>
+                    <div><strong>Session:</strong> {session}</div>
+                    <div><strong>Term:</strong> {term}</div>
+                </div>
             </div>
             
             <h3 className="font-bold text-md mt-4 mb-2 border-b">ACADEMIC PERFORMANCE</h3>

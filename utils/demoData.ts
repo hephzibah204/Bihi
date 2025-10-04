@@ -1,5 +1,5 @@
 import { USER_ROLES } from './constants';
-import { SchoolSettings, Parent, Student } from '../types';
+import { SchoolSettings, Parent, Student, Message } from '../types';
 
 export const DEMO_TENANT_ID = 'demo';
 
@@ -36,9 +36,9 @@ export const demoSubjects = [
 ];
 
 export const demoTeachers = [
-    { id: 'teacher_1', name: 'Mr. John Doe', email: 'johndoe@reportsheet.dev', role: USER_ROLES.ADMIN, classTeacherOf: 'JSS 1' },
-    { id: 'teacher_2', name: 'Mrs. Jane Smith', email: 'janesmith@reportsheet.dev', role: USER_ROLES.TEACHER, classTeacherOf: 'JSS 2' },
-    { id: 'teacher_3', name: 'Mr. Femi Adebayo', email: 'femi@reportsheet.dev', role: USER_ROLES.BURSAR, classTeacherOf: '' },
+    { id: 'teacher_1', auth_id: 'teacher_1_auth', name: 'Mr. John Doe', email: 'johndoe@reportsheet.dev', role: USER_ROLES.ADMIN, classTeacherOf: 'JSS 1' },
+    { id: 'teacher_2', auth_id: 'teacher_2_auth', name: 'Mrs. Jane Smith', email: 'janesmith@reportsheet.dev', role: USER_ROLES.TEACHER, classTeacherOf: 'JSS 2' },
+    { id: 'teacher_3', auth_id: 'teacher_3_auth', name: 'Mr. Femi Adebayo', email: 'femi@reportsheet.dev', role: USER_ROLES.BURSAR, classTeacherOf: '' },
 ];
 
 // Fix: Add and export demoParents
@@ -49,7 +49,28 @@ export const demoParents: Parent[] = [
 
 // Fix: Rename demoStudentData to demoStudents and export it. Link students to parents.
 export const demoStudents: Student[] = [
-    { id: 'stud_1', name: 'Adekunle Gold', admissionNo: 'RS-001', class: 'JSS 1', gender: 'Male', dob: '2010-05-15', photo: 'https://i.pravatar.cc/150?u=stud_1', parentId: 'parent_1', parentEmail: 'adekunle@family.com' },
-    { id: 'stud_2', name: 'Simisola Adekunle', admissionNo: 'RS-002', class: 'JSS 1', gender: 'Female', dob: '2010-08-22', photo: 'https://i.pravatar.cc/150?u=stud_2', parentId: 'parent_1', parentEmail: 'adekunle@family.com' },
-    { id: 'stud_3', name: 'David Okoro', admissionNo: 'RS-003', class: 'JSS 2', gender: 'Male', dob: '2009-02-10', photo: 'https://i.pravatar.cc/150?u=stud_3', parentId: 'parent_2', parentEmail: 'chioma.okoro@example.com' },
+    { id: 'stud_1', name: 'Adekunle Gold', admissionNo: 'RS-001', class: 'JSS 1', gender: 'Male', dob: '2010-05-15', photo: 'https://i.imgur.com/4z1y2fn.jpeg', parentId: 'parent_1', parentEmail: 'adekunle@family.com' },
+    { id: 'stud_2', name: 'Simisola Adekunle', admissionNo: 'RS-002', class: 'JSS 1', gender: 'Female', dob: '2010-08-22', photo: 'https://i.imgur.com/iAn3dI8.jpeg', parentId: 'parent_1', parentEmail: 'adekunle@family.com' },
+    { id: 'stud_3', name: 'David Okoro', admissionNo: 'RS-003', class: 'JSS 2', gender: 'Male', dob: '2009-02-10', photo: 'https://i.imgur.com/zW2jZfW.jpeg', parentId: 'parent_2', parentEmail: 'chioma.okoro@example.com' },
+];
+
+export const demoMessages: Message[] = [
+    {
+        id: 'msg_1',
+        conversationId: ['parent_1', 'teacher_1_auth'].sort().join('_'),
+        senderId: 'parent_1',
+        recipientId: 'teacher_1_auth',
+        content: 'Good day Mr. John, I wanted to ask about Adekunle\'s performance in Mathematics.',
+        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+        read: true,
+    },
+    {
+        id: 'msg_2',
+        conversationId: ['parent_1', 'teacher_1_auth'].sort().join('_'),
+        senderId: 'teacher_1_auth',
+        recipientId: 'parent_1',
+        content: 'Good day Mr. Adekunle. He is doing well, but he needs to work on his assignments and submit them on time. His test scores are quite good.',
+        timestamp: new Date(Date.now() - 1000 * 60 * 55).toISOString(),
+        read: false,
+    }
 ];

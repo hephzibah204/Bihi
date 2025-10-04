@@ -17,6 +17,11 @@ import XIcon from './icons/XIcon';
 import Logo from './icons/Logo';
 import { ADMIN_VIEWS, USER_ROLES } from '../utils/constants';
 import Assignments from './Assignments';
+import PencilSquareIcon from './icons/PencilSquareIcon';
+import { usePlanFeatures } from '../contexts/PlanFeaturesContext';
+// Fix: Import the missing CreditCardIcon component.
+import CreditCardIcon from './icons/CreditCardIcon';
+import UsersGroupIcon from './icons/UsersGroupIcon';
 
 interface SidebarProps {
     isSidebarOpen: boolean;
@@ -42,34 +47,44 @@ const NavLink: React.FC<{ icon: React.ReactNode; label: string; view: DashboardV
 );
 
 const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView, userRole }: SidebarProps) => {
+    const { hasFeature } = usePlanFeatures();
     
-    const adminNavLinks = [
-        { view: ADMIN_VIEWS.DASHBOARD, label: 'Dashboard', icon: <HomeIcon className="h-5 w-5" /> },
+    const allAdminNavLinks = [
+        { view: ADMIN_VIEWS.DASHBOARD, label: 'Dashboard', icon: <HomeIcon className="h-5 w-5" />, essential: true },
         { view: ADMIN_VIEWS.STUDENTS, label: 'Students', icon: <UsersIcon className="h-5 w-5" /> },
         { view: ADMIN_VIEWS.TEACHERS, label: 'Teachers', icon: <UsersIcon className="h-5 w-5" /> },
         { view: ADMIN_VIEWS.SUBJECTS, label: 'Subjects', icon: <BookOpenIcon className="h-5 w-5" /> },
         { view: ADMIN_VIEWS.ASSIGNMENTS, label: 'Assignments', icon: <ClipboardListIcon className="h-5 w-5" /> },
         { view: ADMIN_VIEWS.RESULTS, label: 'Enter Scores', icon: <ClipboardListIcon className="h-5 w-5" /> },
+        { view: ADMIN_VIEWS.GENERAL_REMARKS, label: 'General Remarks', icon: <PencilSquareIcon className="h-5 w-5" /> },
         { view: ADMIN_VIEWS.REPORT_CARDS, label: 'Report Cards', icon: <DocumentArrowDownIcon className="h-5 w-5" /> },
         { view: ADMIN_VIEWS.PROMOTIONS, label: 'Promotions', icon: <ArrowUpOnSquareIcon className="h-5 w-5" /> },
         { view: ADMIN_VIEWS.ID_CARDS, label: 'ID Cards', icon: <IdentificationIcon className="h-5 w-5" /> },
         { view: ADMIN_VIEWS.TIMETABLE, label: 'Timetable', icon: <ClockIcon className="h-5 w-5" /> },
         { view: ADMIN_VIEWS.ATTENDANCE, label: 'Attendance', icon: <ClipboardListIcon className="h-5 w-5" /> },
         { view: ADMIN_VIEWS.COMMUNICATIONS, label: 'Communications', icon: <EnvelopeIcon className="h-5 w-5" /> },
-    ];
-
-    const bursarNavLinks = [
-        { view: ADMIN_VIEWS.DASHBOARD, label: 'Dashboard', icon: <HomeIcon className="h-5 w-5" /> },
         { view: ADMIN_VIEWS.BURSARY, label: 'Bursary', icon: <WalletIcon className="h-5 w-5" /> },
-        { view: ADMIN_VIEWS.STUDENTS, label: 'Students', icon: <UsersIcon className="h-5 w-5" /> },
+        { view: ADMIN_VIEWS.ALUMNI, label: 'Alumni', icon: <UsersGroupIcon className="h-5 w-5" /> },
     ];
     
+    const adminNavLinks = allAdminNavLinks.filter(link => link.essential || hasFeature(link.view));
+
+    const bursarNavLinks = [
+        { view: ADMIN_VIEWS.DASHBOARD, label: 'Dashboard', icon: <HomeIcon className="h-5 w-5" />, essential: true },
+        { view: ADMIN_VIEWS.BURSARY, label: 'Bursary', icon: <WalletIcon className="h-5 w-5" /> },
+        { view: ADMIN_VIEWS.STUDENTS, label: 'Students', icon: <UsersIcon className="h-5 w-5" /> },
+    ].filter(link => link.essential || hasFeature(link.view));
+    
     const navLinks = userRole === USER_ROLES.BURSAR ? bursarNavLinks : adminNavLinks;
-    const bottomNavLinks = [
+    
+    const allBottomNavLinks = [
         { view: ADMIN_VIEWS.ANALYTICS, label: 'Analytics', icon: <ChartBarIcon className="h-5 w-5" /> },
         { view: ADMIN_VIEWS.AI_TOOLS, label: 'AI Tools', icon: <BrainCircuitIcon className="h-5 w-5" /> },
-        { view: ADMIN_VIEWS.SETTINGS, label: 'Settings', icon: <Cog6ToothIcon className="h-5 w-5" /> },
+        { view: ADMIN_VIEWS.SETTINGS, label: 'Settings', icon: <Cog6ToothIcon className="h-5 w-5" />, essential: true },
+        { view: ADMIN_VIEWS.BILLING, label: 'Billing', icon: <CreditCardIcon className="h-5 w-5" />, essential: true },
     ];
+
+    const bottomNavLinks = allBottomNavLinks.filter(link => link.essential || hasFeature(link.view));
 
     return (
         <>

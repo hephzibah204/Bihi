@@ -2,6 +2,7 @@ import React, { useState, useEffect, PropsWithChildren } from 'react';
 import { apiGetAnnouncements, apiSendAnnouncement, apiGetSubjects } from '../services/api';
 import { Subject } from '../types';
 import SpinnerIcon from './icons/SpinnerIcon';
+import DirectMessages from './DirectMessages';
 
 const CommunicationsDashboard = () => {
     const [announcements, setAnnouncements] = useState([]);
@@ -79,12 +80,69 @@ const CommunicationsDashboard = () => {
             {children}
         </button>
     );
+    
+    const renderActiveTab = () => {
+        switch (activeTab) {
+            case 'messages':
+                return <DirectMessages />;
+            case 'sent':
+                 return (
+                    <div className="card">
+                        <div className="p-6">
+                            {loading ? <p>Loading...</p> : (
+                                <ul className="space-y-4">
+                                    {announcements.map(ann => (
+                                        <li key={ann.id} className="p-4 border rounded-lg">
+                                            <p className="font-semibold">{ann.title}</p>
+                                            <p className="text-sm text-gray-600 mt-1">{ann.content}</p>
+                                            <p className="text-xs text-gray-400 mt-2">{new Date(ann.created_at).toLocaleString()}</p>
+                                        </li>
+                                    ))}
+                                    {announcements.length === 0 && <p className="text-center text-gray-500">No announcements have been sent.</p>}
+                                </ul>
+                            )}
+                        </div>
+                    </div>
+                );
+            case 'compose':
+            default:
+                return (
+                    <div className="card">
+                        <div className="p-6 space-y-4">
+                            <div>
+                                <label className="label">Title</label>
+                                <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="input-field" />
+                            </div>
+                            <div>
+                                <label className="label">Content</label>
+                                <textarea value={content} onChange={e => setContent(e.target.value)} className="input-field" rows={6}></textarea>
+                            </div>
+                            <div>
+                                <label className="label">Recipients</label>
+                                 <select multiple value={recipients} onChange={e => setRecipients(Array.from(e.target.selectedOptions, (option: HTMLOptionElement) => option.value))} className="input-field h-32">
+                                    <option value="all">All Students & Parents</option>
+                                    {classes.map(c => <option key={c} value={c}>Class: {c}</option>)}
+                                </select>
+                                <p className="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple.</p>
+                            </div>
+                            <div className="flex justify-end">
+                                <button onClick={handleSend} className="btn btn-primary" disabled={sending}>
+                                    {sending && <SpinnerIcon className="w-5 h-5 mr-2 animate-spin" />}
+                                    {sending ? 'Sending...' : 'Send Announcement'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+        }
+    };
 
     return (
         <div>
             <div className="flex border-b mb-6">
-                <TabButton view="compose">Compose</TabButton>
+                <TabButton view="compose">Compose Announcement</TabButton>
                 <TabButton view="sent">Sent Announcements</TabButton>
+                <TabButton view="messages">Direct Messages</TabButton>
             </div>
 
             {notification.message && (
@@ -93,54 +151,7 @@ const CommunicationsDashboard = () => {
                 </div>
             )}
             
-            {activeTab === 'compose' && (
-                <div className="card">
-                    <div className="p-6 space-y-4">
-                        <div>
-                            <label className="label">Title</label>
-                            <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="input-field" />
-                        </div>
-                        <div>
-                            <label className="label">Content</label>
-                            <textarea value={content} onChange={e => setContent(e.target.value)} className="input-field" rows={6}></textarea>
-                        </div>
-                        <div>
-                            <label className="label">Recipients</label>
-                             {/* Fix: Explicitly type `option` to resolve property access error. */}
-                             <select multiple value={recipients} onChange={e => setRecipients(Array.from(e.target.selectedOptions, (option: HTMLOptionElement) => option.value))} className="input-field h-32">
-                                <option value="all">All Students & Parents</option>
-                                {classes.map(c => <option key={c} value={c}>Class: {c}</option>)}
-                            </select>
-                            <p className="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple.</p>
-                        </div>
-                        <div className="flex justify-end">
-                            <button onClick={handleSend} className="btn btn-primary" disabled={sending}>
-                                {sending && <SpinnerIcon className="w-5 h-5 mr-2 animate-spin" />}
-                                {sending ? 'Sending...' : 'Send Announcement'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {activeTab === 'sent' && (
-                <div className="card">
-                    <div className="p-6">
-                        {loading ? <p>Loading...</p> : (
-                            <ul className="space-y-4">
-                                {announcements.map(ann => (
-                                    <li key={ann.id} className="p-4 border rounded-lg">
-                                        <p className="font-semibold">{ann.title}</p>
-                                        <p className="text-sm text-gray-600 mt-1">{ann.content}</p>
-                                        <p className="text-xs text-gray-400 mt-2">{new Date(ann.created_at).toLocaleString()}</p>
-                                    </li>
-                                ))}
-                                {announcements.length === 0 && <p className="text-center text-gray-500">No announcements have been sent.</p>}
-                            </ul>
-                        )}
-                    </div>
-                </div>
-            )}
+            {renderActiveTab()}
         </div>
     );
 };

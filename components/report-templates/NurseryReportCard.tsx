@@ -36,11 +36,18 @@ const NurseryReportCard = ({ student, settings, students, scores, subjects, term
   return (
     <div className="bg-white p-6 shadow-lg" id={`report-card-${student.id}`}>
       <ReportCardHeader settings={settings} />
-      <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
-        <div><strong>Name:</strong> {student.name}</div>
-        <div><strong>Class:</strong> {student.class}</div>
-        <div><strong>Session:</strong> {session}</div>
-        <div><strong>Term:</strong> {term}</div>
+      <div className="flex items-center space-x-4 my-4 text-sm">
+         <img 
+            src={student.photo || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(student.name)}`} 
+            alt="Student" 
+            className="w-20 h-20 object-cover rounded-md border"
+        />
+        <div className="grid grid-cols-2 gap-4">
+            <div><strong>Name:</strong> {student.name}</div>
+            <div><strong>Class:</strong> {student.class}</div>
+            <div><strong>Session:</strong> {session}</div>
+            <div><strong>Term:</strong> {term}</div>
+        </div>
       </div>
       
       <h3 className="font-bold text-md mt-6 mb-2 border-b">Cognitive Development</h3>

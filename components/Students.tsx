@@ -12,8 +12,11 @@ import FaceEnrollmentModal from './FaceEnrollmentModal';
 import ImportStudentsModal from './ImportStudentsModal';
 import { useQRCodeGenerator } from '../hooks/useQRCodeGenerator';
 import ConfirmationModal from './ConfirmationModal';
+import { compressImage } from '../utils/imageCompressor';
+import { exportToCSV } from '../utils/csvExporter';
+import ArrowDownTrayIcon from './icons/ArrowDownTrayIcon';
 
-const Students = () => {
+const Students = ({ onViewProfile }) => {
     const [students, setStudents] = useState<Student[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -79,6 +82,19 @@ const Students = () => {
         setQRModalOpen(true);
     };
 
+    const handleExport = () => {
+        const dataToExport = filteredStudents.map(({ name, admissionNo, class: studentClass, gender, dob, parentEmail }) => ({
+            name,
+            admissionNo,
+            class: studentClass,
+            gender,
+            dob,
+            parentEmail,
+        }));
+        const className = students[0]?.class || 'students';
+        exportToCSV(dataToExport, `students_${className.replace(/\s+/g, '_')}.csv`);
+    };
+
     if (loading) return <div>Loading students...</div>;
 
     return (
@@ -92,6 +108,7 @@ const Students = () => {
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
                 <div className="flex space-x-2">
+                    <button onClick={handleExport} className="btn btn-secondary" disabled={filteredStudents.length === 0}><ArrowDownTrayIcon className="w-5 h-5 mr-2"/> Export</button>
                     <button onClick={() => setImportModalOpen(true)} className="btn btn-secondary"><ArrowUpTrayIcon className="w-5 h-5 mr-2"/> Import</button>
                     <button onClick={() => handleOpenModal()} className="btn btn-primary"><PlusIcon className="w-5 h-5 mr-2"/> Add Student</button>
                 </div>
@@ -109,7 +126,11 @@ const Students = () => {
                     <tbody className="bg-white divide-y">
                         {filteredStudents.map(student => (
                             <tr key={student.id}>
-                                <td className="td font-medium">{student.name}</td>
+                                <td className="td">
+                                     <button onClick={() => onViewProfile(student.id)} className="font-medium text-indigo-600 hover:underline">
+                                        {student.name}
+                                    </button>
+                                </td>
                                 <td className="td">{student.admissionNo}</td>
                                 <td className="td">{student.class}</td>
                                 <td className="td text-right space-x-2">
@@ -148,11 +169,30 @@ const Students = () => {
 
 const StudentFormModal = ({ student, onSave, onClose }) => {
     const [formData, setFormData] = useState<Partial<Student>>({
-        name: '', admissionNo: '', class: '', gender: 'Male', dob: '', parentEmail: '', ...student
+        name: '', admissionNo: '', class: '', gender: 'Male', dob: '', parentEmail: '', photo: '', ...student
     });
+    const [photoPreview, setPhotoPreview] = useState(formData.photo || '');
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            try {
+                const compressedBlob = await compressImage(file, { maxWidth: 200, quality: 0.8 });
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const base64String = reader.result as string;
+                    setPhotoPreview(base64String);
+                    setFormData(prev => ({ ...prev, photo: base64String }));
+                };
+                reader.readAsDataURL(compressedBlob);
+            } catch (error) {
+                console.error("Error processing image:", error);
+            }
+        }
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -163,6 +203,17 @@ const StudentFormModal = ({ student, onSave, onClose }) => {
     return (
         <Modal isOpen={true} onClose={onClose} title={student ? 'Edit Student' : 'Add Student'}>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                <div>
+                    <label className="label">Profile Photo</label>
+                    <div className="flex items-center space-x-4">
+                        <img 
+                            src={photoPreview || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(formData.name || 'S')}`} 
+                            alt="Profile" 
+                            className="w-20 h-20 rounded-full object-cover bg-gray-200"
+                        />
+                        <input type="file" accept="image/*" onChange={handlePhotoChange} className="input-field" />
+                    </div>
+                </div>
                 <div><label className="label">Full Name</label><input name="name" value={formData.name} onChange={handleChange} className="input-field" required /></div>
                 <div><label className="label">Admission No.</label><input name="admissionNo" value={formData.admissionNo} onChange={handleChange} className="input-field" required /></div>
                 <div><label className="label">Class</label><input name="class" value={formData.class} onChange={handleChange} className="input-field" required /></div>

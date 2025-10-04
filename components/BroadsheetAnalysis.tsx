@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { apiGetStudents, apiGetScores, apiGetSubjects } from '../services/api';
 import { Student, Score, Subject } from '../types';
+import { exportToCSV } from '../utils/csvExporter';
+import ArrowDownTrayIcon from './icons/ArrowDownTrayIcon';
 
 const BroadsheetAnalysis = () => {
     const [classes, setClasses] = useState<string[]>([]);
@@ -70,18 +72,46 @@ const BroadsheetAnalysis = () => {
         return { studentId: student.id, total: totalScore };
     });
 
+    const handleExport = () => {
+        const dataToExport = students.map(student => {
+            const row: { [key: string]: any } = {
+                'Student Name': student.name,
+                'Admission No': student.admissionNo,
+            };
+            
+            let totalScore = 0;
+            subjects.forEach(subject => {
+                const score = getStudentScore(student.id, subject.id).total;
+                row[subject.name] = score;
+                totalScore += score;
+            });
+
+            row['Total'] = totalScore;
+            row['Average'] = subjects.length > 0 ? (totalScore / subjects.length).toFixed(1) : 0;
+            
+            return row;
+        });
+
+        exportToCSV(dataToExport, `broadsheet_${selectedClass}.csv`);
+    };
+
     return (
         <div>
-            <h1 className="text-2xl font-semibold">Broadsheet Analysis</h1>
-            <div className="my-4">
-                <label className="label">Select Class</label>
-                <select className="input-field max-w-xs" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
-                    {classes.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
+            <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-semibold">Broadsheet Analysis</h1>
+                <div className="flex items-center gap-4">
+                    <select className="input-field max-w-xs" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
+                        {classes.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <button onClick={handleExport} className="btn btn-primary" disabled={students.length === 0}>
+                        <ArrowDownTrayIcon className="w-5 h-5 mr-2" />
+                        Export Broadsheet
+                    </button>
+                </div>
             </div>
 
-            {loading ? <p>Loading data...</p> : (
-            <div className="table-container overflow-x-auto">
+            {loading ? <p className="mt-4">Loading data...</p> : (
+            <div className="table-container overflow-x-auto mt-6">
                 <table className="table">
                     <thead>
                         <tr className="divide-x divide-gray-200 dark:divide-gray-700">

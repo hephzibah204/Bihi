@@ -79,7 +79,7 @@ const AdvancedAnalytics = () => {
         setChartData({
             subjectHotspot: processSubjectHotspotData(allData.students, allData.subjects, allData.scores, selectedSession, selectedTerm),
             termPerformance: processTermPerformanceData(allData.scores, selectedClass),
-            studentTrajectory: processStudentTrajectoryData(allData.scores, allData.subjects, selectedStudentId),
+            studentTrajectory: processStudentTrajectoryData(allData.scores, allData.subjects, selectedStudentId, allData.students),
             classAverages: processClassSubjectAverages(allData.students, allData.subjects, allData.scores, selectedClass, selectedSession, selectedTerm)
         });
 
@@ -104,7 +104,7 @@ const AdvancedAnalytics = () => {
             chartInstances.current.termPerformance = new window.Chart(termPerformanceChartRef.current, { type: 'line', data: chartData.termPerformance, options: commonOptions });
         }
         if (studentTrajectoryChartRef.current && chartData.studentTrajectory) {
-            chartInstances.current.studentTrajectory = new window.Chart(studentTrajectoryChartRef.current, { type: 'line', data: chartData.studentTrajectory, options: { ...commonOptions, plugins: { legend: { display: false } } } });
+            chartInstances.current.studentTrajectory = new window.Chart(studentTrajectoryChartRef.current, { type: 'line', data: chartData.studentTrajectory, options: { ...commonOptions, plugins: { legend: { display: true } } } });
         }
         if (classAverageChartRef.current && chartData.classAverages) {
             chartInstances.current.classAverages = new window.Chart(classAverageChartRef.current, { type: 'bar', data: chartData.classAverages, options: commonOptions });
@@ -157,21 +157,23 @@ const AdvancedAnalytics = () => {
         });
 
         const prompt = `
-            You are an expert educational data analyst for a Nigerian secondary school. Your task is to provide actionable insights based on performance data for a specific class.
+            As an expert educational analyst for a Nigerian school, provide a detailed performance breakdown and actionable insights.
 
-            Class: ${selectedClass}
-            Session: ${selectedSession || 'All Sessions'}
-            Term: ${selectedTerm}
+            **Analysis Context:**
+            - **Class:** ${selectedClass}
+            - **Academic Session:** ${selectedSession || 'All Sessions'}
+            - **Term:** ${selectedTerm}
 
-            Performance Data Summary:
-            ${performanceSummary.map(p => `- ${p.name}: Average Score = ${p.avg}, Failure Rate = ${p.failRate}%`).join('\n')}
+            **Performance Data Summary:**
+            ${performanceSummary.map(p => `- Subject: ${p.name}, Average Score: ${p.avg}, Failure Rate: ${p.failRate}%`).join('\n')}
 
-            Based on this data, please provide the following:
-            1.  **Identify Underperforming Subjects:** List the subjects with an average score below 50 or a failure rate above 50%.
-            2.  **Provide Potential Insights:** For each underperforming subject, suggest 2-3 potential reasons for the poor performance. Consider factors like curriculum difficulty, teaching methods, or foundational knowledge gaps. Be specific to the subject. For example, for 'Basic Science', you might suggest students are struggling with abstract concepts.
-            3.  **Suggest Actionable Recommendations:** Provide a brief, actionable recommendation for each identified issue. For example, "Recommend extra tutorial sessions for Basic Science focusing on practical demonstrations."
+            **Your Task:**
+            Based *specifically* on the context and data above, provide the following:
+            1.  **Underperforming Subjects:** List subjects with an average score below 50 or a failure rate above 50%.
+            2.  **Potential Insights:** For each underperforming subject, suggest 2-3 potential reasons for the poor performance (e.g., curriculum difficulty, teaching methods).
+            3.  **Actionable Recommendations:** Provide a brief, actionable recommendation for each identified issue (e.g., "Recommend extra tutorial sessions for...").
 
-            Format your response clearly with headings. If all subjects are performing well, congratulate the teachers and students.
+            Format your response clearly with headings. If all subjects are performing well, congratulate the teachers and students on their excellent work for this specific term/session.
         `;
 
         try {
@@ -363,29 +365,77 @@ const processTermPerformanceData = (scores: Score[], className: string) => {
     return { labels, datasets: [{ label: `Avg. for ${className}`, data, borderColor: COLORS[0], tension: 0.1 }] };
 };
 
-const processStudentTrajectoryData = (scores: Score[], subjects: Subject[], studentId: string) => {
-    if (!studentId) return { labels: [], datasets: [] };
-    
-    const studentScoresByTerm = scores
-        .filter(s => s.studentId === studentId)
-        .reduce((acc, score) => {
-            const termKey = `${score.session} ${score.term}`;
-             if (!acc[termKey]) acc[termKey] = { scores: [], order: `${score.session}-${['First', 'Second', 'Third'].indexOf(score.term.split(' ')[0])}` };
-            acc[termKey].scores.push(score);
-            return acc;
-        }, {});
-    
-    const sortedTerms = Object.keys(studentScoresByTerm).sort((a,b) => studentScoresByTerm[a].order.localeCompare(studentScoresByTerm[b].order));
+const processStudentTrajectoryData = (scores: Score[], subjects: Subject[], studentId: string, allStudents: Student[]) => {
+    if (!studentId || !allStudents.length) return { labels: [], datasets: [] };
+
+    const selectedStudent = allStudents.find(s => s.id === studentId);
+    if (!selectedStudent) return { labels: [], datasets: [] };
+
+    const studentsInClass = allStudents.filter(s => s.class === selectedStudent.class);
+    const studentIdsInClass = new Set(studentsInClass.map(s => s.id));
+
+    // Group all class scores by term for efficiency
+    const classScoresByTerm = scores.filter(s => studentIdsInClass.has(s.studentId)).reduce((acc, score) => {
+        const termKey = `${score.session} ${score.term}`;
+        const termOrder = ['First', 'Second', 'Third'].indexOf(score.term.split(' ')[0]);
+        const orderKey = `${score.session}-${termOrder}`;
+
+        if (!acc[termKey]) {
+            acc[termKey] = { scores: [], order: orderKey };
+        }
+        acc[termKey].scores.push(score);
+        return acc;
+    }, {});
+
+    const sortedTerms = Object.keys(classScoresByTerm).sort((a, b) => classScoresByTerm[a].order.localeCompare(classScoresByTerm[b].order));
+    if (sortedTerms.length === 0) return { labels: [], datasets: [] };
 
     const labels = sortedTerms;
-    const data = sortedTerms.map(term => {
-        const termScores = studentScoresByTerm[term].scores;
-        if(termScores.length === 0) return 0;
+
+    const studentData = sortedTerms.map(term => {
+        const termScores = classScoresByTerm[term].scores.filter(s => s.studentId === studentId);
+        if (termScores.length === 0) return null;
         const total = termScores.reduce((sum, s) => sum + (s.ca1 || 0) + (s.ca2 || 0) + (s.exam || 0), 0);
-        return (total / termScores.length).toFixed(2);
+        return (total / termScores.length);
     });
 
-    return { labels, datasets: [{ label: 'Student Average', data, borderColor: COLORS[1], tension: 0.1 }] };
-}
+    const classData = sortedTerms.map(term => {
+        const studentAverages = studentsInClass.map(student => {
+            const studentTermScores = classScoresByTerm[term].scores.filter(s => s.studentId === student.id);
+            if (studentTermScores.length === 0) return null;
+            const total = studentTermScores.reduce((sum, s) => sum + (s.ca1 || 0) + (s.ca2 || 0) + (s.exam || 0), 0);
+            return total / studentTermScores.length;
+        }).filter(avg => avg !== null);
+
+        if (studentAverages.length === 0) return null;
+        const classAverage = studentAverages.reduce((sum, avg) => sum + avg, 0) / studentAverages.length;
+        return classAverage;
+    });
+
+    return {
+        labels,
+        datasets: [
+            {
+                label: `${selectedStudent.name}'s Average`,
+                data: studentData.map(d => d ? d.toFixed(2) : null), // Handle nulls and format
+                borderColor: COLORS[1],
+                tension: 0.1,
+                borderWidth: 2,
+                fill: false,
+            },
+            {
+                label: `${selectedStudent.class} Average`,
+                data: classData.map(d => d ? d.toFixed(2) : null),
+                borderColor: COLORS[3],
+                tension: 0.1,
+                borderDash: [5, 5],
+                borderWidth: 2,
+                backgroundColor: 'transparent',
+                fill: false,
+            }
+        ]
+    };
+};
+
 
 export default AdvancedAnalytics;

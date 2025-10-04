@@ -1,57 +1,63 @@
 import React, { useState, useEffect } from 'react';
-import { apiGetTenants, apiAddTenant, apiSaveTenants, apiDeleteTenantData } from '../services/api';
+import { apiGetTenants, apiAddTenant, apiDeleteTenant, apiGetPlatformSettings } from '../services/api';
 import Modal from './Modal';
 import PlusIcon from './icons/PlusIcon';
-import ConfirmationModal from './ConfirmationModal';
 import TrashIcon from './icons/TrashIcon';
+import SubscriptionManagementModal from './SubscriptionManagementModal';
+import { Tenant, Plan } from '../types';
 
 const TenantManagement = () => {
-    const [tenants, setTenants] = useState([]);
+    const [tenants, setTenants] = useState<Tenant[]>([]);
+    const [plans, setPlans] = useState<Plan[]>([]);
     const [loading, setLoading] = useState(true);
-    const [isModalOpen, setModalOpen] = useState(false);
-    const [newTenant, setNewTenant] = useState({ name: '', id: '' });
-    const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
-    const [tenantToDelete, setTenantToDelete] = useState(null);
-    const [error, setError] = useState('');
+    const [isAddModalOpen, setAddModalOpen] = useState(false);
+    const [isSubModalOpen, setSubModalOpen] = useState(false);
+    const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
+    const [newTenantData, setNewTenantData] = useState({ name: '', id: '' });
 
     useEffect(() => {
-        fetchTenants();
+        fetchData();
     }, []);
 
-    const fetchTenants = async () => {
+    const fetchData = async () => {
         setLoading(true);
-        const data = await apiGetTenants();
-        setTenants(data);
+        const [tenantData, settingsData] = await Promise.all([
+            apiGetTenants(),
+            apiGetPlatformSettings()
+        ]);
+        setTenants(tenantData);
+        setPlans(settingsData.plans || []);
         setLoading(false);
     };
 
     const handleAddTenant = async () => {
-        setError('');
-        try {
-            await apiAddTenant(newTenant);
-            fetchTenants();
-            setModalOpen(false);
-            setNewTenant({ name: '', id: '' });
-        } catch (err) {
-            setError(err.message);
+        if (!newTenantData.name || !newTenantData.id) return;
+        await apiAddTenant(newTenantData);
+        fetchData();
+        setAddModalOpen(false);
+        setNewTenantData({ name: '', id: '' });
+    };
+
+    const handleDeleteTenant = async (tenantId: string) => {
+        if (window.confirm('Are you sure? This will delete all data for this school.')) {
+            await apiDeleteTenant(tenantId);
+            fetchData();
         }
     };
     
-    const openDeleteModal = (tenant) => {
-        setTenantToDelete(tenant);
-        setDeleteModalOpen(true);
+    const handleManageSubscription = (tenant: Tenant) => {
+        setSelectedTenant(tenant);
+        setSubModalOpen(true);
+    };
+    
+    const handleModalClose = () => {
+        setSubModalOpen(false);
+        fetchData(); // Refetch data when modal closes to see changes
     };
 
-    const handleDeleteTenant = async () => {
-        if (!tenantToDelete) return;
-        
-        const updatedTenants = tenants.filter(t => t.id !== tenantToDelete.id);
-        await apiSaveTenants(updatedTenants);
-        await apiDeleteTenantData(tenantToDelete);
-
-        setTenants(updatedTenants);
-        setDeleteModalOpen(false);
-        setTenantToDelete(null);
+    const getPlanName = (planId?: string) => {
+        if (!planId) return 'Unsubscribed';
+        return plans.find(p => p.id === planId)?.name || 'Unknown Plan';
     };
 
     if (loading) return <p>Loading tenants...</p>;
@@ -60,19 +66,36 @@ const TenantManagement = () => {
         <div className="card">
             <div className="p-6">
                 <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-semibold">Tenant Management</h2>
-                    <button onClick={() => setModalOpen(true)} className="btn btn-primary"><PlusIcon className="w-5 h-5 mr-2" /> Add School</button>
+                    <h2 className="text-xl font-semibold">School (Tenant) Management</h2>
+                    <button onClick={() => setAddModalOpen(true)} className="btn btn-primary"><PlusIcon className="w-5 h-5 mr-2"/> Add School</button>
                 </div>
+
                 <div className="table-container mt-4">
                     <table className="table">
-                        <thead><tr><th className="th">School Name</th><th className="th">Portal ID</th><th className="th text-right">Actions</th></tr></thead>
+                        <thead><tr>
+                            <th className="th">School Name</th>
+                            <th className="th">Subdomain (ID)</th>
+                            <th className="th">Plan</th>
+                            <th className="th">Status</th>
+                            <th className="th text-right">Actions</th>
+                        </tr></thead>
                         <tbody>
                             {tenants.map(tenant => (
                                 <tr key={tenant.id}>
-                                    <td className="td">{tenant.name}</td>
+                                    <td className="td font-medium">{tenant.name}</td>
                                     <td className="td font-mono">{tenant.id}</td>
-                                    <td className="td text-right">
-                                        <button onClick={() => openDeleteModal(tenant)} className="text-red-500"><TrashIcon className="w-5 h-5"/></button>
+                                    <td className="td">{getPlanName(tenant.planId)}</td>
+                                    <td className="td">
+                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                            tenant.subscriptionStatus === 'active' ? 'bg-green-100 text-green-800' : 
+                                            tenant.subscriptionStatus === 'trial' ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'
+                                        }`}>
+                                            {tenant.subscriptionStatus}
+                                        </span>
+                                    </td>
+                                    <td className="td text-right space-x-2">
+                                        <button onClick={() => handleManageSubscription(tenant)} className="text-sm text-indigo-600">Manage</button>
+                                        <button onClick={() => handleDeleteTenant(tenant.id)} className="icon-button text-red-500" title="Delete"><TrashIcon className="w-5 h-5"/></button>
                                     </td>
                                 </tr>
                             ))}
@@ -80,27 +103,22 @@ const TenantManagement = () => {
                     </table>
                 </div>
             </div>
-            <Modal isOpen={isModalOpen} onClose={() => setModalOpen(false)} title="Add New School Tenant">
+
+            <Modal isOpen={isAddModalOpen} onClose={() => setAddModalOpen(false)} title="Add New School">
                 <div className="p-6 space-y-4">
-                    {error && <p className="text-red-500 text-sm">{error}</p>}
-                    <div>
-                        <label className="label">School Name</label>
-                        <input value={newTenant.name} onChange={e => setNewTenant({...newTenant, name: e.target.value})} className="input-field" />
-                    </div>
-                    <div>
-                        <label className="label">Portal ID (Subdomain)</label>
-                        <input value={newTenant.id} onChange={e => setNewTenant({...newTenant, id: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')})} className="input-field" />
-                    </div>
-                    <button onClick={handleAddTenant} className="btn btn-primary">Save Tenant</button>
+                    <div><label className="label">School Name</label><input value={newTenantData.name} onChange={e => setNewTenantData({...newTenantData, name: e.target.value})} className="input-field" /></div>
+                    <div><label className="label">Subdomain</label><input value={newTenantData.id} onChange={e => setNewTenantData({...newTenantData, id: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')})} className="input-field" /></div>
+                    <div className="flex justify-end"><button onClick={handleAddTenant} className="btn btn-primary">Save School</button></div>
                 </div>
             </Modal>
-             <ConfirmationModal
-                isOpen={isDeleteModalOpen}
-                onClose={() => setDeleteModalOpen(false)}
-                onConfirm={handleDeleteTenant}
-                title="Delete Tenant"
-                message={`Are you sure you want to delete ${tenantToDelete?.name}? This will permanently delete all associated data (students, scores, etc.) and cannot be undone.`}
-            />
+            
+            {isSubModalOpen && selectedTenant && (
+                <SubscriptionManagementModal 
+                    isOpen={isSubModalOpen}
+                    onClose={handleModalClose}
+                    tenant={selectedTenant}
+                />
+            )}
         </div>
     );
 };

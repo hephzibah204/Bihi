@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, PropsWithChildren } from 'react';
 import { useTenant } from './TenantContext';
-import { apiGetPlatformSettings } from '../services/api';
+import { apiGetPlatformSettings, getTenantId } from '../services/api';
 import { Plan } from '../types';
+import { DEMO_TENANT_ID } from '../utils/demoData';
 
 interface PlanFeaturesContextType {
     isSubscribed: boolean;
@@ -24,17 +25,48 @@ export const PlanFeaturesProvider = ({ children }: PropsWithChildren<{}>) => {
     const [allPlans, setAllPlans] = useState<Plan[]>([]);
     const [activePlan, setActivePlan] = useState<Plan | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const isDemo = getTenantId() === DEMO_TENANT_ID;
 
     useEffect(() => {
         const fetchPlans = async () => {
+            if (isDemo) return; // No need to fetch real plans in demo
             const platformSettings = await apiGetPlatformSettings();
             setAllPlans(platformSettings.plans || []);
         };
         fetchPlans();
-    }, []);
+    }, [isDemo]);
 
     useEffect(() => {
-        if (tenantLoading || allPlans.length === 0) return;
+        if (tenantLoading || (allPlans.length === 0 && !isDemo)) {
+             if (isDemo && !tenantLoading) {
+                 // Demo mode can proceed without real plans
+             } else {
+                return;
+             }
+        }
+        
+        if (isDemo) {
+            // In demo mode, grant access to a mock top-tier plan's features.
+            const demoEnterprisePlan: Plan = {
+                id: 'demo-enterprise',
+                name: 'Enterprise (Demo)',
+                price_monthly: 0,
+                price_termly: 0,
+                price_yearly: 0,
+                features: {
+                    maxStudents: 9999,
+                    'ai-tools': true,
+                    'analytics': true,
+                    'students': true, 'teachers': true, 'subjects': true, 'results': true,
+                    'general-remarks': true, 'report-cards': true, 'promotions': true,
+                    'id-cards': true, 'timetable': true, 'attendance': true,
+                    'communications': true, 'bursary': true, 'assignments': true
+                }
+            };
+            setActivePlan(demoEnterprisePlan);
+            setIsLoading(false);
+            return; // Exit early for demo mode
+        }
 
         const tenantPlanId = tenantSettings?.planId;
         if (tenantPlanId) {
@@ -45,13 +77,15 @@ export const PlanFeaturesProvider = ({ children }: PropsWithChildren<{}>) => {
         }
         setIsLoading(false);
 
-    }, [tenantSettings, tenantLoading, allPlans]);
+    }, [tenantSettings, tenantLoading, allPlans, isDemo]);
 
-    const isSubscribed = !!activePlan;
+    const isSubscribed = isDemo || !!activePlan;
 
     const hasFeature = (featureKey: string): boolean => {
+        if (isDemo) return true; // Grant all features in demo mode
         if (!isSubscribed || !activePlan) return false;
-        // Correctly handle boolean or number feature flags
+        
+        // The feature check is now against the dynamic features object of the plan.
         const featureValue = activePlan.features?.[featureKey];
         if (typeof featureValue === 'boolean') {
             return featureValue;
@@ -66,7 +100,7 @@ export const PlanFeaturesProvider = ({ children }: PropsWithChildren<{}>) => {
         isSubscribed,
         hasFeature,
         isLoading,
-        planName: activePlan?.name || 'Free Plan',
+        planName: activePlan?.name || (isDemo ? 'Enterprise (Demo)' : 'Unsubscribed'),
     };
 
     return (

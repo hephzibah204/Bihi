@@ -1,46 +1,36 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 
-interface Props {
+interface ErrorBoundaryProps {
   children: ReactNode;
 }
 
 interface State {
   hasError: boolean;
+  error?: Error;
 }
 
-class ErrorBoundary extends Component<Props, State> {
-  // Fix: Using a constructor to initialize state ensures `props` are correctly passed
-  // via `super(props)`, which can resolve type issues in some build configurations where
-  // class property syntax might be problematic.
-  constructor(props: Props) {
-    super(props);
-    this.state = { hasError: false };
+// Fix: The ErrorBoundary class must extend React.Component to be treated as a React class component. Without this, it does not have access to `this.props`, leading to a type error.
+class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
+  public state: State = {
+    hasError: false,
+    error: undefined
+  };
+
+  public static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error };
   }
 
-  static getDerivedStateFromError(_: Error): State {
-    return { hasError: true };
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("Uncaught error:", error, errorInfo);
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Uncaught error:', error, errorInfo);
-  }
-
-  render() {
+  public render() {
     if (this.state.hasError) {
       return (
-        <div className="flex h-screen w-screen flex-col items-center justify-center bg-gray-100">
-          <div className="rounded-lg bg-white p-8 text-center shadow-lg">
-            <h1 className="text-2xl font-bold text-red-600">Something went wrong.</h1>
-            <p className="mt-2 text-gray-600">
-              We've logged the issue. Please refresh the page to continue.
-            </p>
-            <button
-              className="mt-6 rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
-              onClick={() => window.location.reload()}
-            >
-              Refresh
-            </button>
-          </div>
+        <div style={{ padding: '2rem', textAlign: 'center' }}>
+          <h1>Something went wrong.</h1>
+          <p>We're sorry for the inconvenience. Please try refreshing the page.</p>
+          {this.state.error && <pre style={{ marginTop: '1rem', background: '#f0f0f0', padding: '1rem', borderRadius: '4px', textAlign: 'left' }}>{this.state.error.toString()}</pre>}
         </div>
       );
     }

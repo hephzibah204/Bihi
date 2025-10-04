@@ -84,7 +84,7 @@ const Promotions = () => {
     const handlePromote = async () => {
         if (selectedStudents.size === 0 || !toClass || fromClass === toClass) return;
         
-        // FIX: Explicitly typed the 'id' parameter in the map function as a string. This resolves a TypeScript error where 'id' was being inferred as 'unknown', causing a type mismatch.
+        // FIX: Explicitly typed the 'id' parameter as string to resolve an 'unknown' type inference error.
         const studentsToUpdate: Partial<Student>[] = Array.from(selectedStudents).map((id: string) => ({ id, class: toClass }));
         await apiBatchUpdateStudents(studentsToUpdate);
         
@@ -97,7 +97,7 @@ const Promotions = () => {
     const handleGraduate = async () => {
          if (selectedStudents.size === 0) return;
          
-        // FIX: Explicitly typed the 'id' parameter in the map function as a string. This resolves a TypeScript error where 'id' was being inferred as 'unknown', causing a type mismatch.
+        // FIX: Explicitly typed the 'id' parameter as string to resolve an 'unknown' type inference error.
         const studentsToUpdate: Partial<Student>[] = Array.from(selectedStudents).map((id: string) => ({ id, status: 'alumni', graduationYear: new Date().getFullYear() }));
         await apiBatchUpdateStudents(studentsToUpdate);
         
