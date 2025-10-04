@@ -1,5 +1,0 @@
-{
-  "name": "reportsheet-worker",
-  "main": "functions/worker.js",
-  "compatibility_date": "2025-10-04"
-}
