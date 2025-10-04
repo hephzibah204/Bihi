@@ -1,4 +1,4 @@
-// _middleware.js
+// functions/_middleware.js
 
 export async function onRequest(context) {
   const { request, env, next } = context;
