@@ -9,12 +9,15 @@ interface State {
   error?: Error;
 }
 
-// Fix: An ErrorBoundary must be a class component that extends React.Component to have access to `this.props` and lifecycle methods like `componentDidCatch`.
 class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
-  state: State = {
-    hasError: false,
-    error: undefined
-  };
+  // Fix: Refactored state initialization to use a constructor. While class property syntax is valid, using a constructor is more widely supported by older build toolchains and can resolve transpilation-related errors like the one reported.
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = {
+      hasError: false,
+      error: undefined
+    };
+  }
 
   static getDerivedStateFromError(error: Error): State {
     // Update state so the next render will show the fallback UI.
