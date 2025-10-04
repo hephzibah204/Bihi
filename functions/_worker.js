@@ -1,11 +1,11 @@
-import { GoogleGenerativeAI } from "@google/genai";
+// functions/_worker.js - SINGLE SOURCE OF TRUTH for API routing.
+// The presence of this file overrides _middleware.js in the same directory.
 
-// Cloudflare Pages Function (middleware style)
 export async function onRequest(context) {
   const { request, env, next } = context;
   const url = new URL(request.url);
 
-  // Only handle API routes
+  // Only catch API calls
   if (!url.pathname.startsWith("/api/")) {
     return next();
   }
@@ -16,7 +16,7 @@ export async function onRequest(context) {
     "Access-Control-Allow-Origin": "*",
   };
 
-  // Handle CORS preflight
+  // Handle preflight CORS
   if (request.method === "OPTIONS") {
     return new Response(null, {
       headers: {
@@ -27,60 +27,123 @@ export async function onRequest(context) {
     });
   }
 
-  // Health check
+  // --- Health check ---
   if (url.pathname === "/api/ai/health" && request.method === "GET") {
     if (env.API_KEY && env.API_KEY.startsWith("AIza")) {
       return new Response(
-        JSON.stringify({ status: "ok", message: "AI service is configured" }),
+        JSON.stringify({ status: "ok", message: "API_KEY is set." }),
         { headers }
       );
     }
     return new Response(
-      JSON.stringify({ status: "error", message: "API_KEY not found in Cloudflare env" }),
+      JSON.stringify({
+        status: "error",
+        message:
+          "API_KEY not found. Please set it in Cloudflare Pages → Settings → Environment Variables.",
+      }),
       { status: 500, headers }
     );
   }
 
-  // Generate text
-  if (url.pathname === "/api/ai/generate" && request.method === "POST") {
+  // --- Client-side key provider for Live API ---
+  if (url.pathname === "/api/ai/client-key" && request.method === "GET") {
+    if (env.API_KEY) {
+      return new Response(
+        JSON.stringify({ key: env.API_KEY }),
+        { headers }
+      );
+    }
+    return new Response(
+      JSON.stringify({ error: "API_KEY not found in Cloudflare env" }),
+      { status: 500, headers }
+    );
+  }
+
+  // --- AI Generate ---
+  if (url.pathname === "/api/ai/generate") {
+    // Requirement: Handle only POST requests.
+    if (request.method !== "POST") {
+        return new Response(
+            JSON.stringify({ error: "Method Not Allowed" }),
+            { status: 405, headers }
+        );
+    }
+
     try {
       const body = await request.json();
       const { prompt } = body;
 
       if (!prompt) {
         return new Response(
-          JSON.stringify({ error: "Prompt is required" }),
+          JSON.stringify({ error: "Prompt is required." }),
           { status: 400, headers }
         );
       }
 
-      if (!env.API_KEY) {
+      const apiKey = env.API_KEY;
+      if (!apiKey) {
         return new Response(
-          JSON.stringify({ error: "API_KEY is missing from Cloudflare env" }),
+          JSON.stringify({ error: "API_KEY is missing on server." }),
           { status: 500, headers }
         );
       }
 
-      // Initialize Gemini
-      const genAI = new GoogleGenerativeAI(env.API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+      // Call Google AI API - using gemini-2.5-flash as per guidelines
+      const aiRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [
+              {
+                role: "user",
+                parts: [{ text: prompt }],
+              },
+            ],
+          }),
+        }
+      );
 
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
+      if (!aiRes.ok) {
+        const errText = await aiRes.text();
+        let details = errText;
+        try {
+            details = JSON.parse(errText);
+        } catch(e) { /* Not JSON, use raw text */ }
+        
+        return new Response(
+          JSON.stringify({
+            error: "Gemini API error",
+            status: aiRes.status,
+            details: details,
+          }),
+          { status: aiRes.status, headers }
+        );
+      }
+
+      const data = await aiRes.json();
+      
+      // Extract text as per REST API response structure
+      const text =
+        data.candidates?.[0]?.content?.parts?.[0]?.text ??
+        "⚠️ No response text received.";
 
       return new Response(JSON.stringify({ text }), { headers });
     } catch (err) {
-      console.error("Gemini error:", err);
       return new Response(
-        JSON.stringify({ error: err.message || "Internal AI error" }),
+        JSON.stringify({
+          error: "Internal Server Error",
+          details: err.message,
+        }),
         { status: 500, headers }
       );
     }
   }
 
-  // Fallback
+  // --- Fallback ---
   return new Response(
-    JSON.stringify({ error: "API Route Not Found" }),
+    JSON.stringify({ error: "API route not found." }),
     { status: 404, headers }
   );
 }

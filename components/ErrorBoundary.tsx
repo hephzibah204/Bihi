@@ -9,7 +9,7 @@ interface State {
   error?: Error;
 }
 
-// Fix: Converted the component to a class that extends React.Component. An ErrorBoundary must be a class component to use getDerivedStateFromError or componentDidCatch.
+// Fix: An ErrorBoundary must be a class component that extends React.Component to have access to `this.props` and lifecycle methods like `componentDidCatch`.
 class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
   state: State = {
     hasError: false,
