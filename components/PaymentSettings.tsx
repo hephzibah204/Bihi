@@ -4,7 +4,7 @@ import Modal from './Modal';
 import TrashIcon from './icons/TrashIcon';
 import ConfirmationModal from './ConfirmationModal';
 import { apiGetSchoolSettings } from '../services/api';
-import { supabase } from '../services/supabaseClient';
+import { supabase } from '../functions/supabaseClient';
 
 declare global {
   interface Window {

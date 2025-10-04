@@ -1,5 +1,4 @@
-
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/genai";
 
 // Cloudflare Pages Function (middleware style)
 export async function onRequest(context) {
@@ -41,20 +40,6 @@ export async function onRequest(context) {
       { status: 500, headers }
     );
   }
-  
-  // Client-side key provider for Live API
-  if (url.pathname === "/api/ai/client-key" && request.method === "GET") {
-    if (env.API_KEY) {
-      return new Response(
-        JSON.stringify({ key: env.API_KEY }),
-        { headers }
-      );
-    }
-    return new Response(
-      JSON.stringify({ error: "API_KEY not found in Cloudflare env" }),
-      { status: 500, headers }
-    );
-  }
 
   // Generate text
   if (url.pathname === "/api/ai/generate" && request.method === "POST") {
@@ -77,13 +62,11 @@ export async function onRequest(context) {
       }
 
       // Initialize Gemini
-      const ai = new GoogleGenAI({ apiKey: env.API_KEY });
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-      });
+      const genAI = new GoogleGenerativeAI(env.API_KEY);
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-      const text = response.text;
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
 
       return new Response(JSON.stringify({ text }), { headers });
     } catch (err) {

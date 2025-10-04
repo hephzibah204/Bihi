@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../services/supabaseClient';
+import { supabase } from '../functions/supabaseClient';
 import { apiGetSchoolSettings, apiGetStudents, apiGetScratchCards } from '../services/api';
 import BriefcaseIcon from './icons/BriefcaseIcon';
 import UsersIcon from './icons/UsersIcon';

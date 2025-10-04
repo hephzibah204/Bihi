@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiGetTimetableData, apiGetSubjects, apiGetTeachers } from '../services/api';
-import { supabase } from '../services/supabaseClient';
+import { supabase } from '../functions/supabaseClient';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const TIME_SLOTS = ['8:00 - 9:00', '9:00 - 10:00', '10:00 - 11:00', '11:00 - 12:00', '1:00 - 2:00'];

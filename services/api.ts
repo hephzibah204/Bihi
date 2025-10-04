@@ -1,6 +1,6 @@
 import { getSubdomain } from '../utils/subdomain';
 import { demoSchoolSettings, demoStudents, demoSubjects, demoTeachers, demoParents, DEMO_TENANT_ID, demoMessages } from '../utils/demoData';
-import { supabase } from './supabaseClient';
+import { supabase } from '../functions/supabaseClient';
 import { SyncStatus } from '../hooks/useSync';
 import { Tenant, LandingPageContent } from '../types';
 

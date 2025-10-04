@@ -3,7 +3,7 @@ import Sidebar from './Sidebar';
 import { DashboardView } from '../types';
 import Header from './Header';
 import DashboardContent from './DashboardContent';
-import { supabase } from '../services/supabaseClient';
+import { supabase } from '../functions/supabaseClient';
 import PortalLogin from './PortalLogin';
 import { TenantProvider } from '../contexts/TenantContext';
 import { apiGetTeachers, clearSyncQueue, initializeSync, cleanupSync, apiForceSync } from '../services/api';

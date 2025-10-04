@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiGetAnnouncements, apiGetStudents } from '../services/api';
-import { supabase } from '../services/supabaseClient';
+import { supabase } from '../functions/supabaseClient';
 import { formatDate } from '../utils/dateHelpers';
 
 const NotificationViewer = ({ demoUserId }) => {

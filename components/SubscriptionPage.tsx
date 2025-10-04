@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { apiAddTenant, apiSaveSchoolSettings, apiSaveSubjects, apiSaveTeachers } from '../services/api';
-import { supabase } from '../services/supabaseClient';
+import { supabase } from '../functions/supabaseClient';
 import { demoSchoolSettings, demoSubjects, demoTeachers } from '../utils/demoData';
 import SpinnerIcon from './icons/SpinnerIcon';
 import Logo from './icons/Logo';

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '../services/supabaseClient';
+import { supabase } from '../functions/supabaseClient';
 
 const SuperAdminLoginPage = () => {
     const [loading, setLoading] = useState(false);

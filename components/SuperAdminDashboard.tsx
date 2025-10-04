@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../services/supabaseClient';
+import { supabase } from '../functions/supabaseClient';
 import SuperAdminLoginPage from './SuperAdminLoginPage';
 import PlatformAnalytics from './PlatformAnalytics';
 import TenantManagement from './TenantManagement';
