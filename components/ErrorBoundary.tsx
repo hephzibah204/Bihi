@@ -9,7 +9,7 @@ interface State {
   error?: Error;
 }
 
-// Fix: The ErrorBoundary class must extend React.Component to be treated as a React class component. Without this, it does not have access to `this.props`, leading to a type error.
+// Fix: The ErrorBoundary class must extend React.Component to be treated as a React class component. This gives it access to `this.props` and lifecycle methods.
 class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
   public state: State = {
     hasError: false,
