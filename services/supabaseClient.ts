@@ -1,30 +1,40 @@
 // services/supabaseClient.ts
 
-// Fix: Replaced the non-functional Vite client type reference with an explicit
-// interface declaration for ImportMetaEnv. This resolves TypeScript errors
-// by informing the compiler about the shape of `import.meta.env`, which is
-// populated by Vite during the build process.
-interface ImportMetaEnv {
-    readonly VITE_SUPABASE_URL: string;
-    readonly VITE_SUPABASE_ANON_KEY: string;
-}
+// This reference helps TypeScript understand Vite's `import.meta.env`
+// Fix: The `vite/client` type definitions are not available in this environment, causing an error.
+// The reference is commented out and replaced with a manual type declaration below.
+// /// <reference types="vite/client" />
 
-interface ImportMeta {
-    readonly env: ImportMetaEnv;
-}
+// Declare the global 'process' object to prevent TypeScript errors in environments
+// where it might not be defined by default (like a strict browser context).
+declare var process: {
+  env: {
+    [key: string]: string | undefined;
+  }
+};
 
-// Declare global types to inform TypeScript about CDN-loaded scripts.
+// Declare the 'supabase' property on the global Window interface for the CDN script.
 declare global {
-  // Declare the 'supabase' property on the global Window interface for the CDN script.
   interface Window {
     supabase: any;
   }
+
+  // Fix: Manually define the ImportMeta and ImportMetaEnv interfaces to include
+  // Vite's `env` property. This resolves errors when the `vite/client` type
+  // definitions are not available in the project's configuration.
+  interface ImportMeta {
+    readonly env: ImportMetaEnv;
+  }
+  
+  interface ImportMetaEnv {
+    readonly VITE_SUPABASE_URL: string;
+    readonly VITE_SUPABASE_ANON_KEY: string;
+    // Add other environment variables here if needed
+    [key: string]: any;
+  }
 }
 
-// Defensively initialize the client to prevent a crash if the Supabase CDN script hasn't loaded yet.
-// This is a common race condition when using deferred scripts.
 function initializeSupabaseClient() {
-    // Check if the global supabase object and the createClient function are available.
     if (!window.supabase || typeof window.supabase.createClient !== 'function') {
         console.warn("Supabase client is not available on `window`. Supabase features will be disabled.");
         return null;
@@ -32,16 +42,15 @@ function initializeSupabaseClient() {
 
     const { createClient } = window.supabase;
 
-    // --- SECURE KEY LOGIC for VITE (Frontend) ---
-    // These keys are loaded from environment variables using Vite's specific syntax.
-    // In your Cloudflare Pages settings, these must be named VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    // --- UNIVERSAL KEY LOGIC ---
+    // This logic works on BOTH Cloudflare (Vite) and Google AI Studio.
+    // It first tries the standard Vite `import.meta.env` method.
+    // If that is not available (nullish), it falls back to the `process.env` method used by AI Studio.
+    const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL;
+    const supabaseAnonKey = import.meta.env?.VITE_SUPABASE_ANON_KEY ?? process.env.SUPABASE_ANON_KEY;
     
     if (!supabaseUrl || !supabaseAnonKey) {
-        // Log an error but don't throw, to prevent crashing the entire application.
-        // This error will be visible in the browser console.
-        console.error("Supabase URL and Anon Key must be provided in environment variables (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY).");
+        console.error("Supabase URL and Anon Key must be provided in environment variables.");
         return null;
     }
 
