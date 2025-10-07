@@ -43,7 +43,8 @@ const Dashboard = () => {
     useEffect(() => {
         setLoading(true);
 
-        // 1. Check for active student/parent session first
+        // --- AUTHENTICATION LOGIC ---
+        // 1. Prioritize checking for an active student/parent/demo session from sessionStorage.
         try {
             const activeUserSession = sessionStorage.getItem('activeUser');
             if (activeUserSession) {
@@ -52,36 +53,34 @@ const Dashboard = () => {
                 setUserRole(parsedUser.role);
                 initializeSync();
                 setLoading(false);
+            } else {
+                // 2. If no demo/portal session, check for a real staff Supabase session.
+                if (!supabase) {
+                    console.error("Supabase client is not initialized.");
+                    setLoading(false);
+                } else {
+                     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+                        setSession(session);
+                        if (session) {
+                            const teachers = await apiGetTeachers();
+                            const currentUser = teachers.find(t => t.email.toLowerCase() === session.user.email.toLowerCase());
+                            setUserRole(currentUser?.role || USER_ROLES.ADMIN);
+                            initializeSync();
+                        } else {
+                            setUserRole(null);
+                            cleanupSync();
+                        }
+                        setLoading(false);
+                    });
+                    // Supabase v2 automatically handles cleanup, but you could return subscription.unsubscribe for older versions.
+                }
             }
         } catch (e) {
             sessionStorage.removeItem('activeUser');
-        }
-
-        // 2. If no student/parent session, check for staff Supabase session
-        if (!activeUser) {
-            if (!supabase) {
-                console.error("Supabase client is not initialized.");
-                setLoading(false);
-            } else {
-                 const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
-                    setSession(session);
-                    if (session) {
-                        const teachers = await apiGetTeachers();
-                        const currentUser = teachers.find(t => t.email.toLowerCase() === session.user.email.toLowerCase());
-                        setUserRole(currentUser?.role || USER_ROLES.ADMIN);
-                        initializeSync();
-                    } else {
-                        setUserRole(null);
-                        cleanupSync();
-                    }
-                    setLoading(false);
-                });
-
-                // Supabase listener cleanup is returned from this effect
-            }
+            setLoading(false); // Ensure loading stops on error
         }
         
-        // Routing: Listen for browser back/forward
+        // --- ROUTING & CLEANUP ---
         const handlePopState = () => {
             setActiveView(getViewFromUrl() || ADMIN_VIEWS.DASHBOARD);
             setProfileStudentId(getStudentIdFromUrl());
@@ -89,7 +88,6 @@ const Dashboard = () => {
         window.addEventListener('popstate', handlePopState);
 
         return () => {
-            // No need to clean up supabase listener here as it's handled in App.tsx now
             cleanupSync();
             window.removeEventListener('popstate', handlePopState);
         };
