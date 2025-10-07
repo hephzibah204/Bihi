@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { apiAddTenant, apiSaveSchoolSettings, apiSaveSubjects, apiSaveTeachers } from '../services/api';
-// Fix: Corrected import path for supabase client
 import { supabase } from '../services/supabaseClient';
 import { demoSchoolSettings, demoSubjects, demoTeachers } from '../utils/demoData';
 import SpinnerIcon from './icons/SpinnerIcon';
@@ -19,10 +18,16 @@ const SubscriptionPage = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const domain = window.location.hostname.includes('localhost')
-        ? window.location.host
-        : 'reportsheet.com.ng';
+    const getRootDomain = () => {
+        let host = window.location.host;
+        // Strip 'www.' if it exists, as it's not part of the root for subdomain creation
+        if (host.startsWith('www.')) {
+            return host.substring(4);
+        }
+        return host;
+    };
 
+    const domain = getRootDomain();
     const portalUrl = `${window.location.protocol}//${formData.subdomain}.${domain}`;
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
