@@ -43,14 +43,13 @@ function initializeSupabaseClient() {
     const { createClient } = window.supabase;
 
     // --- UNIVERSAL KEY LOGIC ---
-    // This logic works on BOTH Cloudflare (Vite) and Google AI Studio.
-    // It first tries the standard Vite `import.meta.env` method.
-    // If that is not available (nullish), it falls back to the `process.env` method used by AI Studio.
-    const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL;
-    const supabaseAnonKey = import.meta.env?.VITE_SUPABASE_ANON_KEY ?? process.env.SUPABASE_ANON_KEY;
+    // This logic works on BOTH Cloudflare (Vite) and Google AI Studio by consistently
+    // looking for VITE_ prefixed variables from both potential sources.
+    const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
+    const supabaseAnonKey = import.meta.env?.VITE_SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY;
     
     if (!supabaseUrl || !supabaseAnonKey) {
-        console.error("Supabase URL and Anon Key must be provided in environment variables.");
+        console.error("Supabase URL and Anon Key must be provided in environment variables (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY).");
         return null;
     }
 
