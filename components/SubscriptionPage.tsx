@@ -18,26 +18,7 @@ const SubscriptionPage = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const getRootDomain = () => {
-        const host = window.location.hostname;
-        const parts = host.split('.');
-
-        // Handles localhost or single-name domains
-        if (parts.length <= 1) return host;
-        
-        // Handles domains like 'example.com' or 'pages.dev'
-        if (parts.length === 2) return host;
-
-        // Handles domains like 'project.pages.dev' or 'www.example.com'
-        // Assumes the root is the last two parts. This is a simplification.
-        // A more robust solution might use a predefined list of TLDs.
-        if (host.includes('localhost')) return 'localhost';
-        
-        return parts.slice(-2).join('.');
-    };
-
-    const domain = getRootDomain();
-    const portalUrl = `${window.location.protocol}//${formData.subdomain}.${domain}`;
+    const portalUrl = `${window.location.origin}/?tenant=${formData.subdomain}`;
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -129,7 +110,13 @@ const SubscriptionPage = () => {
                             <div className="space-y-4">
                                 <div><label className="label">School Name</label><input type="text" name="schoolName" value={formData.schoolName} onChange={handleChange} className="input-field" placeholder="Brightstar Academy" required /></div>
                                 <div><label className="label">School Level</label><select name="schoolType" value={formData.schoolType} onChange={handleChange} className="input-field"><option value="nursery_primary">Nursery & Primary</option><option value="secondary">Secondary</option><option value="all">All Levels</option></select></div>
-                                <div><label className="label">Portal Address</label><div className="flex items-center"><input type="text" name="subdomain" value={formData.subdomain} onChange={handleChange} className="input-field rounded-r-none" placeholder="brightstar" required /><span className="px-3 py-2.5 bg-gray-100 dark:bg-gray-700 border border-l-0 dark:border-gray-600 rounded-r-md">.{domain}</span></div></div>
+                                <div>
+                                    <label className="label">Portal Address</label>
+                                    <div className="flex items-center">
+                                        <span className="px-3 py-2.5 bg-gray-100 dark:bg-gray-700 border border-r-0 dark:border-gray-600 rounded-l-md text-sm text-gray-500">{window.location.origin}/?tenant=</span>
+                                        <input type="text" name="subdomain" value={formData.subdomain} onChange={handleChange} className="input-field rounded-l-none" placeholder="brightstar" required />
+                                    </div>
+                                </div>
                             </div>
                             <div className="text-right mt-6"><button onClick={handleNext} disabled={!formData.schoolName || !formData.subdomain} className="btn btn-primary">Next</button></div>
                         </div>
@@ -155,7 +142,7 @@ const SubscriptionPage = () => {
                             <h2 className="text-2xl font-semibold text-indigo-600">Almost there!</h2>
                             <p className="mt-4">We've sent a verification link to <strong>{formData.adminEmail}</strong>.</p>
                             <p className="mt-2">Please click the link in the email to activate your account. Once verified, you can log in at:</p>
-                            <a href={portalUrl} className="my-4 block font-mono text-lg text-indigo-600 underline" target="_blank" rel="noopener noreferrer">{portalUrl}</a>
+                            <a href={portalUrl} className="my-4 block font-mono text-lg text-indigo-600 underline break-all" target="_blank" rel="noopener noreferrer">{portalUrl}</a>
                             <p className="text-sm text-gray-500">Didn't receive an email? Check your spam folder.</p>
                         </div>
                     )}

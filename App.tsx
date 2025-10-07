@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { getSubdomain } from './utils/subdomain';
 import Dashboard from './components/Dashboard';
@@ -46,8 +47,7 @@ const App = () => {
             else if (currentView === APP_VIEWS.ALUMNI) title = 'Alumni Portal | ReportSheet';
             document.title = title;
 
-            const host = window.location.hostname;
-            const sd = getSubdomain(host);
+            const sd = getSubdomain();
             
             setSubdomain(sd);
             const isRoot = !sd;
