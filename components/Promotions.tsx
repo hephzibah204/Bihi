@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { apiGetStudents, apiGetSubjects, apiBatchUpdateStudents } from '../services/api';
 import { Student, Subject } from '../types';
@@ -34,7 +35,8 @@ const Promotions = () => {
             setLoading(true);
             try {
                 const subjectsData = await apiGetSubjects();
-                const allClasses = [...new Set(subjectsData.flatMap(s => s.classes))].sort();
+                // Fix: Specify the generic type for `new Set` as `<string>` to ensure the resulting array is `string[]`, not `unknown[]`.
+                const allClasses = [...new Set<string>(subjectsData.flatMap(s => s.classes))].sort();
                 setAllClasses(allClasses);
                 if (allClasses.length > 0) {
                     if (!fromClass) {

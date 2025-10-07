@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { apiGetStudents, apiGetSubjects, apiGetScores, apiUpsertScore, apiGetSchoolSettings } from '../services/api';
 import { Score, Student, Subject } from '../types';
@@ -194,7 +195,8 @@ const Results = () => {
         setGeneratingForStudentId(student.id);
 
         try {
-            const score = currentScoresMap[student.id] || {};
+            // Fix: Explicitly type `score` as Partial<Score> to inform TypeScript of its potential shape, preventing errors when accessing properties on a potentially empty object.
+            const score: Partial<Score> = currentScoresMap[student.id] || {};
             const total = (score.ca1 || 0) + (score.ca2 || 0) + (score.exam || 0);
             const subjectName = subjects.find(s => s.id === selectedSubject)?.name || 'this subject';
 
@@ -228,7 +230,8 @@ const Results = () => {
     const handleExport = () => {
         const subjectName = subjects.find(s => s.id === selectedSubject)?.name || 'subject';
         const dataToExport = students.map(student => {
-            const score = currentScoresMap[student.id] || {};
+            // Fix: Explicitly type `score` as Partial<Score> to ensure properties can be safely accessed even if the student has no score record yet.
+            const score: Partial<Score> = currentScoresMap[student.id] || {};
             const total = (score.ca1 || 0) + (score.ca2 || 0) + (score.exam || 0);
             return {
                 student_name: student.name,

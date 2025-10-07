@@ -6,7 +6,7 @@ import Results from './Results';
 import ReportCard from './ReportCard';
 import { DashboardView } from '../types';
 import Promotions from './Promotions';
-import SchoolSettings from './SchoolSettings';
+import SchoolSettingsComponent from './SchoolSettings';
 import Teachers from './Teachers';
 import IDCardGenerator from './IDCardGenerator';
 import Attendance from './Attendance';
@@ -72,7 +72,7 @@ const DashboardContent = ({ activeView, setActiveView, userRole, profileStudentI
     }
     
     // Always allow access to these pages
-    if (activeView === ADMIN_VIEWS.SETTINGS) return <SchoolSettings />;
+    if (activeView === ADMIN_VIEWS.SETTINGS) return <SchoolSettingsComponent />;
     if (activeView === ADMIN_VIEWS.BILLING) return <BillingDashboard />;
     
     if (!isSubscribed) {

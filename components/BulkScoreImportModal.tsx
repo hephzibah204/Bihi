@@ -1,8 +1,10 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import Modal from './Modal';
 import { apiGetStudents, apiBatchUpsertScores } from '../services/api';
 import ArrowUpTrayIcon from './icons/ArrowUpTrayIcon';
-import { Score } from '../types';
+// Fix: Import `Student` type to correctly type the fetched student data.
+import { Score, Student } from '../types';
 
 type ImportStep = 'upload' | 'mapping' | 'review' | 'importing' | 'success';
 
@@ -26,7 +28,8 @@ const BulkScoreImportModal = ({ isOpen, onClose, onSuccess, selectedClass, selec
     useEffect(() => {
         const fetchStudentsForClass = async () => {
             if (selectedClass) {
-                const students = await apiGetStudents({ classFilter: selectedClass });
+                // Fix: Explicitly type `students` as `Student[]` to ensure correct type inference for `new Map`.
+                const students: Student[] = await apiGetStudents({ classFilter: selectedClass });
                 const newMap = new Map(students.map(s => [s.admissionNo.toLowerCase(), s.id]));
                 setStudentMap(newMap);
             }

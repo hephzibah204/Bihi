@@ -1,8 +1,9 @@
+
 import { getSubdomain } from '../utils/subdomain';
 import { demoSchoolSettings, demoStudents, demoSubjects, demoTeachers, demoParents, DEMO_TENANT_ID, demoMessages } from '../utils/demoData';
 import { supabase } from '../functions/supabaseClient';
 import { SyncStatus } from '../hooks/useSync';
-import { Tenant, LandingPageContent, ReportCardSettings } from '../types';
+import { Tenant, LandingPageContent, ReportCardSettings, Conversation, Message } from '../types';
 
 // --- Sync Queue ---
 export const syncEventBus = new EventTarget();
@@ -631,7 +632,8 @@ export const apiGetConversationSummaries = async (userId: string, userRole: stri
 
     const conversationsMap = new Map();
     allMessages.forEach(msg => {
-        if(msg.participants?.includes(userId)) {
+        // Fix: Check `conversationId` instead of the non-existent `participants` property on the Message object.
+        if(msg.conversationId.includes(userId)) {
              if (!conversationsMap.has(msg.conversationId) || new Date(msg.timestamp) > new Date(conversationsMap.get(msg.conversationId).timestamp)) {
                 conversationsMap.set(msg.conversationId, msg);
             }
@@ -645,6 +647,8 @@ export const apiGetConversationSummaries = async (userId: string, userRole: stri
 
         return {
             id: msg.conversationId,
+            // Fix: Add the missing `participants` property to the returned object to match the `Conversation` type.
+            participants: msg.conversationId.split('_'),
             lastMessage: msg,
             otherParticipant: {
                 id: otherId,

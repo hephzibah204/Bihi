@@ -45,7 +45,7 @@ const SkillEditor = ({ title, skills, onSkillsChange }) => {
 };
 
 
-const SchoolSettings = () => {
+const SchoolSettingsComponent = () => {
     const [settings, setSettings] = useState<Partial<SchoolSettings> | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -205,4 +205,4 @@ const SchoolSettings = () => {
     );
 };
 
-export default SchoolSettings;
+export default SchoolSettingsComponent;

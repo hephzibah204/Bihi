@@ -1,9 +1,12 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../functions/supabaseClient';
 import { apiGetSchoolSettings, apiGetStudents, apiGetScratchCards } from '../services/api';
 import BriefcaseIcon from './icons/BriefcaseIcon';
 import UsersIcon from './icons/UsersIcon';
 import { USER_ROLES } from '../utils/constants';
+// Fix: Import `UserRole` to correctly type the `loginAs` state.
+import { UserRole } from '../types';
 
 const PortalLogin = ({ onStudentLoginSuccess }) => {
     const [loading, setLoading] = useState(false);
@@ -18,7 +21,8 @@ const PortalLogin = ({ onStudentLoginSuccess }) => {
     // Student/Parent login state
     const [admissionNo, setAdmissionNo] = useState('');
     const [pin, setPin] = useState('');
-    const [loginAs, setLoginAs] = useState(USER_ROLES.STUDENT);
+    // Fix: Explicitly type the `loginAs` state to allow for both 'Student' and 'Parent' roles, resolving a type inference error.
+    const [loginAs, setLoginAs] = useState<UserRole>(USER_ROLES.STUDENT);
 
     useEffect(() => {
         const fetchSettings = async () => {

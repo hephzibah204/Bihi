@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, PropsWithChildren } from 'react';
 import { apiGetAnnouncements, apiSendAnnouncement, apiGetSubjects } from '../services/api';
 import { Subject } from '../types';
@@ -27,7 +28,8 @@ const CommunicationsDashboard = () => {
             ]);
             setAnnouncements(annData || []);
             setSubjects(subData || []);
-            const allClasses = [...new Set((subData || []).flatMap(s => s.classes))].sort();
+            // Fix: Specify the generic type for `new Set` as `<string>` to prevent TypeScript from inferring `unknown[]` for `allClasses`.
+            const allClasses = [...new Set<string>((subData || []).flatMap(s => s.classes))].sort();
             setClasses(allClasses);
         } catch (err) {
             console.error("Failed to load communications data", err);

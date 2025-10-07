@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { apiGetStudents, apiGetSubjects, apiGetSchoolSettings, apiGetScores, getTenantData, apiGetAttendance } from '../services/api';
 import { Student, Subject, SchoolSettings, Score, Remark } from '../types';
@@ -41,7 +42,8 @@ const ReportCardDashboard = () => {
                 setRemarks(remarksData);
                 setAttendance(attendanceData);
 
-                const allClasses = [...new Set(subjectData.flatMap(s => s.classes))].sort();
+                // Fix: Specify the generic type for `new Set` as `<string>` to ensure `allClasses` is correctly typed as `string[]`.
+                const allClasses = [...new Set<string>(subjectData.flatMap(s => s.classes))].sort();
                 setClasses(allClasses);
                 if (allClasses.length > 0) {
                     setSelectedClass(allClasses[0]);

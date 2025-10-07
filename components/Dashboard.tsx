@@ -1,6 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
-import { DashboardView } from '../types';
+// Fix: Import `UserRole` type to correctly type the `userRole` state.
+import { DashboardView, UserRole } from '../types';
 import Header from './Header';
 import DashboardContent from './DashboardContent';
 import { supabase } from '../functions/supabaseClient';
@@ -25,7 +27,7 @@ const getStudentIdFromUrl = () => new URLSearchParams(window.location.search).ge
 
 const Dashboard = () => {
     const [session, setSession] = useState(null); // Supabase session for staff
-    const [userRole, setUserRole] = useState<string | null>(null);
+    const [userRole, setUserRole] = useState<UserRole | null>(null);
     const [activeUser, setActiveUser] = useState(null); // Local session for student/parent
     const [loading, setLoading] = useState(true);
     const [isSidebarOpen, setSidebarOpen] = useState(false);

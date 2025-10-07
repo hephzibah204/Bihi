@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { apiGetStudents, apiGetSubjects } from '../services/api';
 import { generateText } from '../services/geminiService';
@@ -60,9 +61,10 @@ const LearningPathways: React.FC<LearningPathwaysProps> = ({ studentId }) => {
         setGeneratedPathway('');
 
         try {
+            // Fix: Cast `selectedStudent` to `Student` to resolve type error. The component logic ensures this is safe, as this branch is only taken when `studentId` is not provided, meaning `selectedStudent` is a full `Student` object.
             const studentInfo = studentId 
                 ? 'the student' 
-                : `a student named ${selectedStudent?.name || 'a student'} in ${selectedStudent?.class || 'their class'}`;
+                : `a student named ${(selectedStudent as Student)?.name || 'a student'} in ${selectedStudent?.class || 'their class'}`;
 
             const prompt = `
                 As an expert Nigerian educator, create a personalized learning pathway for ${studentInfo}.

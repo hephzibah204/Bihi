@@ -1,5 +1,8 @@
+
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { apiGetStudents, apiGetSubjects, apiGetSchoolSettings, apiUpsertRemark, getTenantData, apiGetScores, apiGetBehavioralRecords, apiUpsertScore } from '../services/api';
+// Fix: Import `Remark` type to correctly type the component's state.
 import { Student, Subject, Remark, SchoolSettings, Score, BehavioralLogEntry, ReportCardSkill } from '../types';
 import Modal from './Modal';
 import { debounce } from 'lodash';
@@ -45,7 +48,8 @@ const EditableSkillsRating = ({ title, skills, ratings, onRatingChange }: { titl
 const StudentReportCardEditorModal = ({ student, allData, onClose, onDataUpdate }) => {
     const { subjects, scores, remarks, settings, behavioralRecords } = allData;
     const [currentScores, setCurrentScores] = useState({});
-    const [currentRemark, setCurrentRemark] = useState({});
+    // Fix: Explicitly type `currentRemark` state as `Partial<Remark>` to prevent errors when accessing its properties.
+    const [currentRemark, setCurrentRemark] = useState<Partial<Remark>>({});
     const [generating, setGenerating] = useState({ subjectComment: null, generalComment: false });
 
     useEffect(() => {
@@ -170,7 +174,7 @@ const ComprehensiveReportEntry = () => {
     const [allData, setAllData] = useState({
         students: [], subjects: [], scores: [], remarks: [], behavioralRecords: [], settings: null,
     });
-    const [classes, setClasses] = useState([]);
+    const [classes, setClasses] = useState<string[]>([]);
     const [selectedClass, setSelectedClass] = useState('');
     const [loading, setLoading] = useState(true);
     const [editingStudent, setEditingStudent] = useState(null);
@@ -182,7 +186,7 @@ const ComprehensiveReportEntry = () => {
                 apiGetStudents(), apiGetSubjects(), apiGetScores(), getTenantData('remarks') || [], apiGetBehavioralRecords(), apiGetSchoolSettings()
             ]);
             setAllData({ students, subjects, scores, remarks, behavioralRecords, settings });
-            const allClasses = [...new Set(subjects.flatMap(s => s.classes))].sort();
+            const allClasses = [...new Set<string>(subjects.flatMap(s => s.classes))].sort();
             setClasses(allClasses);
             if (allClasses.length > 0) setSelectedClass(allClasses[0]);
         } catch(e) { console.error("Failed to load comprehensive data", e); }

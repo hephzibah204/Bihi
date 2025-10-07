@@ -1,3 +1,4 @@
+
 /*
 ================================================================================
 ================================================================================
@@ -38,7 +39,8 @@ import XIcon from './icons/XIcon';
 const CountdownTimer = ({ endDate }) => {
     const calculateTimeLeft = () => {
         const difference = +new Date(endDate) - +new Date();
-        let timeLeft = {};
+        // Fix: Explicitly define the type for `timeLeft` to prevent errors when accessing its properties, even if it's an empty object.
+        let timeLeft: { hours?: number; minutes?: number; seconds?: number } = {};
 
         if (difference > 0) {
             timeLeft = {

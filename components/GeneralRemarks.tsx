@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { apiGetStudents, apiGetSubjects, apiGetSchoolSettings, apiUpsertRemark, getTenantData, apiGetScores, apiGetBehavioralRecords } from '../services/api';
 import { Student, Subject, Remark, SchoolSettings, Score, BehavioralLogEntry } from '../types';
@@ -31,7 +32,8 @@ const GeneralRemarks = () => {
                 setSubjects(subjectsData);
                 setScores(allScores);
                 setBehavioralRecords(allBehavioral);
-                const allClasses = [...new Set(subjectsData.flatMap(s => s.classes))].sort();
+                // Fix: Specify the generic type for `new Set` as `<string>` to ensure `allClasses` is correctly typed as `string[]`.
+                const allClasses = [...new Set<string>(subjectsData.flatMap(s => s.classes))].sort();
                 setClasses(allClasses);
                 setSettings(settingsData);
                 if (allClasses.length > 0) {

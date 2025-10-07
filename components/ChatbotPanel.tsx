@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import SpinnerIcon from './icons/SpinnerIcon';
 import { generateText } from '../services/geminiService';
@@ -28,7 +29,8 @@ const ChatbotPanel: React.FC<ChatbotPanelProps> = ({ isOpen, onClose, userRole }
              let welcomeMessage = "Hello! How can I help you today?";
              if(userRole === USER_ROLES.STUDENT) welcomeMessage = "Hello! I'm your AI academic tutor. Ask me anything about your schoolwork.";
              if(userRole === USER_ROLES.PARENT) welcomeMessage = "Hello! I'm your AI parent assistant. How can I help you understand your child's progress today?";
-            setMessages([{ sender: 'ai', text: welcomeMessage }]);
+            // Fix: Use `as const` to prevent TypeScript from widening the literal 'ai' to a generic string, ensuring type compatibility with the state.
+            setMessages([{ sender: 'ai' as const, text: welcomeMessage }]);
         } else {
             setMessages([]);
         }
@@ -37,7 +39,8 @@ const ChatbotPanel: React.FC<ChatbotPanelProps> = ({ isOpen, onClose, userRole }
     const handleSend = async () => {
         if (!input.trim()) return;
 
-        const newMessages = [...messages, { sender: 'user', text: input }];
+        // Fix: Use `as const` on the sender property to maintain its literal type ('user'), satisfying the state's stricter type requirements.
+        const newMessages = [...messages, { sender: 'user' as const, text: input }];
         setMessages(newMessages);
         setInput('');
         setIsLoading(true);
@@ -54,9 +57,11 @@ const ChatbotPanel: React.FC<ChatbotPanelProps> = ({ isOpen, onClose, userRole }
                     aiResponse = getFallbackChatResponse(input);
                  }
             }
-            setMessages([...newMessages, { sender: 'ai', text: aiResponse }]);
+            // Fix: Use `as const` on the sender property to maintain its literal type ('ai'), ensuring the new message object conforms to the state's type.
+            setMessages([...newMessages, { sender: 'ai' as const, text: aiResponse }]);
         } catch (error) {
-            setMessages([...newMessages, { sender: 'ai', text: `Sorry, an error occurred: ${error.message}` }]);
+            // Fix: Use `as const` for the sender property to ensure the error message object matches the required state type.
+            setMessages([...newMessages, { sender: 'ai' as const, text: `Sorry, an error occurred: ${error.message}` }]);
         } finally {
             setIsLoading(false);
         }

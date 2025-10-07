@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { generateText } from '../services/geminiService';
 import SparklesIcon from './icons/SparklesIcon';
@@ -33,7 +34,8 @@ const LessonPlanner = () => {
             try {
                 const subjectsData = await apiGetSubjects();
                 setAllSubjects(subjectsData);
-                const allClasses = [...new Set(subjectsData.flatMap(s => s.classes))].sort();
+                // Fix: Specify the generic type for `new Set` as `<string>` to ensure `allClasses` is correctly typed as `string[]`.
+                const allClasses = [...new Set<string>(subjectsData.flatMap(s => s.classes))].sort();
                 setClasses(allClasses);
                 if (allClasses.length > 0) {
                     setSelectedClass(allClasses[0]);

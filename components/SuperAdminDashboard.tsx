@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../functions/supabaseClient';
 import SuperAdminLoginPage from './SuperAdminLoginPage';
@@ -12,7 +13,8 @@ import { ADMIN_VIEWS } from '../utils/constants';
 const SuperAdminDashboard = () => {
     const [session, setSession] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [activeView, setActiveView] = useState(ADMIN_VIEWS.DASHBOARD);
+    // Fix: Broaden the type of `activeView` from a specific literal to `string` to allow any of the valid admin view strings to be set.
+    const [activeView, setActiveView] = useState<string>(ADMIN_VIEWS.DASHBOARD);
     
     useEffect(() => {
         if (!supabase) {
