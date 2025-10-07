@@ -1,39 +1,16 @@
-
 // functions/api/ai/health.js
-
-function getCorsHeaders(request) {
-    const origin = request.headers.get('Origin') || '';
-    // In a real production environment, this list should come from an environment variable.
-    const allowedOrigins = [
-        'http://localhost:3000',
-        'http://localhost:5173',
-    ];
-
-    let allowOrigin = '';
-    if (origin.startsWith('http://localhost:')) {
-        allowOrigin = origin;
-    } 
-    else if (allowedOrigins.includes(origin) || origin.endsWith('.reportsheet.com.ng') || origin.endsWith('.pages.dev')) {
-        allowOrigin = origin;
-    }
-    
-    return {
-        'Access-Control-Allow-Origin': allowOrigin,
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-    };
-}
 
 /**
  * Handles GET requests to check the health of the AI service.
+ * This endpoint is public and uses a wildcard CORS policy for simple diagnostics.
  */
-export async function onRequestGet({ request, env }) {
-    const headers = getCorsHeaders(request);
-    headers['Content-Type'] = 'application/json';
-    
-    if (!headers['Access-Control-Allow-Origin']) {
-        return new Response('Forbidden', { status: 403 });
-    }
+export async function onRequestGet({ env }) {
+    const headers = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Content-Type': 'application/json',
+    };
 
     if (env.API_KEY && env.API_KEY.startsWith("AIza")) {
         return new Response(
@@ -44,7 +21,7 @@ export async function onRequestGet({ request, env }) {
     return new Response(
         JSON.stringify({
             status: "error",
-            message: "API_KEY not found. Please set it in Cloudflare Pages → Settings → Environment Variables.",
+            message: "API_KEY not found or is invalid. Please set it in your Cloudflare Pages environment variables.",
         }),
         { status: 500, headers }
     );
@@ -53,6 +30,12 @@ export async function onRequestGet({ request, env }) {
 /**
  * Handles OPTIONS requests for CORS preflight.
  */
-export async function onRequestOptions({ request }) {
-    return new Response(null, { headers: getCorsHeaders(request) });
+export async function onRequestOptions() {
+    return new Response(null, { 
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type',
+        }
+    });
 }
