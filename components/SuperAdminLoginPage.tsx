@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { supabase } from '../functions/supabaseClient';
+// Fix: Corrected import path for supabase client
+import { supabase } from '../services/supabaseClient';
 
 const SuperAdminLoginPage = () => {
     const [loading, setLoading] = useState(false);

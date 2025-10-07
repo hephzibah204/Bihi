@@ -1,6 +1,8 @@
 
+
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../functions/supabaseClient';
+// Fix: Corrected import path for supabase client
+import { supabase } from '../services/supabaseClient';
 import SuperAdminLoginPage from './SuperAdminLoginPage';
 import PlatformAnalytics from './PlatformAnalytics';
 import TenantManagement from './TenantManagement';

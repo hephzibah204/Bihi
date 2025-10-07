@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { apiAddTenant, apiSaveSchoolSettings, apiSaveSubjects, apiSaveTeachers } from '../services/api';
-import { supabase } from '../functions/supabaseClient';
+// Fix: Corrected import path for supabase client
+import { supabase } from '../services/supabaseClient';
 import { demoSchoolSettings, demoSubjects, demoTeachers } from '../utils/demoData';
 import SpinnerIcon from './icons/SpinnerIcon';
 import Logo from './icons/Logo';

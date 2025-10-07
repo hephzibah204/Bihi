@@ -1,7 +1,8 @@
 import React, { FC } from 'react';
 import { TeacherView } from '../types';
 import LogoutIcon from './icons/LogoutIcon';
-import { supabase } from '../functions/supabaseClient';
+// Fix: Corrected import path for supabase client
+import { supabase } from '../services/supabaseClient';
 import CalendarDaysIcon from './icons/CalendarDaysIcon';
 import BrainCircuitIcon from './icons/BrainCircuitIcon';
 import { TEACHER_VIEWS } from '../utils/constants';

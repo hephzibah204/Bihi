@@ -1,11 +1,13 @@
 
+
 import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 // Fix: Import `UserRole` type to correctly type the `userRole` state.
 import { DashboardView, UserRole } from '../types';
 import Header from './Header';
 import DashboardContent from './DashboardContent';
-import { supabase } from '../functions/supabaseClient';
+// Fix: Corrected import path for supabase client
+import { supabase } from '../services/supabaseClient';
 import PortalLogin from './PortalLogin';
 import { TenantProvider } from '../contexts/TenantContext';
 import { apiGetTeachers, clearSyncQueue, initializeSync, cleanupSync, apiForceSync } from '../services/api';

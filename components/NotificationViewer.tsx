@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiGetAnnouncements, apiGetStudents } from '../services/api';
-import { supabase } from '../functions/supabaseClient';
+// Fix: Corrected import path for supabase client
+import { supabase } from '../services/supabaseClient';
 import { formatDate } from '../utils/dateHelpers';
 
 const NotificationViewer = ({ demoUserId }) => {

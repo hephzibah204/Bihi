@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiGetStudents, apiGetTeachers, apiGetTimetableData } from '../services/api';
-import { supabase } from '../functions/supabaseClient';
+// Fix: Corrected import path for supabase client
+import { supabase } from '../services/supabaseClient';
 import { Student, Teacher } from '../types';
 
 const MyStudents = () => {

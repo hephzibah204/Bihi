@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality, Blob } from '@google/genai';
 import MicrophoneIcon from './icons/MicrophoneIcon';
@@ -6,6 +7,7 @@ import HeadsetIcon from './icons/HeadsetIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
 import SparklesIcon from './icons/SparklesIcon';
 import UserCircleIcon from './icons/UserCircleIcon';
+import { supabase } from '../services/supabaseClient';
 
 // --- Audio Helper Functions ---
 function encode(bytes) {
@@ -94,7 +96,17 @@ const AIAcademicTutor = () => {
             setStatus('initializing');
             setErrorMessage('');
             try {
-                const response = await fetch('/api/ai/client-key');
+                if (!supabase) throw new Error("Authentication service not available.");
+
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) throw new Error("User not authenticated.");
+
+                const response = await fetch('/api/ai/client-key', {
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`,
+                    }
+                });
+                
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(errorData.error || 'Failed to fetch AI configuration from server.');

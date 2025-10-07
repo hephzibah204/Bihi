@@ -1,6 +1,8 @@
 
+
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../functions/supabaseClient';
+// Fix: Corrected import path for supabase client
+import { supabase } from '../services/supabaseClient';
 import { apiGetSchoolSettings, apiGetStudents, apiGetScratchCards } from '../services/api';
 import BriefcaseIcon from './icons/BriefcaseIcon';
 import UsersIcon from './icons/UsersIcon';

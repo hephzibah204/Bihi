@@ -1,3 +1,6 @@
+// Fix: Removed Vite-specific type reference that was causing a "Cannot find type definition file" error.
+// /// <reference types="vite/client" />
+
 // Fix: Augment the Window interface to declare the 'supabase' property.
 declare global {
   interface Window {
@@ -16,26 +19,16 @@ function initializeSupabaseClient() {
 
     const { createClient } = window.supabase;
 
-    // --- HYBRID KEY LOGIC ---
-    // WARNING: THE FOLLOWING KEYS ARE HARDCODED FOR DEVELOPMENT/STAGING.
-    // DO NOT COMMIT THIS TO A PUBLIC REPOSITORY.
-    // IN PRODUCTION, THESE SHOULD BE SET AS ENVIRONMENT VARIABLES.
-    const HARDCODED_URL = 'https://shzwolantavauszuxwlp.supabase.co';
-    const HARDCODED_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNoendvbGFudGF2YXVzenV4d2xwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MTUxMTIsImV4cCI6MjA3MzE5MTExMn0.hu1qFjgKUvBKUDzYj1pjkCQX7Can9BQcyiNeYowzBPw';
-
-    const supabaseUrl = process.env.SUPABASE_URL || HARDCODED_URL;
-    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || HARDCODED_ANON_KEY;
-
-    if (supabaseUrl === HARDCODED_URL) {
-        console.warn("--- SECURITY WARNING --- Using hardcoded Supabase URL. This is not recommended for production.");
-    }
-    if (supabaseAnonKey === HARDCODED_ANON_KEY) {
-        console.warn("--- SECURITY WARNING --- Using hardcoded Supabase Anon Key. This is not recommended for production.");
-    }
-
+    // --- SECURE KEY LOGIC ---
+    // These keys are now loaded from environment variables set in the execution environment.
+    // For Vite, client-side environment variables must be prefixed with VITE_.
+    // Fix: Switched from `import.meta.env` to `process.env` to resolve TypeScript errors and align with more standard environment variable access patterns in React projects.
+    const supabaseUrl = process.env.VITE_SUPABASE_URL;
+    const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+    
     if (!supabaseUrl || !supabaseAnonKey) {
         // Log an error but don't throw, to prevent crashing the entire application.
-        console.error("Supabase URL and Anon Key must be provided in environment variables or hardcoded for fallback.");
+        console.error("Supabase URL and Anon Key must be provided in environment variables (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY).");
         return null;
     }
 

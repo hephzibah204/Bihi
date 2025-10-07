@@ -1,3 +1,6 @@
+
+import { supabase } from './supabaseClient';
+
 /**
  * Generates text content by sending a prompt to a secure, server-side proxy
  * which then calls the Gemini API.
@@ -6,10 +9,19 @@
  */
 export const generateText = async (prompt: string): Promise<string> => {
   try {
+    if (!supabase) {
+        throw new Error("Authentication service is not available.");
+    }
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+        throw new Error("User not authenticated.");
+    }
+
     const response = await fetch('/api/ai/generate', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({ prompt }),
     });
@@ -35,6 +47,7 @@ export const generateText = async (prompt: string): Promise<string> => {
     }
 
     const data = await response.json();
+    // The Gemini API response structure was updated in the proxy.
     return data.text;
     
   } catch (error) {

@@ -1,5 +1,3 @@
 {
-  "name": "reportsheet-worker",
-  "main": "functions/worker.js",
-  "compatibility_date": "2025-10-04"
+  "comment": "This file is not used for Cloudflare Pages Git-based deployments and has been cleared to avoid confusion."
 }

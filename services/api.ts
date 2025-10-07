@@ -1,7 +1,9 @@
 
+
 import { getSubdomain } from '../utils/subdomain';
 import { demoSchoolSettings, demoStudents, demoSubjects, demoTeachers, demoParents, DEMO_TENANT_ID, demoMessages } from '../utils/demoData';
-import { supabase } from '../functions/supabaseClient';
+// Fix: Corrected import path for supabase client
+import { supabase } from './supabaseClient';
 import { SyncStatus } from '../hooks/useSync';
 import { Tenant, LandingPageContent, ReportCardSettings, Conversation, Message } from '../types';
 
@@ -625,7 +627,7 @@ export const getCurrentUser = async () => {
     return { id: user.id, name: user.email, role: 'Unknown' };
 }
 
-export const apiGetConversationSummaries = async (userId: string, userRole: string) => {
+export const apiGetConversationSummaries = async (userId: string, userRole: string): Promise<Conversation[]> => {
     const allMessages = getTenantData('messages') || [];
     const allTeachers = await apiGetTeachers();
     const allParents = getTenantData('parents') || [];
@@ -640,7 +642,7 @@ export const apiGetConversationSummaries = async (userId: string, userRole: stri
         }
     });
 
-    return Array.from(conversationsMap.values()).map(msg => {
+    return Array.from(conversationsMap.values()).map((msg: Message) => {
         const otherId = msg.senderId === userId ? msg.recipientId : msg.senderId;
         const teacher = allTeachers.find(t => t.auth_id === otherId);
         const parent = allParents.find(p => p.id === otherId);
