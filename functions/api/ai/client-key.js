@@ -1,9 +1,7 @@
-
 // functions/api/ai/client-key.js
 
 function getCorsHeaders(request) {
     const origin = request.headers.get('Origin') || '';
-    // This is a simplified check. A production app might use a more robust regex or an env variable list.
     const allowedOrigins = [
         'http://localhost:3000',
         'http://localhost:5173',
@@ -20,45 +18,50 @@ function getCorsHeaders(request) {
     return {
         'Access-Control-Allow-Origin': allowOrigin,
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Demo-Mode',
     };
 }
 
-/**
- * Handles GET requests to provide the API key to the client for the Live API.
- */
 export async function onRequestGet({ request, env }) {
     const corsHeaders = getCorsHeaders(request);
     corsHeaders['Content-Type'] = 'application/json';
     
     if (!corsHeaders['Access-Control-Allow-Origin']) {
-        return new Response('Forbidden', { status: 403 });
+        return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: corsHeaders });
     }
+
+    let isAuthenticated = false;
 
     // --- Authentication ---
     const authHeader = request.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return new Response(JSON.stringify({ error: 'Unauthorized: Missing or invalid token' }), { status: 401, headers: corsHeaders });
-    }
-    const token = authHeader.split(' ')[1];
+    const isDemoMode = request.headers.get('X-Demo-Mode') === 'true';
 
-    const { SUPABASE_URL, SUPABASE_ANON_KEY } = env;
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-        return new Response(JSON.stringify({ error: 'Server is not configured for authentication.' }), { status: 500, headers: corsHeaders });
-    }
-    
-    const authResponse = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'apikey': SUPABASE_ANON_KEY
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.split(' ')[1];
+        const { SUPABASE_URL, SUPABASE_ANON_KEY } = env;
+        if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+            return new Response(JSON.stringify({ error: 'Server not configured for auth.' }), { status: 500, headers: corsHeaders });
         }
-    });
-
-    if (!authResponse.ok) {
-        return new Response(JSON.stringify({ error: 'Unauthorized: Invalid token' }), { status: 401, headers: corsHeaders });
+        const authResponse = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+            headers: { 'Authorization': `Bearer ${token}`, 'apikey': SUPABASE_ANON_KEY }
+        });
+        if (authResponse.ok) {
+            isAuthenticated = true;
+        }
+    } else if (isDemoMode) {
+        const origin = request.headers.get('Origin') || '';
+        if (corsHeaders['Access-Control-Allow-Origin'] === origin) {
+            isAuthenticated = true;
+        } else {
+             return new Response(JSON.stringify({ error: 'Forbidden: Invalid origin for demo mode' }), { status: 403, headers: corsHeaders });
+        }
     }
-    // User is authenticated.
 
+    if (!isAuthenticated) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+    }
+
+    // --- Provide Key ---
     if (env.API_KEY) {
         return new Response(JSON.stringify({ key: env.API_KEY }), { headers: corsHeaders });
     }
@@ -68,9 +71,6 @@ export async function onRequestGet({ request, env }) {
     );
 }
 
-/**
- * Handles OPTIONS requests for CORS preflight.
- */
 export async function onRequestOptions({ request }) {
     return new Response(null, { headers: getCorsHeaders(request) });
 }

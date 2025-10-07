@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality, Blob } from '@google/genai';
 import MicrophoneIcon from './icons/MicrophoneIcon';
@@ -99,13 +98,18 @@ const AIAcademicTutor = () => {
                 if (!supabase) throw new Error("Authentication service not available.");
 
                 const { data: { session } } = await supabase.auth.getSession();
-                if (!session) throw new Error("User not authenticated.");
+                const isDemo = sessionStorage.getItem('isDemoMode') === 'true';
 
-                const response = await fetch('/api/ai/client-key', {
-                    headers: {
-                        'Authorization': `Bearer ${session.access_token}`,
-                    }
-                });
+                if (!session && !isDemo) throw new Error("User not authenticated.");
+
+                const headers: HeadersInit = {};
+                if (session) {
+                    headers['Authorization'] = `Bearer ${session.access_token}`;
+                } else if (isDemo) {
+                    headers['X-Demo-Mode'] = 'true';
+                }
+
+                const response = await fetch('/api/ai/client-key', { headers });
                 
                 if (!response.ok) {
                     const errorData = await response.json();

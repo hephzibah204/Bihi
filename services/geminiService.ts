@@ -1,4 +1,3 @@
-
 import { supabase } from './supabaseClient';
 
 /**
@@ -12,33 +11,39 @@ export const generateText = async (prompt: string): Promise<string> => {
     if (!supabase) {
         throw new Error("Authentication service is not available.");
     }
+
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    const isDemo = sessionStorage.getItem('isDemoMode') === 'true';
+
+    if (!session && !isDemo) {
         throw new Error("User not authenticated.");
+    }
+    
+    const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+    };
+    
+    if (session) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+    } else if (isDemo) {
+        headers['X-Demo-Mode'] = 'true';
     }
 
     const response = await fetch('/api/ai/generate', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
-      },
+      headers: headers,
       body: JSON.stringify({ prompt }),
     });
 
     if (!response.ok) {
-        // The response is an error. We need to handle it gracefully.
-        // The body could be JSON, text, or empty.
         const errorText = await response.text();
         let errorMessage = `Server responded with status: ${response.status}`;
 
         if (errorText) {
             try {
-                // See if the error text is actually our expected JSON format
                 const errorJson = JSON.parse(errorText);
                 errorMessage = errorJson.error || errorText;
             } catch (e) {
-                // If parsing fails, it's not JSON. Use the raw text.
                 errorMessage = errorText;
             }
         }
@@ -47,12 +52,10 @@ export const generateText = async (prompt: string): Promise<string> => {
     }
 
     const data = await response.json();
-    // The Gemini API response structure was updated in the proxy.
     return data.text;
     
   } catch (error) {
     console.error("Error calling the AI proxy service:", error);
-    // Re-throw a user-friendly message that can be caught by UI components
     throw new Error(`Failed to get a response from the AI service. ${error.message}`);
   }
 };
