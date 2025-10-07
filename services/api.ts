@@ -97,7 +97,8 @@ export const apiForceSync = async () => {
 
 // --- Tenancy ---
 export const getTenantId = (): string | null => {
-    return getSubdomain(window.location.hostname);
+    // Fix: Corrected call to getSubdomain. It takes no arguments as it accesses window.location internally.
+    return getSubdomain();
 };
 
 // This function determines if we should use demo data

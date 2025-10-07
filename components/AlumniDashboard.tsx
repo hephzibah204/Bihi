@@ -42,7 +42,8 @@ const AlumniDashboard = () => {
     useEffect(() => {
         const fetchAlumni = async () => {
             try {
-                const tenantId = getSubdomain(window.location.hostname);
+                // Fix: Corrected call to getSubdomain. It takes no arguments.
+                const tenantId = getSubdomain();
                 if (!tenantId) {
                     setLoading(false);
                     return;

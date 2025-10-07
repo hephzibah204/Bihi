@@ -92,8 +92,8 @@ const App = () => {
         return <div className="flex items-center justify-center h-screen">Loading...</div>;
     }
     
-    // Highest priority route for SuperAdmin login
-    if (showSuperAdmin) {
+    // SUPER ADMIN routes have the highest priority and override everything else.
+    if (subdomain === 'admin' || showSuperAdmin) {
         return <SuperAdminDashboard />;
     }
     
@@ -130,10 +130,7 @@ const App = () => {
 
     // Handle subdomain routing if not on the root domain
     if (subdomain) {
-        if (subdomain === 'admin') {
-            return <SuperAdminDashboard />;
-        }
-        // All other subdomains lead to the school portal
+        // The 'admin' case is handled at the top, so we just render the school portal here.
         return <Dashboard />;
     }
 
