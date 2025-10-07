@@ -60,7 +60,8 @@ const ClassicReportCard = ({ student, students, scores, subjects, settings, term
                 <p className="text-sm p-2 border rounded-md min-h-[40px]">{generalRemark || ''}</p>
             </div>
             <div className="mt-auto pt-8">
-                <ReportCardFooter />
+                {/* Fix: Pass principalName prop to ReportCardFooter to resolve missing property error. */}
+                <ReportCardFooter principalName={settings.reportCardSettings.principalName} />
             </div>
         </div>
     );

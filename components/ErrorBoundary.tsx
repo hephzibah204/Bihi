@@ -10,23 +10,26 @@ interface State {
 }
 
 class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
-  // Fix: The constructor-based state initialization was causing type errors. Switched to class property syntax for state which is a more modern and direct way to declare state and should resolve the type inference issues.
+  // Fix: Replaced the constructor and separate state declaration with a single
+  // class property initialization. This modern syntax is often more robust with
+  // TypeScript's type inference and resolves the unusual error where `this.props`
+  // was not being recognized.
   state: State = {
     hasError: false,
-    error: undefined
+    error: undefined,
   };
 
-  static getDerivedStateFromError(error: Error): State {
+  public static getDerivedStateFromError(error: Error): State {
     // Update state so the next render will show the fallback UI.
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // You can also log the error to an error reporting service
     console.error("Uncaught error:", error, errorInfo);
   }
 
-  render() {
+  public render(): React.ReactNode {
     if (this.state.hasError) {
       // You can render any custom fallback UI
       return (

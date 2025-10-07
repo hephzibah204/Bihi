@@ -5,7 +5,7 @@ import ClockIcon from './icons/ClockIcon';
 // Fix: Import StudentView from the central types file to break a circular dependency.
 import { StudentView } from '../types';
 import DocumentDuplicateIcon from './icons/DocumentDuplicateIcon';
-import HeadsetIcon from './icons/HeadsetIcon';
+import BrainCircuitIcon from './icons/BrainCircuitIcon';
 import { STUDENT_VIEWS } from '../utils/constants';
 
 interface NavItemProps {
@@ -35,7 +35,7 @@ const StudentBottomNavBar: FC<BottomNavBarProps> = ({ activeView, setActiveView 
     const navItems: { view: StudentView; label: string; icon: React.ReactNode }[] = [
         { view: STUDENT_VIEWS.DASHBOARD, label: 'Home', icon: <HomeIcon className="h-6 w-6" /> },
         { view: STUDENT_VIEWS.RESULTS, label: 'Results', icon: <ClipboardListIcon className="h-6 w-6" /> },
-        { view: STUDENT_VIEWS.AI_TUTOR, label: 'AI Tutor', icon: <HeadsetIcon className="h-6 w-6" /> },
+        { view: STUDENT_VIEWS.AI_TOOLS, label: 'AI Tools', icon: <BrainCircuitIcon className="h-6 w-6" /> },
         { view: STUDENT_VIEWS.ASSIGNMENTS, label: 'Work', icon: <DocumentDuplicateIcon className="h-6 w-6" /> },
         { view: STUDENT_VIEWS.TIMETABLE, label: 'Schedule', icon: <ClockIcon className="h-6 w-6" /> },
     ];

@@ -29,6 +29,8 @@ import { ADMIN_VIEWS } from '../utils/constants';
 import GeneralRemarks from './GeneralRemarks';
 import StudentProfilePage from './StudentProfilePage';
 import AlumniDashboard from './AlumniDashboard';
+import SubjectRecommender from './SubjectRecommender';
+import ComprehensiveReportEntry from './ComprehensiveReportEntry';
 
 
 interface DashboardContentProps {
@@ -40,13 +42,21 @@ interface DashboardContentProps {
 }
 
 const AiTools = () => (
-    <div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-            <CommentGenerator />
-            <LessonPlanner />
-            <LearningPathways />
-            <PracticeQuiz />
-            <EarlyIntervention />
+    <div className="space-y-8">
+        <div>
+            <h2 className="text-2xl font-semibold">AI Assistant Tools</h2>
+            <p className="mt-1 text-gray-600">Quick tools to help with daily tasks.</p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+                <CommentGenerator />
+                <LessonPlanner />
+                <SubjectRecommender />
+                <LearningPathways />
+                <PracticeQuiz />
+                <EarlyIntervention />
+            </div>
+        </div>
+        <div className="mt-8">
+             <h2 className="text-2xl font-semibold mb-4">Broadsheet Analysis</h2>
             <BroadsheetAnalysis />
         </div>
     </div>
@@ -83,6 +93,7 @@ const DashboardContent = ({ activeView, setActiveView, userRole, profileStudentI
         case ADMIN_VIEWS.RESULTS: return <Results />;
         case ADMIN_VIEWS.GENERAL_REMARKS: return <GeneralRemarks />;
         case ADMIN_VIEWS.REPORT_CARDS: return <ReportCard setActiveView={setActiveView} />;
+        case ADMIN_VIEWS.COMPREHENSIVE_ENTRY: return <ComprehensiveReportEntry />;
         case ADMIN_VIEWS.PROMOTIONS: return <Promotions />;
         case ADMIN_VIEWS.ID_CARDS: return <IDCardGenerator />;
         case ADMIN_VIEWS.TIMETABLE: return <Timetable />;

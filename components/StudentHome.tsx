@@ -2,13 +2,13 @@ import React from 'react';
 import ClipboardListIcon from './icons/ClipboardListIcon';
 import ClockIcon from './icons/ClockIcon';
 import { StudentView } from '../types';
-import HeadsetIcon from './icons/HeadsetIcon';
+import BrainCircuitIcon from './icons/BrainCircuitIcon';
 import { STUDENT_VIEWS } from '../utils/constants';
 
 const StudentHome = ({ setActiveView }: { setActiveView: (view: StudentView) => void }) => {
     const quickLinks = [
         { view: STUDENT_VIEWS.RESULTS, title: "View My Results", icon: <ClipboardListIcon className="w-8 h-8"/>, description: "Check your latest scores and grades." },
-        { view: STUDENT_VIEWS.AI_TUTOR, title: "AI Academic Tutor", icon: <HeadsetIcon className="w-8 h-8"/>, description: "Have a voice conversation with an AI tutor." },
+        { view: STUDENT_VIEWS.AI_TOOLS, title: "AI Learning Tools", icon: <BrainCircuitIcon className="w-8 h-8"/>, description: "Use AI to generate quizzes, study plans, and more." },
         { view: STUDENT_VIEWS.TIMETABLE, title: "Check Timetable", icon: <ClockIcon className="w-8 h-8"/>, description: "See your class schedule for the week." },
     ];
 

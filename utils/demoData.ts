@@ -23,6 +23,28 @@ export const demoSchoolSettings: SchoolSettings = {
     maxCa1: 20,
     maxCa2: 20,
     maxExam: 60,
+    reportCardSettings: {
+        principalName: 'Mrs. Adebayo',
+        schoolMotto: 'Excellence and Integrity',
+        sections: [
+            { id: 'academics', title: 'Academic Performance', enabled: true },
+            { id: 'attendance', title: 'Attendance Record', enabled: true },
+            { id: 'affective', title: 'Affective Domain', enabled: true },
+            { id: 'psychomotor', title: 'Psychomotor Skills', enabled: true },
+            { id: 'comment', title: 'General Comment', enabled: true },
+        ],
+        affectiveSkills: [
+            { id: 'skill_1', label: 'Punctuality' },
+            { id: 'skill_2', label: 'Neatness' },
+            { id: 'skill_3', label: 'Honesty' },
+            { id: 'skill_4', label: 'Self-Control' },
+        ],
+        psychomotorSkills: [
+            { id: 'skill_5', label: 'Handwriting' },
+            { id: 'skill_6', label: 'Games & Sports' },
+            { id: 'skill_7', label: 'Dexterity' },
+        ]
+    }
 };
 
 export const demoSubjects = [

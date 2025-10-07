@@ -5,6 +5,7 @@ import SparklesIcon from './icons/SparklesIcon';
 import ChartBarIcon from './icons/ChartBarIcon';
 import { DashboardView } from '../types';
 import { ADMIN_VIEWS } from '../utils/constants';
+import PencilSquareIcon from './icons/PencilSquareIcon';
 
 interface ReportCardProps {
     setActiveView: (view: DashboardView) => void;
@@ -18,8 +19,14 @@ const ReportCard = ({ setActiveView }: ReportCardProps) => {
     }
 
     const hubItems = [
+         {
+            title: 'Dossier',
+            description: 'Enter scores, comments, and skills for each student in one place.',
+            icon: <PencilSquareIcon className="w-8 h-8" />,
+            action: () => setActiveView(ADMIN_VIEWS.COMPREHENSIVE_ENTRY),
+        },
         {
-            title: 'Generate Report Cards',
+            title: 'Generate & Print Reports',
             description: 'Select a class to generate, view, and print individual reports.',
             icon: <DocumentArrowDownIcon className="w-8 h-8" />,
             action: () => setShowGenerator(true),
@@ -43,7 +50,7 @@ const ReportCard = ({ setActiveView }: ReportCardProps) => {
             <p className="mt-2 text-gray-600">
                 Manage all aspects of report card generation and analysis from here.
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
                 {hubItems.map(item => (
                     <button key={item.title} onClick={item.action} className="card p-6 text-left hover:shadow-lg hover:scale-105 transition-transform duration-200">
                         <div className="text-indigo-500 w-16 h-16 flex items-center justify-center bg-indigo-100 rounded-lg">

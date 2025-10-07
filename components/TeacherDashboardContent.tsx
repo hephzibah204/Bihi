@@ -8,6 +8,11 @@ import TeacherSchedule from './TeacherSchedule';
 import LessonPlanner from './LessonPlanner';
 import CommentGenerator from './CommentGenerator';
 import { TEACHER_VIEWS } from '../utils/constants';
+import LearningPathways from './LearningPathways';
+import PracticeQuiz from './PracticeQuiz';
+import EarlyIntervention from './EarlyIntervention';
+import BroadsheetAnalysis from './BroadsheetAnalysis';
+import SubjectRecommender from './SubjectRecommender';
 
 
 interface TeacherDashboardContentProps {
@@ -16,14 +21,24 @@ interface TeacherDashboardContentProps {
 }
 
 const AiTools = () => (
-     <div>
-        <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">AI Teacher Assistant</h1>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-            <CommentGenerator />
-            <LessonPlanner />
+    <div className="space-y-8">
+        <div>
+            <p className="text-gray-600">Use these AI-powered tools to streamline your workflow.</p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+                <CommentGenerator />
+                <LessonPlanner />
+                <SubjectRecommender />
+                <LearningPathways />
+                <PracticeQuiz />
+                <EarlyIntervention />
+            </div>
+        </div>
+        <div className="mt-8">
+            <h2 className="text-2xl font-semibold mb-4">Class Broadsheet</h2>
+            <BroadsheetAnalysis />
         </div>
     </div>
-)
+);
 
 const TeacherDashboardContent = ({ activeView, setActiveView }: TeacherDashboardContentProps) => {
     switch(activeView) {

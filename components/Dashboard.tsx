@@ -20,19 +20,22 @@ import GlobalNotification from './GlobalNotification';
 import Chatbot from './Chatbot';
 import { ADMIN_VIEWS, USER_ROLES } from '../utils/constants';
 
+const getViewFromUrl = () => new URLSearchParams(window.location.search).get('view');
+const getStudentIdFromUrl = () => new URLSearchParams(window.location.search).get('studentId');
+
 const Dashboard = () => {
     const [session, setSession] = useState(null); // Supabase session for staff
     const [userRole, setUserRole] = useState<string | null>(null);
     const [activeUser, setActiveUser] = useState(null); // Local session for student/parent
     const [loading, setLoading] = useState(true);
     const [isSidebarOpen, setSidebarOpen] = useState(false);
-    const [activeView, setActiveView] = useState<DashboardView>(ADMIN_VIEWS.DASHBOARD);
-    const [profileStudentId, setProfileStudentId] = useState<string | null>(null);
+    const [activeView, setActiveView] = useState<DashboardView>(getViewFromUrl() || ADMIN_VIEWS.DASHBOARD);
+    const [profileStudentId, setProfileStudentId] = useState<string | null>(getStudentIdFromUrl());
     const [headerTitle, setHeaderTitle] = useState('Dashboard');
     const { syncStatus } = useSync();
     const [isLogoutModalOpen, setLogoutModalOpen] = useState(false);
 
-    // Effect to manage the active session (either from sessionStorage for students/parents or Supabase for staff)
+    // Effect to manage the active session and routing
     useEffect(() => {
         setLoading(true);
 
@@ -45,36 +48,46 @@ const Dashboard = () => {
                 setUserRole(parsedUser.role);
                 initializeSync();
                 setLoading(false);
-                return;
             }
         } catch (e) {
             sessionStorage.removeItem('activeUser');
         }
 
         // 2. If no student/parent session, check for staff Supabase session
-        if (!supabase) {
-            console.error("Supabase client is not initialized.");
-            setLoading(false);
-            return;
-        }
-
-        const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            setSession(session);
-            if (session) {
-                const teachers = await apiGetTeachers();
-                const currentUser = teachers.find(t => t.email.toLowerCase() === session.user.email.toLowerCase());
-                setUserRole(currentUser?.role || USER_ROLES.ADMIN);
-                initializeSync();
+        if (!activeUser) {
+            if (!supabase) {
+                console.error("Supabase client is not initialized.");
+                setLoading(false);
             } else {
-                setUserRole(null);
-                cleanupSync();
+                 const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+                    setSession(session);
+                    if (session) {
+                        const teachers = await apiGetTeachers();
+                        const currentUser = teachers.find(t => t.email.toLowerCase() === session.user.email.toLowerCase());
+                        setUserRole(currentUser?.role || USER_ROLES.ADMIN);
+                        initializeSync();
+                    } else {
+                        setUserRole(null);
+                        cleanupSync();
+                    }
+                    setLoading(false);
+                });
+
+                // Supabase listener cleanup is returned from this effect
             }
-            setLoading(false);
-        });
+        }
+        
+        // Routing: Listen for browser back/forward
+        const handlePopState = () => {
+            setActiveView(getViewFromUrl() || ADMIN_VIEWS.DASHBOARD);
+            setProfileStudentId(getStudentIdFromUrl());
+        };
+        window.addEventListener('popstate', handlePopState);
 
         return () => {
-            authListener?.subscription?.unsubscribe();
+            // No need to clean up supabase listener here as it's handled in App.tsx now
             cleanupSync();
+            window.removeEventListener('popstate', handlePopState);
         };
     }, []);
 
@@ -133,14 +146,18 @@ const Dashboard = () => {
         setSession(null);
         setUserRole(null);
         clearSyncQueue();
+        // Go to root page on logout
+        window.location.href = '/';
     };
 
     useEffect(() => {
         let title = 'Dashboard';
-        if(activeView === ADMIN_VIEWS.STUDENT_PROFILE) {
+        if (activeView === ADMIN_VIEWS.STUDENT_PROFILE) {
             title = 'Student Profile';
+        } else if (activeView === ADMIN_VIEWS.COMPREHENSIVE_ENTRY) {
+            title = 'Dossier';
         } else {
-            const viewName = activeView.replace(/-/g, ' ');
+            const viewName = (activeView || '').replace(/-/g, ' ');
             title = viewName.charAt(0).toUpperCase() + viewName.slice(1);
         }
         setHeaderTitle(title);
@@ -149,6 +166,13 @@ const Dashboard = () => {
 
 
     const handleViewChange = (view: DashboardView) => {
+        const url = new URL(window.location.toString());
+        url.searchParams.set('view', view);
+        if (view !== ADMIN_VIEWS.STUDENT_PROFILE) {
+            url.searchParams.delete('studentId');
+            setProfileStudentId(null);
+        }
+        window.history.pushState({}, '', url.toString());
         setActiveView(view);
         if (window.innerWidth < 768) {
             setSidebarOpen(false);
@@ -156,8 +180,12 @@ const Dashboard = () => {
     }
     
     const handleViewStudentProfile = (studentId: string) => {
+        const url = new URL(window.location.toString());
+        url.searchParams.set('view', ADMIN_VIEWS.STUDENT_PROFILE);
+        url.searchParams.set('studentId', studentId);
+        window.history.pushState({}, '', url.toString());
         setProfileStudentId(studentId);
-        handleViewChange(ADMIN_VIEWS.STUDENT_PROFILE);
+        setActiveView(ADMIN_VIEWS.STUDENT_PROFILE);
     };
 
     if (loading) {

@@ -10,6 +10,7 @@ import DocumentDuplicateIcon from './icons/DocumentDuplicateIcon';
 import { STUDENT_VIEWS } from '../utils/constants';
 import Logo from './icons/Logo';
 import XIcon from './icons/XIcon';
+import BrainCircuitIcon from './icons/BrainCircuitIcon';
 
 interface SidebarProps {
     isSidebarOpen: boolean;
@@ -38,7 +39,8 @@ const StudentSidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveVi
         { view: STUDENT_VIEWS.DASHBOARD, label: 'Dashboard', icon: <HomeIcon className="h-5 w-5" /> },
         { view: STUDENT_VIEWS.RESULTS, label: 'My Results', icon: <ClipboardListIcon className="h-5 w-5" /> },
         { view: STUDENT_VIEWS.ASSIGNMENTS, label: 'My Assignments', icon: <DocumentDuplicateIcon className="h-5 w-5" /> },
-        { view: STUDENT_VIEWS.AI_TUTOR, label: 'AI Tutor', icon: <HeadsetIcon className="h-5 w-5" /> },
+        { view: STUDENT_VIEWS.AI_TUTOR, label: 'Live AI Tutor', icon: <HeadsetIcon className="h-5 w-5" /> },
+        { view: STUDENT_VIEWS.AI_TOOLS, label: 'AI Tools', icon: <BrainCircuitIcon className="h-5 w-5" /> },
         { view: STUDENT_VIEWS.TIMETABLE, label: 'Timetable', icon: <ClockIcon className="h-5 w-5" /> },
         { view: STUDENT_VIEWS.NOTIFICATIONS, label: 'Notifications', icon: <BellIcon className="h-5 w-5" /> },
         { view: STUDENT_VIEWS.PROFILE, label: 'My Profile', icon: <UserCircleIcon className="h-5 w-5" /> },

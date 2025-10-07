@@ -1,9 +1,49 @@
 import React, { useState, useEffect } from 'react';
 import { apiGetSchoolSettings, apiSaveSchoolSettings } from '../services/api';
-import { SchoolSettings, Grading } from '../types';
+import { SchoolSettings, Grading, ReportCardSection, ReportCardSkill } from '../types';
 import SpinnerIcon from './icons/SpinnerIcon';
 import PlusIcon from './icons/PlusIcon';
 import TrashIcon from './icons/TrashIcon';
+
+const SkillEditor = ({ title, skills, onSkillsChange }) => {
+    
+    const handleLabelChange = (index, newLabel) => {
+        const newSkills = [...skills];
+        newSkills[index].label = newLabel;
+        onSkillsChange(newSkills);
+    };
+
+    const addSkill = () => {
+        onSkillsChange([...skills, { id: `skill_${Date.now()}`, label: '' }]);
+    };
+
+    const removeSkill = (index) => {
+        onSkillsChange(skills.filter((_, i) => i !== index));
+    };
+
+    return (
+        <div className="mt-4">
+            <div className="flex justify-between items-center mb-2">
+                <h4 className="font-semibold">{title}</h4>
+                <button onClick={addSkill} className="btn btn-secondary text-sm"><PlusIcon className="w-4 h-4 mr-1"/> Add</button>
+            </div>
+            <div className="space-y-2">
+                {skills.map((skill, index) => (
+                    <div key={skill.id} className="flex items-center gap-2">
+                        <input 
+                            value={skill.label}
+                            onChange={(e) => handleLabelChange(index, e.target.value)}
+                            className="input-field"
+                            placeholder="Skill label (e.g., Punctuality)"
+                        />
+                         <button onClick={() => removeSkill(index)} className="icon-button text-red-500"><TrashIcon className="w-5 h-5"/></button>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
 
 const SchoolSettings = () => {
     const [settings, setSettings] = useState<Partial<SchoolSettings> | null>(null);
@@ -39,6 +79,22 @@ const SchoolSettings = () => {
     const removeGrade = (index: number) => {
         const newGradingSystem = settings.gradingSystem.filter((_, i) => i !== index);
         setSettings(prev => ({ ...prev, gradingSystem: newGradingSystem }));
+    };
+
+    const handleReportCardSettingChange = (field: string, value: any) => {
+        setSettings(prev => ({
+            ...prev,
+            reportCardSettings: {
+                ...prev.reportCardSettings,
+                [field]: value,
+            }
+        }));
+    };
+    
+    const handleSectionChange = (index: number, field: keyof ReportCardSection, value: any) => {
+        const newSections = [...settings.reportCardSettings.sections];
+        newSections[index] = { ...newSections[index], [field]: value };
+        handleReportCardSettingChange('sections', newSections);
     };
 
     const handleSave = async () => {
@@ -100,6 +156,47 @@ const SchoolSettings = () => {
                                 <button onClick={() => removeGrade(index)} className="text-red-500 hover:text-red-700 col-span-1"><TrashIcon className="w-5 h-5 mx-auto"/></button>
                             </div>
                         ))}
+                    </div>
+                </div>
+            </div>
+
+            <div className="card">
+                <div className="p-6">
+                    <h2 className="text-xl font-semibold">Report Card Customization</h2>
+                    <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label className="label">Principal's Name</label>
+                            <input value={settings?.reportCardSettings?.principalName || ''} onChange={e => handleReportCardSettingChange('principalName', e.target.value)} className="input-field" />
+                        </div>
+                        <div>
+                            <label className="label">School Motto</label>
+                            <input value={settings?.reportCardSettings?.schoolMotto || ''} onChange={e => handleReportCardSettingChange('schoolMotto', e.target.value)} className="input-field" />
+                        </div>
+                    </div>
+                    <div className="mt-6">
+                        <h3 className="font-semibold">Report Card Sections</h3>
+                        <p className="text-sm text-gray-500">Enable, disable, and rename sections that appear on the report card.</p>
+                        <div className="space-y-2 mt-2">
+                            {settings?.reportCardSettings?.sections.map((section, index) => (
+                                <div key={section.id} className="flex items-center gap-4 p-2 border rounded-md">
+                                    <input type="checkbox" checked={section.enabled} onChange={e => handleSectionChange(index, 'enabled', e.target.checked)} className="h-5 w-5"/>
+                                    <input value={section.title} onChange={e => handleSectionChange(index, 'title', e.target.value)} className="input-field" />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                        <SkillEditor 
+                            title="Affective Skills"
+                            skills={settings?.reportCardSettings?.affectiveSkills || []}
+                            onSkillsChange={(newSkills) => handleReportCardSettingChange('affectiveSkills', newSkills)}
+                        />
+                         <SkillEditor 
+                            title="Psychomotor Skills"
+                            skills={settings?.reportCardSettings?.psychomotorSkills || []}
+                            onSkillsChange={(newSkills) => handleReportCardSettingChange('psychomotorSkills', newSkills)}
+                        />
                     </div>
                 </div>
             </div>

@@ -24,6 +24,7 @@ export const ADMIN_VIEWS = {
     RESULTS: 'results',
     GENERAL_REMARKS: 'general-remarks',
     REPORT_CARDS: 'report-cards',
+    COMPREHENSIVE_ENTRY: 'comprehensive-entry',
     PROMOTIONS: 'promotions',
     ID_CARDS: 'id-cards',
     TIMETABLE: 'timetable',
@@ -82,6 +83,7 @@ export const STUDENT_VIEWS = {
     NOTIFICATIONS: 'notifications',
     PROFILE: 'profile',
     AI_TUTOR: 'ai-tutor',
+    AI_TOOLS: 'ai-tools',
 } as const;
 
 export const PARENT_VIEWS = {

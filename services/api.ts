@@ -2,7 +2,7 @@ import { getSubdomain } from '../utils/subdomain';
 import { demoSchoolSettings, demoStudents, demoSubjects, demoTeachers, demoParents, DEMO_TENANT_ID, demoMessages } from '../utils/demoData';
 import { supabase } from '../functions/supabaseClient';
 import { SyncStatus } from '../hooks/useSync';
-import { Tenant, LandingPageContent } from '../types';
+import { Tenant, LandingPageContent, ReportCardSettings } from '../types';
 
 // --- Sync Queue ---
 export const syncEventBus = new EventTarget();
@@ -271,7 +271,32 @@ export const apiBatchUpsertScores = async (scoresToUpsert: any[]) => {
 }
 
 // --- Settings ---
-export const apiGetSchoolSettings = async (tenantId?: string) => getTenantData('settings', tenantId || getTenantId()) || demoSchoolSettings;
+const defaultReportCardSettings: ReportCardSettings = {
+    principalName: 'School Principal',
+    schoolMotto: 'Excellence and Integrity',
+    sections: [
+        { id: 'academics', title: 'Academic Performance', enabled: true },
+        { id: 'attendance', title: 'Attendance Record', enabled: true },
+        { id: 'affective', title: 'Affective Domain', enabled: true },
+        { id: 'psychomotor', title: 'Psychomotor Skills', enabled: true },
+        { id: 'comment', title: 'General Comment', enabled: true },
+    ],
+    affectiveSkills: [
+        { id: 'skill_1', label: 'Punctuality' }, { id: 'skill_2', label: 'Neatness' }, { id: 'skill_3', label: 'Honesty' },
+    ],
+    psychomotorSkills: [
+        { id: 'skill_4', label: 'Handwriting' }, { id: 'skill_5', label: 'Games & Sports' }, { id: 'skill_6', label: 'Dexterity' },
+    ]
+};
+
+export const apiGetSchoolSettings = async (tenantId?: string) => {
+    const settings = getTenantData('settings', tenantId || getTenantId()) || demoSchoolSettings;
+    if (!settings.reportCardSettings) {
+        settings.reportCardSettings = defaultReportCardSettings;
+    }
+    return settings;
+};
+
 export const apiSaveSchoolSettings = async (settingsData: any, tenantId?: string) => {
     const effectiveTenantId = tenantId || getTenantId();
     addToQueue('SAVE_SETTINGS', settingsData, effectiveTenantId);

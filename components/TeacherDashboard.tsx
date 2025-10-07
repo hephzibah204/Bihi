@@ -10,19 +10,32 @@ import { TEACHER_VIEWS } from '../utils/constants';
 import Chatbot from './Chatbot';
 import { USER_ROLES } from '../utils/constants';
 
+const getViewFromUrl = () => new URLSearchParams(window.location.search).get('view');
+
 const TeacherDashboard = ({ onLogout }) => {
     const [isSidebarOpen, setSidebarOpen] = useState(false);
-    const [activeView, setActiveView] = useState<TeacherView>(TEACHER_VIEWS.DASHBOARD);
+    const [activeView, setActiveView] = useState<TeacherView>(getViewFromUrl() as TeacherView || TEACHER_VIEWS.DASHBOARD);
     const [headerTitle, setHeaderTitle] = useState('Dashboard');
 
     useEffect(() => {
-        const viewName = activeView.replace(/-/g, ' ');
+        const handlePopState = () => {
+            setActiveView(getViewFromUrl() as TeacherView || TEACHER_VIEWS.DASHBOARD);
+        };
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, []);
+
+    useEffect(() => {
+        const viewName = (activeView || '').replace(/-/g, ' ');
         const capitalizedTitle = viewName.charAt(0).toUpperCase() + viewName.slice(1);
         setHeaderTitle(capitalizedTitle);
         document.title = `${capitalizedTitle} | ReportSheet`;
     }, [activeView]);
 
     const handleViewChange = (view: TeacherView) => {
+        const url = new URL(window.location.toString());
+        url.searchParams.set('view', view);
+        window.history.pushState({}, '', url.toString());
         setActiveView(view);
         if (window.innerWidth < 768) {
             setSidebarOpen(false);

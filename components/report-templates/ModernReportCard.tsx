@@ -59,7 +59,8 @@ const ModernReportCard = ({ student, students, scores, subjects, settings, term,
                 </div>
             </section>
              <div className="mt-auto pt-10">
-                <ReportCardFooter />
+                {/* Fix: Pass principalName prop to ReportCardFooter to resolve missing property error. */}
+                <ReportCardFooter principalName={settings.reportCardSettings.principalName} />
             </div>
         </div>
     );

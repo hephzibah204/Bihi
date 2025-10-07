@@ -63,6 +63,8 @@ export interface Remark {
     term: string;
     generalComment?: string;
     teacherComment?: string;
+    affectiveRatings?: Record<string, number>;
+    psychomotorRatings?: Record<string, number>;
 }
 
 export interface BehavioralLogEntry {
@@ -81,6 +83,26 @@ export interface Grading {
     remark: string;
 }
 
+export interface ReportCardSkill {
+    id: string;
+    label: string;
+}
+
+export interface ReportCardSection {
+    id: 'academics' | 'attendance' | 'affective' | 'psychomotor' | 'comment';
+    title: string;
+    enabled: boolean;
+}
+
+export interface ReportCardSettings {
+    principalName: string;
+    schoolMotto: string;
+    sections: ReportCardSection[];
+    affectiveSkills: ReportCardSkill[];
+    psychomotorSkills: ReportCardSkill[];
+}
+
+
 export interface SchoolSettings {
     schoolName: string;
     schoolAddress: string;
@@ -94,6 +116,7 @@ export interface SchoolSettings {
     gradingSystem: Grading[];
     paystackPublicKey?: string;
     planId?: string;
+    reportCardSettings?: ReportCardSettings;
 }
 
 export interface Assignment {
