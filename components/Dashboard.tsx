@@ -43,44 +43,61 @@ const Dashboard = () => {
     useEffect(() => {
         setLoading(true);
 
-        // --- AUTHENTICATION LOGIC ---
-        // 1. Prioritize checking for an active student/parent/demo session from sessionStorage.
-        try {
-            const activeUserSession = sessionStorage.getItem('activeUser');
-            if (activeUserSession) {
+        // Always check for an initial demo session to speed up the first render
+        const activeUserSession = sessionStorage.getItem('activeUser');
+        if (activeUserSession) {
+            try {
                 const parsedUser = JSON.parse(activeUserSession);
                 setActiveUser(parsedUser);
                 setUserRole(parsedUser.role);
                 initializeSync();
                 setLoading(false);
-            } else {
-                // 2. If no demo/portal session, check for a real staff Supabase session.
-                if (!supabase) {
-                    console.error("Supabase client is not initialized.");
-                    setLoading(false);
-                } else {
-                     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-                        setSession(session);
-                        if (session) {
-                            const teachers = await apiGetTeachers();
-                            const currentUser = teachers.find(t => t.email.toLowerCase() === session.user.email.toLowerCase());
-                            setUserRole(currentUser?.role || USER_ROLES.ADMIN);
-                            initializeSync();
-                        } else {
-                            setUserRole(null);
-                            cleanupSync();
-                        }
-                        setLoading(false);
-                    });
-                    // Supabase v2 automatically handles cleanup, but you could return subscription.unsubscribe for older versions.
-                }
+            } catch (e) {
+                sessionStorage.removeItem('activeUser');
             }
-        } catch (e) {
-            sessionStorage.removeItem('activeUser');
-            setLoading(false); // Ensure loading stops on error
         }
         
-        // --- ROUTING & CLEANUP ---
+        if (!supabase) {
+            setLoading(false);
+            return;
+        }
+
+        // Always set up the Supabase listener. It will self-regulate.
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+            // CRITICAL: Check for a demo session *inside* the listener. If it exists, bail out.
+            const demoSession = sessionStorage.getItem('activeUser');
+            if (demoSession) {
+                // A demo user is active. Ensure the state matches the demo user and do not proceed.
+                // This prevents a lingering real session from overriding the demo one.
+                try {
+                    const parsedDemoUser = JSON.parse(demoSession);
+                    if (userRole !== parsedDemoUser.role) {
+                         setActiveUser(parsedDemoUser);
+                         setUserRole(parsedDemoUser.role);
+                    }
+                } catch(e) {
+                    console.error("Error parsing demo session inside auth listener", e);
+                }
+                if (loading) setLoading(false);
+                return;
+            }
+            
+            // No demo session, proceed with real Supabase session logic.
+            setSession(session);
+            if (session) {
+                const teachers = await apiGetTeachers();
+                const currentUser = teachers.find(t => t.email.toLowerCase() === session.user.email.toLowerCase());
+                setUserRole(currentUser?.role || USER_ROLES.ADMIN);
+                initializeSync();
+            } else {
+                // This means a real user logged out. Clear everything.
+                setActiveUser(null);
+                setUserRole(null);
+                cleanupSync();
+            }
+            setLoading(false);
+        });
+
         const handlePopState = () => {
             setActiveView(getViewFromUrl() || ADMIN_VIEWS.DASHBOARD);
             setProfileStudentId(getStudentIdFromUrl());
@@ -88,10 +105,12 @@ const Dashboard = () => {
         window.addEventListener('popstate', handlePopState);
 
         return () => {
+            subscription.unsubscribe();
             cleanupSync();
             window.removeEventListener('popstate', handlePopState);
         };
-    }, []);
+    }, []); // Empty dependency array ensures this runs once. userRole is managed internally.
+
 
     // Effect to check AI service health
     useEffect(() => {
@@ -139,8 +158,11 @@ const Dashboard = () => {
             }
         }
 
+        const isDemo = sessionStorage.getItem('isDemoMode') === 'true';
+
         // Clear both types of sessions
         sessionStorage.removeItem('activeUser');
+        sessionStorage.removeItem('isDemoMode');
         setActiveUser(null);
         if (supabase) {
             await supabase.auth.signOut();
@@ -148,8 +170,14 @@ const Dashboard = () => {
         setSession(null);
         setUserRole(null);
         clearSyncQueue();
-        // Go to root page on logout
-        window.location.href = '/';
+        
+        if (isDemo) {
+            // Go to demo selection page on logout from demo
+            window.location.href = '/?view=demo';
+        } else {
+            // Go to root page on logout
+            window.location.href = '/';
+        }
     };
 
     useEffect(() => {

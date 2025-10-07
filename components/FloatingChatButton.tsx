@@ -1,5 +1,5 @@
 import React from 'react';
-import ChatBubbleLeftRightIcon from './icons/ChatBubbleLeftRightIcon';
+import SparklesIcon from './icons/SparklesIcon';
 import XIcon from './icons/XIcon';
 
 interface FloatingChatButtonProps {
@@ -15,7 +15,7 @@ const FloatingChatButton: React.FC<FloatingChatButtonProps> = ({ onClick, isOpen
             aria-label={isOpen ? "Close chat" : "Open chat"}
         >
             <div className="relative w-8 h-8">
-                <ChatBubbleLeftRightIcon className={`absolute inset-0 w-8 h-8 transition-all duration-300 ${isOpen ? 'transform rotate-90 opacity-0' : 'transform rotate-0 opacity-100'}`} />
+                <SparklesIcon className={`absolute inset-0 w-8 h-8 transition-all duration-300 ${isOpen ? 'transform rotate-90 opacity-0' : 'transform rotate-0 opacity-100'}`} />
                 <XIcon className={`absolute inset-0 w-8 h-8 transition-all duration-300 ${isOpen ? 'transform rotate-0 opacity-100' : 'transform -rotate-90 opacity-0'}`} />
             </div>
         </button>

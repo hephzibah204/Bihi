@@ -68,7 +68,7 @@ const ChatbotPanel: React.FC<ChatbotPanelProps> = ({ isOpen, onClose, userRole }
     };
 
     return (
-        <div className={`fixed bottom-24 right-4 w-[calc(100vw-2rem)] max-w-sm h-[60vh] bg-white rounded-lg shadow-xl flex flex-col transition-all duration-300 ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+        <div className={`fixed bottom-40 md:bottom-24 right-4 w-[calc(100vw-2rem)] max-w-sm h-[60vh] bg-white rounded-lg shadow-xl flex flex-col transition-all duration-300 ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
             <header className="p-4 border-b flex justify-between items-center">
                 <h2 className="font-semibold">AI Assistant</h2>
                 <button onClick={onClose} className="text-gray-400 hover:text-gray-600">&times;</button>

@@ -40,6 +40,12 @@ const DemoSchoolLandingPage: FC<DemoSchoolLandingPageProps> = ({ onSelectProfile
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(false);
 
+    const handleExitDemo = (e: React.MouseEvent<HTMLAnchorElement>) => {
+        e.preventDefault();
+        sessionStorage.removeItem('isDemoMode');
+        window.location.href = '/';
+    };
+
     const handleRoleClick = async (role: string) => {
         if (role === USER_ROLES.STUDENT || role === USER_ROLES.PARENT) {
             setLoading(true);
@@ -77,6 +83,11 @@ const DemoSchoolLandingPage: FC<DemoSchoolLandingPageProps> = ({ onSelectProfile
                     <ArrowLeftIcon className="w-5 h-5 mr-2" />
                     Back to Roles
                 </button>
+                <div className="mt-8 text-center">
+                    <a href="/" onClick={handleExitDemo} className="font-medium text-gray-500 hover:text-indigo-500 text-sm">
+                        Exit Demo and return to Main Site
+                    </a>
+                </div>
             </div>
         );
     }
@@ -120,6 +131,11 @@ const DemoSchoolLandingPage: FC<DemoSchoolLandingPageProps> = ({ onSelectProfile
                     />
                 </div>
             </main>
+             <div className="mt-12 text-center">
+                <a href="/" onClick={handleExitDemo} className="font-medium text-gray-500 hover:text-indigo-500">
+                    Exit Demo and return to Main Site
+                </a>
+            </div>
         </div>
     );
 };

@@ -19,12 +19,21 @@ const SubscriptionPage = () => {
     const [error, setError] = useState('');
 
     const getRootDomain = () => {
-        let host = window.location.host;
-        // Strip 'www.' if it exists, as it's not part of the root for subdomain creation
-        if (host.startsWith('www.')) {
-            return host.substring(4);
-        }
-        return host;
+        const host = window.location.hostname;
+        const parts = host.split('.');
+
+        // Handles localhost or single-name domains
+        if (parts.length <= 1) return host;
+        
+        // Handles domains like 'example.com' or 'pages.dev'
+        if (parts.length === 2) return host;
+
+        // Handles domains like 'project.pages.dev' or 'www.example.com'
+        // Assumes the root is the last two parts. This is a simplification.
+        // A more robust solution might use a predefined list of TLDs.
+        if (host.includes('localhost')) return 'localhost';
+        
+        return parts.slice(-2).join('.');
     };
 
     const domain = getRootDomain();
@@ -83,6 +92,11 @@ const SubscriptionPage = () => {
                 apiSaveSubjects(demoSubjects, formData.subdomain),
                 apiSaveTeachers([newAdmin], formData.subdomain),
             ]);
+            
+            // ** THE FIX **
+            // Clear any lingering demo session data to ensure the new portal is clean.
+            sessionStorage.removeItem('isDemoMode');
+            sessionStorage.removeItem('activeUser');
 
             setStep(3);
         } catch (err) {
