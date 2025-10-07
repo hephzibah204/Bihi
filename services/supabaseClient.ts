@@ -1,9 +1,21 @@
-// Fix: Removed Vite-specific triple-slash directive to resolve "Cannot find type definition" error.
-// This project setup does not appear to include Vite client types.
+// services/supabaseClient.ts
 
-// Declare the 'supabase' property on the global Window interface
-// to inform TypeScript about the Supabase client loaded from the CDN script.
+// Fix: Replaced the non-functional Vite client type reference with an explicit
+// interface declaration for ImportMetaEnv. This resolves TypeScript errors
+// by informing the compiler about the shape of `import.meta.env`, which is
+// populated by Vite during the build process.
+interface ImportMetaEnv {
+    readonly VITE_SUPABASE_URL: string;
+    readonly VITE_SUPABASE_ANON_KEY: string;
+}
+
+interface ImportMeta {
+    readonly env: ImportMetaEnv;
+}
+
+// Declare global types to inform TypeScript about CDN-loaded scripts.
 declare global {
+  // Declare the 'supabase' property on the global Window interface for the CDN script.
   interface Window {
     supabase: any;
   }
@@ -20,15 +32,11 @@ function initializeSupabaseClient() {
 
     const { createClient } = window.supabase;
 
-    // --- SECURE KEY LOGIC ---
-    // These keys are loaded from environment variables set in the Cloudflare Pages environment.
-    // For Vite, client-side environment variables MUST be prefixed with VITE_.
-    // Fix: Replaced `import.meta.env` with `process.env`, which is the standard way bundlers
-    // like Vite or Create React App expose environment variables to client-side code. This
-    // resolves the error that 'env' does not exist on 'ImportMeta'.
-    const supabaseUrl = process.env.VITE_SUPABASE_URL;
-    // Fix: Replaced `import.meta.env` with `process.env` to correctly access environment variables.
-    const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+    // --- SECURE KEY LOGIC for VITE (Frontend) ---
+    // These keys are loaded from environment variables using Vite's specific syntax.
+    // In your Cloudflare Pages settings, these must be named VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
     
     if (!supabaseUrl || !supabaseAnonKey) {
         // Log an error but don't throw, to prevent crashing the entire application.
