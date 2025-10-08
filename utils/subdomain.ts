@@ -2,6 +2,7 @@
 import { DEMO_TENANT_ID } from './demoData';
 
 const ROOT_DOMAINS = ['reportsheet.com.ng', 'localhost'];
+const PREVIEW_ROOT_DOMAIN = 'reportsheet.pages.dev'; // Explicitly define the preview root
 
 export const getSubdomain = (): string | null => {
     // 1. Prioritize tenant query parameter for simulation/testing
@@ -14,6 +15,11 @@ export const getSubdomain = (): string | null => {
     }
 
     const hostname = window.location.hostname;
+
+    // NEW: Explicitly treat the main preview domain as a root domain
+    if (hostname === PREVIEW_ROOT_DOMAIN) {
+        return null;
+    }
     
     // 2. Handle specific development/preview hostnames
     if (hostname.endsWith('.pages.dev') || hostname.endsWith('.vercel.app')) {
