@@ -9,13 +9,8 @@ interface State {
 }
 
 class ErrorBoundary extends Component<Props, State> {
-  // Fix: Reverted to using a constructor to initialize state and props.
-  // This is the standard and most robust way to create a stateful class component
-  // and resolves the TypeScript error where `this.props` was not found.
-  constructor(props: Props) {
-    super(props);
-    this.state = { hasError: false };
-  }
+  // Fix: Replaced the constructor with a class property for state initialization. This is a more modern and direct way to declare state, resolving the errors where 'state' and 'props' were not found on the component instance.
+  state: State = { hasError: false };
 
   static getDerivedStateFromError(_: Error): State {
     // Update state so the next render will show the fallback UI.

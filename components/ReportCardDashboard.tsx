@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { apiGetStudents, apiGetSubjects, apiGetSchoolSettings, apiGetScores, apiGetRemarks, apiGetAttendance } from '../services/api';
 import { Student, Subject, SchoolSettings, Score, Remark } from '../types';
@@ -7,6 +6,7 @@ import BulkReportCardPrintView from './BulkReportCardPrintView';
 import { getReportCardTemplate } from '../utils/reportCardHelper';
 import SpinnerIcon from './icons/SpinnerIcon';
 import PrinterIcon from './icons/PrinterIcon';
+import ArrowDownTrayIcon from './icons/ArrowDownTrayIcon';
 
 const ReportCardDashboard = () => {
     const [allStudents, setAllStudents] = useState<Student[]>([]);
@@ -22,7 +22,7 @@ const ReportCardDashboard = () => {
     const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
 
     const [loading, setLoading] = useState(true);
-    const [isPrinting, setIsPrinting] = useState(false);
+    const [exportAction, setExportAction] = useState<'print' | 'download' | null>(null);
     
     useEffect(() => {
         const fetchAllData = async () => {
@@ -43,7 +43,6 @@ const ReportCardDashboard = () => {
                 setRemarks(remarksData);
                 setAttendance(attendanceData);
 
-                // Fix: Specify the generic type for `new Set` as `<string>` to ensure `allClasses` is correctly typed as `string[]`.
                 const allClasses = [...new Set<string>(subjectData.flatMap(s => s.classes))].sort();
                 setClasses(allClasses);
                 if (allClasses.length > 0) {
@@ -88,9 +87,14 @@ const ReportCardDashboard = () => {
         return <div className="card p-6 text-center"><SpinnerIcon className="w-8 h-8 animate-spin mx-auto" /> Loading Report Card Data...</div>;
     }
 
-    if (isPrinting) {
+    if (exportAction) {
         const allDataForPrint = { allStudents, scores, subjects, settings, remarks, attendance };
-        return <BulkReportCardPrintView studentIds={Array.from(selectedStudents)} allData={allDataForPrint} onClose={() => setIsPrinting(false)} />;
+        return <BulkReportCardPrintView 
+            studentIds={Array.from(selectedStudents)} 
+            allData={allDataForPrint} 
+            onClose={() => setExportAction(null)}
+            action={exportAction}
+        />;
     }
 
     return (
@@ -104,10 +108,14 @@ const ReportCardDashboard = () => {
                             {classes.map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
                     </div>
-                    <div>
-                        <button onClick={() => setIsPrinting(true)} disabled={selectedStudents.size === 0} className="btn btn-primary w-full">
+                    <div className="flex gap-2">
+                        <button onClick={() => setExportAction('download')} disabled={selectedStudents.size === 0} className="btn btn-secondary w-full">
+                            <ArrowDownTrayIcon className="w-5 h-5 mr-2" />
+                            Download ({selectedStudents.size})
+                        </button>
+                        <button onClick={() => setExportAction('print')} disabled={selectedStudents.size === 0} className="btn btn-primary w-full">
                             <PrinterIcon className="w-5 h-5 mr-2" />
-                            Print Selected ({selectedStudents.size})
+                            Print ({selectedStudents.size})
                         </button>
                     </div>
                 </div>

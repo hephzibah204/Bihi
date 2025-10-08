@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiGetPlatformSettings, apiGetSchoolSettings, apiSaveSchoolSettings } from '../services/api';
+import { apiGetPlatformSettings, apiGetSchoolSettings, apiUpdateSubscription } from '../services/api';
 import { supabase } from '../services/supabaseClient';
 import { Plan } from '../types';
 import CheckIcon from './icons/CheckIcon';
@@ -76,11 +76,13 @@ const PlanSelector: React.FC<PlanSelectorProps> = ({ isSubscribed, planName }) =
             onClose: () => {},
             callback: async (response) => {
                 if (response.status === 'success') {
-                    await apiSaveSchoolSettings({
-                        ...schoolSettings,
-                        planId: plan.id,
-                    });
-                    window.location.reload();
+                    try {
+                        await apiUpdateSubscription(plan.id);
+                        alert('Subscription successful! The page will now reload to apply your new plan.');
+                        window.location.reload();
+                    } catch (error) {
+                        alert(`There was an error updating your subscription: ${error.message}`);
+                    }
                 } else {
                     alert('Payment failed. Please try again.');
                 }

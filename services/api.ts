@@ -491,6 +491,43 @@ export const apiUpdateTenant = async (tenantData: Tenant) => {
     if (error) throw error;
 };
 
+export const apiUpdateSubscription = async (planId: string): Promise<void> => {
+    const tenantId = getTenantId();
+    if (!tenantId || isDemoMode()) {
+        console.warn("DEMO or no tenant: Skipping subscription update.");
+        return;
+    }
+
+    try {
+        // 1. Get current tenant info and settings
+        const [tenants, schoolSettings] = await Promise.all([
+            apiGetTenants(),
+            apiGetSchoolSettings()
+        ]);
+        
+        const currentTenant = tenants.find(t => t.id === tenantId);
+        if (!currentTenant) {
+            throw new Error("Could not find tenant record to update.");
+        }
+        
+        // 2. Update tenant's own settings with the new planId
+        await apiSaveSchoolSettings({ ...schoolSettings, planId });
+
+        // 3. Update the central tenant record with planId and active status
+        const updatedTenantData: Tenant = {
+            ...currentTenant,
+            planId,
+            subscriptionStatus: 'active',
+            trialEndDate: null, // End trial if they subscribe
+        };
+        await apiUpdateTenant(updatedTenantData);
+
+    } catch (error) {
+        console.error("Failed to update subscription:", error);
+        throw error; // Re-throw to be caught by the calling component
+    }
+};
+
 export const apiDeleteTenant = async (tenantId: string) => {
     if (!supabase) throw new Error("Database client not initialized.");
     const { error } = await supabase.from('tenants').delete().match({ id: tenantId });

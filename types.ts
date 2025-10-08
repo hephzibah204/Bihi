@@ -164,7 +164,7 @@ export interface Tenant {
     name: string;
     planId?: string;
     subscriptionStatus: 'active' | 'trial' | 'expired' | 'unsubscribed';
-    trialEndDate?: string;
+    trialEndDate?: string | null;
 }
 
 
