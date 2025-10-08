@@ -6,7 +6,11 @@
 
 function getCorsHeaders(request) {
     const origin = request.headers.get('Origin') || '';
+    
+    // A "null" origin can occur for server-to-server requests, sandboxed iframes, or local file access.
+    // For this application's development and deployment environment, we need to allow it to prevent CORS errors.
     const isAllowed = 
+        origin === 'null' ||
         origin.startsWith('http://localhost:') ||
         origin.endsWith('.reportsheet.com.ng') ||
         origin.endsWith('.pages.dev') ||
@@ -14,8 +18,8 @@ function getCorsHeaders(request) {
 
     return {
         'Access-Control-Allow-Origin': isAllowed ? origin : '',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Demo-Mode',
     };
 }
 

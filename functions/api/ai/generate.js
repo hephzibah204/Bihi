@@ -3,8 +3,10 @@
 function getCorsHeaders(request) {
     const origin = request.headers.get('Origin') || '';
     
-    // Check if the origin is one of the allowed patterns.
+    // A "null" origin can occur for server-to-server requests, sandboxed iframes, or local file access.
+    // For this application's development and deployment environment, we need to allow it to prevent CORS errors.
     const isAllowed = 
+        origin === 'null' ||
         origin.startsWith('http://localhost:') ||
         origin.endsWith('.reportsheet.com.ng') ||
         origin.endsWith('.pages.dev') ||
