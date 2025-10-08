@@ -547,26 +547,66 @@ export const apiFindTenantByEmail = async (email: string): Promise<string | null
 
 // --- Other Features (to be migrated) ---
 const demoPlatformSettings = {
-    plans: [],
+    plans: [
+        { id: 'plan_basic', name: 'Basic', description: 'Core academic tools, report cards, AI grading, teacher & parent dashboards', price_monthly: 3000, price_termly: 7000, price_yearly: 16800, features: { maxStudents: 100 } },
+        { id: 'plan_pro', name: 'Pro', description: 'All Basic features + AI Assistant, Analytics, Assignments, Alumni', price_monthly: 4000, price_termly: 10000, price_yearly: 24000, features: { maxStudents: 250 } },
+        { id: 'plan_enterprise', name: 'Enterprise', description: 'Everything + Custom Automation, School-Wide Insights & Priority Support', price_monthly: 5500, price_termly: 14000, price_yearly: 33600, features: { maxStudents: 500 } },
+    ],
     pages: [],
     menus: { header: [] },
     landingPageContent: {
         promoBanner: { enabled: true, text: 'Welcome to the Demo!', endDate: new Date(Date.now() + 3600 * 1000).toISOString() },
-        hero: { title: 'Explore ReportSheet', subtitle: 'This is a fully interactive demo of the ReportSheet platform.' },
+        hero: { 
+            title: 'Nigeria’s #1 AI-Powered School Performance Suite', 
+            subtitle: 'This is not just another school portal. This is ReportSheet — the revolutionary AI suite built to help schools reduce student failure, boost academic performance, and generate intelligent report cards in minutes.\n\nBecause running a school should be about impact, not paperwork.' 
+        },
         trustBar: { enabled: false, logos: [] },
-        problem: { title: 'Common School Challenges', points: ['Manual result compilation', 'Slow communication with parents'], features: [] },
+        problem: { 
+            title: 'The Hidden Truth About Many Schools', 
+            points: [
+                'Students are struggling to perform.',
+                'Teachers are overworked and under-supported.',
+                'Parents are frustrated with poor communication.',
+                'And school owners spend nights buried in result sheets.'
+            ],
+            extraText: "You’ve tried traditional school management systems. They helped you record data — but not improve performance.\n\nThat’s where ReportSheet changes the game."
+        },
         solution: {
-            title: 'An All-in-One Solution',
+            title: 'The Future of Academic Excellence Has Arrived',
             features: [
-                { icon: 'SparklesIcon', title: 'AI-Powered Tools', desc: 'Automate comments and get insights.' },
-                { icon: 'ClockIcon', title: 'Save Time', desc: 'Reduce manual data entry.' },
-                { icon: 'ChatBubbleLeftRightIcon', title: 'Engage Parents', desc: 'Keep parents informed instantly.' },
+                { icon: 'ChartBarIcon', title: 'Built to Improve Learning Outcomes', desc: 'ReportSheet uses artificial intelligence to analyze academic trends, detect learning gaps early, and help teachers personalize support for every child. You’re not just managing students — you’re developing them.' },
+                { icon: 'DocumentArrowDownIcon', title: 'Generate Report Cards Instantly', desc: 'No more result-week chaos. From raw scores to positions, grading, and insightful AI-generated remarks — every report is accurate, polished, and ready to print in minutes.' },
+                { icon: 'SparklesIcon', title: 'AI Teacher Assistant', desc: 'Our built-in AI helps teachers write better, faster, and smarter — generating lesson notes, report comments, and personalized student feedback in seconds. Less stress. More teaching. Better results.' },
+                { icon: 'BrainCircuitIcon', title: 'Turn Data Into Decisions', desc: 'Real-time analytics reveal which students need attention, which teachers are excelling, and which subjects need intervention. Because a data-driven school is a high-performing school.' },
+                { icon: 'ChatBubbleLeftRightIcon', title: 'Engage Parents the Smart Way', desc: 'Parents no longer have to call repeatedly. They can view grades, attendance, and teacher feedback anytime — from anywhere. This transparency builds trust and boosts student motivation.' },
             ]
         },
         howItWorks: { title: 'How It Works', steps: [] },
-        testimonials: { title: 'What Schools Say', items: [] },
-        faq: { title: 'Frequently Asked Questions', items: [{q: 'Is this data saved?', a: 'No, all data in this demo is temporary and resets.'}] },
-        finalCta: { title: 'Ready to Start?', subtitle: 'Sign up for your own school portal today.' },
+        testimonials: { 
+            title: 'Why Schools Across Nigeria Are Switching to ReportSheet', 
+            items: [
+                { id: 't1', quote: "We moved from a regular school portal to ReportSheet — and saw our students’ performance improve within one term. It’s not just automation, it’s intelligence.", name: 'Mrs. Adaeze Nwosu', role: 'Proprietress', school: 'Bright Minds Academy, Lagos', avatar: 'https://api.dicebear.com/8.x/avataaars/svg?seed=Adaeze' },
+                { id: 't2', quote: "The AI comment generator is pure genius. It saves me time and helps me write comments that actually motivate my students.", name: 'Mr. Femi Adeboye', role: 'JSS 2 Coordinator', school: 'Royal Pillars College, Abuja', avatar: 'https://api.dicebear.com/8.x/avataaars/svg?seed=Femi' },
+                { id: 't3', quote: "Parents love the instant updates. Teachers love the automation. And I love the peace of mind.", name: 'Principal', role: 'Principal', school: 'Gracefield High School, Port Harcourt', avatar: 'https://api.dicebear.com/8.x/initials/svg?seed=P' }
+            ]
+        },
+        pricing: {
+            title: "Affordable for Every School. Powerful for Every Leader.",
+            subtitle: "💡 Pay Termly or Annually and Save 20%."
+        },
+        faq: { 
+            title: 'Your Questions, Answered', 
+            items: [
+                { q: 'Is this difficult to set up?', a: 'Not at all. You can launch your school suite in under 5 minutes — we provide sample data and guided onboarding.' },
+                { q: 'Can I use it on my phone?', a: 'Yes! ReportSheet is fully responsive and works beautifully on phones, tablets, and computers for administrators, teachers, parents, and students.' },
+                { q: 'Is my data secure?', a: 'Absolutely. We use industry-standard encryption and security protocols to keep your school\'s data safe, secure, and private.' }
+            ] 
+        },
+        finalCta: { 
+            title: 'Join the Next Generation of Smart Schools in Nigeria', 
+            subtitle: 'Over 2,000+ Nigerian schools are already transforming their academic performance with ReportSheet. Don’t get left behind. Start improving results today — not next term.',
+            tagline: "ReportSheet — The AI Suite That Turns Ordinary Schools into Exceptional Ones."
+        },
     },
     articles: [],
     kb_articles: [],

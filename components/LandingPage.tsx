@@ -23,7 +23,7 @@ overhaul on this component for this specific request.
 */
 import React, { useState, useEffect } from 'react';
 import { Plan, MenuItem, Testimonial, LandingPageContent } from '../types';
-import { APP_VIEWS, CONTROLLABLE_FEATURES } from '../utils/constants';
+import { APP_VIEWS } from '../utils/constants';
 import Logo from './icons/Logo';
 import CheckIcon from './icons/CheckIcon';
 import ChevronDownIcon from './icons/ChevronDownIcon';
@@ -32,6 +32,9 @@ import SparklesIcon from './icons/SparklesIcon';
 import ClockIcon from './icons/ClockIcon';
 import ChatBubbleLeftRightIcon from './icons/ChatBubbleLeftRightIcon';
 import XIcon from './icons/XIcon';
+import ChartBarIcon from './icons/ChartBarIcon';
+import DocumentArrowDownIcon from './icons/DocumentArrowDownIcon';
+import BrainCircuitIcon from './icons/BrainCircuitIcon';
 
 // --- Sub-components for better organization ---
 
@@ -130,8 +133,8 @@ const Header = ({ onNavigate, menuItems }) => {
 
 // Fix: Explicitly type TestimonialCard as a React.FC to correctly handle the special 'key' prop during iteration.
 const TestimonialCard: React.FC<{ testimonial: Testimonial }> = ({ testimonial }) => (
-    <div className="card p-8">
-        <p className="text-gray-600">"{testimonial.quote}"</p>
+    <div className="card p-8 h-full flex flex-col">
+        <p className="text-gray-600 flex-grow">"{testimonial.quote}"</p>
         <div className="mt-4 flex items-center">
             <img src={testimonial.avatar} alt={testimonial.name} className="w-12 h-12 rounded-full" />
             <div className="ml-4">
@@ -142,44 +145,64 @@ const TestimonialCard: React.FC<{ testimonial: Testimonial }> = ({ testimonial }
     </div>
 );
 
-interface PricingCardProps {
-    plan: Plan;
-    cycle: string;
-    onAction: () => void;
-}
-const PricingCard: React.FC<PricingCardProps> = ({ plan, cycle, onAction }) => {
+
+const ComparisonTable = () => {
+    const features = [
+        { name: 'Data entry and record keeping', regular: '✅', reportsheet: '✅' },
+        { name: 'AI-powered student performance tracking', regular: '❌', reportsheet: '✅' },
+        { name: 'Automated report cards with insightful comments', regular: '⚠️ Manual', reportsheet: '✅ One Click' },
+        { name: 'Lesson note & comment generator for teachers', regular: '❌', reportsheet: '✅' },
+        { name: 'Performance improvement insights', regular: '❌', reportsheet: '✅' },
+        { name: 'Parent engagement & communication tools', regular: '⚠️ Limited', reportsheet: '✅ Smart & Real-time' },
+        { name: 'Real impact on academic success', regular: '❌', reportsheet: '✅ Proven Results' },
+    ];
+
+    return (
+        <section className="py-20 px-6">
+            <div className="container mx-auto max-w-4xl">
+                <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">Why Choose ReportSheet Over Traditional Systems?</h2>
+                <div className="table-container">
+                    <table className="table">
+                        <thead>
+                            <tr>
+                                <th className="th">Feature</th>
+                                <th className="th text-center">Regular School Portals</th>
+                                <th className="th text-center">ReportSheet</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {features.map((feature, i) => (
+                                <tr key={i}>
+                                    <td className="td font-medium">{feature.name}</td>
+                                    <td className="td text-center">{feature.regular}</td>
+                                    <td className="td text-center font-bold text-indigo-600">{feature.reportsheet}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    );
+};
+
+const PricingCard: React.FC<{ plan: any, cycle: string, onAction: () => void }> = ({ plan, cycle, onAction }) => {
     const price = plan[`price_${cycle}`];
     
     return (
-        <div className={`card p-8 flex flex-col ${plan.name === 'Pro' ? 'border-2 border-indigo-500' : ''}`}>
+        <div className={`card p-8 flex flex-col relative ${plan.name === 'Pro' ? 'border-2 border-indigo-500' : ''}`}>
             {plan.name === 'Pro' && <span className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-indigo-500 text-white text-xs font-bold px-3 py-1 rounded-full">MOST POPULAR</span>}
             <h3 className="text-xl font-bold">{plan.name}</h3>
+            <p className="mt-2 text-gray-500 flex-grow">{plan.description}</p>
             <p className="mt-4 text-4xl font-extrabold">₦{price.toLocaleString()}<span className="text-base font-medium text-gray-500">/{cycle.replace('ly', '')}</span></p>
-            <ul className="mt-6 space-y-3 text-gray-600 flex-grow">
-                <li className="flex items-start">
-                    <CheckIcon className="w-5 h-5 mr-2 text-green-500 flex-shrink-0 mt-1"/>
-                    <span>Up to <strong>{plan.features.maxStudents >= 1000 ? '500+' : plan.features.maxStudents}</strong> students</span>
-                </li>
-                {CONTROLLABLE_FEATURES.map(feature => {
-                    const isIncluded = plan.features[feature.key];
-                    return (
-                        <li key={feature.key} className={`flex items-start ${!isIncluded ? 'text-gray-400' : ''}`}>
-                            {isIncluded ? (
-                                <CheckIcon className="w-5 h-5 mr-2 text-green-500 flex-shrink-0 mt-1"/>
-                            ) : (
-                                <XIcon className="w-5 h-5 mr-2 text-gray-400 flex-shrink-0 mt-1"/>
-                            )}
-                            <span className={!isIncluded ? 'line-through' : ''}>{feature.name}</span>
-                        </li>
-                    );
-                })}
-            </ul>
+            <p className="mt-1 text-gray-600">Up to <strong>{plan.features.maxStudents}</strong> students</p>
             <button onClick={onAction} className={`btn ${plan.name === 'Pro' ? 'btn-primary' : 'btn-secondary'} mt-8 w-full`}>
                 Get Started
             </button>
         </div>
     );
 };
+
 
 interface FAQItemProps {
     q: string; a: string; index: number; openIndex: number;
@@ -202,6 +225,9 @@ const featureIcons = {
     ClockIcon: <ClockIcon className="w-8 h-8"/>,
     SparklesIcon: <SparklesIcon className="w-8 h-8"/>,
     ChatBubbleLeftRightIcon: <ChatBubbleLeftRightIcon className="w-8 h-8"/>,
+    ChartBarIcon: <ChartBarIcon className="w-8 h-8"/>,
+    DocumentArrowDownIcon: <DocumentArrowDownIcon className="w-8 h-8"/>,
+    BrainCircuitIcon: <BrainCircuitIcon className="w-8 h-8"/>,
 };
 
 // --- Main Component ---
@@ -267,7 +293,7 @@ const LandingPage = ({ content, onNavigate, menuItems }: { content: LandingPageC
         return <div className="flex items-center justify-center h-screen">Loading page content...</div>;
     }
 
-    const { hero, problem, solution, howItWorks, testimonials, faq, finalCta } = content;
+    const { hero, problem, solution, testimonials, faq, finalCta, pricing } = content;
 
     return (
         <div className="bg-white text-gray-800">
@@ -278,7 +304,7 @@ const LandingPage = ({ content, onNavigate, menuItems }: { content: LandingPageC
                 {/* Hero Section */}
                 <section className="text-center py-20 px-6 bg-gray-50">
                     <h1 className="text-4xl md:text-6xl font-extrabold text-gray-900 leading-tight max-w-4xl mx-auto">{hero.title}</h1>
-                    <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600">{hero.subtitle}</p>
+                    <p className="mt-4 max-w-3xl mx-auto text-lg text-gray-600">{hero.subtitle}</p>
                     <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
                          <button onClick={() => onNavigate(APP_VIEWS.SIGNUP)} className="btn btn-primary px-8 py-3 text-lg">Get Started Free</button>
                          <button onClick={() => onNavigate(APP_VIEWS.DEMO)} className="btn btn-secondary px-8 py-3 text-lg">Explore Live Demo</button>
@@ -289,11 +315,15 @@ const LandingPage = ({ content, onNavigate, menuItems }: { content: LandingPageC
                 <section className="py-20 px-6">
                     <div className="container mx-auto text-center max-w-3xl">
                         <h2 className="text-3xl md:text-4xl font-bold">{problem.title}</h2>
-                        <ul className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
-                            {problem.points.map((point, i) => (
-                                <li key={i} className="flex items-start space-x-3"><CheckIcon className="w-6 h-6 text-rose-500 flex-shrink-0 mt-1"/><span>{point}</span></li>
+                        <ul className="mt-8 text-lg grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-left">
+                           {problem.points.map((point, i) => (
+                                <li key={i} className="flex items-center space-x-3">
+                                    <div className="w-6 h-6 flex-shrink-0 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center font-bold">-</div>
+                                    <span>{point}</span>
+                                </li>
                             ))}
                         </ul>
+                        <p className="mt-8 text-lg text-gray-600">{problem.extraText}</p>
                     </div>
                 </section>
                 
@@ -303,9 +333,9 @@ const LandingPage = ({ content, onNavigate, menuItems }: { content: LandingPageC
                         <div className="text-center max-w-3xl mx-auto">
                              <h2 className="text-3xl md:text-4xl font-bold">{solution.title}</h2>
                         </div>
-                        <div className="grid md:grid-cols-3 gap-8 mt-12">
+                        <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-8 mt-12 max-w-7xl mx-auto">
                             {solution.features.map((feature, i) => (
-                                <div key={i} className="card p-6">
+                                <div key={i} className="card p-6 lg:col-span-1 md:col-span-1">
                                     <div className="text-indigo-500 w-16 h-16 flex items-center justify-center bg-indigo-100 rounded-lg mb-4">{featureIcons[feature.icon] || <SparklesIcon className="w-8 h-8"/>}</div>
                                     <h3 className="font-bold text-lg mb-2">{feature.title}</h3>
                                     <p className="text-gray-600">{feature.desc}</p>
@@ -319,16 +349,18 @@ const LandingPage = ({ content, onNavigate, menuItems }: { content: LandingPageC
                 <section className="py-20 px-6">
                     <div className="container mx-auto">
                         <h2 className="text-3xl md:text-4xl font-bold text-center">{testimonials.title}</h2>
-                        <div className="grid md:grid-cols-2 gap-8 mt-12 max-w-5xl mx-auto">
+                        <div className="grid md:grid-cols-3 gap-8 mt-12 max-w-7xl mx-auto">
                             {testimonials.items.map(t => <TestimonialCard key={t.id} testimonial={t} />)}
                         </div>
                     </div>
                 </section>
 
+                <ComparisonTable />
+
                  {/* Pricing Section */}
                 <section id="pricing" className="py-20 px-6 bg-gray-50">
                     <div className="container mx-auto">
-                        <div className="text-center max-w-3xl mx-auto"><h2 className="text-3xl md:text-4xl font-bold">Simple, transparent pricing</h2><p className="mt-4 text-lg text-gray-600">Choose the plan that's right for your school. No hidden fees.</p></div>
+                        <div className="text-center max-w-3xl mx-auto"><h2 className="text-3xl md:text-4xl font-bold">{pricing.title}</h2><p className="mt-4 text-lg text-gray-600">{pricing.subtitle}</p></div>
                         <div className="flex justify-center my-8">
                             <div className="pricing-toggle">
                                 <button onClick={() => setBillingCycle('monthly')} aria-pressed={billingCycle === 'monthly'}>Monthly</button>
@@ -358,15 +390,21 @@ const LandingPage = ({ content, onNavigate, menuItems }: { content: LandingPageC
                         <h2 className="text-3xl md:text-4xl font-bold">{finalCta.title}</h2>
                         <p className="mt-4 text-lg text-indigo-200">{finalCta.subtitle}</p>
                         <div className="mt-8">
-                            <button onClick={() => onNavigate(APP_VIEWS.SIGNUP)} className="btn bg-white text-indigo-600 hover:bg-indigo-100 px-8 py-3 text-lg">Get Started Free Today</button>
+                            <button onClick={() => onNavigate(APP_VIEWS.SIGNUP)} className="btn bg-white text-indigo-600 hover:bg-indigo-100 px-8 py-3 text-lg">Get Started Free</button>
                         </div>
+                        <p className="mt-8 font-semibold text-indigo-200">{finalCta.tagline}</p>
                     </div>
                 </section>
 
             </main>
 
             {/* Footer */}
-            <footer className="bg-gray-800 text-white"><div className="container mx-auto px-6 py-8 text-center"><p>&copy; {new Date().getFullYear()} ReportSheet by Hephzibah Edutech. All rights reserved.</p></div></footer>
+            <footer className="bg-gray-800 text-white">
+                <div className="container mx-auto px-6 py-8 text-center">
+                    <p className="mb-2">www.reportsheet.com.ng</p>
+                    <p>&copy; 2025 ReportSheet by Hephzibah Edutech. All rights reserved.</p>
+                </div>
+            </footer>
         </div>
     );
 };

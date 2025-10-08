@@ -239,6 +239,8 @@ export interface LandingPageContent {
     problem: {
         title: string;
         points: string[];
+        // Fix: Added missing optional `extraText` property to align with its usage in LandingPage.tsx.
+        extraText?: string;
     };
     solution: {
         title: string;
@@ -264,6 +266,13 @@ export interface LandingPageContent {
         items: { q: string; a: string }[];
     };
     finalCta: {
+        title: string;
+        subtitle: string;
+        // Fix: Added missing optional `tagline` property to align with its usage in LandingPage.tsx.
+        tagline?: string;
+    };
+    // Fix: Added missing optional `pricing` property to align with its usage in LandingPage.tsx.
+    pricing?: {
         title: string;
         subtitle: string;
     };
