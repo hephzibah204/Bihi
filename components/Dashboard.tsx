@@ -23,6 +23,7 @@ import ParentDashboard from './ParentDashboard';
 import GlobalNotification from './GlobalNotification';
 import Chatbot from './Chatbot';
 import { ADMIN_VIEWS, USER_ROLES } from '../utils/constants';
+import { getSubdomain } from '../utils/subdomain';
 
 const getViewFromUrl = () => new URLSearchParams(window.location.search).get('view');
 const getStudentIdFromUrl = () => new URLSearchParams(window.location.search).get('studentId');
@@ -207,6 +208,12 @@ const Dashboard = () => {
     }
 
     if (!session && !activeUser) {
+        // If we are on the 'demo' subdomain but have no active user (real or demo),
+        // it's an inconsistent state. Redirect to the demo selection page to start a proper session.
+        if (getSubdomain() === 'demo') {
+            window.location.href = '/?view=demo';
+            return <div className="flex items-center justify-center h-screen">Redirecting to demo...</div>;
+        }
         return <PortalLogin onStudentLoginSuccess={handleStudentLoginSuccess} />;
     }
 
