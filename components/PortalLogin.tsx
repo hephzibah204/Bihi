@@ -66,6 +66,7 @@ const PortalLogin = ({ onStudentLoginSuccess }) => {
             const cardExists = allScratchCards.some(c => c.pin === pin.trim());
 
             if (student && cardExists) {
+                sessionStorage.removeItem('isDemoMode'); // Clear demo flag on real login
                 const sessionData = { role: loginAs, userId: student.id, studentName: student.name };
                 sessionStorage.setItem('activeUser', JSON.stringify(sessionData));
                 if(onStudentLoginSuccess) onStudentLoginSuccess(sessionData);

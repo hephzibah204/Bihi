@@ -74,7 +74,6 @@ const SubscriptionPage = () => {
                 apiSaveTeachers([newAdmin], formData.subdomain),
             ]);
             
-            // ** THE FIX **
             // Clear any lingering demo session data to ensure the new portal is clean.
             sessionStorage.removeItem('isDemoMode');
             sessionStorage.removeItem('activeUser');

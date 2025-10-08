@@ -134,19 +134,17 @@ const Dashboard = () => {
     const confirmLogout = async () => {
         setLogoutModalOpen(false);
         
-        // Attempt a final sync before logging out.
         if (syncStatus === 'syncing' || syncStatus === 'unsynced') {
             const syncSuccess = await apiForceSync();
             if (!syncSuccess) {
-                // The user has already confirmed they are okay with potential data loss.
-                // We log a warning but proceed with logout.
-                console.warn("Final sync attempt failed. Proceeding with logout and clearing any remaining local data.");
+                console.warn("Final sync attempt failed. Proceeding with logout.");
             }
         }
 
-        const isDemo = sessionStorage.getItem('isDemoMode') === 'true';
+        // A demo logout is only valid if there's no staff session AND the demo flag is set.
+        const isDemoLogout = !session && sessionStorage.getItem('isDemoMode') === 'true';
 
-        // Clear both types of sessions
+        // Clear all session types
         sessionStorage.removeItem('activeUser');
         sessionStorage.removeItem('isDemoMode');
         setActiveUser(null);
@@ -157,11 +155,11 @@ const Dashboard = () => {
         setUserRole(null);
         clearSyncQueue();
         
-        if (isDemo) {
+        if (isDemoLogout) {
             // Go to demo selection page on logout from demo
             window.location.href = '/?view=demo';
         } else {
-            // Go to root page on logout
+            // Go to root page on logout from any real session
             window.location.href = '/';
         }
     };
