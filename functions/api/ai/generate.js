@@ -2,22 +2,17 @@
 
 function getCorsHeaders(request) {
     const origin = request.headers.get('Origin') || '';
-    const allowedOrigins = [
-        'http://localhost:3000',
-        'http://localhost:5173',
-    ];
-
-    let allowOrigin = '';
-    if (origin.startsWith('http://localhost:')) {
-        allowOrigin = origin;
-    } 
-    else if (allowedOrigins.includes(origin) || origin.endsWith('.reportsheet.com.ng') || origin.endsWith('.pages.dev')) {
-        allowOrigin = origin;
-    }
     
+    // Check if the origin is one of the allowed patterns.
+    const isAllowed = 
+        origin.startsWith('http://localhost:') ||
+        origin.endsWith('.reportsheet.com.ng') ||
+        origin.endsWith('.pages.dev') ||
+        origin.endsWith('.aistudio.google.com');
+
     return {
-        'Access-Control-Allow-Origin': allowOrigin,
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Origin': isAllowed ? origin : '',
+        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Demo-Mode',
     };
 }
@@ -25,7 +20,8 @@ function getCorsHeaders(request) {
 export async function onRequestPost({ request, env }) {
     const corsHeaders = getCorsHeaders(request);
     if (!corsHeaders['Access-Control-Allow-Origin']) {
-        return new Response('Forbidden', { status: 403 });
+        // If the origin is not allowed, return a 403 Forbidden response.
+        return new Response(JSON.stringify({ error: 'Forbidden: Invalid Origin' }), { status: 403, headers: corsHeaders });
     }
 
     try {
@@ -48,13 +44,7 @@ export async function onRequestPost({ request, env }) {
                 isAuthenticated = true;
             }
         } else if (isDemoMode) {
-            // For demo mode, we verify the origin as a basic security measure.
-            const origin = request.headers.get('Origin') || '';
-             if (corsHeaders['Access-Control-Allow-Origin'] === origin) {
-                isAuthenticated = true;
-            } else {
-                 return new Response(JSON.stringify({ error: 'Forbidden: Invalid origin for demo mode' }), { status: 403, headers: corsHeaders });
-            }
+            isAuthenticated = true;
         }
 
         if (!isAuthenticated) {

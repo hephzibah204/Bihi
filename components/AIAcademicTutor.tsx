@@ -103,10 +103,10 @@ const AIAcademicTutor = () => {
                 if (!session && !isDemo) throw new Error("User not authenticated.");
 
                 const headers: HeadersInit = {};
-                if (session) {
-                    headers['Authorization'] = `Bearer ${session.access_token}`;
-                } else if (isDemo) {
+                if (isDemo) {
                     headers['X-Demo-Mode'] = 'true';
+                } else if (session) {
+                    headers['Authorization'] = `Bearer ${session.access_token}`;
                 }
 
                 const response = await fetch('/api/ai/client-key', { headers });
@@ -167,7 +167,7 @@ const AIAcademicTutor = () => {
                             const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
                             const pcmBlob = createBlob(inputData);
                             promise.then((session) => {
-                                if (session) session.sendRealtimeInput({ media: pcmBlob });
+                                session.sendRealtimeInput({ media: pcmBlob });
                             });
                         };
                         mediaStreamSourceRef.current.connect(scriptProcessorRef.current);

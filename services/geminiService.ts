@@ -23,10 +23,11 @@ export const generateText = async (prompt: string): Promise<string> => {
         'Content-Type': 'application/json',
     };
     
-    if (session) {
-        headers['Authorization'] = `Bearer ${session.access_token}`;
-    } else if (isDemo) {
+    // Prioritize demo mode check to prevent lingering sessions from interfering.
+    if (isDemo) {
         headers['X-Demo-Mode'] = 'true';
+    } else if (session) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
     }
 
     const response = await fetch('/api/ai/generate', {

@@ -2,21 +2,16 @@
 
 function getCorsHeaders(request) {
     const origin = request.headers.get('Origin') || '';
-    const allowedOrigins = [
-        'http://localhost:3000',
-        'http://localhost:5173',
-    ];
-
-    let allowOrigin = '';
-    if (origin.startsWith('http://localhost:')) {
-        allowOrigin = origin;
-    } 
-    else if (allowedOrigins.includes(origin) || origin.endsWith('.reportsheet.com.ng') || origin.endsWith('.pages.dev')) {
-        allowOrigin = origin;
-    }
     
+    // Check if the origin is one of the allowed patterns.
+    const isAllowed = 
+        origin.startsWith('http://localhost:') ||
+        origin.endsWith('.reportsheet.com.ng') ||
+        origin.endsWith('.pages.dev') ||
+        origin.endsWith('.aistudio.google.com');
+
     return {
-        'Access-Control-Allow-Origin': allowOrigin,
+        'Access-Control-Allow-Origin': isAllowed ? origin : '',
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Demo-Mode',
     };
@@ -27,7 +22,7 @@ export async function onRequestGet({ request, env }) {
     corsHeaders['Content-Type'] = 'application/json';
     
     if (!corsHeaders['Access-Control-Allow-Origin']) {
-        return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: corsHeaders });
+        return new Response(JSON.stringify({ error: 'Forbidden: Invalid Origin' }), { status: 403, headers: corsHeaders });
     }
 
     let isAuthenticated = false;
@@ -49,12 +44,7 @@ export async function onRequestGet({ request, env }) {
             isAuthenticated = true;
         }
     } else if (isDemoMode) {
-        const origin = request.headers.get('Origin') || '';
-        if (corsHeaders['Access-Control-Allow-Origin'] === origin) {
-            isAuthenticated = true;
-        } else {
-             return new Response(JSON.stringify({ error: 'Forbidden: Invalid origin for demo mode' }), { status: 403, headers: corsHeaders });
-        }
+        isAuthenticated = true;
     }
 
     if (!isAuthenticated) {

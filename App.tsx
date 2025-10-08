@@ -16,8 +16,9 @@ import BlogPostPage from './components/BlogPostPage';
 import KnowledgeBaseViewer from './components/KnowledgeBaseViewer';
 import AlumniDashboard from './components/AlumniDashboard';
 import { APP_VIEWS } from './utils/constants';
-import { apiGetPlatformSettings } from './services/api';
+import { apiGetPlatformSettings, apiGetTenants } from './services/api';
 import PublicPageViewer from './components/PublicPageViewer';
+import { DEMO_TENANT_ID } from './utils/demoData';
 
 const App = () => {
     const [subdomain, setSubdomain] = useState<string | null>(null);
@@ -48,6 +49,19 @@ const App = () => {
             document.title = title;
 
             const sd = getSubdomain();
+            
+            // --- VALIDATE SUBDOMAIN ---
+            // If a subdomain is found, check if it's a real, registered tenant.
+            // This prevents users from landing on a dead-end login for a non-existent school.
+            if (sd && sd !== 'admin' && sd !== DEMO_TENANT_ID) {
+                const tenants = await apiGetTenants();
+                const isValidTenant = tenants.some(t => t.id === sd);
+                if (!isValidTenant) {
+                    // Invalid subdomain found, redirect to the root marketing page.
+                    window.location.href = '/';
+                    return; // Stop further processing to allow the redirect to happen.
+                }
+            }
             
             setSubdomain(sd);
             const isRoot = !sd;

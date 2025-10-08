@@ -1,12 +1,8 @@
-
-
 import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
-// Fix: Import `UserRole` type to correctly type the `userRole` state.
 import { DashboardView, UserRole } from '../types';
 import Header from './Header';
 import DashboardContent from './DashboardContent';
-// Fix: Corrected import path for supabase client
 import { supabase } from '../services/supabaseClient';
 import PortalLogin from './PortalLogin';
 import { TenantProvider } from '../contexts/TenantContext';
@@ -39,6 +35,7 @@ const Dashboard = () => {
     const [headerTitle, setHeaderTitle] = useState('Dashboard');
     const { syncStatus } = useSync();
     const [isLogoutModalOpen, setLogoutModalOpen] = useState(false);
+    const isDemoSubdomain = getSubdomain() === 'demo';
 
     useEffect(() => {
         setLoading(true);
@@ -50,7 +47,6 @@ const Dashboard = () => {
         window.addEventListener('popstate', handlePopState);
 
         // --- SESSION MANAGEMENT ---
-        // 1. Prioritize Demo Session
         const activeUserSession = sessionStorage.getItem('activeUser');
         if (activeUserSession) {
             try {
@@ -59,22 +55,17 @@ const Dashboard = () => {
                 setUserRole(parsedUser.role);
                 initializeSync();
                 setLoading(false);
-                
-                // In demo mode, we don't need a Supabase listener.
-                // Return a cleanup function that only handles popstate and sync.
                 return () => {
                     cleanupSync();
                     window.removeEventListener('popstate', handlePopState);
                 };
             } catch (e) {
                 sessionStorage.removeItem('activeUser');
-                // Fall through to Supabase auth
             }
         }
         
-        // 2. Fallback to Real (Supabase) Session if not in demo mode
         if (!supabase) {
-            setLoading(false); // No demo, no supabase, show login.
+            setLoading(false);
             return () => window.removeEventListener('popstate', handlePopState);
         }
         
@@ -84,7 +75,7 @@ const Dashboard = () => {
                 const teachers = await apiGetTeachers();
                 const currentUser = teachers.find(t => t.email.toLowerCase() === session.user.email.toLowerCase());
                 setUserRole(currentUser?.role || USER_ROLES.ADMIN);
-                setActiveUser(null); // Ensure no demo user conflicts
+                setActiveUser(null);
                 initializeSync();
             } else {
                 setActiveUser(null);
@@ -95,7 +86,6 @@ const Dashboard = () => {
             setLoading(false);
         });
 
-        // Effect to check AI service health
         const checkAIHealth = async () => {
             try {
                 const response = await fetch('/api/ai/health');
@@ -105,12 +95,11 @@ const Dashboard = () => {
                     window.dispatchEvent(new CustomEvent('show-global-error', { detail: { message: data.message } }));
                 }
             } catch (e) {
-                console.warn('AI proxy server may not be available. This is expected in local development if a proxy is not running.', e);
+                console.warn('AI proxy server may not be available.', e);
             }
         };
         checkAIHealth();
 
-        // Full cleanup for real sessions
         return () => {
             subscription.unsubscribe();
             cleanupSync();
@@ -118,6 +107,13 @@ const Dashboard = () => {
         };
     }, []);
 
+    useEffect(() => {
+        // If data has finished loading, we have no user session, and we're on the demo subdomain,
+        // it means we're in an inconsistent state. Redirect to the correct demo entry point.
+        if (!loading && !session && !activeUser && isDemoSubdomain) {
+            window.location.href = '/?view=demo';
+        }
+    }, [loading, session, activeUser, isDemoSubdomain]);
 
     const handleStudentLoginSuccess = (userData) => {
         setActiveUser(userData);
@@ -142,10 +138,8 @@ const Dashboard = () => {
             }
         }
 
-        // A demo logout is only valid if there's no staff session AND the demo flag is set.
         const isDemoLogout = !session && sessionStorage.getItem('isDemoMode') === 'true';
 
-        // Clear all session types
         sessionStorage.removeItem('activeUser');
         sessionStorage.removeItem('isDemoMode');
         setActiveUser(null);
@@ -157,10 +151,8 @@ const Dashboard = () => {
         clearSyncQueue();
         
         if (isDemoLogout) {
-            // Go to demo selection page on logout from demo
             window.location.href = '/?view=demo';
         } else {
-            // Go to root page on logout from any real session
             window.location.href = '/';
         }
     };
@@ -208,10 +200,7 @@ const Dashboard = () => {
     }
 
     if (!session && !activeUser) {
-        // If we are on the 'demo' subdomain but have no active user (real or demo),
-        // it's an inconsistent state. Redirect to the demo selection page to start a proper session.
-        if (getSubdomain() === 'demo') {
-            window.location.href = '/?view=demo';
+        if (isDemoSubdomain) {
             return <div className="flex items-center justify-center h-screen">Redirecting to demo...</div>;
         }
         return <PortalLogin onStudentLoginSuccess={handleStudentLoginSuccess} />;

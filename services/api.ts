@@ -142,6 +142,21 @@ const saveTenantData = (key: string, data: any, tenantId: string | null = getTen
 
 // --- Students ---
 export const apiGetStudents = async (filters: { classFilter?: string } = {}, tenantId?: string) => {
+    // PRODUCTION NOTE: In a real Supabase environment with Row Level Security (RLS),
+    // data isolation is handled automatically by the database.
+    // An RLS policy would ensure users can only see data for their own tenant_id.
+    //
+    // EXAMPLE RLS POLICY ON 'students' TABLE:
+    // CREATE POLICY "Enable read access for user's own tenant"
+    // ON students FOR SELECT
+    // USING (
+    //   tenant_id = (SELECT raw_user_meta_data->>'tenant_id' FROM auth.users WHERE id = auth.uid())
+    // );
+    //
+    // With such a policy, the code would simplify to:
+    // const { data, error } = await supabase.from('students').select('*');
+    //
+    // The current localStorage implementation simulates this tenant-based filtering.
     const effectiveTenantId = tenantId || getTenantId();
     let students = getTenantData('students', effectiveTenantId) || [];
     if (filters.classFilter) {
@@ -151,6 +166,10 @@ export const apiGetStudents = async (filters: { classFilter?: string } = {}, ten
 };
 
 export const apiUpsertStudent = async (studentData: any) => {
+    // PRODUCTION NOTE: With RLS, Supabase would ensure the 'tenant_id' column is correctly
+    // set for the new or updated row, preventing data from being written to the wrong tenant.
+    // The call would look like:
+    // const { error } = await supabase.from('students').upsert(studentData);
     addToQueue('UPSERT_STUDENT', studentData);
     let students = getTenantData('students') || [];
     if (studentData.id) {
