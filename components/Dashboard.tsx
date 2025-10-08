@@ -39,11 +39,17 @@ const Dashboard = () => {
     const { syncStatus } = useSync();
     const [isLogoutModalOpen, setLogoutModalOpen] = useState(false);
 
-    // Effect to manage the active session and routing
     useEffect(() => {
         setLoading(true);
 
-        // Always check for an initial demo session to speed up the first render
+        const handlePopState = () => {
+            setActiveView(getViewFromUrl() || ADMIN_VIEWS.DASHBOARD);
+            setProfileStudentId(getStudentIdFromUrl());
+        };
+        window.addEventListener('popstate', handlePopState);
+
+        // --- SESSION MANAGEMENT ---
+        // 1. Prioritize Demo Session
         const activeUserSession = sessionStorage.getItem('activeUser');
         if (activeUserSession) {
             try {
@@ -52,68 +58,43 @@ const Dashboard = () => {
                 setUserRole(parsedUser.role);
                 initializeSync();
                 setLoading(false);
+                
+                // In demo mode, we don't need a Supabase listener.
+                // Return a cleanup function that only handles popstate and sync.
+                return () => {
+                    cleanupSync();
+                    window.removeEventListener('popstate', handlePopState);
+                };
             } catch (e) {
                 sessionStorage.removeItem('activeUser');
+                // Fall through to Supabase auth
             }
         }
         
+        // 2. Fallback to Real (Supabase) Session if not in demo mode
         if (!supabase) {
-            setLoading(false);
-            return;
+            setLoading(false); // No demo, no supabase, show login.
+            return () => window.removeEventListener('popstate', handlePopState);
         }
-
-        // Always set up the Supabase listener. It will self-regulate.
+        
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            // CRITICAL: Check for a demo session *inside* the listener. If it exists, bail out.
-            const demoSession = sessionStorage.getItem('activeUser');
-            if (demoSession) {
-                // A demo user is active. Ensure the state matches the demo user and do not proceed.
-                // This prevents a lingering real session from overriding the demo one.
-                try {
-                    const parsedDemoUser = JSON.parse(demoSession);
-                    if (userRole !== parsedDemoUser.role) {
-                         setActiveUser(parsedDemoUser);
-                         setUserRole(parsedDemoUser.role);
-                    }
-                } catch(e) {
-                    console.error("Error parsing demo session inside auth listener", e);
-                }
-                if (loading) setLoading(false);
-                return;
-            }
-            
-            // No demo session, proceed with real Supabase session logic.
             setSession(session);
             if (session) {
                 const teachers = await apiGetTeachers();
                 const currentUser = teachers.find(t => t.email.toLowerCase() === session.user.email.toLowerCase());
                 setUserRole(currentUser?.role || USER_ROLES.ADMIN);
+                setActiveUser(null); // Ensure no demo user conflicts
                 initializeSync();
             } else {
-                // This means a real user logged out. Clear everything.
                 setActiveUser(null);
                 setUserRole(null);
+                setSession(null);
                 cleanupSync();
             }
             setLoading(false);
         });
 
-        const handlePopState = () => {
-            setActiveView(getViewFromUrl() || ADMIN_VIEWS.DASHBOARD);
-            setProfileStudentId(getStudentIdFromUrl());
-        };
-        window.addEventListener('popstate', handlePopState);
-
-        return () => {
-            subscription.unsubscribe();
-            cleanupSync();
-            window.removeEventListener('popstate', handlePopState);
-        };
-    }, []); // Empty dependency array ensures this runs once. userRole is managed internally.
-
-
-    // Effect to check AI service health
-    useEffect(() => {
+        // Effect to check AI service health
         const checkAIHealth = async () => {
             try {
                 const response = await fetch('/api/ai/health');
@@ -126,11 +107,16 @@ const Dashboard = () => {
                 console.warn('AI proxy server may not be available. This is expected in local development if a proxy is not running.', e);
             }
         };
-        // Run check only once when an admin-like user logs in
-        if (userRole === USER_ROLES.ADMIN || userRole === USER_ROLES.TEACHER || userRole === USER_ROLES.BURSAR) {
-            checkAIHealth();
-        }
-    }, [userRole]);
+        checkAIHealth();
+
+        // Full cleanup for real sessions
+        return () => {
+            subscription.unsubscribe();
+            cleanupSync();
+            window.removeEventListener('popstate', handlePopState);
+        };
+    }, []);
+
 
     const handleStudentLoginSuccess = (userData) => {
         setActiveUser(userData);

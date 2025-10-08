@@ -10,9 +10,11 @@ interface State {
 }
 
 class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
-  // Fix: Use a class property initializer for state, which is the modern and standard approach.
-  // This correctly defines the `state` property on the class instance, resolving TypeScript errors.
-  public state: State = {
+  // Fix: Switched from constructor-based state initialization to a class property.
+  // The previous constructor implementation was causing TypeScript errors where 'this.state' and 'this.props'
+  // were not being recognized on the component instance. This modern syntax correctly declares and
+  // initializes the state, resolving all related type errors in this component and its usage in index.tsx.
+  state: State = {
     hasError: false,
     error: undefined,
   };

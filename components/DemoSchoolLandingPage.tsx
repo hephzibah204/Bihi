@@ -43,6 +43,7 @@ const DemoSchoolLandingPage: FC<DemoSchoolLandingPageProps> = ({ onSelectProfile
     const handleExitDemo = (e: React.MouseEvent<HTMLAnchorElement>) => {
         e.preventDefault();
         sessionStorage.removeItem('isDemoMode');
+        sessionStorage.removeItem('activeUser'); // Ensure full cleanup
         window.location.href = '/';
     };
 

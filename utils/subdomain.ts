@@ -41,12 +41,18 @@ export const getSubdomain = (): string | null => {
         }
     }
 
-    // 5. If on root domain, check for a demo session
-    // This prevents the demo flag from overriding a real subdomain.
+    // 5. If on the absolute root path with no query parameters, never assume a demo tenant.
+    // This ensures the marketing page is always accessible, even if a demo flag is leftover in session.
+    if (window.location.pathname === '/' && window.location.search === '') {
+        return null;
+    }
+
+    // 6. If there are query params (like ?view=demo) or a different path,
+    // we can now safely check for the demo session flag.
     if (sessionStorage.getItem('isDemoMode') === 'true') {
         return DEMO_TENANT_ID; // 'demo'
     }
 
-    // 6. Otherwise, it's truly the root domain with no specific tenant.
+    // 7. Otherwise, it's truly the root domain with no specific tenant.
     return null;
 };
