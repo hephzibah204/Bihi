@@ -51,7 +51,7 @@ const StudentDashboard = ({ onLogout, demoUserId }) => {
                 </main>
                 <StudentBottomNavBar activeView={activeView} setActiveView={handleViewChange} />
             </div>
-            <Chatbot userRole={USER_ROLES.STUDENT} demoUserId={demoUserId}/>
+            <Chatbot userRole={USER_ROLES.STUDENT} demoUserId={demoUserId} activeView={activeView}/>
         </div>
     );
 };

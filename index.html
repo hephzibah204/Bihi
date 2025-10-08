@@ -244,6 +244,30 @@
       .prose-content h2 { font-size: 1.5em; }
       .prose-content h3 { font-size: 1.25em; }
 
+      /* New classes for responsive report card previews */
+      .report-card-layout {
+        font-size: 10px;
+        background-color: white;
+        display: flex;
+        flex-direction: column;
+      }
+      .report-card-a4-size {
+        width: 210mm;
+        min-height: 297mm;
+      }
+
+      @media screen and (max-width: 768px) {
+          /* For on-screen mobile preview, make the A4-sized element fit the screen width */
+          .printable-content .report-card-a4-size {
+              width: 100%;
+              min-height: 0; /* Let content dictate height */
+              height: auto;
+              box-shadow: none; /* The outer container provides the shadow */
+              border: none;
+          }
+      }
+      /* NOTE: The existing @media print styles will ensure the final printed output is correct */
+
 
       /* Desktop Styles: Applied on md screens and up */
       @media (min-width: 768px) {
@@ -259,9 +283,15 @@
       @media print {
           body * {
               visibility: hidden;
+              box-shadow: none !important;
           }
           .printable-content, .printable-content * {
               visibility: visible;
+          }
+          html, body, #root {
+              background: transparent !important;
+              color: black !important;
+              box-shadow: none !important;
           }
           .printable-content {
               position: absolute;
@@ -271,12 +301,14 @@
               transform: scale(1) !important; /* Override any scaling used for screen preview */
               margin: 0;
               padding: 0;
+              border: none !important;
+              box-shadow: none !important;
           }
           .no-print { display: none !important; }
           .page-break { page-break-after: always; }
           @page {
             size: A4;
-            margin: 0;
+            margin: 1cm; /* Add safe margin */
           }
       }
     </style>

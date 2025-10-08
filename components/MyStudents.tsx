@@ -3,6 +3,7 @@ import { apiGetStudents, apiGetTeachers, apiGetTimetableData } from '../services
 // Fix: Corrected import path for supabase client
 import { supabase } from '../services/supabaseClient';
 import { Student, Teacher } from '../types';
+import TableSkeleton from './skeletons/TableSkeleton';
 
 const MyStudents = () => {
     const [myStudents, setMyStudents] = useState<Student[]>([]);
@@ -83,7 +84,7 @@ const MyStudents = () => {
     }, []);
 
 
-    if (loading) return <p>Loading students...</p>;
+    if (loading) return <TableSkeleton cols={2} />;
 
     return (
         <div>

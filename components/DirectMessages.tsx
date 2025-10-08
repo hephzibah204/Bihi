@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { apiGetConversationSummaries, apiGetMessages, apiSendMessage, getCurrentUser } from '../services/api';
 import { Conversation, Message } from '../types';
 import SpinnerIcon from './icons/SpinnerIcon';
+import SkeletonLoader from './SkeletonLoader';
 
 const timeSince = (dateString: string) => {
     const date = new Date(dateString);
@@ -13,6 +14,16 @@ const timeSince = (dateString: string) => {
     if (interval > 1) return Math.floor(interval) + " min ago";
     return "Just now";
 };
+
+const ConversationSkeleton = () => (
+    <div className="w-full text-left p-4 border-b">
+        <div className="flex justify-between">
+            <SkeletonLoader className="h-5 w-32" />
+            <SkeletonLoader className="h-4 w-16" />
+        </div>
+        <SkeletonLoader className="h-4 w-full mt-2" />
+    </div>
+)
 
 const DirectMessages = () => {
     const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -71,24 +82,37 @@ const DirectMessages = () => {
         setNewMessage('');
     };
     
-    if (loading) return <div className="card p-6 text-center"><SpinnerIcon className="w-8 h-8 animate-spin mx-auto"/> Loading messages...</div>;
+    if (loading) return (
+        <div className="card flex overflow-hidden" style={{ height: 'calc(100vh - 250px)'}}>
+            <div className="w-full md:w-1/3 border-r flex flex-col">
+                <div className="p-4 border-b"><h2 className="font-semibold">Conversations</h2></div>
+                <div className="flex-1 overflow-y-auto">
+                    {[...Array(5)].map((_, i) => <ConversationSkeleton key={i} />)}
+                </div>
+            </div>
+            <div className="w-full md:w-2/3 hidden md:flex items-center justify-center text-gray-500">
+                <SpinnerIcon className="w-8 h-8 animate-spin"/>
+            </div>
+        </div>
+    );
+
     if (!currentUser) return <div className="card p-6 text-center">Could not identify user. Messaging is unavailable.</div>;
 
     return (
         <div className="card flex overflow-hidden" style={{ height: 'calc(100vh - 250px)'}}>
             {/* Conversation List */}
-            <div className={`w-full md:w-1/3 border-r dark:border-gray-700 flex flex-col ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
-                <div className="p-4 border-b dark:border-gray-700">
+            <div className={`w-full md:w-1/3 border-r flex flex-col ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
+                <div className="p-4 border-b">
                     <h2 className="font-semibold">Conversations</h2>
                 </div>
                 <div className="flex-1 overflow-y-auto">
                     {conversations.map(convo => (
-                        <button key={convo.id} onClick={() => setSelectedConversation(convo)} className={`w-full text-left p-4 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 ${selectedConversation?.id === convo.id ? 'bg-gray-100 dark:bg-gray-700' : ''}`}>
+                        <button key={convo.id} onClick={() => setSelectedConversation(convo)} className={`w-full text-left p-4 border-b hover:bg-gray-50 ${selectedConversation?.id === convo.id ? 'bg-gray-100' : ''}`}>
                             <div className="flex justify-between">
                                 <span className="font-bold">{convo.otherParticipant.name}</span>
                                 <span className="text-xs text-gray-500">{timeSince(convo.lastMessage.timestamp)}</span>
                             </div>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{convo.lastMessage.content}</p>
+                            <p className="text-sm text-gray-600 truncate">{convo.lastMessage.content}</p>
                         </button>
                     ))}
                 </div>
@@ -98,14 +122,14 @@ const DirectMessages = () => {
             <div className={`w-full md:w-2/3 flex flex-col ${selectedConversation ? 'flex' : 'hidden md:flex'}`}>
                 {selectedConversation ? (
                     <>
-                        <div className="p-4 border-b dark:border-gray-700 flex items-center">
+                        <div className="p-4 border-b flex items-center">
                              <button onClick={() => setSelectedConversation(null)} className="md:hidden mr-4">&larr;</button>
                             <h2 className="font-semibold">{selectedConversation.otherParticipant.name}</h2>
                         </div>
                         <div className="flex-1 p-4 overflow-y-auto space-y-4">
                             {messages.map(msg => (
                                 <div key={msg.id} className={`flex ${msg.senderId === currentUser.id ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`p-3 rounded-lg max-w-[80%] ${msg.senderId === currentUser.id ? 'bg-indigo-500 text-white' : 'bg-gray-200 dark:bg-gray-700'}`}>
+                                    <div className={`p-3 rounded-lg max-w-[80%] ${msg.senderId === currentUser.id ? 'bg-indigo-500 text-white' : 'bg-gray-200'}`}>
                                         <p className="text-sm">{msg.content}</p>
                                         <p className="text-xs opacity-70 mt-1 text-right">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'})}</p>
                                     </div>
@@ -113,7 +137,7 @@ const DirectMessages = () => {
                             ))}
                              <div ref={messagesEndRef} />
                         </div>
-                        <div className="p-4 border-t dark:border-gray-700">
+                        <div className="p-4 border-t">
                             <form onSubmit={handleSendMessage} className="flex">
                                 <input type="text" value={newMessage} onChange={e => setNewMessage(e.target.value)} className="input-field" placeholder="Type a message..."/>
                                 <button type="submit" className="btn btn-primary ml-2">Send</button>

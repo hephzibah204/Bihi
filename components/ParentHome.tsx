@@ -5,6 +5,7 @@ import ShieldExclamationIcon from './icons/ShieldExclamationIcon';
 import { ParentView } from '../types';
 import { apiGetStudents } from '../services/api';
 import { PARENT_VIEWS } from '../utils/constants';
+import ChatBubbleLeftRightIcon from './icons/ChatBubbleLeftRightIcon';
 
 const ParentHome = ({ setActiveView, demoUserId }: { setActiveView: (view: ParentView) => void, demoUserId: string }) => {
     const [studentName, setStudentName] = useState('');
@@ -24,6 +25,7 @@ const ParentHome = ({ setActiveView, demoUserId }: { setActiveView: (view: Paren
 
     const quickLinks = [
         { view: PARENT_VIEWS.RESULTS, title: "View Results", icon: <ClipboardListIcon className="w-8 h-8"/>, description: "Check your child's latest academic performance." },
+        { view: PARENT_VIEWS.MESSAGES, title: "Direct Messages", icon: <ChatBubbleLeftRightIcon className="w-8 h-8"/>, description: "Communicate directly with teachers." },
         { view: PARENT_VIEWS.ATTENDANCE, title: "Attendance Log", icon: <CheckBadgeIcon className="w-8 h-8"/>, description: "View your child's attendance records." },
         { view: PARENT_VIEWS.BEHAVIORAL, title: "Behavioral Remarks", icon: <ShieldExclamationIcon className="w-8 h-8"/>, description: "See comments from teachers about conduct." },
     ];
@@ -32,7 +34,7 @@ const ParentHome = ({ setActiveView, demoUserId }: { setActiveView: (view: Paren
         <div>
             <h1 className="text-2xl font-semibold text-gray-700">Welcome!</h1>
             <p className="mt-2 text-gray-600">You are viewing the portal for <strong>{studentName || 'your child'}</strong>.</p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
                 {quickLinks.map(link => (
                     <button 
                         key={link.view} 

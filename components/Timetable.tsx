@@ -142,17 +142,17 @@ const Timetable = () => {
                             {DAYS.map(day => <th key={day} className="th text-center">{day}</th>)}
                         </tr>
                     </thead>
-                    <tbody className="bg-white dark:bg-gray-800">
+                    <tbody className="bg-white">
                         {TIME_SLOTS.map(time => (
-                            <tr key={time} className="divide-x divide-gray-200 dark:divide-gray-700">
+                            <tr key={time} className="divide-x divide-gray-200">
                                 <td className="td font-semibold">{time}</td>
                                 {DAYS.map(day => {
                                     const slotInfo = getSlotInfo(day, time);
                                     return (
-                                        <td key={day} className="td text-center align-top p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" onClick={() => handleSlotClick(day, time)}>
+                                        <td key={day} className="td text-center align-top p-2 hover:bg-gray-100 cursor-pointer" onClick={() => handleSlotClick(day, time)}>
                                             {slotInfo ? (
                                                 <div>
-                                                    <p className="font-bold text-indigo-600 dark:text-indigo-400">{slotInfo.subject}</p>
+                                                    <p className="font-bold text-indigo-600">{slotInfo.subject}</p>
                                                     <p className="text-sm text-gray-500">{slotInfo.teacher}</p>
                                                 </div>
                                             ) : (

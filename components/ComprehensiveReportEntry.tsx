@@ -1,7 +1,8 @@
 
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { apiGetStudents, apiGetSubjects, apiGetSchoolSettings, apiUpsertRemark, getTenantData, apiGetScores, apiGetBehavioralRecords, apiUpsertScore } from '../services/api';
+// Fix: Correctly import `apiGetRemarks` instead of the non-existent `getTenantData`.
+import { apiGetStudents, apiGetSubjects, apiGetSchoolSettings, apiUpsertRemark, apiGetRemarks, apiGetScores, apiGetBehavioralRecords, apiUpsertScore } from '../services/api';
 // Fix: Import `Remark` type to correctly type the component's state.
 import { Student, Subject, Remark, SchoolSettings, Score, BehavioralLogEntry, ReportCardSkill } from '../types';
 import Modal from './Modal';
@@ -10,6 +11,8 @@ import { generateText } from '../services/geminiService';
 import SparklesIcon from './icons/SparklesIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
 import EditIcon from './icons/EditIcon';
+import TableSkeleton from './skeletons/TableSkeleton';
+import SkeletonLoader from './SkeletonLoader';
 
 // Fix: Typed Star as a React.FC to allow React's special 'key' prop to be passed during iteration without causing a type error.
 const Star: React.FC<{ filled: boolean, onClick: () => void }> = ({ filled, onClick }) => (
@@ -183,7 +186,7 @@ const ComprehensiveReportEntry = () => {
         setLoading(true);
         try {
             const [students, subjects, scores, remarks, behavioralRecords, settings] = await Promise.all([
-                apiGetStudents(), apiGetSubjects(), apiGetScores(), getTenantData('remarks') || [], apiGetBehavioralRecords(), apiGetSchoolSettings()
+                apiGetStudents(), apiGetSubjects(), apiGetScores(), apiGetRemarks(), apiGetBehavioralRecords(), apiGetSchoolSettings()
             ]);
             setAllData({ students, subjects, scores, remarks, behavioralRecords, settings });
             const allClasses = [...new Set<string>(subjects.flatMap(s => s.classes))].sort();
@@ -201,7 +204,16 @@ const ComprehensiveReportEntry = () => {
         return allData.students.filter(s => s.class === selectedClass);
     }, [selectedClass, allData.students]);
 
-    if (loading) return <div className="card p-6 text-center">Loading Data...</div>
+    if (loading) return (
+        <div className="card p-6">
+            <SkeletonLoader className="h-6 w-48" />
+            <div className="my-6">
+                <SkeletonLoader className="h-5 w-24 mb-2" />
+                <SkeletonLoader className="h-10 w-full max-w-sm" />
+            </div>
+            <TableSkeleton cols={2} />
+        </div>
+    );
 
     return (
         <div className="card">

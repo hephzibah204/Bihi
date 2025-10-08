@@ -217,10 +217,10 @@ const Attendance = () => {
                                 <tr key={student.id}>
                                     <td className="td font-medium"><div className="truncate max-w-sm" title={student.name}>{student.name}</div></td>
                                     <td className="td">
-                                        <div className="flex justify-center space-x-2">
-                                            <button onClick={() => handleStatusChange(student.id, 'present')} className={`btn text-sm px-3 py-1 ${status === 'present' ? 'bg-green-500 text-white' : 'bg-gray-200'}`}>Present</button>
-                                            <button onClick={() => handleStatusChange(student.id, 'late')} className={`btn text-sm px-3 py-1 ${status === 'late' ? 'bg-yellow-500 text-white' : 'bg-gray-200'}`}>Late</button>
-                                            <button onClick={() => handleStatusChange(student.id, 'absent')} className={`btn text-sm px-3 py-1 ${status === 'absent' ? 'bg-red-500 text-white' : 'bg-gray-200'}`}>Absent</button>
+                                        <div className="flex flex-col sm:flex-row justify-center items-center gap-2">
+                                            <button onClick={() => handleStatusChange(student.id, 'present')} className={`btn text-sm px-3 py-1 w-full sm:w-auto ${status === 'present' ? 'bg-green-500 text-white' : 'bg-gray-200'}`}>Present</button>
+                                            <button onClick={() => handleStatusChange(student.id, 'late')} className={`btn text-sm px-3 py-1 w-full sm:w-auto ${status === 'late' ? 'bg-yellow-500 text-white' : 'bg-gray-200'}`}>Late</button>
+                                            <button onClick={() => handleStatusChange(student.id, 'absent')} className={`btn text-sm px-3 py-1 w-full sm:w-auto ${status === 'absent' ? 'bg-red-500 text-white' : 'bg-gray-200'}`}>Absent</button>
                                         </div>
                                     </td>
                                 </tr>

@@ -11,9 +11,10 @@ interface ChatbotPanelProps {
     onClose: () => void;
     userRole: string;
     demoUserId?: string;
+    activeView: string;
 }
 
-const ChatbotPanel: React.FC<ChatbotPanelProps> = ({ isOpen, onClose, userRole }) => {
+const ChatbotPanel: React.FC<ChatbotPanelProps> = ({ isOpen, onClose, userRole, activeView }) => {
     const [messages, setMessages] = useState<{ sender: 'user' | 'ai', text: string }[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -26,9 +27,9 @@ const ChatbotPanel: React.FC<ChatbotPanelProps> = ({ isOpen, onClose, userRole }
     
      useEffect(() => {
         if (isOpen) {
-             let welcomeMessage = "Hello! How can I help you today?";
-             if(userRole === USER_ROLES.STUDENT) welcomeMessage = "Hello! I'm your AI academic tutor. Ask me anything about your schoolwork.";
-             if(userRole === USER_ROLES.PARENT) welcomeMessage = "Hello! I'm your AI parent assistant. How can I help you understand your child's progress today?";
+             let welcomeMessage = "Hello! How can I help you navigate the app today?";
+             if(userRole === USER_ROLES.STUDENT) welcomeMessage = "Hello! I'm your AI academic tutor. Ask me anything about your schoolwork or how to use your portal.";
+             if(userRole === USER_ROLES.PARENT) welcomeMessage = "Hello! I'm your AI parent assistant. How can I help you understand your child's progress or use the portal today?";
             // Fix: Use `as const` to prevent TypeScript from widening the literal 'ai' to a generic string, ensuring type compatibility with the state.
             setMessages([{ sender: 'ai' as const, text: welcomeMessage }]);
         } else {
@@ -48,7 +49,25 @@ const ChatbotPanel: React.FC<ChatbotPanelProps> = ({ isOpen, onClose, userRole }
         try {
             let aiResponse;
             if (isOnline) {
-                const prompt = `User Role: ${userRole}. User Query: "${input}"`;
+                const prompt = `
+                    You are "Sheety", a helpful and knowledgeable AI guide for the "ReportSheet" school management application. Your goal is to assist users by answering their questions about how to use the app.
+
+                    **User's Current Context:**
+                    - Role: ${userRole}
+                    - Currently Viewing: The "${activeView.replace(/-/g, ' ')}" page.
+
+                    **Key App Features by Role:**
+                    - **Admin:** Can manage students, teachers, subjects, enter scores, generate report cards, manage promotions, ID cards, timetable, attendance, communications, bursary, view analytics, and use AI tools. The main report card hub is called "Dossier".
+                    - **Teacher:** Can view their students and schedule, enter scores for their subjects, and use AI tools for lesson planning and comment generation.
+                    - **Student:** Can view their own results, assignments, timetable, and use an AI tutor for academic help.
+                    - **Parent:** Can view their child's results, assignments, attendance, and behavioral remarks.
+
+                    **Your Task:**
+                    Based on the user's role, current view, and their question below, provide a clear, concise, and helpful answer. Guide them on how to perform tasks within the app. Be friendly and encouraging.
+
+                    **User's Question:**
+                    "${input}"
+                `;
                 aiResponse = await generateText(prompt);
             } else {
                  if (userRole === USER_ROLES.PARENT) {

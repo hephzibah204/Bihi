@@ -13,6 +13,7 @@ import PracticeQuiz from './PracticeQuiz';
 import EarlyIntervention from './EarlyIntervention';
 import BroadsheetAnalysis from './BroadsheetAnalysis';
 import SubjectRecommender from './SubjectRecommender';
+import DirectMessages from './DirectMessages';
 
 
 interface TeacherDashboardContentProps {
@@ -52,6 +53,8 @@ const TeacherDashboardContent = ({ activeView, setActiveView }: TeacherDashboard
             return <TeacherSchedule />;
         case TEACHER_VIEWS.AI_TOOLS:
             return <AiTools />;
+        case TEACHER_VIEWS.MESSAGES:
+            return <DirectMessages />;
         default:
             return <TeacherHome setActiveView={setActiveView} />;
     }

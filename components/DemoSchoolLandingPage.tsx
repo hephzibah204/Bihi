@@ -18,14 +18,14 @@ interface RoleCardProps {
 const RoleCard: FC<RoleCardProps> = ({ icon, title, description, onClick }) => (
     <button
         onClick={onClick}
-        className="w-full text-left p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg hover:scale-105 transition-transform duration-200 flex items-start space-x-4"
+        className="w-full text-left p-6 bg-white rounded-lg shadow-md hover:shadow-lg hover:scale-105 transition-transform duration-200 flex items-start space-x-4"
     >
-        <div className="flex-shrink-0 w-12 h-12 bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 rounded-lg flex items-center justify-center">
+        <div className="flex-shrink-0 w-12 h-12 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center">
             {icon}
         </div>
         <div>
-            <h3 className="text-xl font-bold text-gray-800 dark:text-white">{title}</h3>
-            <p className="mt-1 text-gray-600 dark:text-gray-400">{description}</p>
+            <h3 className="text-xl font-bold text-gray-800">{title}</h3>
+            <p className="mt-1 text-gray-600">{description}</p>
         </div>
     </button>
 );
@@ -50,8 +50,8 @@ const DemoSchoolLandingPage: FC<DemoSchoolLandingPageProps> = ({ onSelectProfile
     const handleRoleClick = async (role: string) => {
         if (role === USER_ROLES.STUDENT || role === USER_ROLES.PARENT) {
             setLoading(true);
-            // Fix: Pass an empty filter object as the first argument and the tenant ID as the second.
-            const demoStudents = await apiGetStudents({}, DEMO_TENANT_ID);
+            // Fix: Corrected apiGetStudents call to match its definition (0-1 arguments).
+            const demoStudents = await apiGetStudents();
             setStudents(demoStudents);
             setSelectionStep(role);
             setLoading(false);
@@ -66,14 +66,14 @@ const DemoSchoolLandingPage: FC<DemoSchoolLandingPageProps> = ({ onSelectProfile
 
     if (selectionStep === USER_ROLES.STUDENT || selectionStep === USER_ROLES.PARENT) {
         return (
-             <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+             <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
                 <h1 className="text-3xl font-bold text-center mb-6">Select a {selectionStep} profile to view</h1>
                 <div className="w-full max-w-2xl space-y-4">
                     {students.map(student => (
                         <button 
                             key={student.id} 
                             onClick={() => onSelectProfile({ role: selectionStep, userId: student.id })}
-                            className="w-full flex items-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                            className="w-full flex items-center p-4 bg-white rounded-lg shadow-md hover:bg-gray-50 transition"
                         >
                             <img src={student.photo} alt={student.name} className="w-12 h-12 rounded-full mr-4"/>
                             <span className="font-semibold text-lg">{student.name}</span>
@@ -94,17 +94,17 @@ const DemoSchoolLandingPage: FC<DemoSchoolLandingPageProps> = ({ onSelectProfile
     }
 
     return (
-        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+        <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
             <header className="text-center">
                 <img src={schoolLogo} alt="School Logo" className="w-20 h-20 mx-auto mb-4 rounded-full" />
-                <h1 className="text-4xl font-bold text-gray-800 dark:text-white">Welcome to Brightstar Academy</h1>
-                <p className="mt-2 text-lg text-gray-600 dark:text-gray-400">
+                <h1 className="text-4xl font-bold text-gray-800">Welcome to Brightstar Academy</h1>
+                <p className="mt-2 text-lg text-gray-600">
                     Experience the platform from every perspective.
                 </p>
             </header>
 
             <main className="mt-12 w-full max-w-4xl">
-                <h2 className="text-2xl font-semibold text-center text-gray-700 dark:text-gray-300 mb-6">Choose a role to sign in as:</h2>
+                <h2 className="text-2xl font-semibold text-center text-gray-700 mb-6">Choose a role to sign in as:</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <RoleCard 
                         icon={<UsersIcon className="w-6 h-6" />}

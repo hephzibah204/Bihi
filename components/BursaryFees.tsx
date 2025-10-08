@@ -94,7 +94,7 @@ const FeeFormModal = ({ fee, classes, onSave, onClose }) => {
                     <label className="label">Applicable Classes</label>
                     <div className="grid grid-cols-3 gap-2 mt-2">
                         {classes.map(c => (
-                            <label key={c} className="flex items-center space-x-2 p-2 rounded-md bg-gray-100 dark:bg-gray-700">
+                            <label key={c} className="flex items-center space-x-2 p-2 rounded-md bg-gray-100">
                                 <input type="checkbox" checked={selectedClasses.includes(c)} onChange={() => handleClassToggle(c)} />
                                 <span>{c}</span>
                             </label>

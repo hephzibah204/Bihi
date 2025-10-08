@@ -36,6 +36,7 @@ export interface Parent {
     id: string;
     name: string;
     email: string;
+    auth_id?: string;
 }
 
 export interface Subject {
@@ -102,6 +103,9 @@ export interface ReportCardSettings {
     psychomotorSkills: ReportCardSkill[];
 }
 
+export interface FeatureControlSettings {
+  [featureKey: string]: boolean;
+}
 
 export interface SchoolSettings {
     schoolName: string;
@@ -117,6 +121,11 @@ export interface SchoolSettings {
     paystackPublicKey?: string;
     planId?: string;
     reportCardSettings?: ReportCardSettings;
+    featureControls?: {
+        teacher: FeatureControlSettings;
+        student: FeatureControlSettings;
+        parent: FeatureControlSettings;
+    };
 }
 
 export interface Assignment {
@@ -258,4 +267,26 @@ export interface LandingPageContent {
         title: string;
         subtitle: string;
     };
+}
+// Fix: Added missing type definitions for Fee, ScratchCard, and Announcement.
+export interface Fee {
+    id: string;
+    description: string;
+    amount: number;
+    classes: string[];
+}
+
+export interface ScratchCard {
+    id: string;
+    pin: string;
+    used: boolean;
+    createdAt: string;
+}
+
+export interface Announcement {
+    id: string;
+    title: string;
+    content: string;
+    recipients: string[];
+    created_at: string;
 }

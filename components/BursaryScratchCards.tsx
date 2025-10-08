@@ -63,7 +63,7 @@ const BursaryScratchCards = () => {
                                 <th className="th">Date Created</th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white dark:bg-gray-800 divide-y dark:divide-gray-700">
+                        <tbody className="bg-white divide-y">
                             {cards.length === 0 ? (
                                 <tr><td colSpan={3} className="td text-center">No scratch cards generated yet.</td></tr>
                             ) : (

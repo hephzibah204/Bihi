@@ -5,8 +5,19 @@ import SearchIcon from './icons/SearchIcon';
 import { Student } from '../types';
 import Modal from './Modal';
 import EnvelopeIcon from './icons/EnvelopeIcon';
+import SkeletonLoader from './SkeletonLoader';
 
 const PAGE_SIZE = 30;
+
+const AlumniCardSkeleton = () => (
+    <div className="p-4 border rounded-lg flex items-center space-x-4">
+        <SkeletonLoader className="h-16 w-16 rounded-full" />
+        <div>
+            <SkeletonLoader className="h-5 w-32 mb-2" />
+            <SkeletonLoader className="h-4 w-24" />
+        </div>
+    </div>
+);
 
 const AlumniDashboard = () => {
     const [alumni, setAlumni] = useState<Student[]>([]);
@@ -48,8 +59,8 @@ const AlumniDashboard = () => {
                     setLoading(false);
                     return;
                 }
-                // Fix: Pass an empty filter object as the first argument and the tenant ID as the second.
-                const allStudents = await apiGetStudents({}, tenantId);
+                // Fix: Corrected call to apiGetStudents to match its function signature.
+                const allStudents = await apiGetStudents();
                 const graduatedStudents = allStudents.filter(s => s.status === 'alumni');
                 setAlumni(graduatedStudents);
             } catch (error) {
@@ -129,7 +140,14 @@ const AlumniDashboard = () => {
     };
     
     if (loading) {
-        return <div className="text-center p-8">Loading Alumni Directory...</div>
+        return (
+             <div className="card p-6">
+                 <SkeletonLoader className="h-8 w-64 mb-6" />
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+                    {[...Array(6)].map((_, i) => <AlumniCardSkeleton key={i} />)}
+                 </div>
+            </div>
+        );
     }
 
     return (

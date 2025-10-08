@@ -39,6 +39,7 @@ const SubscriptionManagementModal: React.FC<SubscriptionManagementModalProps> = 
             await apiUpdateTenant(updatedTenant);
             
             // 2. Update the tenant's own settings for immediate effect in their portal
+            // Fix: Pass tenant.id to API calls.
             const schoolSettings = await apiGetSchoolSettings(tenant.id);
             await apiSaveSchoolSettings({ ...schoolSettings, planId: selectedPlanId }, tenant.id);
 

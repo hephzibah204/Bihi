@@ -18,7 +18,7 @@ const ModernReportCard = ({ student, students, scores, subjects, settings, term,
     const generalRemark = (remarks || []).find(r => r.studentId === student.id && r.term === term && r.session === session)?.generalComment;
 
     return (
-        <div className="bg-white p-10 font-sans" style={{ width: '210mm', minHeight: '297mm', fontSize: '10px' }}>
+        <div className="report-card-layout report-card-a4-size p-10 font-sans">
             <header className="flex justify-between items-center pb-6 border-b-2 border-indigo-500">
                 <div>
                     <h1 className="text-3xl font-bold text-indigo-600">{settings.schoolName}</h1>

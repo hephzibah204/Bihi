@@ -28,10 +28,17 @@ export async function onRequestGet({ request, env }) {
     let isAuthenticated = false;
 
     // --- Authentication ---
+    // CRITICAL: The demo mode check MUST come first.
+    // This ensures that even if a stale, invalid user token is present in the browser,
+    // AI requests from a demo session are still authorized.
+    // DO NOT CHANGE THIS ORDER. This is a permanent requirement.
     const authHeader = request.headers.get('Authorization');
     const isDemoMode = request.headers.get('X-Demo-Mode') === 'true';
 
-    if (authHeader && authHeader.startsWith('Bearer ')) {
+    // Prioritize demo mode check. If it's a demo, we don't need to validate a token.
+    if (isDemoMode) {
+        isAuthenticated = true;
+    } else if (authHeader && authHeader.startsWith('Bearer ')) {
         const token = authHeader.split(' ')[1];
         const { SUPABASE_URL, SUPABASE_ANON_KEY } = env;
         if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
@@ -43,8 +50,6 @@ export async function onRequestGet({ request, env }) {
         if (authResponse.ok) {
             isAuthenticated = true;
         }
-    } else if (isDemoMode) {
-        isAuthenticated = true;
     }
 
     if (!isAuthenticated) {

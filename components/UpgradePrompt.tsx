@@ -9,7 +9,7 @@ const UpgradePrompt = ({ featureName, onUpgradeClick }) => {
                     <LockIcon className="w-8 h-8" />
                 </div>
                 <h2 className="mt-4 text-2xl font-bold">Upgrade to Unlock This Feature</h2>
-                <p className="mt-2 text-gray-600 dark:text-gray-300">
+                <p className="mt-2 text-gray-600">
                     Your current plan does not include access to {featureName}. Please upgrade your plan to continue.
                 </p>
                 <button onClick={onUpgradeClick} className="btn btn-primary mt-6">

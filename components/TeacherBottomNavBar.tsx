@@ -5,6 +5,7 @@ import { TeacherView } from '../types';
 import ClipboardListIcon from './icons/ClipboardListIcon';
 import Bars3Icon from './icons/Bars3Icon';
 import { TEACHER_VIEWS } from '../utils/constants';
+import ChatBubbleLeftRightIcon from './icons/ChatBubbleLeftRightIcon';
 
 interface NavItemProps {
     icon: React.ReactNode;
@@ -17,7 +18,7 @@ interface NavItemProps {
 const NavItem: FC<NavItemProps> = ({ icon, label, view, isActive, onClick }) => (
     <button 
         onClick={() => onClick(view)}
-        className={`flex flex-col items-center justify-center w-full pt-2 pb-1 transition-colors duration-200 ${isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400'}`}
+        className={`flex flex-col items-center justify-center w-full pt-2 pb-1 transition-colors duration-200 ${isActive ? 'text-indigo-600' : 'text-gray-500'}`}
     >
         {icon}
         <span className="text-xs mt-1">{label}</span>
@@ -32,13 +33,13 @@ interface BottomNavBarProps {
 const TeacherBottomNavBar: FC<BottomNavBarProps> = ({ activeView, setActiveView }) => {
     const navItems: { view: TeacherView; label: string; icon: React.ReactNode }[] = [
         { view: TEACHER_VIEWS.DASHBOARD, label: 'Home', icon: <HomeIcon className="h-6 w-6" /> },
-        { view: TEACHER_VIEWS.MY_STUDENTS, label: 'Students', icon: <UsersIcon className="h-6 w-6" /> },
         { view: TEACHER_VIEWS.ENTER_SCORES, label: 'Scores', icon: <ClipboardListIcon className="h-6 w-6" /> },
+        { view: TEACHER_VIEWS.MESSAGES, label: 'Messages', icon: <ChatBubbleLeftRightIcon className="h-6 w-6" /> },
         { view: TEACHER_VIEWS.MORE, label: 'More', icon: <Bars3Icon className="h-6 w-6" /> },
     ];
 
     return (
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-40">
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
             <div className="flex justify-around">
                 {navItems.map(({ view, label, icon }) => (
                     <NavItem 

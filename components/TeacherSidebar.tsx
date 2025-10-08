@@ -5,9 +5,11 @@ import UsersIcon from './icons/UsersIcon';
 import ClipboardListIcon from './icons/ClipboardListIcon';
 import BrainCircuitIcon from './icons/BrainCircuitIcon';
 import CalendarDaysIcon from './icons/CalendarDaysIcon';
-import { TEACHER_VIEWS } from '../utils/constants';
+import { TEACHER_VIEWS, USER_ROLES } from '../utils/constants';
 import Logo from './icons/Logo';
 import XIcon from './icons/XIcon';
+import ChatBubbleLeftRightIcon from './icons/ChatBubbleLeftRightIcon';
+import { useTenant } from '../contexts/TenantContext';
 
 interface SidebarProps {
     isSidebarOpen: boolean;
@@ -16,7 +18,6 @@ interface SidebarProps {
     setActiveView: (view: TeacherView) => void;
 }
 
-// Fix: Explicitly type NavLink as a React Functional Component (React.FC) to ensure TypeScript correctly handles the `key` prop passed during iteration.
 const NavLink: React.FC<{ icon: React.ReactNode; label: string; view: TeacherView; activeView: TeacherView; setActiveView: (view: TeacherView) => void; }> = ({ icon, label, view, activeView, setActiveView }) => (
     <button
         onClick={() => setActiveView(view)}
@@ -32,13 +33,18 @@ const NavLink: React.FC<{ icon: React.ReactNode; label: string; view: TeacherVie
 );
 
 const TeacherSidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView }: SidebarProps) => {
-    const navLinks = [
-        { view: TEACHER_VIEWS.DASHBOARD, label: 'Dashboard', icon: <HomeIcon className="h-5 w-5" /> },
+    const { hasFeature } = useTenant();
+
+    const allNavLinks = [
+        { view: TEACHER_VIEWS.DASHBOARD, label: 'Dashboard', icon: <HomeIcon className="h-5 w-5" />, alwaysVisible: true },
         { view: TEACHER_VIEWS.MY_STUDENTS, label: 'My Students', icon: <UsersIcon className="h-5 w-5" /> },
         { view: TEACHER_VIEWS.ENTER_SCORES, label: 'Enter Scores', icon: <ClipboardListIcon className="h-5 w-5" /> },
+        { view: TEACHER_VIEWS.MESSAGES, label: 'Messages', icon: <ChatBubbleLeftRightIcon className="h-5 w-5" /> },
         { view: TEACHER_VIEWS.MY_SCHEDULE, label: 'My Schedule', icon: <CalendarDaysIcon className="h-5 w-5" /> },
         { view: TEACHER_VIEWS.AI_TOOLS, label: 'AI Tools', icon: <BrainCircuitIcon className="h-5 w-5" /> },
     ];
+
+    const navLinks = allNavLinks.filter(link => link.alwaysVisible || hasFeature(USER_ROLES.TEACHER, link.view));
 
     return (
         <>

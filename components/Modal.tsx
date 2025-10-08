@@ -21,10 +21,10 @@ const Modal: FC<PropsWithChildren<ModalProps>> = ({ isOpen, onClose, title, chil
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4" onClick={onClose}>
       <div
-        className={`bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full ${sizeClasses[size]} flex flex-col max-h-[90vh]`}
+        className={`bg-white rounded-lg shadow-xl w-full ${sizeClasses[size]} flex flex-col max-h-[90vh]`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
+        <div className="flex justify-between items-center p-4 border-b">
           <h2 className="text-xl font-semibold">{title}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <XIcon className="w-6 h-6" />

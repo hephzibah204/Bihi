@@ -25,7 +25,7 @@ const Bursary = () => {
     const NavButton = ({ view, children }: PropsWithChildren<NavButtonProps>) => {
         const isActive = activeView === view;
         const activeClasses = 'bg-indigo-600 text-white';
-        const inactiveClasses = 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600';
+        const inactiveClasses = 'bg-white text-gray-700 hover:bg-gray-100';
         return (
             <button
                 onClick={() => setActiveView(view)}
@@ -38,7 +38,7 @@ const Bursary = () => {
 
     return (
         <div>
-            <div className="mt-6 flex space-x-2 border-b dark:border-gray-700 pb-4">
+            <div className="mt-6 flex space-x-2 border-b pb-4">
                 <NavButton view="fees">School Fees</NavButton>
                 <NavButton view="invoice">Student Invoice</NavButton>
                 <NavButton view="scratch_cards">Scratch Cards</NavButton>

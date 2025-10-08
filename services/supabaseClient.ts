@@ -29,6 +29,9 @@ declare global {
   interface ImportMetaEnv {
     readonly VITE_SUPABASE_URL: string;
     readonly VITE_SUPABASE_ANON_KEY: string;
+    // Fix: Add optional properties for non-prefixed env vars to satisfy the type checker.
+    readonly SUPABASE_URL?: string;
+    readonly SUPABASE_ANON_KEY?: string;
     // Add other environment variables here if needed
     [key: string]: any;
   }
@@ -43,13 +46,17 @@ function initializeSupabaseClient() {
     const { createClient } = window.supabase;
 
     // --- UNIVERSAL KEY LOGIC ---
-    // This logic works on BOTH Cloudflare (Vite) and Google AI Studio by consistently
-    // looking for VITE_ prefixed variables from both potential sources.
-    const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
-    const supabaseAnonKey = import.meta.env?.VITE_SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY;
+    // This logic is now more robust, checking for multiple common naming conventions for env vars.
+    // Fix: Fallback to `undefined` instead of `{}` to avoid type errors when accessing properties
+    // on what could be an empty object. Optional chaining now works as expected.
+    const envSource1 = typeof import.meta !== 'undefined' ? import.meta.env : undefined;
+    const envSource2 = typeof process !== 'undefined' ? process.env : undefined;
+
+    const supabaseUrl = envSource1?.VITE_SUPABASE_URL || envSource2?.VITE_SUPABASE_URL || envSource1?.SUPABASE_URL || envSource2?.SUPABASE_URL;
+    const supabaseAnonKey = envSource1?.VITE_SUPABASE_ANON_KEY || envSource2?.VITE_SUPABASE_ANON_KEY || envSource1?.SUPABASE_ANON_KEY || envSource2?.SUPABASE_ANON_KEY;
     
     if (!supabaseUrl || !supabaseAnonKey) {
-        console.error("Supabase URL and Anon Key must be provided in environment variables (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY).");
+        console.error("Supabase URL and Anon Key must be provided in environment variables.");
         return null;
     }
 

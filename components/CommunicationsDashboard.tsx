@@ -57,7 +57,8 @@ const CommunicationsDashboard = () => {
         setSending(true);
         setNotification({ message: '', type: '' });
         try {
-            await apiSendAnnouncement({ title, content, recipients, methods });
+            // Fix: Removed `methods` property as it does not exist on the Announcement type.
+            await apiSendAnnouncement({ title, content, recipients });
             setNotification({ message: "Announcement sent successfully!", type: 'success' });
             setTitle('');
             setContent('');

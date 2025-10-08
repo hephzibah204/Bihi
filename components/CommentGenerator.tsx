@@ -55,9 +55,9 @@ const CommentGenerator = () => {
                     <span className="ml-2">{isLoading ? 'Generating...' : 'Generate Comment'}</span>
                 </button>
                 {generatedComment && (
-                    <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-700 rounded-md">
+                    <div className="mt-4 p-4 bg-gray-100 rounded-md">
                         <h4 className="font-semibold text-sm">Suggested Comment:</h4>
-                        <p className="mt-1 text-gray-800 dark:text-gray-200">{generatedComment}</p>
+                        <p className="mt-1 text-gray-800">{generatedComment}</p>
                     </div>
                 )}
             </div>

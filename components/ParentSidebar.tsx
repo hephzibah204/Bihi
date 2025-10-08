@@ -6,9 +6,11 @@ import CheckBadgeIcon from './icons/CheckBadgeIcon';
 import ShieldExclamationIcon from './icons/ShieldExclamationIcon';
 import BellIcon from './icons/BellIcon';
 import DocumentDuplicateIcon from './icons/DocumentDuplicateIcon';
-import { PARENT_VIEWS } from '../utils/constants';
+import { PARENT_VIEWS, USER_ROLES } from '../utils/constants';
 import Logo from './icons/Logo';
 import XIcon from './icons/XIcon';
+import ChatBubbleLeftRightIcon from './icons/ChatBubbleLeftRightIcon';
+import { useTenant } from '../contexts/TenantContext';
 
 interface SidebarProps {
     isSidebarOpen: boolean;
@@ -17,7 +19,6 @@ interface SidebarProps {
     setActiveView: (view: ParentView) => void;
 }
 
-// Fix: Explicitly type NavLink as a React Functional Component (React.FC) to ensure TypeScript correctly handles the `key` prop passed during iteration.
 const NavLink: React.FC<{ icon: React.ReactNode; label: string; view: ParentView; activeView: ParentView; setActiveView: (view: ParentView) => void; }> = ({ icon, label, view, activeView, setActiveView }) => (
     <button
         onClick={() => setActiveView(view)}
@@ -33,14 +34,19 @@ const NavLink: React.FC<{ icon: React.ReactNode; label: string; view: ParentView
 );
 
 const ParentSidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView }: SidebarProps) => {
-    const navLinks = [
-        { view: PARENT_VIEWS.DASHBOARD, label: 'Dashboard', icon: <HomeIcon className="h-5 w-5" /> },
+    const { hasFeature } = useTenant();
+
+    const allNavLinks = [
+        { view: PARENT_VIEWS.DASHBOARD, label: 'Dashboard', icon: <HomeIcon className="h-5 w-5" />, alwaysVisible: true },
         { view: PARENT_VIEWS.RESULTS, label: 'Results', icon: <ClipboardListIcon className="h-5 w-5" /> },
         { view: PARENT_VIEWS.ASSIGNMENTS, label: 'Assignments', icon: <DocumentDuplicateIcon className="h-5 w-5" /> },
+        { view: PARENT_VIEWS.MESSAGES, label: 'Messages', icon: <ChatBubbleLeftRightIcon className="h-5 w-5" /> },
         { view: PARENT_VIEWS.ATTENDANCE, label: 'Attendance', icon: <CheckBadgeIcon className="h-5 w-5" /> },
         { view: PARENT_VIEWS.BEHAVIORAL, label: 'Behavior', icon: <ShieldExclamationIcon className="h-5 w-5" /> },
-        { view: PARENT_VIEWS.NOTIFICATIONS, label: 'Notifications', icon: <BellIcon className="h-5 w-5" /> },
+        { view: PARENT_VIEWS.NOTIFICATIONS, label: 'Notifications', icon: <BellIcon className="h-5 w-5" />, alwaysVisible: true },
     ];
+
+    const navLinks = allNavLinks.filter(link => link.alwaysVisible || hasFeature(USER_ROLES.PARENT, link.view));
 
     return (
         <>

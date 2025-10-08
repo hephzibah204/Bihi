@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { apiGetStudents, apiGetSubjects, apiGetSchoolSettings, apiUpsertRemark, getTenantData, apiGetScores, apiGetBehavioralRecords } from '../services/api';
+import { apiGetStudents, apiGetSubjects, apiGetSchoolSettings, apiUpsertRemark, apiGetRemarks, apiGetScores, apiGetBehavioralRecords } from '../services/api';
 import { Student, Subject, Remark, SchoolSettings, Score, BehavioralLogEntry } from '../types';
 import { debounce } from 'lodash';
 import { generateText } from '../services/geminiService';
@@ -53,8 +53,10 @@ const GeneralRemarks = () => {
         if (!selectedClass) return;
         const fetchClassData = async () => {
             setLoading(true);
-            const classStudents = await apiGetStudents({ classFilter: selectedClass });
-            const allRemarks = getTenantData('remarks') || [];
+            const [classStudents, allRemarks] = await Promise.all([
+                apiGetStudents({ classFilter: selectedClass }),
+                apiGetRemarks()
+            ]);
             setStudents(classStudents);
             setRemarks(allRemarks);
             setLoading(false);
@@ -175,7 +177,7 @@ const GeneralRemarks = () => {
                     <table className="table">
                         <thead>
                             <tr>
-                                <th className="th">Student Name</th>
+                                <th className="th sticky left-0 bg-slate-100 z-10">Student Name</th>
                                 <th className="th">General Comment</th>
                             </tr>
                         </thead>
@@ -183,9 +185,11 @@ const GeneralRemarks = () => {
                             {loading ? (
                                 <tr><td colSpan={2} className="td text-center">Loading students...</td></tr>
                             ) : students.length > 0 ? (
-                                students.map(student => (
-                                    <tr key={student.id}>
-                                        <td className="td font-medium">{student.name}</td>
+                                students.map((student, index) => {
+                                    const isEvenRow = index % 2 === 1;
+                                    return (
+                                    <tr key={student.id} className="group">
+                                        <td className={`td font-medium sticky left-0 z-10 ${isEvenRow ? 'bg-slate-100' : 'bg-white'} group-hover:bg-indigo-50`}>{student.name}</td>
                                         <td className="td">
                                             <div className="flex items-center gap-2">
                                                 <textarea
@@ -209,7 +213,8 @@ const GeneralRemarks = () => {
                                             </div>
                                         </td>
                                     </tr>
-                                ))
+                                    );
+                                })
                             ) : (
                                 <tr><td colSpan={2} className="td text-center">No students in this class.</td></tr>
                             )}

@@ -23,7 +23,7 @@ const ClassicReportCard = ({ student, students, scores, subjects, settings, term
     const maxExam = settings?.maxExam ?? 60;
 
     return (
-        <div className="bg-white p-8 border-4 border-blue-900" style={{ width: '210mm', minHeight: '297mm', fontSize: '10px' }}>
+        <div className="report-card-layout report-card-a4-size p-8 border-4 border-blue-900">
             <ReportCardHeader settings={settings} />
             <div className="grid grid-cols-4 gap-4 my-4">
                 <span><strong>Name:</strong> {student.name}</span>

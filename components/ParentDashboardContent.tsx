@@ -7,6 +7,7 @@ import ParentBehavioral from './ParentBehavioral';
 import NotificationViewer from './NotificationViewer';
 import ParentAssignments from './ParentAssignments';
 import { PARENT_VIEWS } from '../utils/constants';
+import DirectMessages from './DirectMessages';
 
 
 interface ParentDashboardContentProps {
@@ -29,6 +30,8 @@ const ParentDashboardContent = ({ activeView, setActiveView, demoUserId }: Paren
             return <NotificationViewer demoUserId={demoUserId} />;
          case PARENT_VIEWS.ASSIGNMENTS:
             return <ParentAssignments demoUserId={demoUserId} />;
+        case PARENT_VIEWS.MESSAGES:
+            return <DirectMessages />;
         default:
             return <ParentHome setActiveView={setActiveView} demoUserId={demoUserId} />;
     }

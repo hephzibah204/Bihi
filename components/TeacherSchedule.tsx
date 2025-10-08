@@ -84,9 +84,9 @@ const TeacherSchedule = () => {
                                 {DAYS.map(day => <th key={day} className="th text-center">{day}</th>)}
                             </tr>
                         </thead>
-                        <tbody className="bg-white dark:bg-gray-800">
+                        <tbody className="bg-white">
                             {TIME_SLOTS.map(time => (
-                                <tr key={time} className="divide-x divide-gray-200 dark:divide-gray-700">
+                                <tr key={time} className="divide-x divide-gray-200">
                                     <td className="td font-semibold">{time}</td>
                                     {DAYS.map(day => {
                                         const slot = schedule[day]?.[time];
@@ -94,7 +94,7 @@ const TeacherSchedule = () => {
                                             <td key={day} className="td text-center p-2">
                                                 {slot ? (
                                                     <div>
-                                                        <p className="font-bold text-indigo-600 dark:text-indigo-400">{getSubjectName(slot.subjectId)}</p>
+                                                        <p className="font-bold text-indigo-600">{getSubjectName(slot.subjectId)}</p>
                                                         <p className="text-sm text-gray-500">{slot.className}</p>
                                                     </div>
                                                 ) : <span className="text-gray-400">-</span>}

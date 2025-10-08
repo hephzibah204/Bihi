@@ -26,7 +26,7 @@ const KBPostPage = () => {
     if (!article) return <div><h1 className="text-2xl">Article not found.</h1><a href="?view=kb">Back to Knowledge Base</a></div>;
 
     return (
-        <article className="prose dark:prose-invert max-w-none">
+        <article className="prose max-w-none">
             <h1>{article.title}</h1>
             <p className="text-sm text-gray-500">Last updated: {formatDate(article.lastUpdated)}</p>
             <div className="prose-content" dangerouslySetInnerHTML={{ __html: article.content }} />

@@ -6,13 +6,11 @@ import DashboardContent from './DashboardContent';
 import { supabase } from '../services/supabaseClient';
 import PortalLogin from './PortalLogin';
 import { TenantProvider } from '../contexts/TenantContext';
-import { apiGetTeachers, clearSyncQueue, initializeSync, cleanupSync, apiForceSync } from '../services/api';
+import { apiGetTeachers, apiGetStudents } from '../services/api';
 import TeacherDashboard from './TeacherDashboard';
 import SyncStatusIndicator from './SyncStatusIndicator';
 import AdminBottomNavBar from './AdminBottomNavBar';
 import MoreView from './MoreView';
-import { useSync } from '../hooks/useSync';
-import ConfirmationModal from './ConfirmationModal';
 import { PlanFeaturesProvider } from '../contexts/PlanFeaturesContext';
 import StudentDashboard from './StudentDashboard';
 import ParentDashboard from './ParentDashboard';
@@ -20,6 +18,7 @@ import GlobalNotification from './GlobalNotification';
 import Chatbot from './Chatbot';
 import { ADMIN_VIEWS, USER_ROLES } from '../utils/constants';
 import { getSubdomain } from '../utils/subdomain';
+import SelectChildModal from './SelectChildModal';
 
 const getViewFromUrl = () => new URLSearchParams(window.location.search).get('view');
 const getStudentIdFromUrl = () => new URLSearchParams(window.location.search).get('studentId');
@@ -33,9 +32,8 @@ const Dashboard = () => {
     const [activeView, setActiveView] = useState<DashboardView>(getViewFromUrl() || ADMIN_VIEWS.DASHBOARD);
     const [profileStudentId, setProfileStudentId] = useState<string | null>(getStudentIdFromUrl());
     const [headerTitle, setHeaderTitle] = useState('Dashboard');
-    const { syncStatus } = useSync();
-    const [isLogoutModalOpen, setLogoutModalOpen] = useState(false);
     const isDemoSubdomain = getSubdomain() === 'demo';
+    const [childrenToSelect, setChildrenToSelect] = useState([]);
 
     useEffect(() => {
         setLoading(true);
@@ -46,19 +44,14 @@ const Dashboard = () => {
         };
         window.addEventListener('popstate', handlePopState);
 
-        // --- SESSION MANAGEMENT ---
         const activeUserSession = sessionStorage.getItem('activeUser');
         if (activeUserSession) {
             try {
                 const parsedUser = JSON.parse(activeUserSession);
                 setActiveUser(parsedUser);
                 setUserRole(parsedUser.role);
-                initializeSync();
                 setLoading(false);
-                return () => {
-                    cleanupSync();
-                    window.removeEventListener('popstate', handlePopState);
-                };
+                return;
             } catch (e) {
                 sessionStorage.removeItem('activeUser');
             }
@@ -74,14 +67,32 @@ const Dashboard = () => {
             if (session) {
                 const teachers = await apiGetTeachers();
                 const currentUser = teachers.find(t => t.email.toLowerCase() === session.user.email.toLowerCase());
-                setUserRole(currentUser?.role || USER_ROLES.ADMIN);
-                setActiveUser(null);
-                initializeSync();
+                if (currentUser) {
+                    setUserRole(currentUser.role || USER_ROLES.ADMIN);
+                    setActiveUser(null);
+                    setLoading(false);
+                    return;
+                }
+
+                if (session.user?.user_metadata?.parent_id) {
+                    const parentId = session.user.user_metadata.parent_id;
+                    const allStudents = await apiGetStudents();
+                    const children = allStudents.filter(s => s.parentId === parentId);
+                    
+                    if (children.length === 0) {
+                        await supabase.auth.signOut();
+                        alert("Your account is active, but no students are linked to it. Please contact the school administrator.");
+                    } else if (children.length === 1) {
+                        handleStudentLoginSuccess({ role: USER_ROLES.PARENT, userId: children[0].id, studentName: children[0].name });
+                    } else {
+                        setChildrenToSelect(children);
+                    }
+                }
+                
             } else {
                 setActiveUser(null);
                 setUserRole(null);
                 setSession(null);
-                cleanupSync();
             }
             setLoading(false);
         });
@@ -102,14 +113,11 @@ const Dashboard = () => {
 
         return () => {
             subscription.unsubscribe();
-            cleanupSync();
             window.removeEventListener('popstate', handlePopState);
         };
     }, []);
 
     useEffect(() => {
-        // If data has finished loading, we have no user session, and we're on the demo subdomain,
-        // it means we're in an inconsistent state. Redirect to the correct demo entry point.
         if (!loading && !session && !activeUser && isDemoSubdomain) {
             window.location.href = '/?view=demo';
         }
@@ -120,24 +128,7 @@ const Dashboard = () => {
         setUserRole(userData.role);
     };
 
-    const handleLogout = () => {
-        if (syncStatus === 'syncing' || syncStatus === 'unsynced') {
-            setLogoutModalOpen(true);
-        } else {
-            confirmLogout();
-        }
-    };
-    
-    const confirmLogout = async () => {
-        setLogoutModalOpen(false);
-        
-        if (syncStatus === 'syncing' || syncStatus === 'unsynced') {
-            const syncSuccess = await apiForceSync();
-            if (!syncSuccess) {
-                console.warn("Final sync attempt failed. Proceeding with logout.");
-            }
-        }
-
+    const handleLogout = async () => {
         const isDemoLogout = !session && sessionStorage.getItem('isDemoMode') === 'true';
 
         sessionStorage.removeItem('activeUser');
@@ -148,7 +139,6 @@ const Dashboard = () => {
         }
         setSession(null);
         setUserRole(null);
-        clearSyncQueue();
         
         if (isDemoLogout) {
             window.location.href = '/?view=demo';
@@ -162,6 +152,8 @@ const Dashboard = () => {
         if (activeView === ADMIN_VIEWS.STUDENT_PROFILE) {
             title = 'Student Profile';
         } else if (activeView === ADMIN_VIEWS.COMPREHENSIVE_ENTRY) {
+            title = 'Dossier';
+        } else if (activeView === ADMIN_VIEWS.REPORT_CARDS) {
             title = 'Dossier';
         } else {
             const viewName = (activeView || '').replace(/-/g, ' ');
@@ -194,9 +186,28 @@ const Dashboard = () => {
         setProfileStudentId(studentId);
         setActiveView(ADMIN_VIEWS.STUDENT_PROFILE);
     };
+    
+    const handleSelectChild = (child) => {
+        handleStudentLoginSuccess({ role: USER_ROLES.PARENT, userId: child.id, studentName: child.name });
+        setChildrenToSelect([]);
+    };
 
     if (loading) {
         return <div className="flex items-center justify-center h-screen">Authenticating...</div>;
+    }
+    
+    if (childrenToSelect.length > 0) {
+        return (
+            <SelectChildModal 
+                isOpen={true}
+                onClose={async () => { 
+                    setChildrenToSelect([]); 
+                    if(supabase) await supabase.auth.signOut();
+                }}
+                childrenList={childrenToSelect}
+                onSelectChild={handleSelectChild}
+            />
+        );
     }
 
     if (!session && !activeUser) {
@@ -206,7 +217,6 @@ const Dashboard = () => {
         return <PortalLogin onStudentLoginSuccess={handleStudentLoginSuccess} />;
     }
 
-    // Render specific dashboards for non-admin roles
     if (userRole === USER_ROLES.TEACHER) {
         return <TeacherDashboard onLogout={handleLogout} />;
     }
@@ -217,7 +227,6 @@ const Dashboard = () => {
         return <ParentDashboard onLogout={handleLogout} demoUserId={activeUser?.userId} />;
     }
 
-    // Render Admin/Bursar dashboard
     return (
         <TenantProvider>
             <PlanFeaturesProvider>
@@ -249,15 +258,8 @@ const Dashboard = () => {
                     </div>
                 </div>
                 <SyncStatusIndicator />
-                 <ConfirmationModal
-                    isOpen={isLogoutModalOpen}
-                    onClose={() => setLogoutModalOpen(false)}
-                    onConfirm={confirmLogout}
-                    title="Unsynced Changes"
-                    message="You have changes that haven't been saved to the cloud. If you log out now, they may be lost. Are you sure you want to continue?"
-                />
                 <GlobalNotification />
-                <Chatbot userRole={userRole} />
+                <Chatbot userRole={userRole} activeView={activeView} />
             </PlanFeaturesProvider>
         </TenantProvider>
     );

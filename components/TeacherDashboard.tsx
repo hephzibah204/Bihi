@@ -58,7 +58,7 @@ const TeacherDashboard = ({ onLogout }) => {
                 <TeacherBottomNavBar activeView={activeView} setActiveView={handleViewChange} />
             </div>
             <SyncStatusIndicator />
-            <Chatbot userRole={USER_ROLES.TEACHER} />
+            <Chatbot userRole={USER_ROLES.TEACHER} activeView={activeView} />
         </div>
     );
 };

@@ -76,8 +76,8 @@ const BursaryInvoice = () => {
             </div>
 
             {invoiceData && (
-                <div className="p-6 border-t dark:border-gray-700">
-                    <div id="invoice-print-area" className="bg-white dark:bg-gray-800 p-8 shadow-lg print-container">
+                <div className="p-6 border-t">
+                    <div id="invoice-print-area" className="printable-content bg-white p-8 shadow-lg">
                         <h3 className="text-2xl font-bold text-center">INVOICE</h3>
                         <div className="flex justify-between mt-4">
                             <div>
@@ -90,12 +90,12 @@ const BursaryInvoice = () => {
                             </div>
                         </div>
                         <table className="w-full mt-6">
-                            <thead className="bg-gray-100 dark:bg-gray-700">
+                            <thead className="bg-gray-100">
                                 <tr><th className="th text-left">Description</th><th className="th text-right">Amount (₦)</th></tr>
                             </thead>
                             <tbody>
                                 {invoiceData.items.map(item => (
-                                    <tr key={item.id} className="border-b dark:border-gray-700">
+                                    <tr key={item.id} className="border-b">
                                         <td className="td">{item.description}</td>
                                         <td className="td text-right">{Number(item.amount).toLocaleString()}</td>
                                     </tr>

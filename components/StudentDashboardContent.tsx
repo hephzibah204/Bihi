@@ -13,6 +13,7 @@ import PracticeQuiz from './PracticeQuiz';
 import LearningPathways from './LearningPathways';
 import SubjectRecommender from './SubjectRecommender';
 import HeadsetIcon from './icons/HeadsetIcon';
+import StudentReportCardViewer from './StudentReportCardViewer';
 
 
 interface StudentDashboardContentProps {
@@ -26,6 +27,8 @@ const StudentDashboardContent = ({ activeView, setActiveView, demoUserId }: Stud
         case STUDENT_VIEWS.DASHBOARD:
             return <StudentHome setActiveView={setActiveView} />;
         case STUDENT_VIEWS.RESULTS:
+            return <StudentReportCardViewer demoUserId={demoUserId} />;
+        case STUDENT_VIEWS.TRANSCRIPT:
             return <StudentResults demoUserId={demoUserId} />;
         case STUDENT_VIEWS.ASSIGNMENTS:
             return <StudentAssignments demoUserId={demoUserId} />;

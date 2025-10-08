@@ -41,18 +41,18 @@ const DashboardInsights = () => {
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
              <div className="card p-6">
-                <h4 className="font-semibold text-gray-500 dark:text-gray-400">Total Students</h4>
+                <h4 className="font-semibold text-gray-500">Total Students</h4>
                 <p className="text-3xl font-bold mt-2">{totalStudents}</p>
             </div>
              <div className="card p-6">
-                <h4 className="font-semibold text-gray-500 dark:text-gray-400">Overall Average</h4>
+                <h4 className="font-semibold text-gray-500">Overall Average</h4>
                  <p className="text-3xl font-bold mt-2 flex items-center">
                     {averagePerformance}%
                     <ArrowTrendingUpIcon className="w-6 h-6 ml-2 text-green-500" />
                 </p>
             </div>
              <div className="card p-6">
-                <h4 className="font-semibold text-gray-500 dark:text-gray-400">Next Feature</h4>
+                <h4 className="font-semibold text-gray-500">Next Feature</h4>
                 <p className="text-lg mt-2">More insights coming soon!</p>
             </div>
         </div>

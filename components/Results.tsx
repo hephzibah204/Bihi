@@ -1,6 +1,6 @@
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { apiGetStudents, apiGetSubjects, apiGetScores, apiUpsertScore, apiGetSchoolSettings } from '../services/api';
+// Fix: Add missing import for apiUpsertScore
+import { apiGetStudents, apiGetSubjects, apiGetScores, apiGetSchoolSettings, apiUpsertScore } from '../services/api';
 import { Score, Student, Subject } from '../types';
 import { debounce } from 'lodash';
 import BulkScoreImportModal from './BulkScoreImportModal';
@@ -10,6 +10,9 @@ import ArrowDownTrayIcon from './icons/ArrowDownTrayIcon';
 import { generateText } from '../services/geminiService';
 import SparklesIcon from './icons/SparklesIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
+import ScoreEntryModal from './ScoreEntryModal';
+import SkeletonLoader from './SkeletonLoader';
+import ListItemSkeleton from './skeletons/ListItemSkeleton';
 
 const PAGE_SIZE = 50;
 
@@ -29,6 +32,8 @@ const Results = () => {
     const [error, setError] = useState('');
     const [isImportModalOpen, setImportModalOpen] = useState(false);
     const [generatingForStudentId, setGeneratingForStudentId] = useState<string | null>(null);
+    const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
+
 
     const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
     const loaderRef = useRef(null);
@@ -247,6 +252,75 @@ const Results = () => {
     };
 
     const filteredSubjects = subjects.filter(s => s.classes.includes(selectedClass));
+    
+    // Handlers for the mobile modal
+    const handleSaveFromModal = useCallback((studentId: string, field: 'ca1' | 'ca2' | 'exam' | 'comment', value: string | number) => {
+        if (field === 'comment') {
+            handleCommentChange(studentId, value as string);
+        } else {
+            handleScoreChange(studentId, field, value as string);
+        }
+    }, [handleCommentChange, handleScoreChange]);
+
+    const handleNavigateInModal = (direction: 'next' | 'prev') => {
+        const currentIndex = students.findIndex(s => s.id === editingStudentId);
+        if (currentIndex === -1) return;
+
+        const newIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
+        if (newIndex >= 0 && newIndex < students.length) {
+            setEditingStudentId(students[newIndex].id);
+        }
+    };
+    
+    const editingStudentIndex = students.findIndex(s => s.id === editingStudentId);
+    const editingStudent = editingStudentIndex !== -1 ? students[editingStudentIndex] : null;
+
+    if (loading) return (
+        <div>
+            {/* Filters skeleton */}
+            <div className="my-6 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div className="md:col-span-1"><SkeletonLoader className="h-10 w-full" /></div>
+                <div className="md:col-span-1"><SkeletonLoader className="h-10 w-full" /></div>
+                <div className="md:col-span-2 flex gap-2">
+                    <SkeletonLoader className="h-10 w-full" />
+                    <SkeletonLoader className="h-10 w-full" />
+                </div>
+            </div>
+            
+            {/* Mobile Skeleton */}
+            <div className="md:hidden space-y-2">
+                {[...Array(5)].map((_, i) => <ListItemSkeleton key={i} />)}
+            </div>
+
+            {/* Desktop Skeleton */}
+            <div className="hidden md:block table-container">
+                 <table className="table">
+                    <thead>
+                        <tr>
+                            <th scope="col" className="th">Student Name</th>
+                            <th scope="col" className="th text-center w-24">CA 1 ({maxCa1})</th>
+                            <th scope="col" className="th text-center w-24">CA 2 ({maxCa2})</th>
+                            <th scope="col" className="th text-center w-24">Exam ({maxExam})</th>
+                            <th scope="col" className="th text-center w-24">Total (100)</th>
+                            <th scope="col" className="th w-1/3">Comment</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {[...Array(5)].map((_, i) => (
+                            <tr key={i}>
+                                <td className="td"><SkeletonLoader className="h-4 w-32" /></td>
+                                <td className="td"><SkeletonLoader className="h-8 w-full" /></td>
+                                <td className="td"><SkeletonLoader className="h-8 w-full" /></td>
+                                <td className="td"><SkeletonLoader className="h-8 w-full" /></td>
+                                <td className="td"><SkeletonLoader className="h-6 w-12 mx-auto" /></td>
+                                <td className="td"><SkeletonLoader className="h-8 w-full" /></td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
 
     return (
         <div>
@@ -279,22 +353,49 @@ const Results = () => {
 
             {error && <div className="mb-4 p-3 text-sm text-red-700 bg-red-100 rounded-lg">{error}</div>}
 
-            <div className="table-container">
+            {/* MOBILE VIEW */}
+            <div className="md:hidden">
+                {!selectedClass || !selectedSubject ? <div className="card p-6 text-center text-gray-500">Please select a class and subject to begin.</div>
+                : students.length === 0 ? <div className="card p-6 text-center text-gray-500">No students found for this class.</div>
+                : (
+                     <ul className="space-y-2">
+                        {students.map(student => {
+                             const score: Partial<Score> = currentScoresMap[student.id] || {};
+                             const total = (score.ca1 || 0) + (score.ca2 || 0) + (score.exam || 0);
+                            return (
+                                <li key={student.id}>
+                                    <button onClick={() => setEditingStudentId(student.id)} className="w-full text-left p-4 bg-white rounded-lg shadow-sm flex justify-between items-center">
+                                        <div>
+                                            <p className="font-medium">{student.name}</p>
+                                            <p className="text-sm text-gray-500">{student.admissionNo}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-lg font-bold">{total}</p>
+                                            <p className="text-xs text-gray-400">Total</p>
+                                        </div>
+                                    </button>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                )}
+            </div>
+
+            {/* DESKTOP VIEW */}
+            <div className="hidden md:block table-container">
                 <table className="table">
                     <thead>
                         <tr>
-                            <th scope="col" className="th">Student Name</th>
-                            <th scope="col" className="th text-center">CA 1 ({maxCa1})</th>
-                            <th scope="col" className="th text-center">CA 2 ({maxCa2})</th>
-                            <th scope="col" className="th text-center">Exam ({maxExam})</th>
-                            <th scope="col" className="th text-center">Total (100)</th>
-                            <th scope="col" className="th w-1/4">Comment</th>
+                            <th scope="col" className="th sticky left-0 bg-slate-100 z-10">Student Name</th>
+                            <th scope="col" className="th text-center w-24">CA 1 ({maxCa1})</th>
+                            <th scope="col" className="th text-center w-24">CA 2 ({maxCa2})</th>
+                            <th scope="col" className="th text-center w-24">Exam ({maxExam})</th>
+                            <th scope="col" className="th text-center w-24">Total (100)</th>
+                            <th scope="col" className="th w-1/3">Comment</th>
                         </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {loading ? (
-                            <tr><td colSpan={6} className="td text-center">Loading...</td></tr>
-                        ) : !selectedClass || !selectedSubject ? (
+                    <tbody className="bg-white">
+                        {!selectedClass || !selectedSubject ? (
                              <tr><td colSpan={6} className="td text-center">Please select a class and subject to begin.</td></tr>
                         ) : students.length === 0 ? (
                             <tr><td colSpan={6} className="td text-center">No students found for this class.</td></tr>
@@ -304,8 +405,8 @@ const Results = () => {
                                 const score: Partial<Score> = currentScoresMap[student.id] || {};
                                 const total = (score.ca1 || 0) + (score.ca2 || 0) + (score.exam || 0);
                                 return (
-                                    <tr key={student.id}>
-                                        <td className="td font-medium text-gray-900">
+                                    <tr key={student.id} className="group">
+                                        <td className="td font-medium text-gray-900 sticky left-0 z-10 bg-white group-hover:bg-indigo-50">
                                             <div className="truncate max-w-xs" title={student.name}>{student.name}</div>
                                         </td>
                                         <td className="td"><input type="number" min="0" max={maxCa1} className="input-field p-1 text-sm text-center w-full" value={score.ca1 ?? ''} onChange={e => handleScoreChange(student.id, 'ca1', e.target.value)} aria-label={`CA 1 score for ${student.name}`} /></td>
@@ -352,6 +453,20 @@ const Results = () => {
             </div>
             <p className="text-xs text-gray-500 mt-2 text-center">Your changes are saved automatically.</p>
             
+            {editingStudent && (
+                <ScoreEntryModal
+                    isOpen={!!editingStudentId}
+                    onClose={() => setEditingStudentId(null)}
+                    onSave={handleSaveFromModal}
+                    onNavigate={handleNavigateInModal}
+                    student={editingStudent}
+                    score={currentScoresMap[editingStudentId] || {}}
+                    settings={settings}
+                    isFirst={editingStudentIndex === 0}
+                    isLast={editingStudentIndex === students.length - 1}
+                />
+            )}
+
             {isImportModalOpen && (
                 <BulkScoreImportModal 
                     isOpen={isImportModalOpen}

@@ -1,5 +1,4 @@
 import React from 'react';
-import DashboardHome from './DashboardHome';
 import Students from './Students';
 import Subjects from './Subjects';
 import Results from './Results';
@@ -31,6 +30,7 @@ import StudentProfilePage from './StudentProfilePage';
 import AlumniDashboard from './AlumniDashboard';
 import SubjectRecommender from './SubjectRecommender';
 import ComprehensiveReportEntry from './ComprehensiveReportEntry';
+import AdminAnalyticsDashboard from './AdminAnalyticsDashboard';
 
 
 interface DashboardContentProps {
@@ -76,15 +76,11 @@ const DashboardContent = ({ activeView, setActiveView, userRole, profileStudentI
     if (activeView === ADMIN_VIEWS.BILLING) return <BillingDashboard />;
     
     if (!isSubscribed) {
-        // For unsubscribed users, only show the dashboard prompt
-        if (activeView === ADMIN_VIEWS.DASHBOARD) {
-            return <DashboardHome setActiveView={setActiveView} />;
-        }
         return <UpgradePrompt featureName="this feature" onUpgradeClick={handleUpgrade} />;
     }
 
     switch(activeView) {
-        case ADMIN_VIEWS.DASHBOARD: return <DashboardHome setActiveView={setActiveView} />;
+        case ADMIN_VIEWS.DASHBOARD: return <AdminAnalyticsDashboard />;
         case ADMIN_VIEWS.STUDENTS: return <Students onViewProfile={onViewStudentProfile} />;
         case ADMIN_VIEWS.STUDENT_PROFILE: return <StudentProfilePage studentId={profileStudentId} setActiveView={setActiveView} />;
         case ADMIN_VIEWS.TEACHERS: return <Teachers />;
@@ -101,6 +97,7 @@ const DashboardContent = ({ activeView, setActiveView, userRole, profileStudentI
         case ADMIN_VIEWS.BEHAVIORAL: return <BehavioralRemarks />;
         case ADMIN_VIEWS.BURSARY: return <Bursary />;
         case ADMIN_VIEWS.COMMUNICATIONS: return <CommunicationsDashboard />;
+        case ADMIN_VIEWS.BROADSHEET: return <BroadsheetAnalysis />;
         case ADMIN_VIEWS.ALUMNI:
              return hasFeature('alumni') ? <AlumniDashboard /> : <UpgradePrompt featureName="Alumni Management" onUpgradeClick={handleUpgrade} />;
         case ADMIN_VIEWS.ANALYTICS:
@@ -108,7 +105,7 @@ const DashboardContent = ({ activeView, setActiveView, userRole, profileStudentI
         case ADMIN_VIEWS.AI_TOOLS:
             return hasFeature('ai-tools') ? <AiTools /> : <UpgradePrompt featureName="AI Tools" onUpgradeClick={handleUpgrade} />;
         default:
-            return <DashboardHome setActiveView={setActiveView} />;
+            return <AdminAnalyticsDashboard />;
     }
 };
 

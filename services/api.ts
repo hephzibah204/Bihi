@@ -1,711 +1,626 @@
-
-
-
+// services/api.ts
 import { getSubdomain } from '../utils/subdomain';
-import { demoSchoolSettings, demoStudents, demoSubjects, demoTeachers, demoParents, DEMO_TENANT_ID, demoMessages } from '../utils/demoData';
-// Fix: Corrected import path for supabase client
+import { 
+    demoSchoolSettings, demoStudents, demoSubjects, demoTeachers, demoParents, DEMO_TENANT_ID, 
+    demoMessages, demoScores, demoRemarks, demoAssignments, demoAssignmentScores, demoAttendance,
+    demoBehavioralRecords, demoTimetable, demoFees, demoScratchCards, demoAnnouncements
+} from '../utils/demoData';
 import { supabase } from './supabaseClient';
-import { SyncStatus } from '../hooks/useSync';
-import { Tenant, LandingPageContent, ReportCardSettings, Conversation, Message } from '../types';
+import { Tenant, LandingPageContent, ReportCardSettings, Conversation, Message, Announcement, Fee, ScratchCard, SchoolSettings, Student, Subject, Teacher, Parent, Score, Remark, Assignment, AssignmentScore, BehavioralLogEntry, PlatformUser } from '../types';
+import { TEACHER_CONTROLLABLE_FEATURES, STUDENT_CONTROLLABLE_FEATURES, PARENT_CONTROLLABLE_FEATURES } from '../utils/constants';
 
-// --- Sync Queue ---
-export const syncEventBus = new EventTarget();
-let syncQueue: { operation: string, data: any, tenantId: string }[] = JSON.parse(localStorage.getItem('syncQueue') || '[]');
-let isSyncing = false;
-
-const dispatchSyncStatus = (status: SyncStatus) => {
-    syncEventBus.dispatchEvent(new CustomEvent('syncStatusChange', { detail: status }));
-};
-
-export const isSyncNeeded = () => syncQueue.length > 0;
-
-const saveQueue = () => {
-    localStorage.setItem('syncQueue', JSON.stringify(syncQueue));
-    dispatchSyncStatus(isSyncNeeded() ? 'unsynced' : 'synced');
-};
-
-const addToQueue = (operation: string, data: any, tenantIdOverride?: string) => {
-    const tenantId = tenantIdOverride !== undefined ? tenantIdOverride : getTenantId();
-    syncQueue.push({ operation, data, tenantId });
-    saveQueue();
-};
-
-export const processSyncQueue = async () => {
-    if (isSyncing || !navigator.onLine || !supabase || syncQueue.length === 0) return false;
-
-    isSyncing = true;
-    dispatchSyncStatus('syncing');
-
-    const originalQueue = [...syncQueue];
-    syncQueue = []; // Optimistically clear queue
-
-    try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-            throw new Error("User not authenticated. Sync paused.");
-        }
-
-        // Batch insert all queued operations for efficiency.
-        const recordsToSync = originalQueue.map(item => ({
-            tenant_id: item.tenantId,
-            operation: item.operation,
-            data: item.data,
-            user_id: session.user.id // Add user_id for auditing
-        }));
-
-        const { error } = await supabase.from('synced_operations').insert(recordsToSync);
-
-        if (error) {
-            // If the batch insert fails, throw an error to trigger the catch block.
-            throw error;
-        }
-        
-        // If successful, the queue remains empty.
-        saveQueue(); 
-        isSyncing = false;
-        return true;
-    } catch (error) {
-        console.error("Sync failed:", error);
-        // If sync fails, put items back into the queue.
-        syncQueue = [...originalQueue, ...syncQueue];
-        saveQueue();
-        isSyncing = false;
-        return false;
-    }
-};
-
-let syncInterval: number | null = null;
-export const initializeSync = () => {
-    if (syncInterval) clearInterval(syncInterval);
-    syncInterval = window.setInterval(processSyncQueue, 15000); // Attempt sync every 15 seconds
-    processSyncQueue(); // Initial attempt
-};
-
-export const cleanupSync = () => {
-    if (syncInterval) clearInterval(syncInterval);
-    syncInterval = null;
-};
-
-export const clearSyncQueue = () => {
-    syncQueue = [];
-    saveQueue();
-};
-
-export const apiForceSync = async () => {
-    return await processSyncQueue();
-}
-
-
-// --- Tenancy ---
+// --- Tenancy & Mode ---
 export const getTenantId = (): string | null => {
-    // Fix: Corrected call to getSubdomain. It takes no arguments as it accesses window.location internally.
     return getSubdomain();
 };
 
-// This function determines if we should use demo data
 const isDemoMode = () => getTenantId() === DEMO_TENANT_ID;
 
-// Centralized data access
-export const getTenantData = (key: string, tenantId: string | null = getTenantId()) => {
-    if (!tenantId) {
-        // Platform-level data (not school-specific)
-        const platformData = localStorage.getItem(`platform_${key}`);
-        return platformData ? JSON.parse(platformData) : null;
-    }
-    if (tenantId === DEMO_TENANT_ID) {
-        switch (key) {
-            case 'settings': return demoSchoolSettings;
-            case 'students': return demoStudents;
-            case 'subjects': return demoSubjects;
-            case 'teachers': return demoTeachers;
-            case 'parents': return demoParents;
-            case 'messages': return demoMessages;
-            // Add other demo data keys here
-            default: return [];
+// --- Students ---
+export const apiGetStudents = async (filters: { classFilter?: string } = {}): Promise<Student[]> => {
+    if (isDemoMode()) {
+        let students = demoStudents;
+        if (filters.classFilter) {
+            students = students.filter(s => s.class === filters.classFilter);
         }
+        return students;
     }
-    const data = localStorage.getItem(`tenant_${tenantId}_${key}`);
-    return data ? JSON.parse(data) : null;
+
+    if (!supabase) throw new Error("Database client not initialized.");
+    let query = supabase.from('students').select('*');
+    if (filters.classFilter) {
+        query = query.eq('class', filters.classFilter);
+    }
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
 };
 
-const saveTenantData = (key: string, data: any, tenantId: string | null = getTenantId()) => {
-    const isPlatform = !tenantId;
-    const storageKey = isPlatform ? `platform_${key}` : `tenant_${tenantId}_${key}`;
-
-    if (isDemoMode() && !isPlatform) {
-        console.warn("Attempted to save data in demo mode. Operation skipped.");
+export const apiUpsertStudent = async (studentData: Partial<Student>): Promise<void> => {
+    if (isDemoMode()) {
+        console.warn("DEMO: Skipping student upsert.");
         return;
     }
-    localStorage.setItem(storageKey, JSON.stringify(data));
-    // Dispatch a custom event to notify other tabs/components of the change
-    window.dispatchEvent(new CustomEvent('storage-update', { detail: { key, tenantId } }));
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { error } = await supabase.from('students').upsert(studentData);
+    if (error) throw error;
 };
 
-// --- Students ---
-export const apiGetStudents = async (filters: { classFilter?: string } = {}, tenantId?: string) => {
-    // PRODUCTION NOTE: In a real Supabase environment with Row Level Security (RLS),
-    // data isolation is handled automatically by the database.
-    // An RLS policy would ensure users can only see data for their own tenant_id.
-    //
-    // EXAMPLE RLS POLICY ON 'students' TABLE:
-    // CREATE POLICY "Enable read access for user's own tenant"
-    // ON students FOR SELECT
-    // USING (
-    //   tenant_id = (SELECT raw_user_meta_data->>'tenant_id' FROM auth.users WHERE id = auth.uid())
-    // );
-    //
-    // With such a policy, the code would simplify to:
-    // const { data, error } = await supabase.from('students').select('*');
-    //
-    // The current localStorage implementation simulates this tenant-based filtering.
-    const effectiveTenantId = tenantId || getTenantId();
-    let students = getTenantData('students', effectiveTenantId) || [];
-    if (filters.classFilter) {
-        students = students.filter((s: any) => s.class === filters.classFilter);
+export const apiDeleteStudent = async (studentId: string): Promise<void> => {
+    if (isDemoMode()) {
+        console.warn("DEMO: Skipping student delete.");
+        return;
     }
-    return students;
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { error } = await supabase.from('students').delete().match({ id: studentId });
+    if (error) throw error;
 };
 
-export const apiUpsertStudent = async (studentData: any) => {
-    // PRODUCTION NOTE: With RLS, Supabase would ensure the 'tenant_id' column is correctly
-    // set for the new or updated row, preventing data from being written to the wrong tenant.
-    // The call would look like:
-    // const { error } = await supabase.from('students').upsert(studentData);
-    addToQueue('UPSERT_STUDENT', studentData);
-    let students = getTenantData('students') || [];
-    if (studentData.id) {
-        students = students.map((s: any) => s.id === studentData.id ? { ...s, ...studentData } : s);
-    } else {
-        students.push({ ...studentData, id: `stud_${Date.now()}` });
+export const apiBatchUpdateStudents = async (studentsToUpdate: Partial<Student>[]): Promise<void> => {
+    if (isDemoMode()) {
+        console.warn("DEMO: Skipping batch student update.");
+        return;
     }
-    saveTenantData('students', students);
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { error } = await supabase.from('students').upsert(studentsToUpdate);
+    if (error) throw error;
 };
 
-export const apiDeleteStudent = async (studentId: string) => {
-    addToQueue('DELETE_STUDENT', { id: studentId });
-    let students = getTenantData('students') || [];
-    students = students.filter((s: any) => s.id !== studentId);
-    saveTenantData('students', students);
+// --- Parents ---
+export const apiGetParents = async (): Promise<Parent[]> => {
+    if (isDemoMode()) return demoParents;
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { data, error } = await supabase.from('parents').select('*');
+    if (error) throw error;
+    return data || [];
 };
 
-export const apiBatchUpdateStudents = async (studentsToUpdate: any[]) => {
-    addToQueue('BATCH_UPDATE_STUDENTS', studentsToUpdate);
-    let allStudents = getTenantData('students') || [];
-    const updateMap = new Map(studentsToUpdate.map(s => [s.id, s]));
-    const updatedStudents = allStudents.map(s => updateMap.has(s.id) ? { ...s, ...updateMap.get(s.id) } : s);
-    saveTenantData('students', updatedStudents);
+export const apiUpsertParent = async (parentData: Partial<Parent>): Promise<Parent> => {
+    if (isDemoMode()) {
+        console.warn("DEMO: Skipping parent upsert.");
+        return parentData as Parent;
+    }
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { data, error } = await supabase.from('parents').upsert(parentData).select().single();
+    if (error) throw error;
+    return data;
+};
+
+export const apiInviteParent = async (student: Student) => {
+    if (!student.parentEmail) {
+        throw new Error("Student does not have a parent's email address.");
+    }
+    if (!supabase) throw new Error("Authentication service is not available.");
+    
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error("Admin not authenticated.");
+
+    const response = await fetch('/api/invite-parent', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ studentId: student.id }),
+    });
+    
+    const responseData = await response.json();
+    if (!response.ok) {
+        throw new Error(responseData.error || responseData.details || 'Failed to send invitation.');
+    }
+    return responseData;
 };
 
 // --- Subjects ---
-export const apiGetSubjects = async () => getTenantData('subjects') || [];
-
-export const apiSaveSubjects = async (subjects: any[], tenantId?: string) => {
-    const effectiveTenantId = tenantId || getTenantId();
-    addToQueue('SAVE_SUBJECTS', subjects, effectiveTenantId);
-    saveTenantData('subjects', subjects, effectiveTenantId);
+export const apiGetSubjects = async (): Promise<Subject[]> => {
+    if (isDemoMode()) return demoSubjects;
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { data, error } = await supabase.from('subjects').select('*');
+    if (error) throw error;
+    return data || [];
 };
 
-export const apiUpsertSubject = async (subjectData: any) => {
-    addToQueue('UPSERT_SUBJECT', subjectData);
-    let subjects = getTenantData('subjects') || [];
-    if (subjectData.id) {
-        subjects = subjects.map((s: any) => s.id === subjectData.id ? { ...s, ...subjectData } : s);
-    } else {
-        subjects.push({ ...subjectData, id: `subj_${Date.now()}` });
+export const apiUpsertSubject = async (subjectData: Partial<Subject>): Promise<void> => {
+    if (isDemoMode()) {
+        console.warn("DEMO: Skipping subject upsert.");
+        return;
     }
-    saveTenantData('subjects', subjects);
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { error } = await supabase.from('subjects').upsert(subjectData);
+    if (error) throw error;
 };
-export const apiDeleteSubject = async (subjectId: string) => {
-    addToQueue('DELETE_SUBJECT', { id: subjectId });
-    let subjects = getTenantData('subjects') || [];
-    subjects = subjects.filter((s: any) => s.id !== subjectId);
-    saveTenantData('subjects', subjects);
+
+export const apiDeleteSubject = async (subjectId: string): Promise<void> => {
+    if (isDemoMode()) {
+        console.warn("DEMO: Skipping subject delete.");
+        return;
+    }
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { error } = await supabase.from('subjects').delete().match({ id: subjectId });
+    if (error) throw error;
 };
+
+// Fix: Add missing apiSaveSubjects function
+export const apiSaveSubjects = async (subjects: Subject[], tenantId?: string): Promise<void> => {
+    const effectiveTenantId = tenantId || getTenantId();
+    if (effectiveTenantId === DEMO_TENANT_ID) {
+        console.warn("DEMO: Skipping subjects save.");
+        return;
+    }
+    if (!supabase) throw new Error("Database client not initialized.");
+    const subjectsWithTenant = subjects.map(s => ({...s, tenant_id: effectiveTenantId}));
+    const { error } = await supabase.from('subjects').upsert(subjectsWithTenant);
+    if (error) throw error;
+};
+
 
 // --- Teachers ---
-export const apiGetTeachers = async () => getTenantData('teachers') || [];
-
-export const apiSaveTeachers = async (teachers: any[], tenantId?: string) => {
-    const effectiveTenantId = tenantId || getTenantId();
-    addToQueue('SAVE_TEACHERS', teachers, effectiveTenantId);
-    saveTenantData('teachers', teachers, effectiveTenantId);
+export const apiGetTeachers = async (): Promise<Teacher[]> => {
+    if (isDemoMode()) return demoTeachers;
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { data, error } = await supabase.from('teachers').select('*');
+    if (error) throw error;
+    return data || [];
 };
 
-export const apiUpsertTeacher = async (teacherData: any) => {
-    addToQueue('UPSERT_TEACHER', teacherData);
-    let teachers = getTenantData('teachers') || [];
-    if (teacherData.id) {
-        teachers = teachers.map((t: any) => t.id === teacherData.id ? { ...t, ...teacherData } : t);
-    } else {
-        teachers.push({ ...teacherData, id: `teacher_${Date.now()}` });
+export const apiUpsertTeacher = async (teacherData: Partial<Teacher>): Promise<void> => {
+    if (isDemoMode()) {
+        console.warn("DEMO: Skipping teacher upsert.");
+        return;
     }
-    saveTenantData('teachers', teachers);
-};
-export const apiDeleteTeacher = async (teacherId: string) => {
-    addToQueue('DELETE_TEACHER', { id: teacherId });
-    let teachers = getTenantData('teachers') || [];
-    teachers = teachers.filter((t: any) => t.id !== teacherId);
-    saveTenantData('teachers', teachers);
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { error } = await supabase.from('teachers').upsert(teacherData);
+    if (error) throw error;
 };
 
+export const apiDeleteTeacher = async (teacherId: string): Promise<void> => {
+    if (isDemoMode()) {
+        console.warn("DEMO: Skipping teacher delete.");
+        return;
+    }
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { error } = await supabase.from('teachers').delete().match({ id: teacherId });
+    if (error) throw error;
+};
+
+// Fix: Add missing apiSaveTeachers function
+export const apiSaveTeachers = async (teachers: Teacher[], tenantId?: string): Promise<void> => {
+    const effectiveTenantId = tenantId || getTenantId();
+    if (effectiveTenantId === DEMO_TENANT_ID) {
+        console.warn("DEMO: Skipping teachers save.");
+        return;
+    }
+    if (!supabase) throw new Error("Database client not initialized.");
+    const teachersWithTenant = teachers.map(t => ({...t, tenant_id: effectiveTenantId}));
+    const { error } = await supabase.from('teachers').upsert(teachersWithTenant);
+    if (error) throw error;
+};
 
 // --- Scores ---
-// Fix: Updated apiGetScores to accept session and term filters to resolve type error in Results.tsx.
-export const apiGetScores = async (filters: { studentIds?: string[], subjectId?: string, session?: string, term?: string } = {}) => {
-    let scores = getTenantData('scores') || [];
-    if (filters.studentIds) {
-        scores = scores.filter((s: any) => filters.studentIds!.includes(s.studentId));
+export const apiGetScores = async (filters: { studentIds?: string[], subjectId?: string, session?: string, term?: string } = {}): Promise<Score[]> => {
+    if (isDemoMode()) {
+        let scores = demoScores;
+        if (filters.studentIds) scores = scores.filter(s => filters.studentIds!.includes(s.studentId));
+        if (filters.subjectId) scores = scores.filter(s => s.subjectId === filters.subjectId);
+        if (filters.session) scores = scores.filter(s => s.session === filters.session);
+        if (filters.term) scores = scores.filter(s => s.term === filters.term);
+        return scores;
     }
-    if (filters.subjectId) {
-        scores = scores.filter((s: any) => s.subjectId === filters.subjectId);
-    }
-    if (filters.session) {
-        scores = scores.filter((s: any) => s.session === filters.session);
-    }
-    if (filters.term) {
-        scores = scores.filter((s: any) => s.term === filters.term);
-    }
-    return scores;
+    if (!supabase) throw new Error("Database client not initialized.");
+    let query = supabase.from('scores').select('*');
+    if (filters.studentIds) query = query.in('studentId', filters.studentIds);
+    if (filters.subjectId) query = query.eq('subjectId', filters.subjectId);
+    if (filters.session) query = query.eq('session', filters.session);
+    if (filters.term) query = query.eq('term', filters.term);
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
 };
 
-export const apiUpsertScore = async (scoreData: any) => {
-    addToQueue('UPSERT_SCORE', scoreData);
-    let scores = getTenantData('scores') || [];
-    const existingIndex = scores.findIndex((s: any) => s.studentId === scoreData.studentId && s.subjectId === scoreData.subjectId && s.session === scoreData.session && s.term === scoreData.term);
-    if (existingIndex > -1) {
-        scores[existingIndex] = { ...scores[existingIndex], ...scoreData };
-    } else {
-        scores.push({ ...scoreData, id: `score_${Date.now()}` });
+export const apiUpsertScore = async (scoreData: Partial<Score>): Promise<void> => {
+    if (isDemoMode()) {
+        console.warn("DEMO: Skipping score upsert.");
+        return;
     }
-    saveTenantData('scores', scores);
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { error } = await supabase.from('scores').upsert(scoreData);
+    if (error) throw error;
 };
 
-export const apiBatchUpsertScores = async (scoresToUpsert: any[]) => {
-    addToQueue('BATCH_UPSERT_SCORES', scoresToUpsert);
-    let allScores = getTenantData('scores') || [];
-    scoresToUpsert.forEach(scoreData => {
-        const existingIndex = allScores.findIndex((s: any) => s.studentId === scoreData.studentId && s.subjectId === scoreData.subjectId && s.session === scoreData.session && s.term === scoreData.term);
-        if (existingIndex > -1) {
-            allScores[existingIndex] = { ...allScores[existingIndex], ...scoreData };
-        } else {
-            allScores.push({ ...scoreData, id: `score_${Date.now()}` });
-        }
-    });
-    saveTenantData('scores', allScores);
+export const apiBatchUpsertScores = async (scoresToUpsert: Partial<Score>[]): Promise<void> => {
+    if (isDemoMode()) {
+        console.warn("DEMO: Skipping batch score upsert.");
+        return;
+    }
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { error } = await supabase.from('scores').upsert(scoresToUpsert);
+    if (error) throw error;
 }
 
 // --- Settings ---
-const defaultReportCardSettings: ReportCardSettings = {
-    principalName: 'School Principal',
-    schoolMotto: 'Excellence and Integrity',
-    sections: [
-        { id: 'academics', title: 'Academic Performance', enabled: true },
-        { id: 'attendance', title: 'Attendance Record', enabled: true },
-        { id: 'affective', title: 'Affective Domain', enabled: true },
-        { id: 'psychomotor', title: 'Psychomotor Skills', enabled: true },
-        { id: 'comment', title: 'General Comment', enabled: true },
-    ],
-    affectiveSkills: [
-        { id: 'skill_1', label: 'Punctuality' }, { id: 'skill_2', label: 'Neatness' }, { id: 'skill_3', label: 'Honesty' },
-    ],
-    psychomotorSkills: [
-        { id: 'skill_4', label: 'Handwriting' }, { id: 'skill_5', label: 'Games & Sports' }, { id: 'skill_6', label: 'Dexterity' },
-    ]
-};
-
-export const apiGetSchoolSettings = async (tenantId?: string) => {
-    const settings = getTenantData('settings', tenantId || getTenantId()) || demoSchoolSettings;
-    if (!settings.reportCardSettings) {
-        settings.reportCardSettings = defaultReportCardSettings;
-    }
-    return settings;
-};
-
-export const apiSaveSchoolSettings = async (settingsData: any, tenantId?: string) => {
+// Fix: Modified to accept an optional tenantId for use in super-admin contexts.
+export const apiGetSchoolSettings = async (tenantId?: string): Promise<SchoolSettings> => {
     const effectiveTenantId = tenantId || getTenantId();
-    addToQueue('SAVE_SETTINGS', settingsData, effectiveTenantId);
-    saveTenantData('settings', settingsData, effectiveTenantId);
+    if (effectiveTenantId === DEMO_TENANT_ID) return demoSchoolSettings;
+    if (!supabase) throw new Error("Database client not initialized.");
+    
+    let query = supabase.from('settings').select('*');
+    if (effectiveTenantId) {
+        query = query.eq('tenant_id', effectiveTenantId);
+    }
+    
+    const { data, error } = await query.single();
+
+    if (error && error.code !== 'PGRST116') throw error; // Ignore 'not found' error
+    return data || {};
+};
+
+// Fix: Modified to accept an optional tenantId for use during new tenant creation.
+export const apiSaveSchoolSettings = async (settingsData: Partial<SchoolSettings>, tenantId?: string): Promise<void> => {
+    const effectiveTenantId = tenantId || getTenantId();
+    if (effectiveTenantId === DEMO_TENANT_ID) {
+        console.warn("DEMO: Skipping settings save.");
+        return;
+    }
+    if (!supabase) throw new Error("Database client not initialized.");
+    const dataToUpsert = { ...settingsData, id: 1, tenant_id: effectiveTenantId };
+    const { error } = await supabase.from('settings').upsert(dataToUpsert, { onConflict: 'tenant_id' }); // Assuming tenant_id is the PK or unique
+    if (error) throw error;
 };
 
 // --- Timetable ---
-export const apiGetTimetableData = async () => getTenantData('timetable') || {};
-export const apiSaveTimetableData = async (timetableData: any) => {
-    addToQueue('SAVE_TIMETABLE', timetableData);
-    saveTenantData('timetable', timetableData);
+export const apiGetTimetableData = async (): Promise<any> => {
+    if (isDemoMode()) return demoTimetable;
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { data, error } = await supabase.from('settings').select('timetable').single();
+    if (error && error.code !== 'PGRST116') throw error;
+    return data?.timetable || {};
+};
+
+export const apiSaveTimetableData = async (timetableData: any): Promise<void> => {
+    if (isDemoMode()) {
+        console.warn("DEMO: Skipping timetable save.");
+        return;
+    }
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { error } = await supabase.from('settings').upsert({ id: 1, timetable: timetableData });
+    if (error) throw error;
 };
 
 // --- Attendance ---
-export const apiGetAttendance = async (filters: { date?: string } = {}) => {
-    let attendance = getTenantData('attendance') || [];
-    if (filters.date) {
-        attendance = attendance.filter((a: any) => a.date === filters.date);
+export const apiGetAttendance = async (filters: { date?: string } = {}): Promise<any[]> => {
+    if (isDemoMode()) {
+        let attendance = demoAttendance;
+        if (filters.date) attendance = attendance.filter(a => a.date === filters.date);
+        return attendance;
     }
-    return attendance;
+    if (!supabase) throw new Error("Database client not initialized.");
+    let query = supabase.from('attendance').select('*');
+    if (filters.date) query = query.eq('date', filters.date);
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
 };
-export const apiSaveAttendanceRecord = async (attendanceRecord: { date: string, statuses: any }) => {
-    addToQueue('SAVE_ATTENDANCE', attendanceRecord);
-    let attendance = getTenantData('attendance') || [];
-    const index = attendance.findIndex((a: any) => a.date === attendanceRecord.date);
-    if (index > -1) {
-        attendance[index] = attendanceRecord;
-    } else {
-        attendance.push(attendanceRecord);
+
+export const apiSaveAttendanceRecord = async (attendanceRecord: { date: string, statuses: any }): Promise<void> => {
+    if (isDemoMode()) {
+        console.warn("DEMO: Skipping attendance save.");
+        return;
     }
-    saveTenantData('attendance', attendance);
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { error } = await supabase.from('attendance').upsert(attendanceRecord, { onConflict: 'date' });
+    if (error) throw error;
 };
 
 // --- Remarks & Behavioral ---
-export const apiUpsertRemark = async (remarkData: any) => {
-    addToQueue('UPSERT_REMARK', remarkData);
-    let remarks = getTenantData('remarks') || [];
-    const existingIndex = remarks.findIndex((r: any) => r.studentId === remarkData.studentId && r.session === remarkData.session && r.term === remarkData.term);
-    if (existingIndex > -1) {
-        remarks[existingIndex] = { ...remarks[existingIndex], ...remarkData };
-    } else {
-        remarks.push({ ...remarkData, id: `rem_${Date.now()}` });
-    }
-    saveTenantData('remarks', remarks);
+export const apiGetRemarks = async (): Promise<Remark[]> => {
+    if (isDemoMode()) return demoRemarks;
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { data, error } = await supabase.from('remarks').select('*');
+    if (error) throw error;
+    return data || [];
 };
-export const apiGetBehavioralRecords = async (filters: { classFilter?: string } = {}) => getTenantData('behavioral') || [];
-export const apiUpsertBehavioralRecord = async (record: any) => {
-    addToQueue('UPSERT_BEHAVIORAL', record);
-    let records = getTenantData('behavioral') || [];
-    records.push({ ...record, id: `bhv_${Date.now()}` });
-    saveTenantData('behavioral', records);
+
+export const apiUpsertRemark = async (remarkData: Partial<Remark>): Promise<void> => {
+    if (isDemoMode()) {
+        console.warn("DEMO: Skipping remark upsert.");
+        return;
+    }
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { error } = await supabase.from('remarks').upsert(remarkData);
+    if (error) throw error;
+};
+
+export const apiGetBehavioralRecords = async (filters: { classFilter?: string } = {}): Promise<BehavioralLogEntry[]> => {
+    if (isDemoMode()) return demoBehavioralRecords;
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { data, error } = await supabase.from('behavioral_logs').select('*');
+    if (error) throw error;
+    // Client-side filtering if needed, as classFilter is not implemented in the backend query here.
+    return data || [];
+};
+
+export const apiUpsertBehavioralRecord = async (record: Partial<BehavioralLogEntry>): Promise<void> => {
+    if (isDemoMode()) {
+        console.warn("DEMO: Skipping behavioral record upsert.");
+        return;
+    }
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { error } = await supabase.from('behavioral_logs').upsert(record);
+    if (error) throw error;
 };
 
 // --- Assignments ---
-export const apiGetAssignments = async () => getTenantData('assignments') || [];
-export const apiSaveAssignments = async (assignments: any[]) => {
-    addToQueue('SAVE_ASSIGNMENTS', assignments);
-    saveTenantData('assignments', assignments);
-};
-export const apiGetAssignmentScores = async () => getTenantData('assignment_scores') || [];
-export const apiSaveAssignmentScores = async (scores: any[]) => {
-    addToQueue('SAVE_ASSIGNMENT_SCORES', scores);
-    saveTenantData('assignment_scores', scores);
+export const apiGetAssignments = async (): Promise<Assignment[]> => {
+    if (isDemoMode()) return demoAssignments;
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { data, error } = await supabase.from('assignments').select('*');
+    if (error) throw error;
+    return data || [];
 };
 
-// --- Recent Activities ---
-export const apiGetActivities = async () => {
-    // This would be a server-side log. For demo, we'll simulate it.
-    return [
-        { id: 1, type: 'STUDENT_ADD', description: 'Added new student: John Doe', timestamp: new Date(Date.now() - 3600000).toISOString() },
-        { id: 2, type: 'SUBJECT_UPDATE', description: 'Updated subject: Mathematics', timestamp: new Date(Date.now() - 7200000).toISOString() },
-    ].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+export const apiSaveAssignments = async (assignments: Assignment[]): Promise<void> => {
+    if (isDemoMode()) {
+        console.warn("DEMO: Skipping assignments save.");
+        return;
+    }
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { error } = await supabase.from('assignments').upsert(assignments);
+    if (error) throw error;
+};
+
+export const apiGetAssignmentScores = async (): Promise<AssignmentScore[]> => {
+    if (isDemoMode()) return demoAssignmentScores;
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { data, error } = await supabase.from('assignment_scores').select('*');
+    if (error) throw error;
+    return data || [];
+};
+
+export const apiSaveAssignmentScores = async (scores: AssignmentScore[]): Promise<void> => {
+    if (isDemoMode()) {
+        console.warn("DEMO: Skipping assignment scores save.");
+        return;
+    }
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { error } = await supabase.from('assignment_scores').upsert(scores);
+    if (error) throw error;
 };
 
 // --- Bursary ---
-export const apiGetFees = async () => getTenantData('fees') || [];
-export const apiSaveFees = async (fees: any[]) => {
-    addToQueue('SAVE_FEES', fees);
-    saveTenantData('fees', fees);
+export const apiGetFees = async (): Promise<Fee[]> => {
+    if (isDemoMode()) return demoFees;
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { data, error } = await supabase.from('fees').select('*');
+    if (error) throw error;
+    return data || [];
 };
-export const apiGetScratchCards = async (tenantId?: string) => getTenantData('scratch_cards', tenantId || getTenantId()) || [];
-export const apiSaveScratchCards = async (cards: any[], tenantId?: string) => {
-    const effectiveTenantId = tenantId || getTenantId();
-    addToQueue('SAVE_SCRATCH_CARDS', cards, effectiveTenantId);
-    saveTenantData('scratch_cards', cards, effectiveTenantId);
-};
-export const apiUseScratchCard = async (pin: string, tenantId: string) => {
-    let cards = getTenantData('scratch_cards', tenantId) || [];
-    const cardIndex = cards.findIndex(c => c.pin === pin);
-    if (cardIndex > -1) {
-        cards[cardIndex].used = true;
-        await apiSaveScratchCards(cards, tenantId);
+
+export const apiSaveFees = async (fees: Fee[]): Promise<void> => {
+    if (isDemoMode()) {
+        console.warn("DEMO: Skipping fees save.");
+        return;
     }
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { error } = await supabase.from('fees').upsert(fees);
+    if (error) throw error;
 };
 
-// --- Public / Multi-tenant ---
+// Fix: Modified to accept an optional tenantId for public-facing components.
+export const apiGetScratchCards = async (tenantId?: string): Promise<ScratchCard[]> => {
+    const effectiveTenantId = tenantId || getTenantId();
+    if (effectiveTenantId === DEMO_TENANT_ID) return demoScratchCards;
+    if (!supabase) throw new Error("Database client not initialized.");
+    let query = supabase.from('scratch_cards').select('*');
+    if (effectiveTenantId) {
+        query = query.eq('tenant_id', effectiveTenantId);
+    }
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+};
+
+export const apiSaveScratchCards = async (cards: ScratchCard[]): Promise<void> => {
+    if (isDemoMode()) {
+        console.warn("DEMO: Skipping scratch cards save.");
+        return;
+    }
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { error } = await supabase.from('scratch_cards').upsert(cards);
+    if (error) throw error;
+};
+
+// --- Public / Multi-tenant (Simulations to be replaced) ---
 export const apiGetPublicStudentResult = async (schoolId: string, admissionNo: string) => {
-    const allStudents = await apiGetStudents({}, schoolId);
-    const student = allStudents.find(s => s.admissionNo.toLowerCase() === admissionNo.toLowerCase());
-    if (!student) throw new Error("Student not found.");
+    // This is a public function, so we must be very careful.
+    // It assumes RLS is configured on the backend for anonymous read access with tenant_id filter.
+    if (!supabase) throw new Error("Database client not initialized.");
     
-    const [scores, subjects, settings, remarks, attendance, studentsInClass] = await Promise.all([
-        getTenantData('scores', schoolId) || [],
-        getTenantData('subjects', schoolId) || [],
-        apiGetSchoolSettings(schoolId),
-        getTenantData('remarks', schoolId) || [],
-        getTenantData('attendance', schoolId) || [],
-        apiGetStudents({ classFilter: student.class }, schoolId)
-    ]);
+    // In a real app with separate Supabase projects per tenant, you'd initialize a client for 'schoolId' here.
+    // With a multi-tenant setup, we rely on RLS and a tenant_id column.
+    
+    const { data: students, error: studentError } = await supabase.from('students')
+        .select('*').eq('tenant_id', schoolId).eq('admissionNo', admissionNo);
+    if (studentError) throw studentError;
+    const student = students[0];
+    if (!student) throw new Error("Student not found.");
 
-    return { student, students: studentsInClass, scores, subjects, schoolSettings: settings, remarks, attendance };
+    const [
+        { data: scores }, { data: subjects }, { data: schoolSettings }, 
+        { data: remarks }, { data: attendance }, { data: studentsInClass }
+    ] = await Promise.all([
+        supabase.from('scores').select('*').eq('tenant_id', schoolId),
+        supabase.from('subjects').select('*').eq('tenant_id', schoolId),
+        supabase.from('settings').select('*').eq('tenant_id', schoolId).single(),
+        supabase.from('remarks').select('*').eq('tenant_id', schoolId),
+        supabase.from('attendance').select('*').eq('tenant_id', schoolId),
+        supabase.from('students').select('*').eq('tenant_id', schoolId).eq('class', student.class),
+    ]);
+    
+    return { student, students: studentsInClass, scores, subjects, schoolSettings, remarks, attendance };
 };
 
+export const apiUseScratchCard = async (pin: string, tenantId: string) => {
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { error } = await supabase.from('scratch_cards').update({ used: true }).eq('tenant_id', tenantId).eq('pin', pin);
+    if (error) throw error;
+};
 
 // --- Super Admin / Platform ---
-export const apiGetTenants = async (): Promise<Tenant[]> => JSON.parse(localStorage.getItem('platform_tenants') || '[]');
+export const apiGetTenants = async (): Promise<Tenant[]> => {
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { data, error } = await supabase.from('tenants').select('*');
+    if (error) throw error;
+    return data || [];
+};
+
 export const apiAddTenant = async (tenant: { id: string, name: string }) => {
-    const tenants = await apiGetTenants();
-    const newTenant: Tenant = {
+    if (!supabase) throw new Error("Database client not initialized.");
+    const newTenant: Partial<Tenant> = {
         ...tenant,
         subscriptionStatus: 'trial',
-        trialEndDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14-day trial
+        trialEndDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
     };
-    tenants.push(newTenant);
-    localStorage.setItem('platform_tenants', JSON.stringify(tenants));
+    const { error } = await supabase.from('tenants').insert(newTenant);
+    if (error) throw error;
 };
+
 export const apiUpdateTenant = async (tenantData: Tenant) => {
-    let tenants = await apiGetTenants();
-    tenants = tenants.map(t => t.id === tenantData.id ? { ...t, ...tenantData } : t);
-    localStorage.setItem('platform_tenants', JSON.stringify(tenants));
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { error } = await supabase.from('tenants').update(tenantData).match({ id: tenantData.id });
+    if (error) throw error;
 };
+
 export const apiDeleteTenant = async (tenantId: string) => {
-    const tenants = (await apiGetTenants()).filter(t => t.id !== tenantId);
-    localStorage.setItem('platform_tenants', JSON.stringify(tenants));
-    // Also remove all tenant-specific data
-    Object.keys(localStorage)
-        .filter(key => key.startsWith(`tenant_${tenantId}_`))
-        .forEach(key => localStorage.removeItem(key));
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { error } = await supabase.from('tenants').delete().match({ id: tenantId });
+    if (error) throw error;
 };
 
 export const apiFindTenantByEmail = async (email: string): Promise<string | null> => {
-    // PRODUCTION NOTE: In a real app, this would be a single, fast database query:
-    // `SELECT tenant_id FROM teachers WHERE email = 'user@email.com' LIMIT 1;`
-    // Here, we simulate it by iterating through all tenants.
-    const tenants = await apiGetTenants();
-    for (const tenant of tenants) {
-        const teachers = getTenantData('teachers', tenant.id) || [];
-        const found = teachers.some((teacher: any) => teacher.email.toLowerCase() === email.toLowerCase());
-        if (found) {
-            return tenant.id;
-        }
+    if (isDemoMode()) {
+        const teacher = demoTeachers.find(t => t.email.toLowerCase() === email.toLowerCase());
+        return teacher ? DEMO_TENANT_ID : null;
     }
-    return null;
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { data, error } = await supabase.from('teachers').select('tenant_id').eq('email', email).single();
+    if (error && error.code !== 'PGRST116') throw error;
+    return data?.tenant_id || null;
 };
 
-
-const defaultLandingPageContent: LandingPageContent = {
-    promoBanner: {
-        enabled: true,
-        text: "🎉 Special Launch Offer: Get 20% off your first year when you sign up this month!",
-        endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59).toISOString()
-    },
-    hero: {
-        title: "The All-In-One Platform to Run a Smarter School",
-        subtitle: "Supercharge your school with our AI-powered management system. Automate results, engage parents, and empower teachers. Get started for free or explore our live demo."
-    },
-    trustBar: {
-        enabled: false,
-        logos: [
-            { src: "...", alt: "Partner 1" },
-        ]
-    },
-    problem: {
-        title: "Is This Your Reality?",
-        points: [
-            "Endless weekends spent calculating results and typing comments.",
-            "Parents constantly calling for updates you don't have time to give.",
-            "Struggling to spot at-risk students before it's too late.",
-            "Feeling overwhelmed by administrative tasks instead of teaching."
-        ]
-    },
-    solution: {
-        title: "The All-In-One Platform to Run a Smarter School",
-        features: [
-            { icon: "ClockIcon", title: "Automate Result Computation", desc: "From scores to positions, our system handles all calculations in seconds, eliminating errors and freeing up hundreds of hours for your teachers." },
-            { icon: "SparklesIcon", title: "Empower Teachers with AI", desc: "Generate insightful, personalized report card comments and complete lesson plans in a click. Give your teachers superpowers." },
-            { icon: "ChatBubbleLeftRightIcon", title: "Engage Parents Effortlessly", desc: "Provide parents with a dedicated portal to view results, track attendance, and communicate directly with teachers, building a stronger school community." }
-        ]
-    },
-    howItWorks: {
-        title: "Go Live in 3 Simple Steps",
-        steps: [
-            { title: "Create Your Portal", desc: "Sign up in minutes and get your school's dedicated, secure portal instantly." },
-            { title: "Import Your Data", desc: "Easily upload your student, teacher, and subject lists via our simple CSV importer." },
-            { title: "Transform Your School", desc: "Start entering scores, generating reports, and enjoying a more efficient, data-driven school." }
-        ]
-    },
-    testimonials: {
-        title: "Loved by Schools Across Nigeria",
-        items: [
-            { id: 't1', quote: "ReportSheet has been a total game-changer. What used to take us weeks now takes a few hours. Our teachers are happier and our parents are more engaged than ever.", name: "Mrs. Adaeze Nwosu", role: "Proprietress", school: "Bright Minds Academy, Lagos", avatar: "https://i.imgur.com/O44fpwA.jpeg" },
-            { id: 't2', quote: "The AI comment generator is pure magic. I can now write unique, thoughtful comments for all 40 of my students in under 30 minutes. I can't imagine going back.", name: "Mr. Femi Adeboye", role: "JSS 2 Coordinator", school: "Royal Pillars College, Abuja", avatar: "https://i.imgur.com/k2NaL1U.jpeg" },
-        ]
-    },
-    faq: {
-        title: "Your Questions, Answered",
-        items: [
-            { q: "Is ReportSheet difficult to set up?", a: "Not at all! You can set up your school portal in under 5 minutes. We provide default data to get you started immediately, and you can customize everything to your school's specific needs." },
-            { q: "Can I use it on my phone?", a: "Yes! ReportSheet is fully mobile-responsive. Teachers and admins can manage the school from their phones, and parents can check results on the go." },
-            { q: "Is our school's data secure?", a: "Absolutely. We use industry-standard security practices to ensure your data is safe, secure, and always accessible to you." }
-        ]
-    },
-    finalCta: {
-        title: "Ready to Transform Your School?",
-        subtitle: "Join hundreds of schools across Nigeria who trust ReportSheet to manage their academics, engage parents, and save countless hours of administrative work."
-    }
-};
-
-export const apiGetPlatformSettings = async () => getTenantData('settings', null) || {
-    plans: [
-        { 
-            id: 'plan_basic_123', 
-            name: 'Basic', 
-            price_monthly: 2500, 
-            price_termly: 7000, 
-            price_yearly: 24000, 
-            features: { 
-                maxStudents: 100,
-                students: true,
-                teachers: true,
-                subjects: true,
-                results: true,
-                'report-cards': true,
-                assignments: false,
-                'general-remarks': false,
-                promotions: false,
-                'id-cards': false,
-                timetable: false,
-                attendance: false,
-                communications: false,
-                bursary: false,
-                analytics: false,
-                'ai-tools': false,
-                alumni: false
-            } 
-        },
-        { 
-            id: 'plan_pro_456', 
-            name: 'Pro', 
-            price_monthly: 3500, 
-            price_termly: 10000, 
-            price_yearly: 33600, 
-            features: { 
-                maxStudents: 250,
-                students: true,
-                teachers: true,
-                subjects: true,
-                results: true,
-                'report-cards': true,
-                assignments: true,
-                'general-remarks': true,
-                promotions: true,
-                'id-cards': true,
-                timetable: true,
-                attendance: true,
-                communications: true,
-                bursary: false,
-                analytics: false,
-                'ai-tools': false,
-                alumni: false
-            } 
-        },
-        { 
-            id: 'plan_ent_789', 
-            name: 'Enterprise', 
-            price_monthly: 5000, 
-            price_termly: 14000, 
-            price_yearly: 48000, 
-            features: { 
-                maxStudents: 1000,
-                students: true,
-                teachers: true,
-                subjects: true,
-                results: true,
-                'report-cards': true,
-                assignments: true,
-                'general-remarks': true,
-                promotions: true,
-                'id-cards': true,
-                timetable: true,
-                attendance: true,
-                communications: true,
-                bursary: true,
-                analytics: true,
-                'ai-tools': true,
-                alumni: true
-            } 
-        }
-    ],
+// --- Other Features (to be migrated) ---
+const demoPlatformSettings = {
+    plans: [],
     pages: [],
     menus: { header: [] },
-    landingPageContent: defaultLandingPageContent
+    landingPageContent: {
+        promoBanner: { enabled: true, text: 'Welcome to the Demo!', endDate: new Date(Date.now() + 3600 * 1000).toISOString() },
+        hero: { title: 'Explore ReportSheet', subtitle: 'This is a fully interactive demo of the ReportSheet platform.' },
+        trustBar: { enabled: false, logos: [] },
+        problem: { title: 'Common School Challenges', points: ['Manual result compilation', 'Slow communication with parents'], features: [] },
+        solution: {
+            title: 'An All-in-One Solution',
+            features: [
+                { icon: 'SparklesIcon', title: 'AI-Powered Tools', desc: 'Automate comments and get insights.' },
+                { icon: 'ClockIcon', title: 'Save Time', desc: 'Reduce manual data entry.' },
+                { icon: 'ChatBubbleLeftRightIcon', title: 'Engage Parents', desc: 'Keep parents informed instantly.' },
+            ]
+        },
+        howItWorks: { title: 'How It Works', steps: [] },
+        testimonials: { title: 'What Schools Say', items: [] },
+        faq: { title: 'Frequently Asked Questions', items: [{q: 'Is this data saved?', a: 'No, all data in this demo is temporary and resets.'}] },
+        finalCta: { title: 'Ready to Start?', subtitle: 'Sign up for your own school portal today.' },
+    },
+    articles: [],
+    kb_articles: [],
+    platformUsers: []
 };
-export const apiSavePlatformSettings = async (settings: any) => saveTenantData('settings', settings, null);
-export const apiGetKbArticles = async () => getTenantData('kb_articles', null) || [];
-export const apiSaveKbArticles = async (articles: any) => saveTenantData('kb_articles', null);
-export const apiGetPlatformUsers = async () => getTenantData('users', null) || [];
-export const apiSavePlatformUsers = async (users: any) => saveTenantData('users', null);
 
-// --- Messaging ---
-export const apiGetAnnouncements = async () => getTenantData('announcements') || [];
-export const apiSendAnnouncement = async (announcement: any) => {
-    const announcements = await apiGetAnnouncements();
-    const newAnnouncement = { ...announcement, id: `ann_${Date.now()}`, created_at: new Date().toISOString() };
-    saveTenantData('announcements', [newAnnouncement, ...announcements]);
-
-    // In a real app, this would be a Supabase RPC call that inserts and possibly sends emails.
-    if(supabase) {
-        // This simulates a write that would trigger realtime updates
-        const { error } = await supabase.from('announcements').insert([newAnnouncement]);
-        if(error) console.error("Realtime announcement failed:", error);
-    }
+export const apiGetPlatformSettings = async () => ({
+    ...demoPlatformSettings
+});
+export const apiSavePlatformSettings = async (settings: any) => console.warn("DEMO: Skipping platform settings save.");
+export const apiGetAnnouncements = async (): Promise<Announcement[]> => {
+    if (isDemoMode()) return demoAnnouncements;
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { data, error } = await supabase.from('announcements').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
 };
-
+export const apiSendAnnouncement = async (announcement: Partial<Announcement>) => {
+    if (isDemoMode()) { console.warn("DEMO: Skipping announcement send."); return; }
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { error } = await supabase.from('announcements').insert(announcement);
+    if (error) throw error;
+};
 export const apiSendAlumniEmail = async (recipients: string[], subject: string, body: string) => {
-    // This is a simulation. In a real app, this would call a server-side function.
     console.log("Simulating email send to alumni:", { recipients, subject, body });
     await new Promise(res => setTimeout(res, 1000));
 };
-
-// --- Current User & Messaging --
 export const getCurrentUser = async () => {
     if (!supabase) return null;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
-
     const teachers = await apiGetTeachers();
-    const teacherProfile = teachers.find(t => t.auth_id === user.id);
+    const teacherProfile = teachers.find(t => t.auth_id === user.id || t.email.toLowerCase() === user.email.toLowerCase());
     if (teacherProfile) return { id: teacherProfile.auth_id, name: teacherProfile.name, role: teacherProfile.role };
-    
     return { id: user.id, name: user.email, role: 'Unknown' };
 }
-
 export const apiGetConversationSummaries = async (userId: string, userRole: string): Promise<Conversation[]> => {
-    const allMessages = getTenantData('messages') || [];
-    const allTeachers = await apiGetTeachers();
-    const allParents = getTenantData('parents') || [];
-
-    const conversationsMap = new Map();
-    allMessages.forEach(msg => {
-        // Fix: Check `conversationId` instead of the non-existent `participants` property on the Message object.
-        if(msg.conversationId.includes(userId)) {
-             if (!conversationsMap.has(msg.conversationId) || new Date(msg.timestamp) > new Date(conversationsMap.get(msg.conversationId).timestamp)) {
-                conversationsMap.set(msg.conversationId, msg);
-            }
-        }
-    });
-
-    return Array.from(conversationsMap.values()).map((msg: Message) => {
-        const otherId = msg.senderId === userId ? msg.recipientId : msg.senderId;
-        const teacher = allTeachers.find(t => t.auth_id === otherId);
-        const parent = allParents.find(p => p.id === otherId);
-
-        return {
-            id: msg.conversationId,
-            // Fix: Add the missing `participants` property to the returned object to match the `Conversation` type.
-            participants: msg.conversationId.split('_'),
-            lastMessage: msg,
-            otherParticipant: {
-                id: otherId,
-                name: teacher?.name || parent?.name || 'Unknown User',
-                role: teacher ? teacher.role : 'Parent'
-            }
-        };
-    }).sort((a,b) => new Date(b.lastMessage.timestamp).getTime() - new Date(a.lastMessage.timestamp).getTime());
+    if (isDemoMode()) return []; // To be implemented
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { data, error } = await supabase.rpc('get_conversation_summaries', { p_user_id: userId });
+    if (error) throw error;
+    return data;
+};
+export const apiGetMessages = async (conversationId: string): Promise<Message[]> => {
+    if (isDemoMode()) return demoMessages.filter(m => m.conversationId === conversationId);
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { data, error } = await supabase.from('messages').select('*').eq('conversationId', conversationId).order('timestamp');
+    if (error) throw error;
+    return data || [];
+};
+export const apiSendMessage = async (messageData: Partial<Message>): Promise<Message> => {
+    if (isDemoMode()) {
+        console.warn("DEMO: Skipping message send.");
+        return { ...messageData, id: `msg_${Date.now()}`, timestamp: new Date().toISOString() } as Message;
+    }
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { data, error } = await supabase.from('messages').insert(messageData).select().single();
+    if (error) throw error;
+    return data;
 };
 
-export const apiGetMessages = async (conversationId: string) => {
-    const allMessages = getTenantData('messages') || [];
-    return allMessages.filter(m => m.conversationId === conversationId).sort((a,b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+// Fix: Add missing API functions to resolve import errors.
+export const apiGetKbArticles = async () => {
+    const settings = await apiGetPlatformSettings();
+    return settings.kb_articles || [];
 };
 
-export const apiSendMessage = async (messageData) => {
-    const allMessages = getTenantData('messages') || [];
-    const newMessage = { ...messageData, id: `msg_${Date.now()}`, timestamp: new Date().toISOString(), read: false };
-    saveTenantData('messages', [...allMessages, newMessage]);
-    return newMessage;
+export const apiSaveKbArticles = async (articles: any[]) => {
+    const settings = await apiGetPlatformSettings();
+    await apiSavePlatformSettings({ ...settings, kb_articles: articles });
+};
+
+export const apiGetPlatformUsers = async (): Promise<PlatformUser[]> => {
+    const settings = await apiGetPlatformSettings();
+    return settings.platformUsers || [];
+}
+export const apiSavePlatformUsers = async (users: PlatformUser[]): Promise<void> => {
+    const settings = await apiGetPlatformSettings();
+    await apiSavePlatformSettings({ ...settings, platformUsers: users });
+}
+
+export const apiGetActivities = async (): Promise<any[]> => {
+    if (isDemoMode()) {
+        return [
+            { id: 1, type: 'STUDENT_ADD', description: 'Added new student: Adekunle Gold', timestamp: new Date(Date.now() - 3600000).toISOString() },
+            { id: 2, type: 'SUBJECT_UPDATE', description: 'Updated subject: Mathematics', timestamp: new Date(Date.now() - 7200000).toISOString() },
+            { id: 3, type: 'TEACHER_ADD', description: 'Added new teacher: Mr. John Doe', timestamp: new Date(Date.now() - 86400000).toISOString() },
+        ];
+    }
+    if (!supabase) return [];
+    const { data, error } = await supabase.from('activities').select('*').order('timestamp', { ascending: false }).limit(5);
+    if (error) { console.error('Error fetching activities:', error); return []; }
+    return data || [];
 };

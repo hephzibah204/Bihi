@@ -3,6 +3,8 @@ import { apiGetStudents, apiGetScores, apiGetSubjects } from '../services/api';
 import { Student, Score, Subject } from '../types';
 import { exportToCSV } from '../utils/csvExporter';
 import ArrowDownTrayIcon from './icons/ArrowDownTrayIcon';
+import TableSkeleton from './skeletons/TableSkeleton';
+import SkeletonLoader from './SkeletonLoader';
 
 const BroadsheetAnalysis = () => {
     const [classes, setClasses] = useState<string[]>([]);
@@ -110,24 +112,29 @@ const BroadsheetAnalysis = () => {
                 </div>
             </div>
 
-            {loading ? <p className="mt-4">Loading data...</p> : (
+            {loading ? (
+                <div className="mt-6">
+                    <TableSkeleton cols={subjects.length > 0 ? subjects.length + 2 : 6} rows={10} />
+                </div>
+            ) : (
             <div className="table-container overflow-x-auto mt-6">
                 <table className="table">
                     <thead>
-                        <tr className="divide-x divide-gray-200 dark:divide-gray-700">
-                            <th className="th sticky left-0 bg-gray-50 dark:bg-gray-800">Student Name</th>
+                        <tr className="divide-x divide-gray-200">
+                            <th className="th sticky left-0 bg-slate-100 z-10">Student Name</th>
                             {subjects.map(sub => <th key={sub.id} className="th text-center"><div className="truncate max-w-[100px] mx-auto" title={sub.name}>{sub.name}</div></th>)}
                             <th className="th text-center">Total</th>
                             <th className="th text-center">Average</th>
                         </tr>
                     </thead>
-                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                        {students.map(student => {
+                    <tbody className="bg-white">
+                        {students.map((student, index) => {
                             const studentTotal = studentTotals.find(st => st.studentId === student.id)?.total || 0;
                             const average = subjects.length > 0 ? (studentTotal / subjects.length).toFixed(1) : 0;
+                            const isEvenRow = index % 2 === 1;
                             return (
-                                <tr key={student.id} className="divide-x divide-gray-200 dark:divide-gray-700">
-                                    <td className="td font-medium sticky left-0 bg-white dark:bg-gray-800"><div className="truncate max-w-xs" title={student.name}>{student.name}</div></td>
+                                <tr key={student.id} className="divide-x divide-gray-200 group">
+                                    <td className={`td font-medium sticky left-0 z-10 ${isEvenRow ? 'bg-slate-100' : 'bg-white'} group-hover:bg-indigo-50`}><div className="truncate max-w-xs" title={student.name}>{student.name}</div></td>
                                     {subjects.map(sub => {
                                         const score = getStudentScore(student.id, sub.id);
                                         return <td key={sub.id} className="td text-center">{score.total}</td>

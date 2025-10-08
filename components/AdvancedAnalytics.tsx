@@ -87,9 +87,8 @@ const AdvancedAnalytics = () => {
 
     useEffect(() => {
         if (loading || !window.Chart) return;
-        const isDarkMode = document.documentElement.classList.contains('dark');
-        const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
-        const labelColor = isDarkMode ? '#CBD5E1' : '#4B5563';
+        const gridColor = 'rgba(0, 0, 0, 0.1)';
+        const labelColor = '#4B5563';
 
         Object.values(chartInstances.current).forEach((chart: any) => {
             if (chart && typeof chart.destroy === 'function') chart.destroy();
@@ -210,8 +209,8 @@ const AdvancedAnalytics = () => {
             </div>
             
             <ChartCard title="AI Performance Analysis" fullWidth={true}>
-                <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                <div className="p-4 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-600">
                         Select a class and run an AI-powered analysis to get insights and recommendations on subject performance.
                     </p>
                     <div className="mt-4 flex items-center gap-4">
@@ -225,9 +224,9 @@ const AdvancedAnalytics = () => {
                     </div>
                     {analysisError && <p className="mt-4 text-sm text-red-500">{analysisError}</p>}
                     {aiAnalysisResult && (
-                        <div className="mt-6 border-t dark:border-gray-600 pt-4">
+                        <div className="mt-6 border-t pt-4">
                             <h4 className="font-semibold">AI Insights for {selectedClass}</h4>
-                            <div className="prose dark:prose-invert max-w-none mt-2 text-sm whitespace-pre-wrap">{aiAnalysisResult}</div>
+                            <div className="prose max-w-none mt-2 text-sm whitespace-pre-wrap">{aiAnalysisResult}</div>
                         </div>
                     )}
                 </div>

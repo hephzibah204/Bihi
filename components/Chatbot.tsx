@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import FloatingChatButton from './FloatingChatButton';
 import ChatbotPanel from './ChatbotPanel';
 
-const Chatbot = ({ userRole, demoUserId }: { userRole: string, demoUserId?: string }) => {
+const Chatbot = ({ userRole, demoUserId, activeView }: { userRole: string, demoUserId?: string, activeView: string }) => {
     const [isOpen, setIsOpen] = useState(false);
 
     return (
@@ -12,6 +12,7 @@ const Chatbot = ({ userRole, demoUserId }: { userRole: string, demoUserId?: stri
                 onClose={() => setIsOpen(false)}
                 userRole={userRole}
                 demoUserId={demoUserId}
+                activeView={activeView}
             />
             <FloatingChatButton onClick={() => setIsOpen(prev => !prev)} isOpen={isOpen} />
         </div>

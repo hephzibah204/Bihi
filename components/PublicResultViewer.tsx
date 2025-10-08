@@ -20,6 +20,7 @@ const PublicResultViewer = () => {
 
         try {
             // 1. Validate scratch card first
+            // Fix: Pass schoolId to apiGetScratchCards to correctly scope the search.
             const allCards = await apiGetScratchCards(schoolId);
             if (!allCards) {
                 throw new Error("Could not verify school portal ID or find scratch card data.");

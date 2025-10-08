@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
-import { apiAddTenant, apiSaveSchoolSettings, apiSaveSubjects, apiSaveTeachers } from '../services/api';
-import { supabase } from '../services/supabaseClient';
-import { demoSchoolSettings, demoSubjects, demoTeachers } from '../utils/demoData';
 import SpinnerIcon from './icons/SpinnerIcon';
 import Logo from './icons/Logo';
+import { getPortalUrl } from '../utils/subdomain';
 
 const SubscriptionPage = () => {
     const [step, setStep] = useState(1);
@@ -18,7 +16,7 @@ const SubscriptionPage = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const portalUrl = `${window.location.origin}/?tenant=${formData.subdomain}`;
+    const portalUrl = getPortalUrl(formData.subdomain);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -37,42 +35,18 @@ const SubscriptionPage = () => {
         setLoading(true);
         setError('');
 
-        if (!supabase) {
-            setError("Authentication service is not available. Cannot create account.");
-            setLoading(false);
-            return;
-        }
-
         try {
-            await apiAddTenant({ id: formData.subdomain, name: formData.schoolName });
-
-            const { data: authData, error: authError } = await supabase.auth.signUp({
-                email: formData.adminEmail,
-                password: formData.adminPassword,
-                options: { emailRedirectTo: portalUrl }
+            const response = await fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...formData, emailRedirectTo: portalUrl })
             });
 
-            if (authError) throw authError;
-            if (!authData.user) throw new Error("User creation failed.");
+            const data = await response.json();
 
-            const newAdmin = { ...demoTeachers.find(t=>t.role === 'Admin'),
-                id: `teacher_${Date.now()}`,
-                name: formData.adminName,
-                email: formData.adminEmail,
-                auth_id: authData.user.id,
-            };
-
-            const defaultSettings = {
-                ...demoSchoolSettings,
-                schoolName: formData.schoolName,
-                schoolType: formData.schoolType as 'nursery_primary' | 'secondary' | 'all',
-            };
-
-            await Promise.all([
-                apiSaveSchoolSettings(defaultSettings, formData.subdomain),
-                apiSaveSubjects(demoSubjects, formData.subdomain),
-                apiSaveTeachers([newAdmin], formData.subdomain),
-            ]);
+            if (!response.ok) {
+                throw new Error(data.details || data.error || 'An unknown error occurred.');
+            }
             
             // Clear any lingering demo session data to ensure the new portal is clean.
             sessionStorage.removeItem('isDemoMode');
@@ -83,8 +57,6 @@ const SubscriptionPage = () => {
             let errorMessage = err.message;
             if (err.message.toLowerCase().includes('failed to fetch')) {
                 errorMessage = "A network error occurred. Please check your connection and try again.";
-            } else if (err.status === 429) {
-                errorMessage = "Too many requests. Please wait a moment.";
             }
             setError(errorMessage);
         } finally {
@@ -92,8 +64,12 @@ const SubscriptionPage = () => {
         }
     };
 
+    const { protocol, hostname, port } = window.location;
+    const isProdDomain = hostname === 'reportsheet.com.ng' || hostname === 'www.reportsheet.com.ng';
+    const displayPort = port ? `:${port}` : '';
+
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
             <div className="w-full max-w-lg">
                  <div className="text-center mb-8">
                     <Logo className="w-12 h-12 mx-auto" />
@@ -112,8 +88,18 @@ const SubscriptionPage = () => {
                                 <div>
                                     <label className="label">Portal Address</label>
                                     <div className="flex items-center">
-                                        <span className="px-3 py-2.5 bg-gray-100 dark:bg-gray-700 border border-r-0 dark:border-gray-600 rounded-l-md text-sm text-gray-500">{window.location.origin}/?tenant=</span>
-                                        <input type="text" name="subdomain" value={formData.subdomain} onChange={handleChange} className="input-field rounded-l-none" placeholder="brightstar" required />
+                                        {isProdDomain ? (
+                                            <>
+                                                <span className="px-3 py-2.5 bg-gray-100 border border-r-0 rounded-l-md text-sm text-gray-500">{`${protocol}//`}</span>
+                                                <input type="text" name="subdomain" value={formData.subdomain} onChange={handleChange} className="input-field rounded-none" placeholder="brightstar" required />
+                                                <span className="px-3 py-2.5 bg-gray-100 border border-l-0 rounded-r-md text-sm text-gray-500">{`.reportsheet.com.ng${displayPort}`}</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span className="px-3 py-2.5 bg-gray-100 border border-r-0 rounded-l-md text-sm text-gray-500">{`${protocol}//${hostname}${displayPort}/?tenant=`}</span>
+                                                <input type="text" name="subdomain" value={formData.subdomain} onChange={handleChange} className="input-field rounded-l-none" placeholder="brightstar" required />
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -138,11 +124,13 @@ const SubscriptionPage = () => {
                     )}
                      {step === 3 && (
                         <div className="text-center">
-                            <h2 className="text-2xl font-semibold text-indigo-600">Almost there!</h2>
-                            <p className="mt-4">We've sent a verification link to <strong>{formData.adminEmail}</strong>.</p>
-                            <p className="mt-2">Please click the link in the email to activate your account. Once verified, you can log in at:</p>
+                            <h2 className="text-2xl font-semibold text-indigo-600">Success! Your Portal is Ready!</h2>
+                            <p className="mt-4">You can now sign in to your new school portal at:</p>
                             <a href={portalUrl} className="my-4 block font-mono text-lg text-indigo-600 underline break-all" target="_blank" rel="noopener noreferrer">{portalUrl}</a>
-                            <p className="text-sm text-gray-500">Didn't receive an email? Check your spam folder.</p>
+                            <p className="text-sm text-gray-500">Your account has been created with the credentials you provided.</p>
+                             <div className="mt-6">
+                                <a href={portalUrl} className="btn btn-primary">Go to My Portal</a>
+                            </div>
                         </div>
                     )}
                 </div>

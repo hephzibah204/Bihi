@@ -58,7 +58,7 @@ const AITimetableGenerator = ({ isOpen, onClose, onApply, subjects, teachers, cl
                     <div>
                         <h3 className="font-semibold">Generated Timetable Preview</h3>
                         <p className="text-sm text-gray-500">Review the generated timetable. If it looks good, apply it.</p>
-                        <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-800 rounded max-h-96 overflow-auto">
+                        <div className="mt-4 p-4 bg-gray-100 rounded max-h-96 overflow-auto">
                             <pre className="text-xs">{JSON.stringify(generatedTimetable, null, 2)}</pre>
                         </div>
                          <div className="flex justify-end gap-2 mt-6">
@@ -70,7 +70,7 @@ const AITimetableGenerator = ({ isOpen, onClose, onApply, subjects, teachers, cl
                     <div className="text-center">
                         <BrainCircuitIcon className="w-16 h-16 mx-auto text-indigo-500" />
                         <h3 className="text-lg font-semibold mt-4">Generate Timetable with AI</h3>
-                        <p className="mt-2 text-gray-600 dark:text-gray-300 max-w-md mx-auto">
+                        <p className="mt-2 text-gray-600 max-w-md mx-auto">
                             Let AI create an optimized timetable based on your school's classes, subjects, and teachers.
                             This process may take a moment.
                         </p>

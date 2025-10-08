@@ -28,7 +28,7 @@ const RecentActivityWidget = () => {
         };
 
         return (
-            <div className="relative w-8 h-8 flex-shrink-0 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-full">
+            <div className="relative w-8 h-8 flex-shrink-0 flex items-center justify-center bg-gray-100 rounded-full">
                 {iconMap[baseType] || null}
                 <div className="absolute -bottom-1 -right-1">
                     {actionIconMap[action] || null}
@@ -72,7 +72,7 @@ const RecentActivityWidget = () => {
     return (
         <div className="card mt-6">
             <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Recent Activity</h3>
+                <h3 className="text-lg font-semibold text-gray-800">Recent Activity</h3>
                 {activities.length === 0 ? (
                     <p className="mt-4 text-gray-500">No recent activity to show.</p>
                 ) : (
@@ -81,7 +81,7 @@ const RecentActivityWidget = () => {
                             <li key={activity.id} className="flex items-center space-x-4">
                                 <ActivityIcon type={activity.type} />
                                 <div className="flex-1">
-                                    <p className="text-sm text-gray-700 dark:text-gray-300">{activity.description}</p>
+                                    <p className="text-sm text-gray-700">{activity.description}</p>
                                     <p className="text-xs text-gray-500">{timeSince(activity.timestamp)}</p>
                                 </div>
                             </li>

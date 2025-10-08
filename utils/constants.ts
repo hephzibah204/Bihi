@@ -1,5 +1,3 @@
-export const APP_NAME = 'ReportSheet';
-
 export const USER_ROLES = {
     ADMIN: 'Admin',
     TEACHER: 'Teacher',
@@ -41,6 +39,7 @@ export const ADMIN_VIEWS = {
     MENUS: 'menus',
     USERS: 'users',
     PLATFORM_SETTINGS: 'platform-settings',
+    BROADSHEET: 'broadsheet',
     ALUMNI: 'alumni',
 } as const;
 
@@ -51,10 +50,12 @@ export const CONTROLLABLE_FEATURES = [
     { key: ADMIN_VIEWS.RESULTS, name: 'Score & Result Entry' },
     { key: ADMIN_VIEWS.GENERAL_REMARKS, name: 'General Remarks' },
     { key: ADMIN_VIEWS.REPORT_CARDS, name: 'Report Card Generation' },
+    { key: ADMIN_VIEWS.BROADSHEET, name: 'Broadsheet Analysis' },
     { key: ADMIN_VIEWS.PROMOTIONS, name: 'Student Promotions' },
     { key: ADMIN_VIEWS.ID_CARDS, name: 'ID Card Generation' },
     { key: ADMIN_VIEWS.TIMETABLE, name: 'Timetable Management' },
     { key: ADMIN_VIEWS.ATTENDANCE, name: 'Attendance Tracking' },
+    { key: ADMIN_VIEWS.BEHAVIORAL, name: 'Behavioral Remarks' },
     { key: ADMIN_VIEWS.COMMUNICATIONS, name: 'Parent Communication' },
     { key: ADMIN_VIEWS.BURSARY, name: 'Bursary & Fee Management' },
     { key: ADMIN_VIEWS.ANALYTICS, name: 'Advanced Analytics' },
@@ -72,12 +73,22 @@ export const TEACHER_VIEWS = {
     MY_SCHEDULE: 'my-schedule',
     BEHAVIORAL_LOG: 'behavioral-log',
     AI_TOOLS: 'ai-tools',
+    MESSAGES: 'messages',
     MORE: 'more',
 } as const;
+
+export const TEACHER_CONTROLLABLE_FEATURES = [
+    { key: TEACHER_VIEWS.MY_STUDENTS, name: 'View My Students' },
+    { key: TEACHER_VIEWS.ENTER_SCORES, name: 'Enter Scores' },
+    { key: TEACHER_VIEWS.MY_SCHEDULE, name: 'View Schedule' },
+    { key: TEACHER_VIEWS.MESSAGES, name: 'Direct Messages' },
+    { key: TEACHER_VIEWS.AI_TOOLS, name: 'AI Tools' },
+];
 
 export const STUDENT_VIEWS = {
     DASHBOARD: 'dashboard',
     RESULTS: 'results',
+    TRANSCRIPT: 'transcript',
     ASSIGNMENTS: 'assignments',
     TIMETABLE: 'timetable',
     NOTIFICATIONS: 'notifications',
@@ -86,6 +97,16 @@ export const STUDENT_VIEWS = {
     AI_TOOLS: 'ai-tools',
 } as const;
 
+export const STUDENT_CONTROLLABLE_FEATURES = [
+    { key: STUDENT_VIEWS.RESULTS, name: 'View Report Card' },
+    { key: STUDENT_VIEWS.TRANSCRIPT, name: 'View Score Transcript' },
+    { key: STUDENT_VIEWS.ASSIGNMENTS, name: 'View Assignments' },
+    { key: STUDENT_VIEWS.TIMETABLE, name: 'View Timetable' },
+    { key: STUDENT_VIEWS.AI_TUTOR, name: 'Access Live AI Tutor' },
+    { key: STUDENT_VIEWS.AI_TOOLS, name: 'Access AI Learning Tools' },
+];
+
+
 export const PARENT_VIEWS = {
     DASHBOARD: 'dashboard',
     RESULTS: 'results',
@@ -93,7 +114,16 @@ export const PARENT_VIEWS = {
     NOTIFICATIONS: 'notifications',
     ATTENDANCE: 'attendance',
     BEHAVIORAL: 'behavioral',
+    MESSAGES: 'messages',
 } as const;
+
+export const PARENT_CONTROLLABLE_FEATURES = [
+    { key: PARENT_VIEWS.RESULTS, name: "View Child's Results" },
+    { key: PARENT_VIEWS.ASSIGNMENTS, name: "View Child's Assignments" },
+    { key: PARENT_VIEWS.ATTENDANCE, name: "View Child's Attendance" },
+    { key: PARENT_VIEWS.BEHAVIORAL, name: "View Child's Behavior Log" },
+    { key: PARENT_VIEWS.MESSAGES, name: 'Message Teachers' },
+];
 
 export const APP_VIEWS = {
     DEMO: 'demo',

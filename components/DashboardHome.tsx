@@ -23,11 +23,11 @@ const DashboardHome = ({ setActiveView }: { setActiveView: (view: DashboardView)
 
     const renderSubscriptionPrompt = () => (
         <>
-            <div className="card bg-indigo-50 dark:bg-indigo-900/50 my-6">
+            <div className="card bg-indigo-50 my-6">
                 <div className="p-6 text-center">
                      <SparklesIcon className="w-12 h-12 mx-auto text-indigo-500" />
                      <h2 className="mt-4 text-xl font-semibold">Welcome to ReportSheet!</h2>
-                     <p className="mt-2 text-gray-600 dark:text-gray-300">Your account is active. Subscribe to a plan to unlock all features and start managing your school like a pro.</p>
+                     <p className="mt-2 text-gray-600">Your account is active. Subscribe to a plan to unlock all features and start managing your school like a pro.</p>
                 </div>
             </div>
             <PlanSelector isSubscribed={isSubscribed} planName={planName} />
@@ -36,7 +36,7 @@ const DashboardHome = ({ setActiveView }: { setActiveView: (view: DashboardView)
 
     return (
         <div>
-            {isSubscribed && <p className="mt-2 text-gray-600 dark:text-gray-300">Here are some quick actions to get you started.</p>}
+            {isSubscribed && <p className="mt-2 text-gray-600">Here are some quick actions to get you started.</p>}
             
             {isLoading ? (
                 <div className="card mt-6 p-6 text-center">Loading...</div>
@@ -50,11 +50,11 @@ const DashboardHome = ({ setActiveView }: { setActiveView: (view: DashboardView)
                                 onClick={() => setActiveView(link.view)}
                                 className="card p-6 text-center hover:shadow-lg hover:scale-105 transition-transform duration-200"
                             >
-                                <div className="text-indigo-500 mx-auto w-16 h-16 flex items-center justify-center bg-indigo-100 dark:bg-gray-700 rounded-full">
+                                <div className="text-indigo-500 mx-auto w-16 h-16 flex items-center justify-center bg-indigo-100 rounded-full">
                                     {link.icon}
                                 </div>
                                 <h3 className="mt-4 text-lg font-semibold">{link.title}</h3>
-                                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{link.description}</p>
+                                <p className="mt-1 text-sm text-gray-500">{link.description}</p>
                             </button>
                         ))}
                     </div>

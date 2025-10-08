@@ -7,10 +7,12 @@ import UserCircleIcon from './icons/UserCircleIcon';
 import BellIcon from './icons/BellIcon';
 import HeadsetIcon from './icons/HeadsetIcon';
 import DocumentDuplicateIcon from './icons/DocumentDuplicateIcon';
-import { STUDENT_VIEWS } from '../utils/constants';
+import { STUDENT_VIEWS, USER_ROLES } from '../utils/constants';
 import Logo from './icons/Logo';
 import XIcon from './icons/XIcon';
 import BrainCircuitIcon from './icons/BrainCircuitIcon';
+import { useTenant } from '../contexts/TenantContext';
+import BookOpenIcon from './icons/BookOpenIcon';
 
 interface SidebarProps {
     isSidebarOpen: boolean;
@@ -19,7 +21,6 @@ interface SidebarProps {
     setActiveView: (view: StudentView) => void;
 }
 
-// Fix: Explicitly type NavLink as a React Functional Component (React.FC) to ensure TypeScript correctly handles the `key` prop passed during iteration.
 const NavLink: React.FC<{ icon: React.ReactNode; label: string; view: StudentView; activeView: StudentView; setActiveView: (view: StudentView) => void; }> = ({ icon, label, view, activeView, setActiveView }) => (
     <button
         onClick={() => setActiveView(view)}
@@ -35,16 +36,21 @@ const NavLink: React.FC<{ icon: React.ReactNode; label: string; view: StudentVie
 );
 
 const StudentSidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView }: SidebarProps) => {
-    const navLinks = [
-        { view: STUDENT_VIEWS.DASHBOARD, label: 'Dashboard', icon: <HomeIcon className="h-5 w-5" /> },
-        { view: STUDENT_VIEWS.RESULTS, label: 'My Results', icon: <ClipboardListIcon className="h-5 w-5" /> },
+    const { hasFeature } = useTenant();
+
+    const allNavLinks = [
+        { view: STUDENT_VIEWS.DASHBOARD, label: 'Dashboard', icon: <HomeIcon className="h-5 w-5" />, alwaysVisible: true },
+        { view: STUDENT_VIEWS.RESULTS, label: 'My Report Card', icon: <ClipboardListIcon className="h-5 w-5" /> },
+        { view: STUDENT_VIEWS.TRANSCRIPT, label: 'Transcript', icon: <BookOpenIcon className="h-5 w-5" /> },
         { view: STUDENT_VIEWS.ASSIGNMENTS, label: 'My Assignments', icon: <DocumentDuplicateIcon className="h-5 w-5" /> },
         { view: STUDENT_VIEWS.AI_TUTOR, label: 'Live AI Tutor', icon: <HeadsetIcon className="h-5 w-5" /> },
         { view: STUDENT_VIEWS.AI_TOOLS, label: 'AI Tools', icon: <BrainCircuitIcon className="h-5 w-5" /> },
         { view: STUDENT_VIEWS.TIMETABLE, label: 'Timetable', icon: <ClockIcon className="h-5 w-5" /> },
-        { view: STUDENT_VIEWS.NOTIFICATIONS, label: 'Notifications', icon: <BellIcon className="h-5 w-5" /> },
-        { view: STUDENT_VIEWS.PROFILE, label: 'My Profile', icon: <UserCircleIcon className="h-5 w-5" /> },
+        { view: STUDENT_VIEWS.NOTIFICATIONS, label: 'Notifications', icon: <BellIcon className="h-5 w-5" />, alwaysVisible: true },
+        { view: STUDENT_VIEWS.PROFILE, label: 'My Profile', icon: <UserCircleIcon className="h-5 w-5" />, alwaysVisible: true },
     ];
+
+    const navLinks = allNavLinks.filter(link => link.alwaysVisible || hasFeature(USER_ROLES.STUDENT, link.view));
 
     return (
         <>

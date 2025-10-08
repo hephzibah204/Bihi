@@ -19,7 +19,7 @@ const MinimalistReportCard = ({ student, students, scores, subjects, settings, t
     const comments = results.filter(r => r.comment);
 
     return (
-        <div className="bg-white p-12 font-sans text-gray-700 flex flex-col" style={{ width: '210mm', minHeight: '297mm' }}>
+        <div className="report-card-layout report-card-a4-size p-12 font-sans text-gray-700">
             <header className="mb-12">
                 {settings.schoolLogo && (
                     <img src={settings.schoolLogo} alt="School Logo" className="w-16 h-16 mb-4" />

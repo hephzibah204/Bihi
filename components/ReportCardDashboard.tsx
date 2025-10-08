@@ -1,6 +1,7 @@
 
+
 import React, { useState, useEffect, useMemo } from 'react';
-import { apiGetStudents, apiGetSubjects, apiGetSchoolSettings, apiGetScores, getTenantData, apiGetAttendance } from '../services/api';
+import { apiGetStudents, apiGetSubjects, apiGetSchoolSettings, apiGetScores, apiGetRemarks, apiGetAttendance } from '../services/api';
 import { Student, Subject, SchoolSettings, Score, Remark } from '../types';
 import BulkReportCardPrintView from './BulkReportCardPrintView';
 import { getReportCardTemplate } from '../utils/reportCardHelper';
@@ -31,7 +32,7 @@ const ReportCardDashboard = () => {
                     apiGetSubjects(),
                     apiGetSchoolSettings(),
                     apiGetScores(),
-                    getTenantData('remarks') || [],
+                    apiGetRemarks(),
                     apiGetAttendance()
                 ]);
 

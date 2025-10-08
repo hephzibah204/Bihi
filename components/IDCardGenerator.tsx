@@ -176,7 +176,7 @@ const IDCardGenerator = () => {
                 </div>
 
                 {/* Preview Panel */}
-                <div className="lg:col-span-2 flex items-center justify-center bg-gray-200 dark:bg-gray-800 rounded-lg p-8 min-h-[450px]">
+                <div className="lg:col-span-2 flex items-center justify-center bg-gray-200 rounded-lg p-8 min-h-[450px]">
                     {isLoading ? (
                         <div className="text-center text-gray-500">
                             <SpinnerIcon className="w-10 h-10 animate-spin mx-auto mb-3" />

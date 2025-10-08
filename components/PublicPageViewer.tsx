@@ -20,7 +20,7 @@ const PublicPageViewer: React.FC<PublicPageViewerProps> = ({ page }) => {
     }, [page]);
 
     return (
-        <article className="prose dark:prose-invert max-w-none">
+        <article className="prose max-w-none">
             <h1>{page.title}</h1>
             <div className="prose-content" dangerouslySetInnerHTML={{ __html: page.content }} />
         </article>

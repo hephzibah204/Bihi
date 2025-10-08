@@ -53,7 +53,7 @@ const ParentDashboard = ({ onLogout, demoUserId }) => {
                 <ParentBottomNavBar activeView={activeView} setActiveView={handleViewChange} />
             </div>
             <SyncStatusIndicator />
-            <Chatbot userRole={USER_ROLES.PARENT} demoUserId={demoUserId} />
+            <Chatbot userRole={USER_ROLES.PARENT} demoUserId={demoUserId} activeView={activeView} />
         </div>
     );
 };

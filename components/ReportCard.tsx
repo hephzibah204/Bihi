@@ -47,6 +47,7 @@ const ReportCard = ({ setActiveView }: ReportCardProps) => {
 
     return (
         <div>
+            <h1 className="text-2xl font-semibold">Dossier Hub</h1>
             <p className="mt-2 text-gray-600">
                 Manage all aspects of report card generation and analysis from here.
             </p>

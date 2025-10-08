@@ -78,7 +78,7 @@ const PrimaryReportCard = ({ student, students, scores, subjects, settings, term
 
 
     return (
-        <div className="bg-white p-6" style={{ width: '210mm', minHeight: '297mm', fontSize: '10px' }}>
+        <div className="report-card-layout report-card-a4-size p-6">
             <ReportCardHeader settings={settings} />
             
             <div className="flex items-center space-x-4 my-4">

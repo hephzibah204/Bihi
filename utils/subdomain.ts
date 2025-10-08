@@ -62,3 +62,17 @@ export const getSubdomain = (): string | null => {
     // 7. Otherwise, it's truly the root domain with no specific tenant.
     return null;
 };
+
+export const getPortalUrl = (subdomain: string): string => {
+    const hostname = window.location.hostname;
+    const protocol = window.location.protocol;
+    const port = window.location.port ? `:${window.location.port}` : '';
+
+    // Use subdomain format for the production domain.
+    if (hostname === 'reportsheet.com.ng' || hostname === 'www.reportsheet.com.ng') {
+        return `${protocol}//${subdomain}.reportsheet.com.ng${port}`;
+    }
+
+    // For localhost and all other preview/dev environments, use query param for reliability.
+    return `${protocol}//${hostname}${port}/?tenant=${subdomain}`;
+};
