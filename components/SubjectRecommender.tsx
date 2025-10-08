@@ -1,16 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { apiGetStudents, apiGetScores, apiGetSubjects } from '../services/api';
 import { generateText } from '../services/geminiService';
 import { Student, Score, Subject } from '../types';
 import GraduationCapIcon from './icons/GraduationCapIcon';
 import SparklesIcon from './icons/SparklesIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
+import { USER_ROLES } from '../utils/constants';
 
 interface SubjectRecommenderProps {
     studentId?: string; // If provided, hides the selector
+    userRole?: string;
 }
 
-const SubjectRecommender: React.FC<SubjectRecommenderProps> = ({ studentId }) => {
+const SubjectRecommender: React.FC<SubjectRecommenderProps> = ({ studentId, userRole }) => {
     const [students, setStudents] = useState<Student[]>([]);
     const [subjects, setSubjects] = useState<Subject[]>([]);
     const [selectedStudentId, setSelectedStudentId] = useState<string>('');
@@ -18,6 +20,7 @@ const SubjectRecommender: React.FC<SubjectRecommenderProps> = ({ studentId }) =>
     const [recommendations, setRecommendations] = useState<string>('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const isStudentView = userRole === USER_ROLES.STUDENT;
 
     useEffect(() => {
         const fetchData = async () => {
@@ -46,6 +49,8 @@ const SubjectRecommender: React.FC<SubjectRecommenderProps> = ({ studentId }) =>
         };
         fetchData();
     }, [studentId]);
+    
+    const student = useMemo(() => students.find(s => s.id === selectedStudentId), [students, selectedStudentId]);
 
     const handleGenerate = async () => {
         if (!selectedStudentId) {
@@ -57,7 +62,6 @@ const SubjectRecommender: React.FC<SubjectRecommenderProps> = ({ studentId }) =>
         setRecommendations('');
 
         try {
-            const student = students.find(s => s.id === selectedStudentId);
             if (!student) throw new Error("Selected student not found.");
 
             const studentScores: Score[] = await apiGetScores({ studentIds: [selectedStudentId] });
@@ -103,7 +107,10 @@ const SubjectRecommender: React.FC<SubjectRecommenderProps> = ({ studentId }) =>
                     <h2 className="text-xl font-semibold">AI Subject Recommender</h2>
                 </div>
                 <p className="mt-2 text-sm text-gray-500">
-                    Get AI-powered suggestions for subjects a student might excel in based on their scores and interests.
+                    {isStudentView
+                        ? "Get AI-powered suggestions for subjects you might excel in based on your scores and interests."
+                        : "Get AI-powered suggestions for subjects a student might excel in based on their scores and interests."
+                    }
                 </p>
 
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -121,7 +128,7 @@ const SubjectRecommender: React.FC<SubjectRecommenderProps> = ({ studentId }) =>
                         </div>
                     )}
                      <div className={!studentId ? '' : 'md:col-span-2'}>
-                        <label className="label">Your Interests (Optional)</label>
+                        <label className="label">{isStudentView ? 'Your Interests' : "Student's Interests"} (Optional)</label>
                         <input
                             type="text"
                             className="input-field"
@@ -140,7 +147,7 @@ const SubjectRecommender: React.FC<SubjectRecommenderProps> = ({ studentId }) =>
 
                 {recommendations && (
                     <div className="mt-4 p-4 bg-gray-100 rounded-md">
-                        <h4 className="font-semibold text-sm">Suggested Subjects for You:</h4>
+                        <h4 className="font-semibold text-sm">Suggested Subjects for {isStudentView ? 'You' : student?.name || 'the Student'}:</h4>
                         <pre className="mt-1 text-gray-800 whitespace-pre-wrap font-sans text-sm">{recommendations}</pre>
                     </div>
                 )}

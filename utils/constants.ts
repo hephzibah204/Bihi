@@ -98,6 +98,7 @@ export const PARENT_VIEWS = {
 export const APP_VIEWS = {
     DEMO: 'demo',
     SIGNUP: 'signup',
+    SIGNIN: 'signin',
     RESULT_CHECKER: 'result-checker',
     BLOG: 'blog',
     ARTICLE: 'article',

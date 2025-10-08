@@ -1,5 +1,6 @@
 
 
+
 import { getSubdomain } from '../utils/subdomain';
 import { demoSchoolSettings, demoStudents, demoSubjects, demoTeachers, demoParents, DEMO_TENANT_ID, demoMessages } from '../utils/demoData';
 // Fix: Corrected import path for supabase client
@@ -459,6 +460,22 @@ export const apiDeleteTenant = async (tenantId: string) => {
         .filter(key => key.startsWith(`tenant_${tenantId}_`))
         .forEach(key => localStorage.removeItem(key));
 };
+
+export const apiFindTenantByEmail = async (email: string): Promise<string | null> => {
+    // PRODUCTION NOTE: In a real app, this would be a single, fast database query:
+    // `SELECT tenant_id FROM teachers WHERE email = 'user@email.com' LIMIT 1;`
+    // Here, we simulate it by iterating through all tenants.
+    const tenants = await apiGetTenants();
+    for (const tenant of tenants) {
+        const teachers = getTenantData('teachers', tenant.id) || [];
+        const found = teachers.some((teacher: any) => teacher.email.toLowerCase() === email.toLowerCase());
+        if (found) {
+            return tenant.id;
+        }
+    }
+    return null;
+};
+
 
 const defaultLandingPageContent: LandingPageContent = {
     promoBanner: {

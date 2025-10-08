@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect } from 'react';
 import { getSubdomain } from './utils/subdomain';
 import Dashboard from './components/Dashboard';
@@ -19,6 +20,7 @@ import { APP_VIEWS } from './utils/constants';
 import { apiGetPlatformSettings, apiGetTenants } from './services/api';
 import PublicPageViewer from './components/PublicPageViewer';
 import { DEMO_TENANT_ID } from './utils/demoData';
+import CentralLoginPage from './components/CentralLoginPage';
 
 const App = () => {
     const [subdomain, setSubdomain] = useState<string | null>(null);
@@ -42,6 +44,7 @@ const App = () => {
             let title = 'ReportSheet | AI-Powered School Management System';
             if (currentView === APP_VIEWS.DEMO) title = 'Demo | ReportSheet';
             else if (currentView === APP_VIEWS.SIGNUP) title = 'Sign Up | ReportSheet';
+            else if (currentView === APP_VIEWS.SIGNIN) title = 'Sign In | ReportSheet';
             else if (currentView === APP_VIEWS.RESULT_CHECKER) title = 'Result Checker | ReportSheet';
             else if (currentView === APP_VIEWS.BLOG) title = 'Blog | ReportSheet';
             else if (currentView === APP_VIEWS.KB) title = 'Knowledge Base | ReportSheet';
@@ -117,6 +120,9 @@ const App = () => {
     }
     if (view === APP_VIEWS.SIGNUP) {
         return <SubscriptionPage />;
+    }
+    if (view === APP_VIEWS.SIGNIN) {
+        return <CentralLoginPage />;
     }
     if (view === APP_VIEWS.RESULT_CHECKER) {
         return <PublicResultViewer />;

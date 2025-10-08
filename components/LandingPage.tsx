@@ -1,4 +1,3 @@
-
 /*
 ================================================================================
 ================================================================================
@@ -118,7 +117,7 @@ const Header = ({ onNavigate, menuItems }) => {
                     ))}
                 </nav>
                 <div className="hidden md:flex items-center space-x-2">
-                    <button onClick={() => onNavigate(APP_VIEWS.DEMO)} className="btn btn-secondary">Explore Demo</button>
+                    <button onClick={() => onNavigate(APP_VIEWS.SIGNIN)} className="btn btn-secondary">Sign In</button>
                     <button onClick={() => onNavigate(APP_VIEWS.SIGNUP)} className="btn btn-primary">Get Started Free</button>
                 </div>
                  <div className="md:hidden">

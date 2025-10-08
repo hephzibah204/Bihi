@@ -6,12 +6,14 @@ import { Student, Subject } from '../types';
 import SparklesIcon from './icons/SparklesIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
 import BeakerIcon from './icons/BeakerIcon';
+import { USER_ROLES } from '../utils/constants';
 
 interface LearningPathwaysProps {
     studentId?: string; // Optional: If provided, component is in "student mode"
+    userRole?: string;
 }
 
-const LearningPathways: React.FC<LearningPathwaysProps> = ({ studentId }) => {
+const LearningPathways: React.FC<LearningPathwaysProps> = ({ studentId, userRole }) => {
     const [students, setStudents] = useState<Student[]>([]);
     const [subjects, setSubjects] = useState<Subject[]>([]);
     const [selectedStudentId, setSelectedStudentId] = useState<string>('');
@@ -20,6 +22,7 @@ const LearningPathways: React.FC<LearningPathwaysProps> = ({ studentId }) => {
     const [generatedPathway, setGeneratedPathway] = useState<string>('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const isStudentView = userRole === USER_ROLES.STUDENT;
 
     useEffect(() => {
         const fetchData = async () => {
@@ -101,7 +104,10 @@ const LearningPathways: React.FC<LearningPathwaysProps> = ({ studentId }) => {
                     <h2 className="text-xl font-semibold">AI Learning Pathways</h2>
                 </div>
                 <p className="mt-2 text-sm text-gray-500">
-                    Generate a personalized step-by-step plan for a student to master any topic.
+                    {isStudentView
+                        ? "Get a personalized step-by-step plan to master any topic."
+                        : "Generate a personalized step-by-step plan for a student to master any topic."
+                    }
                 </p>
 
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">

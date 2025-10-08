@@ -8,7 +8,7 @@ import { StudentView } from '../types';
 import NotificationViewer from './NotificationViewer';
 import StudentAssignments from './StudentAssignments';
 import AIAcademicTutor from './AIAcademicTutor';
-import { STUDENT_VIEWS } from '../utils/constants';
+import { STUDENT_VIEWS, USER_ROLES } from '../utils/constants';
 import PracticeQuiz from './PracticeQuiz';
 import LearningPathways from './LearningPathways';
 import SubjectRecommender from './SubjectRecommender';
@@ -60,9 +60,9 @@ const StudentDashboardContent = ({ activeView, setActiveView, demoUserId }: Stud
                         </button>
                     </div>
 
-                    <PracticeQuiz />
-                    <LearningPathways studentId={demoUserId} />
-                    <SubjectRecommender studentId={demoUserId} />
+                    <PracticeQuiz userRole={USER_ROLES.STUDENT} studentId={demoUserId} />
+                    <LearningPathways userRole={USER_ROLES.STUDENT} studentId={demoUserId} />
+                    <SubjectRecommender userRole={USER_ROLES.STUDENT} studentId={demoUserId} />
                 </div>
             );
         default:

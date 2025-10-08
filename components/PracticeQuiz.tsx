@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { generateText } from '../services/geminiService';
-import { apiGetSubjects } from '../services/api';
-import { Subject } from '../types';
+import { apiGetSubjects, apiGetStudents } from '../services/api';
+import { Student, Subject } from '../types';
 import SparklesIcon from './icons/SparklesIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
 import DocumentTextIcon from './icons/DocumentTextIcon';
 import CopyIcon from './icons/CopyIcon';
 import CheckIcon from './icons/CheckIcon';
+import { USER_ROLES } from '../utils/constants';
 
 // Define the structure for a quiz item
 interface QuizItem {
@@ -15,7 +16,7 @@ interface QuizItem {
     answer: string;
 }
 
-const PracticeQuiz = () => {
+const PracticeQuiz = ({ userRole, studentId }: { userRole?: string, studentId?: string }) => {
     // State for inputs
     const [subjects, setSubjects] = useState<Subject[]>([]);
     const [classes, setClasses] = useState<string[]>([]);
@@ -31,6 +32,7 @@ const PracticeQuiz = () => {
 
     // State for UI feedback
     const [copySuccess, setCopySuccess] = useState('');
+    const isStudentView = userRole === USER_ROLES.STUDENT;
 
     useEffect(() => {
         const fetchPrerequisites = async () => {
@@ -39,7 +41,7 @@ const PracticeQuiz = () => {
                 setSubjects(subs);
                 const allClasses = [...new Set(subs.flatMap(s => s.classes))].sort();
                 setClasses(allClasses);
-                if (allClasses.length > 0) {
+                if (!isStudentView && allClasses.length > 0) {
                     setSelectedClass(allClasses[0]);
                 }
             } catch (e) {
@@ -48,7 +50,20 @@ const PracticeQuiz = () => {
             }
         };
         fetchPrerequisites();
-    }, []);
+    }, [isStudentView]);
+    
+    useEffect(() => {
+        const fetchStudentData = async () => {
+            if (studentId && isStudentView) {
+                const studentsData = await apiGetStudents();
+                const currentStudent = studentsData.find(s => s.id === studentId);
+                if (currentStudent) {
+                    setSelectedClass(currentStudent.class);
+                }
+            }
+        };
+        fetchStudentData();
+    }, [studentId, isStudentView]);
 
     const filteredSubjects = useMemo(() => {
         if (!selectedClass) return [];
@@ -141,13 +156,16 @@ const PracticeQuiz = () => {
                     <h2 className="text-xl font-semibold">AI Practice Quiz Generator</h2>
                 </div>
                 <p className="mt-2 text-sm text-gray-500">
-                    Instantly create practice quizzes on any topic to help students prepare for exams.
+                    {isStudentView
+                        ? "Instantly create practice quizzes on any topic to help you prepare for exams."
+                        : "Instantly create practice quizzes on any topic to help students prepare for exams."
+                    }
                 </p>
 
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label className="label">Class</label>
-                        <select className="input-field" value={selectedClass} onChange={e => setSelectedClass(e.target.value)} disabled={classes.length === 0}>
+                        <select className="input-field" value={selectedClass} onChange={e => setSelectedClass(e.target.value)} disabled={isStudentView || classes.length === 0}>
                             {classes.map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
                     </div>
