@@ -32,19 +32,27 @@ const SubscriptionManagementModal: React.FC<SubscriptionManagementModalProps> = 
     const handleSave = async () => {
         setSaving(true);
         try {
+            const updatedTenantData: Partial<Tenant> = { ...tenant, planId: selectedPlanId };
+    
+            if (status === 'unsubscribed') {
+                updatedTenantData.planId = null;
+                updatedTenantData.subscriptionExpiryDate = null;
+                updatedTenantData.trialEndDate = null;
+            } else if (status === 'trial') {
+                updatedTenantData.planId = null;
+                updatedTenantData.subscriptionExpiryDate = null;
+                updatedTenantData.trialEndDate = subscriptionExpiryDate;
+            } else if (status === 'active' || status === 'expired') {
+                updatedTenantData.subscriptionExpiryDate = subscriptionExpiryDate;
+                updatedTenantData.trialEndDate = null;
+            }
+            
             // 1. Update the platform-level tenant record
-            const updatedTenant: Tenant = {
-                ...tenant,
-                planId: selectedPlanId || null,
-                subscriptionStatus: status,
-                subscriptionExpiryDate: subscriptionExpiryDate || null,
-                trialEndDate: status === 'trial' ? (subscriptionExpiryDate || tenant.trialEndDate) : null,
-            };
-            await apiUpdateTenant(updatedTenant);
+            await apiUpdateTenant(updatedTenantData as Tenant);
             
             // 2. Update the tenant's own settings for immediate effect in their portal
             const schoolSettings = await apiGetSchoolSettings(tenant.id);
-            await apiSaveSchoolSettings({ ...schoolSettings, planId: selectedPlanId || null }, tenant.id);
+            await apiSaveSchoolSettings({ ...schoolSettings, planId: updatedTenantData.planId }, tenant.id);
 
         } catch (error) {
             console.error("Failed to update subscription", error);
@@ -85,9 +93,9 @@ const SubscriptionManagementModal: React.FC<SubscriptionManagementModalProps> = 
                     </select>
                 </div>
                  <div>
-                    <label className="label">Subscription Expiry Date</label>
+                    <label className="label">Expiry Date</label>
                     <input type="date" value={subscriptionExpiryDate} onChange={e => setSubscriptionExpiryDate(e.target.value)} className="input-field" />
-                     <p className="text-xs text-gray-500 mt-1">Set this to confirm a manual payment or extend a trial.</p>
+                     <p className="text-xs text-gray-500 mt-1">Set this to confirm a manual payment or set a trial end date.</p>
                 </div>
                 <div className="flex justify-end pt-4">
                     <button onClick={handleSave} disabled={saving} className="btn btn-primary">

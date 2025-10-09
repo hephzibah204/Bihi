@@ -1,4 +1,4 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { ErrorInfo, ReactNode } from 'react';
 
 interface ErrorBoundaryProps {
   children?: ReactNode;
@@ -8,8 +8,8 @@ interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-// Fix: Converted ErrorBoundary to a proper React class component by extending `Component` and adding types for props and state. This resolves the error where 'this.props' was not accessible because the class was not a component.
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+// Fix: Made ErrorBoundary a valid React class component by extending `React.Component`. This resolves the error "Property 'props' does not exist on type 'ErrorBoundary'".
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public state: ErrorBoundaryState = {
     hasError: false,
   };

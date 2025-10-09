@@ -471,11 +471,36 @@ export const apiUseScratchCard = async (pin: string, tenantId: string) => {
 // NEW: Mappers to handle snake_case from DB vs camelCase in app
 const fromDbTenant = (dbTenant: any): Tenant => {
     if (!dbTenant) return null;
+
+    const calculateStatus = (): 'active' | 'trial' | 'expired' | 'unsubscribed' => {
+        const now = new Date();
+        const expiryDate = dbTenant.subscription_expiry_date ? new Date(dbTenant.subscription_expiry_date) : null;
+        const trialEndDate = dbTenant.trial_end_date ? new Date(dbTenant.trial_end_date) : null;
+
+        // An active subscription is the highest priority status
+        if (dbTenant.plan_id && expiryDate && expiryDate > now) {
+            return 'active';
+        }
+
+        // If not active, check if there's an ongoing trial
+        if (trialEndDate && trialEndDate > now) {
+            return 'trial';
+        }
+
+        // If not active or in trial, check if anything has expired
+        if ((dbTenant.plan_id && expiryDate && expiryDate <= now) || (trialEndDate && trialEndDate <= now)) {
+            return 'expired';
+        }
+        
+        // Otherwise, they are unsubscribed
+        return 'unsubscribed';
+    };
+
     return {
         id: dbTenant.id,
         name: dbTenant.name,
         planId: dbTenant.plan_id,
-        subscriptionStatus: dbTenant.subscription_status,
+        subscriptionStatus: calculateStatus(),
         trialEndDate: dbTenant.trial_end_date,
         subscriptionExpiryDate: dbTenant.subscription_expiry_date,
     };
@@ -486,7 +511,6 @@ const toDbTenant = (tenant: Partial<Tenant>): any => {
     if (tenant.id) dbTenant.id = tenant.id;
     if (tenant.name) dbTenant.name = tenant.name;
     if (tenant.planId !== undefined) dbTenant.plan_id = tenant.planId;
-    if (tenant.subscriptionStatus) dbTenant.subscription_status = tenant.subscriptionStatus;
     if (tenant.trialEndDate !== undefined) dbTenant.trial_end_date = tenant.trialEndDate;
     if (tenant.subscriptionExpiryDate !== undefined) dbTenant.subscription_expiry_date = tenant.subscriptionExpiryDate;
     return dbTenant;
@@ -522,7 +546,6 @@ export const apiAddTenant = async (tenant: { id: string, name: string }) => {
 
     const newTenant: Partial<Tenant> = {
         ...tenant,
-        subscriptionStatus: 'trial',
         trialEndDate: trialEndDate.toISOString(),
     };
     const { error } = await supabase.from('tenants').insert(toDbTenant(newTenant));
