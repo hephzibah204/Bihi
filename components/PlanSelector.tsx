@@ -127,8 +127,8 @@ const PlanSelector: React.FC<PlanSelectorProps> = ({ isSubscribed, planName }) =
                                 <p className="mt-4 text-3xl font-bold">₦{priceForDisplay.toLocaleString()}</p>
                                 <ul className="mt-6 space-y-2 text-sm text-gray-600 dark:text-gray-300 flex-grow">
                                     <li className="flex items-center"><CheckIcon className="w-4 h-4 mr-2 text-green-500"/> Up to {plan.features.maxStudents} students</li>
-                                    <li className={`flex items-center ${plan.features.hasAI ? '' : 'text-gray-400 line-through'}`}><CheckIcon className="w-4 h-4 mr-2 text-green-500"/> AI Assistant Tools</li>
-                                    <li className={`flex items-center ${plan.features.hasAnalytics ? '' : 'text-gray-400 line-through'}`}><CheckIcon className="w-4 h-4 mr-2 text-green-500"/> Advanced Analytics</li>
+                                    <li className={`flex items-center ${plan.features['ai-tools'] ? '' : 'text-gray-400 line-through'}`}><CheckIcon className="w-4 h-4 mr-2 text-green-500"/> AI Assistant Tools</li>
+                                    <li className={`flex items-center ${plan.features['analytics'] ? '' : 'text-gray-400 line-through'}`}><CheckIcon className="w-4 h-4 mr-2 text-green-500"/> Advanced Analytics</li>
                                 </ul>
                                 <button 
                                     onClick={() => handleSubscribe(plan)} 

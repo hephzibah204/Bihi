@@ -1,6 +1,7 @@
 import React, { useState, PropsWithChildren } from 'react';
 import { apiGetPlatformSettings, apiSavePlatformSettings } from '../services/api';
 import LandingPageEditor from './LandingPageEditor';
+import PlanManager from './PlanManager';
 
 const GeneralSettings = ({ settings, handleChange }) => (
     <div className="mt-6 space-y-4">
@@ -87,12 +88,14 @@ const PlatformSettings = () => {
                     <div className="border-b">
                         <TabButton view="general">General</TabButton>
                         <TabButton view="landing-page">Landing Page</TabButton>
+                        <TabButton view="plans">Plans</TabButton>
                         <TabButton view="payments">Payment Gateways</TabButton>
                     </div>
 
                     <div className="mt-6">
                         {activeTab === 'general' && <GeneralSettings settings={settings} handleChange={handleChange} />}
                         {activeTab === 'landing-page' && <LandingPageEditor settings={settings} onSave={handleSave} />}
+                        {activeTab === 'plans' && <PlanManager />}
                         {activeTab === 'payments' && <PaymentSettings settings={settings} handleChange={handleChange} />}
                     </div>
                 </div>

@@ -1,14 +1,16 @@
-import React from 'react';
-import { ParentView } from '../types';
-import ParentHome from './ParentHome';
-import ParentResults from './ParentResults';
-import ParentAttendance from './ParentAttendance';
-import ParentBehavioral from './ParentBehavioral';
-import NotificationViewer from './NotificationViewer';
-import ParentAssignments from './ParentAssignments';
-import { PARENT_VIEWS } from '../utils/constants';
-import DirectMessages from './DirectMessages';
 
+import React, { lazy } from 'react';
+import { ParentView } from '../types';
+import { PARENT_VIEWS } from '../utils/constants';
+
+// Lazy-loaded components
+const ParentHome = lazy(() => import('./ParentHome'));
+const ParentResults = lazy(() => import('./ParentResults'));
+const ParentAttendance = lazy(() => import('./ParentAttendance'));
+const ParentBehavioral = lazy(() => import('./ParentBehavioral'));
+const NotificationViewer = lazy(() => import('./NotificationViewer'));
+const ParentAssignments = lazy(() => import('./ParentAssignments'));
+const DirectMessages = lazy(() => import('./DirectMessages'));
 
 interface ParentDashboardContentProps {
     activeView: ParentView;

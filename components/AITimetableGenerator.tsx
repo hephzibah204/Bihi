@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import Modal from './Modal';
-import { generateText } from '../services/geminiService';
+import { useAI } from '../hooks/useAI';
 import SpinnerIcon from './icons/SpinnerIcon';
 import BrainCircuitIcon from './icons/BrainCircuitIcon';
 
 const AITimetableGenerator = ({ isOpen, onClose, onApply, subjects, teachers, classes, timeSlots, days }) => {
+    const { generateResponse, status } = useAI();
     const [isLoading, setIsLoading] = useState(false);
     const [generatedTimetable, setGeneratedTimetable] = useState(null);
     const [error, setError] = useState('');
@@ -37,7 +38,14 @@ const AITimetableGenerator = ({ isOpen, onClose, onApply, subjects, teachers, cl
         `;
 
         try {
-            const response = await generateText(prompt);
+            const response = await generateResponse({ prompt });
+
+            if (status === 'fallback') {
+                setError(response);
+                setIsLoading(false);
+                return;
+            }
+
             const cleanedResponse = response.replace(/```json/g, '').replace(/```/g, '').trim();
             const parsedTimetable = JSON.parse(cleanedResponse);
             setGeneratedTimetable(parsedTimetable);

@@ -1,7 +1,8 @@
 
+
 import React, { useState, useEffect, useMemo } from 'react';
+import { useAI } from '../hooks/useAI';
 import { apiGetStudents, apiGetSubjects } from '../services/api';
-import { generateText } from '../services/geminiService';
 import { Student, Subject } from '../types';
 import SparklesIcon from './icons/SparklesIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
@@ -20,6 +21,7 @@ const LearningPathways: React.FC<LearningPathwaysProps> = ({ studentId, userRole
     const [topic, setTopic] = useState<string>('');
     const [learningStyle, setLearningStyle] = useState<string>('Balanced');
     const [generatedPathway, setGeneratedPathway] = useState<string>('');
+    const { generateResponse, status } = useAI();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const isStudentView = userRole === USER_ROLES.STUDENT;
@@ -64,7 +66,6 @@ const LearningPathways: React.FC<LearningPathwaysProps> = ({ studentId, userRole
         setGeneratedPathway('');
 
         try {
-            // Fix: Cast `selectedStudent` to `Student` to resolve type error. The component logic ensures this is safe, as this branch is only taken when `studentId` is not provided, meaning `selectedStudent` is a full `Student` object.
             const studentInfo = studentId 
                 ? 'the student' 
                 : `a student named ${(selectedStudent as Student)?.name || 'a student'} in ${selectedStudent?.class || 'their class'}`;
@@ -87,7 +88,7 @@ const LearningPathways: React.FC<LearningPathwaysProps> = ({ studentId, userRole
                 Format the response clearly with headings for each step.
             `;
 
-            const result = await generateText(prompt);
+            const result = await generateResponse({ prompt });
             setGeneratedPathway(result);
         } catch (err) {
             setError(`Failed to generate learning pathway: ${err.message}`);
@@ -99,9 +100,15 @@ const LearningPathways: React.FC<LearningPathwaysProps> = ({ studentId, userRole
     return (
         <div className="card">
             <div className="p-6">
-                <div className="flex items-center">
-                    <BeakerIcon className="w-6 h-6 mr-3 text-purple-500" />
-                    <h2 className="text-xl font-semibold">AI Learning Pathways</h2>
+                <div className="flex justify-between items-start">
+                    <div className="flex items-center">
+                        <BeakerIcon className="w-6 h-6 mr-3 text-purple-500" />
+                        <h2 className="text-xl font-semibold">AI Learning Pathways</h2>
+                    </div>
+                     <div className="flex items-center text-xs text-gray-500">
+                         <span className={`w-2 h-2 rounded-full mr-2 ${status === 'gemini' ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
+                         {status === 'gemini' ? 'Online' : 'Offline'}
+                    </div>
                 </div>
                 <p className="mt-2 text-sm text-gray-500">
                     {isStudentView

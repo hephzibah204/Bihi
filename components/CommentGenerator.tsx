@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
-import { generateText } from '../services/geminiService';
 import SparklesIcon from './icons/SparklesIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
-import { useOnlineStatus } from '../hooks/useOnlineStatus';
-import { generateFallbackComment } from '../services/fallbackAiService';
+import { useAI } from '../hooks/useAI';
 
 const CommentGenerator = () => {
     const [studentInfo, setStudentInfo] = useState('');
     const [generatedComment, setGeneratedComment] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const isOnline = useOnlineStatus();
+    const { generateResponse, status } = useAI();
 
     const handleGenerate = async () => {
         if (!studentInfo) return;
@@ -17,14 +15,8 @@ const CommentGenerator = () => {
         setGeneratedComment('');
         
         try {
-            let comment;
             const prompt = `Generate a constructive and encouraging report card comment (2-3 sentences) for a student based on the following performance summary: "${studentInfo}"`;
-
-            if (isOnline) {
-                comment = await generateText(prompt);
-            } else {
-                comment = generateFallbackComment({ studentName: 'The student', performanceSummary: studentInfo });
-            }
+            const comment = await generateResponse({ prompt, context: { userRole: 'Teacher' } });
             setGeneratedComment(comment);
         } catch (error) {
             console.error("Failed to generate comment:", error);
@@ -37,10 +29,18 @@ const CommentGenerator = () => {
     return (
         <div className="card">
             <div className="p-6">
-                <h2 className="text-xl font-semibold">AI Comment Generator</h2>
-                <p className="mt-2 text-sm text-gray-500">
-                    Enter a student's performance summary (e.g., "Good in maths, struggles with reading comprehension") to get a personalized comment.
-                </p>
+                <div className="flex justify-between items-start">
+                    <div>
+                        <h2 className="text-xl font-semibold">AI Comment Generator</h2>
+                        <p className="mt-2 text-sm text-gray-500">
+                            Enter a student's performance summary to get a personalized comment.
+                        </p>
+                    </div>
+                    <div className="flex items-center text-xs text-gray-500">
+                         <span className={`w-2 h-2 rounded-full mr-2 ${status === 'gemini' ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
+                         {status === 'gemini' ? 'Online' : 'Offline'}
+                    </div>
+                </div>
                 <div className="mt-4">
                     <textarea
                         className="input-field"

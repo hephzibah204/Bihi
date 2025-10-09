@@ -3,10 +3,10 @@ import { getSubdomain } from '../utils/subdomain';
 import { 
     demoSchoolSettings, demoStudents, demoSubjects, demoTeachers, demoParents, DEMO_TENANT_ID, 
     demoMessages, demoScores, demoRemarks, demoAssignments, demoAssignmentScores, demoAttendance,
-    demoBehavioralRecords, demoTimetable, demoFees, demoScratchCards, demoAnnouncements
+    demoBehavioralRecords, demoTimetable, demoFees, demoScratchCards, demoAnnouncements, demoSharedLessonPlans
 } from '../utils/demoData';
 import { supabase } from './supabaseClient';
-import { Tenant, LandingPageContent, ReportCardSettings, Conversation, Message, Announcement, Fee, ScratchCard, SchoolSettings, Student, Subject, Teacher, Parent, Score, Remark, Assignment, AssignmentScore, BehavioralLogEntry, PlatformUser } from '../types';
+import { Tenant, LandingPageContent, ReportCardSettings, Conversation, Message, Announcement, Fee, ScratchCard, SchoolSettings, Student, Subject, Teacher, Parent, Score, Remark, Assignment, AssignmentScore, BehavioralLogEntry, PlatformUser, SharedLessonPlan } from '../types';
 import { TEACHER_CONTROLLABLE_FEATURES, STUDENT_CONTROLLABLE_FEATURES, PARENT_CONTROLLABLE_FEATURES } from '../utils/constants';
 
 // --- Tenancy & Mode ---
@@ -476,10 +476,12 @@ export const apiGetTenants = async (): Promise<Tenant[]> => {
 
 export const apiAddTenant = async (tenant: { id: string, name: string }) => {
     if (!supabase) throw new Error("Database client not initialized.");
+    const trialExpiry = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
     const newTenant: Partial<Tenant> = {
         ...tenant,
         subscriptionStatus: 'trial',
-        trialEndDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+        trialEndDate: trialExpiry,
+        subscriptionExpiryDate: trialExpiry,
     };
     const { error } = await supabase.from('tenants').insert(newTenant);
     if (error) throw error;
@@ -635,16 +637,86 @@ export const apiSendAlumniEmail = async (recipients: string[], subject: string, 
     await new Promise(res => setTimeout(res, 1000));
 };
 export const getCurrentUser = async () => {
+    // 1. Handle Demo Mode
+    if (isDemoMode()) {
+        const activeUserSession = sessionStorage.getItem('activeUser');
+        if (activeUserSession) {
+            try {
+                const parsedUser = JSON.parse(activeUserSession);
+                if (parsedUser.role === 'Admin' || parsedUser.role === 'Teacher') {
+                    // Use the first Admin in demo data as the representative user
+                    const demoAdmin = demoTeachers.find(t => t.role === 'Admin');
+                    if (demoAdmin) return { id: demoAdmin.auth_id, name: demoAdmin.name, role: demoAdmin.role };
+                }
+                if (parsedUser.role === 'Parent') {
+                    const student = demoStudents.find(s => s.id === parsedUser.userId);
+                    if (student && student.parentId) {
+                        const parent = demoParents.find(p => p.id === student.parentId);
+                        if (parent) return { id: parent.id, name: parent.name, role: 'Parent' };
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to parse demo user session", e);
+                return null;
+            }
+        }
+        return null; // Could not identify demo user
+    }
+
+    // 2. Handle Live Mode
     if (!supabase) return null;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
-    const teachers = await apiGetTeachers();
-    const teacherProfile = teachers.find(t => t.auth_id === user.id || t.email.toLowerCase() === user.email.toLowerCase());
-    if (teacherProfile) return { id: teacherProfile.auth_id, name: teacherProfile.name, role: teacherProfile.role };
+
+    const [teachers, parents] = await Promise.all([apiGetTeachers(), apiGetParents()]);
+
+    const teacherProfile = teachers.find(t => t.auth_id === user.id);
+    if (teacherProfile) {
+        return { id: teacherProfile.auth_id, name: teacherProfile.name, role: teacherProfile.role };
+    }
+    if (user.user_metadata?.parent_id) {
+        const parentProfile = parents.find(p => p.id === user.user_metadata.parent_id);
+        if (parentProfile) {
+            return { id: parentProfile.id, name: parentProfile.name, role: 'Parent' };
+        }
+    }
+    
     return { id: user.id, name: user.email, role: 'Unknown' };
 }
 export const apiGetConversationSummaries = async (userId: string, userRole: string): Promise<Conversation[]> => {
-    if (isDemoMode()) return []; // To be implemented
+    if (isDemoMode()) {
+        const relevantMessages = demoMessages.filter(
+            m => m.senderId === userId || m.recipientId === userId
+        );
+        const conversationsMap = new Map();
+
+        relevantMessages.forEach(msg => {
+            const otherParticipantId = msg.senderId === userId ? msg.recipientId : msg.senderId;
+            if (!conversationsMap.has(otherParticipantId) || new Date(msg.timestamp) > new Date(conversationsMap.get(otherParticipantId).lastMessage.timestamp)) {
+                
+                let otherParticipant;
+                const teacher = demoTeachers.find(t => t.auth_id === otherParticipantId);
+                const parent = demoParents.find(p => p.id === otherParticipantId);
+
+                if (teacher) {
+                    otherParticipant = { id: teacher.auth_id, name: teacher.name, role: teacher.role };
+                } else if (parent) {
+                    otherParticipant = { id: parent.id, name: parent.name, role: 'Parent' };
+                } else {
+                    return; // Skip if participant not found
+                }
+
+                conversationsMap.set(otherParticipantId, {
+                    id: [userId, otherParticipantId].sort().join('_'),
+                    participants: [userId, otherParticipantId],
+                    lastMessage: msg,
+                    otherParticipant,
+                });
+            }
+        });
+        
+        return Array.from(conversationsMap.values());
+    }
     if (!supabase) throw new Error("Database client not initialized.");
     const { data, error } = await supabase.rpc('get_conversation_summaries', { p_user_id: userId });
     if (error) throw error;
@@ -700,4 +772,39 @@ export const apiGetActivities = async (): Promise<any[]> => {
     const { data, error } = await supabase.from('activities').select('*').order('timestamp', { ascending: false }).limit(5);
     if (error) { console.error('Error fetching activities:', error); return []; }
     return data || [];
+};
+
+export const apiGetSharedLessonPlans = async (): Promise<SharedLessonPlan[]> => {
+    if (isDemoMode()) return demoSharedLessonPlans;
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { data, error } = await supabase.from('shared_lesson_plans').select('*').order('createdAt', { ascending: false });
+    if (error) throw error;
+    return data || [];
+};
+
+export const apiShareLessonPlan = async (planData: Partial<SharedLessonPlan>): Promise<void> => {
+    if (isDemoMode()) {
+        demoSharedLessonPlans.unshift({ ...planData, id: `shared_${Date.now()}`, createdAt: new Date().toISOString(), upvotes: 0 } as SharedLessonPlan);
+        console.warn("DEMO: Shared lesson plan.");
+        return;
+    }
+    if (!supabase) throw new Error("Database client not initialized.");
+    const { error } = await supabase.from('shared_lesson_plans').insert(planData);
+    if (error) throw error;
+};
+
+export const apiUpvoteLessonPlan = async (planId: string): Promise<void> => {
+     if (isDemoMode()) {
+        const plan = demoSharedLessonPlans.find(p => p.id === planId);
+        if (plan) plan.upvotes += 1;
+        console.warn("DEMO: Upvoted lesson plan.");
+        return;
+    }
+    if (!supabase) throw new Error("Database client not initialized.");
+    // This should ideally be an RPC call for atomic increment.
+    // For simplicity, we'll do a read-then-write.
+    const { data: current, error: fetchError } = await supabase.from('shared_lesson_plans').select('upvotes').eq('id', planId).single();
+    if (fetchError) throw fetchError;
+    const { error: updateError } = await supabase.from('shared_lesson_plans').update({ upvotes: (current.upvotes || 0) + 1 }).eq('id', planId);
+    if (updateError) throw updateError;
 };

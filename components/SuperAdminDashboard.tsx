@@ -11,6 +11,8 @@ import PageManager from './PageManager';
 import MenuManager from './MenuManager';
 import PlatformUserManager from './PlatformUserManager';
 import { ADMIN_VIEWS } from '../utils/constants';
+import ArticleManager from './ArticleManager';
+import KBArticleManager from './KBArticleManager';
 
 const SuperAdminDashboard = () => {
     const [session, setSession] = useState(null);
@@ -54,6 +56,8 @@ const SuperAdminDashboard = () => {
             case ADMIN_VIEWS.PAGES: return <PageManager />;
             case ADMIN_VIEWS.MENUS: return <MenuManager />;
             case ADMIN_VIEWS.PLATFORM_SETTINGS: return <PlatformSettings />;
+            case ADMIN_VIEWS.BLOG_ARTICLES: return <ArticleManager />;
+            case ADMIN_VIEWS.KB_ARTICLES: return <KBArticleManager />;
             default: return <TenantManagement />;
         }
     }
@@ -67,6 +71,8 @@ const SuperAdminDashboard = () => {
                     <button onClick={() => setActiveView('tenants')} className="w-full text-left p-2 rounded hover:bg-gray-700">Schools</button>
                      <button onClick={() => setActiveView(ADMIN_VIEWS.PAGES)} className="w-full text-left p-2 rounded hover:bg-gray-700">Pages</button>
                      <button onClick={() => setActiveView(ADMIN_VIEWS.MENUS)} className="w-full text-left p-2 rounded hover:bg-gray-700">Menus</button>
+                     <button onClick={() => setActiveView(ADMIN_VIEWS.BLOG_ARTICLES)} className="w-full text-left p-2 rounded hover:bg-gray-700">Blog / Content</button>
+                     <button onClick={() => setActiveView(ADMIN_VIEWS.KB_ARTICLES)} className="w-full text-left p-2 rounded hover:bg-gray-700">Knowledge Base</button>
                      <button onClick={() => setActiveView(ADMIN_VIEWS.USERS)} className="w-full text-left p-2 rounded hover:bg-gray-700">Users</button>
                     <button onClick={() => setActiveView(ADMIN_VIEWS.PLATFORM_SETTINGS)} className="w-full text-left p-2 rounded hover:bg-gray-700">Settings</button>
                 </nav>

@@ -1,7 +1,7 @@
 // utils/demoData.ts
 
 import { USER_ROLES } from './constants';
-import { SchoolSettings, Parent, Student, Message, Score, Remark, Assignment, AssignmentScore, BehavioralLogEntry, Fee, ScratchCard, Announcement, Teacher } from '../types';
+import { SchoolSettings, Parent, Student, Message, Score, Remark, Assignment, AssignmentScore, BehavioralLogEntry, Fee, ScratchCard, Announcement, Teacher, SharedLessonPlan } from '../types';
 
 export const DEMO_TENANT_ID = 'demo';
 
@@ -287,4 +287,29 @@ export const demoAnnouncements: Announcement[] = [
     { id: 'ann_1', title: 'Welcome to the New Term!', content: 'We are excited to welcome all students and parents to the second term of the 2023/2024 academic session. We look forward to a term of hard work and great achievements.', recipients: ['all'], created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() },
     { id: 'ann_2', title: 'JSS 1 Mathematics Assignment', content: 'Please be reminded that the first mathematics assignment is due this Friday. Ensure you submit on time.', recipients: ['JSS 1'], created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
     { id: 'ann_3', title: 'SSS 1 Physics Practical Test', content: 'There will be a practical test for all SSS 1 students during the scheduled Physics period next week Monday.', recipients: ['SSS 1'], created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() },
+];
+
+export const demoSharedLessonPlans: SharedLessonPlan[] = [
+    {
+        id: 'shared_1',
+        topic: 'Introduction to Photosynthesis',
+        class: 'JSS 1',
+        subjectId: 'subj_3', // Basic Science
+        content: `**Learning Objectives:**\n1. Define Photosynthesis.\n2. List the requirements for photosynthesis.\n3. State the products of photosynthesis.\n\n**Lesson Procedure:**\n- Start with a question: "What do plants eat?"\n- Explain the process using a simple diagram.\n- Conduct a simple experiment to show the presence of starch in a leaf.\n\n**Evaluation:**\n- Ask students to draw and label the photosynthesis process.`,
+        sharedByTeacherId: 'teacher_2',
+        sharedByTeacherName: 'Mrs. Jane Smith',
+        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        upvotes: 12,
+    },
+    {
+        id: 'shared_2',
+        topic: 'Quadratic Equations',
+        class: 'SSS 1',
+        subjectId: 'subj_1', // Mathematics
+        content: `**Learning Objectives:**\n1. Identify a quadratic equation.\n2. Solve quadratic equations by factorization.\n3. Apply the quadratic formula.\n\n**Lesson Procedure:**\n- Introduction: Review linear equations.\n- Presentation: Introduce the general form ax^2 + bx + c = 0.\n- Practice: Give students multiple examples to solve on the board.\n\n**Assignment:**\n- Solve questions 1-10 from page 54 of the New General Mathematics textbook.`,
+        sharedByTeacherId: 'teacher_1',
+        sharedByTeacherName: 'Mr. John Doe',
+        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+        upvotes: 28,
+    }
 ];

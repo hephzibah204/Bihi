@@ -18,10 +18,22 @@ interface NavItemProps {
 const NavItem: FC<NavItemProps> = ({ icon, label, view, isActive, onClick }) => (
     <button 
         onClick={() => onClick(view)}
-        className={`flex flex-col items-center justify-center w-full h-full pt-2 pb-1 transition-colors duration-200 ${isActive ? 'text-indigo-600' : 'text-gray-500'}`}
+        className={`flex-1 flex flex-col items-center justify-center pt-2 pb-1 transition-colors duration-200 relative ${
+            isActive 
+                ? 'text-indigo-600' 
+                : 'text-gray-500 hover:text-indigo-600'
+        }`}
+        aria-current={isActive ? 'page' : undefined}
     >
+        {/* Animated indicator for active state */}
+        <span className={`absolute top-0 h-1 w-8 bg-indigo-600 rounded-full transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-0'}`}></span>
+        
+        {/* The icon passed from navItems already has size classes */}
         {icon}
-        <span className="text-xs mt-1">{label}</span>
+        
+        <span className={`text-xs mt-1 font-semibold transition-colors ${isActive ? 'text-indigo-600' : 'text-gray-600'}`}>
+            {label}
+        </span>
     </button>
 );
 
@@ -41,18 +53,18 @@ const AdminBottomNavBar: FC<BottomNavBarProps> = ({ activeView, setActiveView })
 
     return (
         <nav className="bottom-nav md:hidden">
-            <div className="flex justify-around items-center h-full">
-                {navItems.map((item) => (
-                    <NavItem 
-                        key={item.view}
-                        icon={item.icon}
-                        label={item.label}
-                        view={item.view}
-                        isActive={activeView === item.view}
-                        onClick={setActiveView}
-                    />
-                ))}
-            </div>
+            {/* The `bottom-nav` class from index.html is already display:flex.
+                The NavItem components are now direct flex children and use flex-1 to distribute space correctly. */}
+            {navItems.map((item) => (
+                <NavItem 
+                    key={item.view}
+                    icon={item.icon}
+                    label={item.label}
+                    view={item.view}
+                    isActive={activeView === item.view}
+                    onClick={setActiveView}
+                />
+            ))}
         </nav>
     );
 };

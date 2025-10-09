@@ -1,19 +1,24 @@
-import React from 'react';
-// Fix: Correctly import TeacherView from the central types file.
+
+
+import React, { lazy, Suspense } from 'react';
 import { TeacherView } from '../types';
-import TeacherHome from './TeacherHome';
-import MyStudents from './MyStudents';
-import Results from './Results';
-import TeacherSchedule from './TeacherSchedule';
-import LessonPlanner from './LessonPlanner';
-import CommentGenerator from './CommentGenerator';
 import { TEACHER_VIEWS } from '../utils/constants';
-import LearningPathways from './LearningPathways';
-import PracticeQuiz from './PracticeQuiz';
-import EarlyIntervention from './EarlyIntervention';
-import BroadsheetAnalysis from './BroadsheetAnalysis';
-import SubjectRecommender from './SubjectRecommender';
-import DirectMessages from './DirectMessages';
+
+// Lazy-loaded components
+const TeacherHome = lazy(() => import('./TeacherHome'));
+const MyStudents = lazy(() => import('./MyStudents'));
+const Results = lazy(() => import('./Results'));
+const TeacherSchedule = lazy(() => import('./TeacherSchedule'));
+const LessonPlanner = lazy(() => import('./LessonPlanner'));
+const CommentGenerator = lazy(() => import('./CommentGenerator'));
+const LearningPathways = lazy(() => import('./LearningPathways'));
+const PracticeQuiz = lazy(() => import('./PracticeQuiz'));
+const EarlyIntervention = lazy(() => import('./EarlyIntervention'));
+const BroadsheetAnalysis = lazy(() => import('./BroadsheetAnalysis'));
+const SubjectRecommender = lazy(() => import('./SubjectRecommender'));
+const DirectMessages = lazy(() => import('./DirectMessages'));
+const ResourceHub = lazy(() => import('./ResourceHub'));
+const DashboardKnowledgeBase = lazy(() => import('./DashboardKnowledgeBase'));
 
 
 interface TeacherDashboardContentProps {
@@ -26,17 +31,17 @@ const AiTools = () => (
         <div>
             <p className="text-gray-600">Use these AI-powered tools to streamline your workflow.</p>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
-                <CommentGenerator />
-                <LessonPlanner />
-                <SubjectRecommender />
-                <LearningPathways />
-                <PracticeQuiz />
-                <EarlyIntervention />
+                <Suspense fallback={<div className="card p-4">Loading...</div>}><CommentGenerator /></Suspense>
+                <Suspense fallback={<div className="card p-4">Loading...</div>}><LessonPlanner /></Suspense>
+                <Suspense fallback={<div className="card p-4">Loading...</div>}><SubjectRecommender /></Suspense>
+                <Suspense fallback={<div className="card p-4">Loading...</div>}><LearningPathways /></Suspense>
+                <Suspense fallback={<div className="card p-4">Loading...</div>}><PracticeQuiz /></Suspense>
+                <Suspense fallback={<div className="card p-4">Loading...</div>}><EarlyIntervention /></Suspense>
             </div>
         </div>
         <div className="mt-8">
             <h2 className="text-2xl font-semibold mb-4">Class Broadsheet</h2>
-            <BroadsheetAnalysis />
+            <Suspense fallback={<div className="card p-4">Loading...</div>}><BroadsheetAnalysis /></Suspense>
         </div>
     </div>
 );
@@ -55,6 +60,10 @@ const TeacherDashboardContent = ({ activeView, setActiveView }: TeacherDashboard
             return <AiTools />;
         case TEACHER_VIEWS.MESSAGES:
             return <DirectMessages />;
+        case TEACHER_VIEWS.RESOURCE_HUB:
+            return <ResourceHub />;
+        case TEACHER_VIEWS.KNOWLEDGE_BASE:
+            return <DashboardKnowledgeBase />;
         default:
             return <TeacherHome setActiveView={setActiveView} />;
     }

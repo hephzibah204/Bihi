@@ -1,20 +1,22 @@
-import React from 'react';
-import StudentHome from './StudentHome';
-import StudentResults from './StudentResults';
-import StudentProfile from './StudentProfile';
-import StudentTimetable from './StudentTimetable';
-// Fix: Import StudentView from the central types file to break a circular dependency.
-import { StudentView } from '../types';
-import NotificationViewer from './NotificationViewer';
-import StudentAssignments from './StudentAssignments';
-import AIAcademicTutor from './AIAcademicTutor';
-import { STUDENT_VIEWS, USER_ROLES } from '../utils/constants';
-import PracticeQuiz from './PracticeQuiz';
-import LearningPathways from './LearningPathways';
-import SubjectRecommender from './SubjectRecommender';
-import HeadsetIcon from './icons/HeadsetIcon';
-import StudentReportCardViewer from './StudentReportCardViewer';
 
+
+import React, { lazy, Suspense } from 'react';
+import { StudentView } from '../types';
+import { STUDENT_VIEWS, USER_ROLES } from '../utils/constants';
+import HeadsetIcon from './icons/HeadsetIcon';
+
+// Lazy-loaded components
+const StudentHome = lazy(() => import('./StudentHome'));
+const StudentResults = lazy(() => import('./StudentResults'));
+const StudentProfile = lazy(() => import('./StudentProfile'));
+const StudentTimetable = lazy(() => import('./StudentTimetable'));
+const NotificationViewer = lazy(() => import('./NotificationViewer'));
+const StudentAssignments = lazy(() => import('./StudentAssignments'));
+const AIAcademicTutor = lazy(() => import('./AIAcademicTutor'));
+const PracticeQuiz = lazy(() => import('./PracticeQuiz'));
+const LearningPathways = lazy(() => import('./LearningPathways'));
+const SubjectRecommender = lazy(() => import('./SubjectRecommender'));
+const StudentReportCardViewer = lazy(() => import('./StudentReportCardViewer'));
 
 interface StudentDashboardContentProps {
     activeView: StudentView;
@@ -25,7 +27,7 @@ interface StudentDashboardContentProps {
 const StudentDashboardContent = ({ activeView, setActiveView, demoUserId }: StudentDashboardContentProps) => {
     switch(activeView) {
         case STUDENT_VIEWS.DASHBOARD:
-            return <StudentHome setActiveView={setActiveView} />;
+            return <StudentHome setActiveView={setActiveView} demoUserId={demoUserId} />;
         case STUDENT_VIEWS.RESULTS:
             return <StudentReportCardViewer demoUserId={demoUserId} />;
         case STUDENT_VIEWS.TRANSCRIPT:
@@ -63,13 +65,13 @@ const StudentDashboardContent = ({ activeView, setActiveView, demoUserId }: Stud
                         </button>
                     </div>
 
-                    <PracticeQuiz userRole={USER_ROLES.STUDENT} studentId={demoUserId} />
-                    <LearningPathways userRole={USER_ROLES.STUDENT} studentId={demoUserId} />
-                    <SubjectRecommender userRole={USER_ROLES.STUDENT} studentId={demoUserId} />
+                    <Suspense fallback={<div className="card p-4">Loading...</div>}><PracticeQuiz userRole={USER_ROLES.STUDENT} studentId={demoUserId} /></Suspense>
+                    <Suspense fallback={<div className="card p-4">Loading...</div>}><LearningPathways userRole={USER_ROLES.STUDENT} studentId={demoUserId} /></Suspense>
+                    <Suspense fallback={<div className="card p-4">Loading...</div>}><SubjectRecommender userRole={USER_ROLES.STUDENT} studentId={demoUserId} /></Suspense>
                 </div>
             );
         default:
-            return <StudentHome setActiveView={setActiveView} />;
+            return <StudentHome setActiveView={setActiveView} demoUserId={demoUserId} />;
     }
 };
 

@@ -1,26 +1,28 @@
 
-
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { getSubdomain } from './utils/subdomain';
-import Dashboard from './components/Dashboard';
-import LandingPage from './components/LandingPage';
-// Fix: Added placeholder content to SuperAdminDashboard.tsx to make it a valid module.
-import SuperAdminDashboard from './components/SuperAdminDashboard';
-// Fix: Added placeholder content to DemoPage.tsx to make it a valid module.
-import DemoPage from './components/DemoPage';
-import SubscriptionPage from './components/SubscriptionPage';
-import PublicResultViewer from './components/PublicResultViewer';
-import PublicLayout from './components/PublicLayout';
-import BlogIndexPage from './components/BlogIndexPage';
-import BlogPostPage from './components/BlogPostPage';
-import KnowledgeBaseViewer from './components/KnowledgeBaseViewer';
-import AlumniDashboard from './components/AlumniDashboard';
 import { APP_VIEWS } from './utils/constants';
 import { apiGetPlatformSettings, apiGetTenants } from './services/api';
-import PublicPageViewer from './components/PublicPageViewer';
 import { DEMO_TENANT_ID } from './utils/demoData';
-import CentralLoginPage from './components/CentralLoginPage';
+
+// Lazy load components for code splitting
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const LandingPage = lazy(() => import('./components/LandingPage'));
+const SuperAdminDashboard = lazy(() => import('./components/SuperAdminDashboard'));
+const DemoPage = lazy(() => import('./components/DemoPage'));
+const SubscriptionPage = lazy(() => import('./components/SubscriptionPage'));
+const PublicResultViewer = lazy(() => import('./components/PublicResultViewer'));
+const PublicLayout = lazy(() => import('./components/PublicLayout'));
+const BlogIndexPage = lazy(() => import('./components/BlogIndexPage'));
+const BlogPostPage = lazy(() => import('./components/BlogPostPage'));
+const KnowledgeBaseViewer = lazy(() => import('./components/KnowledgeBaseViewer'));
+const PublicPageViewer = lazy(() => import('./components/PublicPageViewer'));
+const CentralLoginPage = lazy(() => import('./components/CentralLoginPage'));
+
+// Loading component for Suspense fallback
+const FullPageLoader = () => (
+    <div className="flex items-center justify-center h-screen">Loading...</div>
+);
 
 const App = () => {
     const [subdomain, setSubdomain] = useState<string | null>(null);
@@ -106,56 +108,63 @@ const App = () => {
     };
 
     if (loading) {
-        return <div className="flex items-center justify-center h-screen">Loading...</div>;
+        return <FullPageLoader />;
     }
     
-    // SUPER ADMIN routes have the highest priority and override everything else.
-    if (subdomain === 'admin' || showSuperAdmin) {
-        return <SuperAdminDashboard />;
-    }
-    
-    // Query parameter views have the next highest priority
-    if (view === APP_VIEWS.DEMO) {
-        return <DemoPage />;
-    }
-    if (view === APP_VIEWS.SIGNUP) {
-        return <SubscriptionPage />;
-    }
-    if (view === APP_VIEWS.SIGNIN) {
-        return <CentralLoginPage />;
-    }
-    if (view === APP_VIEWS.RESULT_CHECKER) {
-        return <PublicResultViewer />;
-    }
     const publicLayoutMenu = platformSettings?.menus?.header;
-    if (view === APP_VIEWS.BLOG) {
-        return <PublicLayout onNavigate={handleNavigate} menuItems={publicLayoutMenu}><BlogIndexPage /></PublicLayout>;
-    }
-    if (view === APP_VIEWS.ARTICLE) {
-        return <PublicLayout onNavigate={handleNavigate} menuItems={publicLayoutMenu}><BlogPostPage /></PublicLayout>;
-    }
-    if (view === APP_VIEWS.KB || view === APP_VIEWS.KB_ARTICLE) {
-        return <PublicLayout onNavigate={handleNavigate} menuItems={publicLayoutMenu}><KnowledgeBaseViewer /></PublicLayout>;
-    }
 
-    // Dynamic page view (if a slug was matched)
-    if (dynamicPage) {
-        return <PublicLayout onNavigate={handleNavigate} menuItems={publicLayoutMenu}><PublicPageViewer page={dynamicPage} /></PublicLayout>;
-    }
+    return (
+        <Suspense fallback={<FullPageLoader />}>
+            {(() => {
+                // SUPER ADMIN routes have the highest priority and override everything else.
+                if (subdomain === 'admin' || showSuperAdmin) {
+                    return <SuperAdminDashboard />;
+                }
+                
+                // Query parameter views have the next highest priority
+                if (view === APP_VIEWS.DEMO) {
+                    return <DemoPage />;
+                }
+                if (view === APP_VIEWS.SIGNUP) {
+                    return <SubscriptionPage />;
+                }
+                if (view === APP_VIEWS.SIGNIN) {
+                    return <CentralLoginPage />;
+                }
+                if (view === APP_VIEWS.RESULT_CHECKER) {
+                    return <PublicResultViewer />;
+                }
+                if (view === APP_VIEWS.BLOG) {
+                    return <PublicLayout onNavigate={handleNavigate} menuItems={publicLayoutMenu}><BlogIndexPage /></PublicLayout>;
+                }
+                if (view === APP_VIEWS.ARTICLE) {
+                    return <PublicLayout onNavigate={handleNavigate} menuItems={publicLayoutMenu}><BlogPostPage /></PublicLayout>;
+                }
+                if (view === APP_VIEWS.KB || view === APP_VIEWS.KB_ARTICLE) {
+                    return <PublicLayout onNavigate={handleNavigate} menuItems={publicLayoutMenu}><KnowledgeBaseViewer /></PublicLayout>;
+                }
 
-    // Explicitly serve the landing page on the root domain
-    if (isRootDomain) {
-        return <LandingPage content={platformSettings?.landingPageContent} onNavigate={handleNavigate} menuItems={publicLayoutMenu} />;
-    }
+                // Dynamic page view (if a slug was matched)
+                if (dynamicPage) {
+                    return <PublicLayout onNavigate={handleNavigate} menuItems={publicLayoutMenu}><PublicPageViewer page={dynamicPage} /></PublicLayout>;
+                }
 
-    // Handle subdomain routing if not on the root domain
-    if (subdomain) {
-        // The 'admin' case is handled at the top, so we just render the school portal here.
-        return <Dashboard />;
-    }
+                // Explicitly serve the landing page on the root domain
+                if (isRootDomain) {
+                    return <LandingPage content={platformSettings?.landingPageContent} onNavigate={handleNavigate} menuItems={publicLayoutMenu} />;
+                }
 
-    // Fallback to the landing page if no other condition is met
-    return <LandingPage content={platformSettings?.landingPageContent} onNavigate={handleNavigate} menuItems={publicLayoutMenu} />;
+                // Handle subdomain routing if not on the root domain
+                if (subdomain) {
+                    // The 'admin' case is handled at the top, so we just render the school portal here.
+                    return <Dashboard />;
+                }
+
+                // Fallback to the landing page if no other condition is met
+                return <LandingPage content={platformSettings?.landingPageContent} onNavigate={handleNavigate} menuItems={publicLayoutMenu} />;
+            })()}
+        </Suspense>
+    );
 };
 
 export default App;

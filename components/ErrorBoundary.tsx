@@ -1,30 +1,32 @@
-import React, { Component, ReactNode, ErrorInfo } from 'react';
+import * as React from 'react';
 
-interface Props {
-  children?: ReactNode;
+interface ErrorBoundaryProps {
+  children?: React.ReactNode;
 }
 
-interface State {
+interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-class ErrorBoundary extends Component<Props, State> {
-  // Fix: The component's state must be initialized before it is used. Using a constructor is the standard way to initialize state in a React class component. This ensures `this.state` is available throughout the component's lifecycle and resolves the type errors.
-  constructor(props: Props) {
-    super(props);
-    this.state = { hasError: false };
-  }
+// Fix: The 'props' property was not being found on the component instance.
+// Using a namespace import (`import * as React`) to ensure that types like
+// `Component` and `ErrorInfo` are correctly resolved under the `React`
+// namespace, which fixes inheritance issues for `props`.
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  public state: ErrorBoundaryState = {
+    hasError: false,
+  };
 
-  static getDerivedStateFromError(_: Error): State {
+  static getDerivedStateFromError(_: Error): ErrorBoundaryState {
     // Update state so the next render will show the fallback UI.
     return { hasError: true };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
     console.error("Uncaught error:", error, errorInfo);
   }
 
-  render() {
+  public render(): React.ReactNode {
     if (this.state.hasError) {
       return (
         <div style={{ padding: '2rem', textAlign: 'center', fontFamily: 'sans-serif' }}>

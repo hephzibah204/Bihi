@@ -1,14 +1,23 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import TeacherSidebar from './TeacherSidebar';
-import TeacherDashboardContent from './TeacherDashboardContent';
 import Header from './Header';
 import { TeacherView } from '../types';
 import SyncStatusIndicator from './SyncStatusIndicator';
 import TeacherBottomNavBar from './TeacherBottomNavBar';
-import TeacherMoreView from './TeacherMoreView';
 import { TEACHER_VIEWS } from '../utils/constants';
 import Chatbot from './Chatbot';
 import { USER_ROLES } from '../utils/constants';
+import SpinnerIcon from './icons/SpinnerIcon';
+
+const TeacherDashboardContent = lazy(() => import('./TeacherDashboardContent'));
+const TeacherMoreView = lazy(() => import('./TeacherMoreView'));
+
+const ContentLoader = () => (
+    <div className="flex items-center justify-center p-8">
+        <SpinnerIcon className="w-8 h-8 animate-spin text-indigo-500" />
+    </div>
+);
 
 const getViewFromUrl = () => new URLSearchParams(window.location.search).get('view');
 
@@ -49,10 +58,12 @@ const TeacherDashboard = ({ onLogout }) => {
                 <Header title={headerTitle} setSidebarOpen={setSidebarOpen} onLogout={onLogout} isSidebarOpen={isSidebarOpen} />
                 <main className="flex-1 overflow-x-hidden overflow-y-auto">
                     <div className="container mx-auto px-6 py-8">
-                        {activeView === TEACHER_VIEWS.MORE 
-                            ? <TeacherMoreView setActiveView={handleViewChange} /> 
-                            : <TeacherDashboardContent activeView={activeView} setActiveView={handleViewChange} />
-                        }
+                        <Suspense fallback={<ContentLoader />}>
+                            {activeView === TEACHER_VIEWS.MORE 
+                                ? <TeacherMoreView setActiveView={handleViewChange} /> 
+                                : <TeacherDashboardContent activeView={activeView} setActiveView={handleViewChange} />
+                            }
+                        </Suspense>
                     </div>
                 </main>
                 <TeacherBottomNavBar activeView={activeView} setActiveView={handleViewChange} />

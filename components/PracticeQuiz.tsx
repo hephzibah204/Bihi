@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { generateText } from '../services/geminiService';
+import { useAI } from '../hooks/useAI';
 import { apiGetSubjects, apiGetStudents } from '../services/api';
 import { Student, Subject } from '../types';
 import SparklesIcon from './icons/SparklesIcon';
@@ -26,6 +26,7 @@ const PracticeQuiz = ({ userRole, studentId }: { userRole?: string, studentId?: 
     const [numQuestions, setNumQuestions] = useState(5);
 
     // State for generation process
+    const { generateResponse, status } = useAI();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [generatedQuiz, setGeneratedQuiz] = useState<QuizItem[]>([]);
@@ -113,7 +114,14 @@ const PracticeQuiz = ({ userRole, studentId }: { userRole?: string, studentId?: 
         `;
 
         try {
-            const response = await generateText(prompt);
+            const response = await generateResponse({ prompt });
+
+            if (status === 'fallback') {
+                setError(response); // Show the fallback message as an error/info
+                setIsLoading(false);
+                return;
+            }
+
             const jsonString = response.match(/\{[\s\S]*\}/)?.[0] || '{}';
             const jsonResponse = JSON.parse(jsonString);
             
@@ -151,9 +159,15 @@ const PracticeQuiz = ({ userRole, studentId }: { userRole?: string, studentId?: 
     return (
         <div className="card">
             <div className="p-6">
-                <div className="flex items-center">
-                    <DocumentTextIcon className="w-6 h-6 mr-3 text-green-500" />
-                    <h2 className="text-xl font-semibold">AI Practice Quiz Generator</h2>
+                <div className="flex justify-between items-start">
+                    <div className="flex items-center">
+                        <DocumentTextIcon className="w-6 h-6 mr-3 text-green-500" />
+                        <h2 className="text-xl font-semibold">AI Practice Quiz Generator</h2>
+                    </div>
+                     <div className="flex items-center text-xs text-gray-500">
+                         <span className={`w-2 h-2 rounded-full mr-2 ${status === 'gemini' ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
+                         {status === 'gemini' ? 'Online' : 'Offline'}
+                    </div>
                 </div>
                 <p className="mt-2 text-sm text-gray-500">
                     {isStudentView

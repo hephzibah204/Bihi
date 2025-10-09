@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import ParentSidebar from './ParentSidebar';
-import ParentDashboardContent from './ParentDashboardContent';
 import Header from './Header';
 import { ParentView } from '../types';
 import SyncStatusIndicator from './SyncStatusIndicator';
@@ -8,6 +8,15 @@ import ParentBottomNavBar from './ParentBottomNavBar';
 import { PARENT_VIEWS } from '../utils/constants';
 import Chatbot from './Chatbot';
 import { USER_ROLES } from '../utils/constants';
+import SpinnerIcon from './icons/SpinnerIcon';
+
+const ParentDashboardContent = lazy(() => import('./ParentDashboardContent'));
+
+const ContentLoader = () => (
+    <div className="flex items-center justify-center p-8">
+        <SpinnerIcon className="w-8 h-8 animate-spin text-indigo-500" />
+    </div>
+);
 
 const getViewFromUrl = () => new URLSearchParams(window.location.search).get('view');
 
@@ -47,7 +56,9 @@ const ParentDashboard = ({ onLogout, demoUserId }) => {
                 <Header title={headerTitle} setSidebarOpen={setSidebarOpen} onLogout={onLogout} isSidebarOpen={isSidebarOpen} />
                 <main className="flex-1 overflow-x-hidden overflow-y-auto">
                     <div className="container mx-auto px-6 py-8">
-                        <ParentDashboardContent activeView={activeView} setActiveView={handleViewChange} demoUserId={demoUserId} />
+                        <Suspense fallback={<ContentLoader />}>
+                            <ParentDashboardContent activeView={activeView} setActiveView={handleViewChange} demoUserId={demoUserId} />
+                        </Suspense>
                     </div>
                 </main>
                 <ParentBottomNavBar activeView={activeView} setActiveView={handleViewChange} />

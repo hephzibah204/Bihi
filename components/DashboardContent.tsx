@@ -1,37 +1,42 @@
-import React from 'react';
-import Students from './Students';
-import Subjects from './Subjects';
-import Results from './Results';
-import ReportCard from './ReportCard';
-import { DashboardView } from '../types';
-import Promotions from './Promotions';
-import SchoolSettingsComponent from './SchoolSettings';
-import Teachers from './Teachers';
-import IDCardGenerator from './IDCardGenerator';
-import Attendance from './Attendance';
-import BehavioralRemarks from './BehavioralRemarks';
-import Timetable from './Timetable';
-import CommunicationsDashboard from './CommunicationsDashboard';
-import Bursary from './Bursary';
-import BillingDashboard from './BillingDashboard';
-import AdvancedAnalytics from './AdvancedAnalytics';
-import LearningPathways from './LearningPathways';
-import PracticeQuiz from './PracticeQuiz';
-import EarlyIntervention from './EarlyIntervention';
-import LessonPlanner from './LessonPlanner';
-import CommentGenerator from './CommentGenerator';
-import BroadsheetAnalysis from './BroadsheetAnalysis';
-import { usePlanFeatures } from '../contexts/PlanFeaturesContext';
-import UpgradePrompt from './UpgradePrompt';
-import Assignments from './Assignments';
-import { ADMIN_VIEWS } from '../utils/constants';
-import GeneralRemarks from './GeneralRemarks';
-import StudentProfilePage from './StudentProfilePage';
-import AlumniDashboard from './AlumniDashboard';
-import SubjectRecommender from './SubjectRecommender';
-import ComprehensiveReportEntry from './ComprehensiveReportEntry';
-import AdminAnalyticsDashboard from './AdminAnalyticsDashboard';
 
+
+import React, { lazy, Suspense } from 'react';
+import { DashboardView } from '../types';
+import { usePlanFeatures } from '../contexts/PlanFeaturesContext';
+import { ADMIN_VIEWS } from '../utils/constants';
+import SpinnerIcon from './icons/SpinnerIcon';
+
+// Lazy-loaded components
+const Students = lazy(() => import('./Students'));
+const Subjects = lazy(() => import('./Subjects'));
+const Results = lazy(() => import('./Results'));
+const ReportCard = lazy(() => import('./ReportCard'));
+const Promotions = lazy(() => import('./Promotions'));
+const SchoolSettingsComponent = lazy(() => import('./SchoolSettings'));
+const Teachers = lazy(() => import('./Teachers'));
+const IDCardGenerator = lazy(() => import('./IDCardGenerator'));
+const Attendance = lazy(() => import('./Attendance'));
+const BehavioralRemarks = lazy(() => import('./BehavioralRemarks'));
+const Timetable = lazy(() => import('./Timetable'));
+const CommunicationsDashboard = lazy(() => import('./CommunicationsDashboard'));
+const Bursary = lazy(() => import('./Bursary'));
+const BillingDashboard = lazy(() => import('./BillingDashboard'));
+const AdvancedAnalytics = lazy(() => import('./AdvancedAnalytics'));
+const LearningPathways = lazy(() => import('./LearningPathways'));
+const PracticeQuiz = lazy(() => import('./PracticeQuiz'));
+const EarlyIntervention = lazy(() => import('./EarlyIntervention'));
+const LessonPlanner = lazy(() => import('./LessonPlanner'));
+const CommentGenerator = lazy(() => import('./CommentGenerator'));
+const BroadsheetAnalysis = lazy(() => import('./BroadsheetAnalysis'));
+const UpgradePrompt = lazy(() => import('./UpgradePrompt'));
+const Assignments = lazy(() => import('./Assignments'));
+const GeneralRemarks = lazy(() => import('./GeneralRemarks'));
+const StudentProfilePage = lazy(() => import('./StudentProfilePage'));
+const AlumniDashboard = lazy(() => import('./AlumniDashboard'));
+const SubjectRecommender = lazy(() => import('./SubjectRecommender'));
+const ComprehensiveReportEntry = lazy(() => import('./ComprehensiveReportEntry'));
+const AdminAnalyticsDashboard = lazy(() => import('./AdminAnalyticsDashboard'));
+const DashboardKnowledgeBase = lazy(() => import('./DashboardKnowledgeBase'));
 
 interface DashboardContentProps {
     activeView: DashboardView;
@@ -47,17 +52,17 @@ const AiTools = () => (
             <h2 className="text-2xl font-semibold">AI Assistant Tools</h2>
             <p className="mt-1 text-gray-600">Quick tools to help with daily tasks.</p>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
-                <CommentGenerator />
-                <LessonPlanner />
-                <SubjectRecommender />
-                <LearningPathways />
-                <PracticeQuiz />
-                <EarlyIntervention />
+                <Suspense fallback={<div className="card p-4">Loading...</div>}><CommentGenerator /></Suspense>
+                <Suspense fallback={<div className="card p-4">Loading...</div>}><LessonPlanner /></Suspense>
+                <Suspense fallback={<div className="card p-4">Loading...</div>}><SubjectRecommender /></Suspense>
+                <Suspense fallback={<div className="card p-4">Loading...</div>}><LearningPathways /></Suspense>
+                <Suspense fallback={<div className="card p-4">Loading...</div>}><PracticeQuiz /></Suspense>
+                <Suspense fallback={<div className="card p-4">Loading...</div>}><EarlyIntervention /></Suspense>
             </div>
         </div>
         <div className="mt-8">
              <h2 className="text-2xl font-semibold mb-4">Broadsheet Analysis</h2>
-            <BroadsheetAnalysis />
+            <Suspense fallback={<div className="card p-4">Loading...</div>}><BroadsheetAnalysis /></Suspense>
         </div>
     </div>
 );
@@ -98,6 +103,7 @@ const DashboardContent = ({ activeView, setActiveView, userRole, profileStudentI
         case ADMIN_VIEWS.BURSARY: return <Bursary />;
         case ADMIN_VIEWS.COMMUNICATIONS: return <CommunicationsDashboard />;
         case ADMIN_VIEWS.BROADSHEET: return <BroadsheetAnalysis />;
+        case ADMIN_VIEWS.KNOWLEDGE_BASE: return <DashboardKnowledgeBase />;
         case ADMIN_VIEWS.ALUMNI:
              return hasFeature('alumni') ? <AlumniDashboard /> : <UpgradePrompt featureName="Alumni Management" onUpgradeClick={handleUpgrade} />;
         case ADMIN_VIEWS.ANALYTICS:

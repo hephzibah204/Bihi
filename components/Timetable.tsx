@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-// Fix: Correctly import Teacher type from the central types file, not the component file.
+import React, { useState, useEffect, useMemo } from 'react';
 import { apiGetSubjects, apiGetTeachers, apiGetTimetableData, apiSaveTimetableData } from '../services/api';
 import Modal from './Modal';
 import AITimetableGenerator from './AITimetableGenerator';
 import PlusIcon from './icons/PlusIcon';
 import BrainCircuitIcon from './icons/BrainCircuitIcon';
 import { Subject, Teacher } from '../types';
+import ShieldExclamationIcon from './icons/ShieldExclamationIcon';
 
 interface TimetableSlot {
     subjectId: string;
@@ -23,6 +23,94 @@ interface TimetableData {
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const TIME_SLOTS = ['8:00 - 9:00', '9:00 - 10:00', '10:00 - 11:00', '11:00 - 12:00', '1:00 - 2:00'];
 
+
+const MasterTimetableView = ({ timetable, subjects, teachers }) => {
+    const subjectMap = useMemo(() => new Map(subjects.map(s => [s.id, s.name])), [subjects]);
+    const teacherMap = useMemo(() => new Map(teachers.map(t => [t.id, t.name])), [teachers]);
+
+    const { periodsBySlot, clashes } = useMemo(() => {
+        const periods: Record<string, any[]> = {};
+        const clashes: Record<string, Record<string, string[]>> = {};
+        
+        Object.entries(timetable).forEach(([className, classSchedule]) => {
+            Object.entries(classSchedule).forEach(([day, daySchedule]) => {
+                Object.entries(daySchedule).forEach(([time, slot]) => {
+                    const key = `${day}-${time}`;
+                    if (!periods[key]) periods[key] = [];
+                    // Fix: Ensure the slot is a valid object before spreading to prevent "Spread types may only be created from object types" error if data is malformed (e.g., null).
+                    if (slot && typeof slot === 'object') {
+                        periods[key].push({ className, ...slot });
+                    }
+                });
+            });
+        });
+
+        Object.entries(periods).forEach(([key, slotsInPeriod]) => {
+            const teacherUsage: Record<string, string[]> = {};
+            slotsInPeriod.forEach(slot => {
+                if (!teacherUsage[slot.teacherId]) teacherUsage[slot.teacherId] = [];
+                teacherUsage[slot.teacherId].push(slot.className);
+            });
+            Object.entries(teacherUsage).forEach(([teacherId, classNames]) => {
+                if (classNames.length > 1) {
+                    if (!clashes[key]) clashes[key] = {};
+                    clashes[key][teacherId] = classNames;
+                }
+            });
+        });
+        
+        return { periodsBySlot: periods, clashes };
+    }, [timetable]);
+
+    return (
+        <div className="table-container">
+            <table className="table">
+                <thead>
+                    <tr>
+                        <th className="th w-1/6">Time</th>
+                        {DAYS.map(day => <th key={day} className="th text-center">{day}</th>)}
+                    </tr>
+                </thead>
+                <tbody className="bg-white">
+                    {TIME_SLOTS.map(time => (
+                        <tr key={time} className="divide-x divide-gray-200">
+                            <td className="td font-semibold">{time}</td>
+                            {DAYS.map(day => {
+                                const key = `${day}-${time}`;
+                                const periods = periodsBySlot[key] || [];
+                                return (
+                                    <td key={day} className="td align-top p-1 space-y-1">
+                                        {periods.map((period, index) => {
+                                            const clashInfo = clashes[key]?.[period.teacherId];
+                                            const isClashing = !!clashInfo;
+                                            const clashTitle = isClashing ? `Clash: ${teacherMap.get(period.teacherId)} is assigned to ${clashInfo.join(' & ')} at the same time.` : '';
+
+                                            return (
+                                                <div 
+                                                    key={index}
+                                                    title={clashTitle}
+                                                    className={`p-1.5 rounded-md text-xs ${isClashing ? 'border border-red-500 bg-red-50' : 'bg-gray-50'}`}
+                                                >
+                                                    <p className="font-bold text-gray-700">{period.className}</p>
+                                                    <p>{subjectMap.get(period.subjectId) || 'N/A'}</p>
+                                                    <p className="text-gray-500 flex items-center">
+                                                        {teacherMap.get(period.teacherId) || 'N/A'}
+                                                        {isClashing && <ShieldExclamationIcon className="w-4 h-4 ml-1 text-red-600 flex-shrink-0" />}
+                                                    </p>
+                                                </div>
+                                            );
+                                        })}
+                                    </td>
+                                );
+                            })}
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+};
+
 const Timetable = () => {
     const [timetable, setTimetable] = useState<TimetableData>({});
     const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -36,6 +124,7 @@ const Timetable = () => {
     const [isAIModalOpen, setAIModalOpen] = useState(false);
     const [currentSlot, setCurrentSlot] = useState({ day: '', time: '' });
     const [currentSelection, setCurrentSelection] = useState({ subjectId: '', teacherId: '' });
+    const [viewMode, setViewMode] = useState<'class' | 'master'>('class');
 
     const fetchData = async () => {
         setLoading(true);
@@ -122,11 +211,26 @@ const Timetable = () => {
     return (
         <div>
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                <div></div>
+                <div className="flex space-x-1 bg-gray-200 p-1 rounded-lg">
+                    <button 
+                        onClick={() => setViewMode('class')}
+                        className={`px-4 py-1.5 rounded-md font-semibold text-sm transition-colors ${viewMode === 'class' ? 'bg-white shadow-sm' : 'text-gray-600'}`}
+                    >
+                        Class View
+                    </button>
+                    <button 
+                        onClick={() => setViewMode('master')}
+                        className={`px-4 py-1.5 rounded-md font-semibold text-sm transition-colors ${viewMode === 'master' ? 'bg-white shadow-sm' : 'text-gray-600'}`}
+                    >
+                        Master View
+                    </button>
+                </div>
                 <div className="flex items-center gap-4">
-                    <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="input-field">
-                        {classes.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                    {viewMode === 'class' && (
+                        <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="input-field">
+                            {classes.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                    )}
                     <button onClick={() => setAIModalOpen(true)} className="btn btn-primary">
                         <BrainCircuitIcon className="h-5 w-5 mr-2" />
                         AI Generate
@@ -134,38 +238,42 @@ const Timetable = () => {
                 </div>
             </div>
 
-            <div className="table-container">
-                <table className="table">
-                    <thead>
-                        <tr>
-                            <th className="th w-1/6">Time</th>
-                            {DAYS.map(day => <th key={day} className="th text-center">{day}</th>)}
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white">
-                        {TIME_SLOTS.map(time => (
-                            <tr key={time} className="divide-x divide-gray-200">
-                                <td className="td font-semibold">{time}</td>
-                                {DAYS.map(day => {
-                                    const slotInfo = getSlotInfo(day, time);
-                                    return (
-                                        <td key={day} className="td text-center align-top p-2 hover:bg-gray-100 cursor-pointer" onClick={() => handleSlotClick(day, time)}>
-                                            {slotInfo ? (
-                                                <div>
-                                                    <p className="font-bold text-indigo-600">{slotInfo.subject}</p>
-                                                    <p className="text-sm text-gray-500">{slotInfo.teacher}</p>
-                                                </div>
-                                            ) : (
-                                                <PlusIcon className="w-6 h-6 text-gray-300 mx-auto" />
-                                            )}
-                                        </td>
-                                    );
-                                })}
+            {viewMode === 'class' ? (
+                <div className="table-container">
+                    <table className="table">
+                        <thead>
+                            <tr>
+                                <th className="th w-1/6">Time</th>
+                                {DAYS.map(day => <th key={day} className="th text-center">{day}</th>)}
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody className="bg-white">
+                            {TIME_SLOTS.map(time => (
+                                <tr key={time} className="divide-x divide-gray-200">
+                                    <td className="td font-semibold">{time}</td>
+                                    {DAYS.map(day => {
+                                        const slotInfo = getSlotInfo(day, time);
+                                        return (
+                                            <td key={day} className="td text-center align-top p-2 hover:bg-gray-100 cursor-pointer" onClick={() => handleSlotClick(day, time)}>
+                                                {slotInfo ? (
+                                                    <div>
+                                                        <p className="font-bold text-indigo-600">{slotInfo.subject}</p>
+                                                        <p className="text-sm text-gray-500">{slotInfo.teacher}</p>
+                                                    </div>
+                                                ) : (
+                                                    <PlusIcon className="w-6 h-6 text-gray-300 mx-auto" />
+                                                )}
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            ) : (
+                <MasterTimetableView timetable={timetable} subjects={subjects} teachers={teachers} />
+            )}
 
             <Modal isOpen={isEditModalOpen} onClose={() => setEditModalOpen(false)} title={`Edit Slot - ${currentSlot.day} ${currentSlot.time}`}>
                 <div className="p-6 space-y-4">

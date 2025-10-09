@@ -24,6 +24,7 @@ import ShieldExclamationIcon from './icons/ShieldExclamationIcon';
 import ClipboardListIcon from './icons/ClipboardListIcon';
 import PencilSquareIcon from './icons/PencilSquareIcon';
 import TableCellsIcon from './icons/TableCellsIcon';
+import QuestionMarkCircleIcon from './icons/QuestionMarkCircleIcon';
 
 interface SidebarProps {
     isSidebarOpen: boolean;
@@ -208,6 +209,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView, use
                     {/* Top-level static links */}
                     <NavLink view={ADMIN_VIEWS.DASHBOARD} label="Dashboard" icon={<HomeIcon className="h-5 w-5" />} activeView={activeView} setActiveView={setActiveView} />
                     <NavLink view={ADMIN_VIEWS.COMMUNICATIONS} label="Communications" icon={<EnvelopeIcon className="h-5 w-5" />} activeView={activeView} setActiveView={setActiveView} />
+                    <NavLink view={ADMIN_VIEWS.KNOWLEDGE_BASE} label="Knowledge Base" icon={<QuestionMarkCircleIcon className="h-5 w-5" />} activeView={activeView} setActiveView={setActiveView} />
 
                     <div className="pt-2 mt-2 border-t"></div>
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { apiGetStudents, apiGetScores, apiGetSubjects } from '../services/api';
-import { generateText } from '../services/geminiService';
+import { useAI } from '../hooks/useAI';
 import { Student, Score, Subject } from '../types';
 import GraduationCapIcon from './icons/GraduationCapIcon';
 import SparklesIcon from './icons/SparklesIcon';
@@ -18,6 +18,7 @@ const SubjectRecommender: React.FC<SubjectRecommenderProps> = ({ studentId, user
     const [selectedStudentId, setSelectedStudentId] = useState<string>('');
     const [interests, setInterests] = useState<string>('');
     const [recommendations, setRecommendations] = useState<string>('');
+    const { generateResponse, status } = useAI();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const isStudentView = userRole === USER_ROLES.STUDENT;
@@ -26,13 +27,11 @@ const SubjectRecommender: React.FC<SubjectRecommenderProps> = ({ studentId, user
         const fetchData = async () => {
             try {
                 if (studentId) {
-                    // In student mode, we only need subjects and the specific student
                     setSelectedStudentId(studentId);
                     const [allStudents, subjectsData] = await Promise.all([apiGetStudents(), apiGetSubjects()]);
-                    setStudents(allStudents); // Still need this to find the student object
+                    setStudents(allStudents);
                     setSubjects(subjectsData);
                 } else {
-                    // In admin/teacher mode, fetch all students for the selector
                     const [studentsData, subjectsData] = await Promise.all([
                         apiGetStudents(),
                         apiGetSubjects(),
@@ -74,22 +73,18 @@ const SubjectRecommender: React.FC<SubjectRecommenderProps> = ({ studentId, user
 
             const prompt = `
                 As an expert Nigerian academic and career counselor, analyze the following student profile to suggest subjects they might excel in.
-
                 **Student Profile:**
                 - **Name:** ${student.name}
                 - **Class:** ${student.class}
                 - **Stated Interests:** "${interests || 'Not specified'}"
                 - **Recent Academic Performance:** ${performanceSummary || 'No scores available.'}
-
                 **Your Task:**
                 Based *only* on the performance data and interests provided, suggest 3 subjects this student is likely to excel in. For each subject, provide a 1-2 sentence justification connecting your suggestion to their strengths (high scores) or interests. If performance is generally low, focus on subjects related to their interests where they might find more motivation.
-
                 Format the output as a simple list. For example:
                 1.  **Subject Name:** Justification text here.
-                2.  **Subject Name:** Justification text here.
             `;
 
-            const result = await generateText(prompt);
+            const result = await generateResponse({ prompt });
             setRecommendations(result);
 
         } catch (err) {
@@ -102,9 +97,15 @@ const SubjectRecommender: React.FC<SubjectRecommenderProps> = ({ studentId, user
     return (
         <div className="card">
             <div className="p-6">
-                <div className="flex items-center">
-                    <GraduationCapIcon className="w-6 h-6 mr-3 text-blue-500" />
-                    <h2 className="text-xl font-semibold">AI Subject Recommender</h2>
+                 <div className="flex justify-between items-start">
+                    <div className="flex items-center">
+                        <GraduationCapIcon className="w-6 h-6 mr-3 text-blue-500" />
+                        <h2 className="text-xl font-semibold">AI Subject Recommender</h2>
+                    </div>
+                     <div className="flex items-center text-xs text-gray-500">
+                         <span className={`w-2 h-2 rounded-full mr-2 ${status === 'gemini' ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
+                         {status === 'gemini' ? 'Online' : 'Offline'}
+                    </div>
                 </div>
                 <p className="mt-2 text-sm text-gray-500">
                     {isStudentView
@@ -114,7 +115,7 @@ const SubjectRecommender: React.FC<SubjectRecommenderProps> = ({ studentId, user
                 </p>
 
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {!studentId && ( // Only show selector if not in student mode
+                    {!studentId && (
                         <div>
                             <label className="label">Select Student</label>
                             <select

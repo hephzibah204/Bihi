@@ -2,11 +2,11 @@ import { supabase } from './supabaseClient';
 
 /**
  * Generates text content by sending a prompt to a secure, server-side proxy
- * which then calls the Gemini API.
+ * which then calls the Gemini API. This is the primary online generation function.
  * @param prompt The text prompt to send to the model.
  * @returns The generated text response.
  */
-export const generateText = async (prompt: string): Promise<string> => {
+export const callGeminiApi = async (prompt: string): Promise<string> => {
   try {
     if (!supabase) {
         throw new Error("Authentication service is not available.");
@@ -57,6 +57,18 @@ export const generateText = async (prompt: string): Promise<string> => {
     
   } catch (error) {
     console.error("Error calling the AI proxy service:", error);
-    throw new Error(`Failed to get a response from the AI service. ${error.message}`);
+    // Rethrow a more user-friendly and specific error for the useAI hook to catch.
+    if (error.message.includes('Failed to fetch')) {
+        throw new Error('Network connection failed. Could not reach AI service.');
+    }
+    throw new Error(`The AI service is currently unavailable. ${error.message}`);
   }
+};
+
+/**
+ * @deprecated This function is now a wrapper for `callGeminiApi`.
+ * New components should use the `useAI` hook for robust error handling and fallback capabilities.
+ */
+export const generateText = async (prompt: string): Promise<string> => {
+    return callGeminiApi(prompt);
 };

@@ -1,12 +1,21 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import StudentSidebar from './StudentSidebar';
-import StudentDashboardContent from './StudentDashboardContent';
 import Header from './Header';
 import { StudentView } from '../types';
 import StudentBottomNavBar from './StudentBottomNavBar';
 import { STUDENT_VIEWS } from '../utils/constants';
 import Chatbot from './Chatbot';
 import { USER_ROLES } from '../utils/constants';
+import SpinnerIcon from './icons/SpinnerIcon';
+
+const StudentDashboardContent = lazy(() => import('./StudentDashboardContent'));
+
+const ContentLoader = () => (
+    <div className="flex items-center justify-center p-8">
+        <SpinnerIcon className="w-8 h-8 animate-spin text-indigo-500" />
+    </div>
+);
 
 const getViewFromUrl = () => new URLSearchParams(window.location.search).get('view');
 
@@ -46,7 +55,9 @@ const StudentDashboard = ({ onLogout, demoUserId }) => {
                 <Header title={headerTitle} setSidebarOpen={setSidebarOpen} onLogout={onLogout} isSidebarOpen={isSidebarOpen} />
                 <main className="flex-1 overflow-x-hidden overflow-y-auto">
                     <div className="container mx-auto px-6 py-8">
-                        <StudentDashboardContent activeView={activeView} setActiveView={handleViewChange} demoUserId={demoUserId} />
+                        <Suspense fallback={<ContentLoader />}>
+                            <StudentDashboardContent activeView={activeView} setActiveView={handleViewChange} demoUserId={demoUserId} />
+                        </Suspense>
                     </div>
                 </main>
                 <StudentBottomNavBar activeView={activeView} setActiveView={handleViewChange} />

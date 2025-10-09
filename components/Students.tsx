@@ -19,6 +19,7 @@ import TableSkeleton from './skeletons/TableSkeleton';
 import SkeletonLoader from './SkeletonLoader';
 import EnvelopeIcon from './icons/EnvelopeIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
+import UserCircleIcon from './icons/UserCircleIcon';
 
 const Students = ({ onViewProfile }) => {
     const [students, setStudents] = useState<Student[]>([]);
@@ -195,13 +196,14 @@ const Students = ({ onViewProfile }) => {
                             return (
                                 <tr key={student.id} className="group">
                                     <td className={`td sticky left-0 z-10 ${isEvenRow ? 'bg-slate-100' : 'bg-white'} group-hover:bg-indigo-50`}>
-                                        <button onClick={() => onViewProfile(student.id)} className="font-medium text-indigo-600 hover:underline">
-                                            {student.name}
-                                        </button>
+                                        <span className="font-medium text-gray-900">{student.name}</span>
                                     </td>
                                     <td className="td">{student.admissionNo}</td>
                                     <td className="td">{student.class}</td>
                                     <td className="td text-right space-x-1">
+                                        <button onClick={() => onViewProfile(student.id)} className="icon-button" title="View Profile">
+                                            <UserCircleIcon className="w-5 h-5"/>
+                                        </button>
                                         {student.parentEmail ? (
                                             isInvited ? (
                                                 <button className="icon-button text-green-500" title={`Parent Invited (${student.parentEmail})`} disabled>

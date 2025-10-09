@@ -5,6 +5,7 @@ import PlusIcon from './icons/PlusIcon';
 import TrashIcon from './icons/TrashIcon';
 import SubscriptionManagementModal from './SubscriptionManagementModal';
 import { Tenant, Plan } from '../types';
+import { formatDate } from '../utils/dateHelpers';
 
 const TenantManagement = () => {
     const [tenants, setTenants] = useState<Tenant[]>([]);
@@ -77,6 +78,7 @@ const TenantManagement = () => {
                             <th className="th">Subdomain (ID)</th>
                             <th className="th">Plan</th>
                             <th className="th">Status</th>
+                            <th className="th">Expiry Date</th>
                             <th className="th text-right">Actions</th>
                         </tr></thead>
                         <tbody>
@@ -92,6 +94,9 @@ const TenantManagement = () => {
                                         }`}>
                                             {tenant.subscriptionStatus}
                                         </span>
+                                    </td>
+                                    <td className="td">
+                                        {tenant.subscriptionExpiryDate ? formatDate(tenant.subscriptionExpiryDate) : tenant.trialEndDate ? formatDate(tenant.trialEndDate) : 'N/A'}
                                     </td>
                                     <td className="td text-right space-x-2">
                                         <button onClick={() => handleManageSubscription(tenant)} className="text-sm text-indigo-600">Manage</button>

@@ -1,24 +1,36 @@
-import React, { useState, useEffect } from 'react';
+
+
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import Sidebar from './Sidebar';
 import { DashboardView, UserRole } from '../types';
 import Header from './Header';
-import DashboardContent from './DashboardContent';
 import { supabase } from '../services/supabaseClient';
 import PortalLogin from './PortalLogin';
 import { TenantProvider } from '../contexts/TenantContext';
 import { apiGetTeachers, apiGetStudents } from '../services/api';
-import TeacherDashboard from './TeacherDashboard';
 import SyncStatusIndicator from './SyncStatusIndicator';
 import AdminBottomNavBar from './AdminBottomNavBar';
-import MoreView from './MoreView';
 import { PlanFeaturesProvider } from '../contexts/PlanFeaturesContext';
-import StudentDashboard from './StudentDashboard';
-import ParentDashboard from './ParentDashboard';
 import GlobalNotification from './GlobalNotification';
 import Chatbot from './Chatbot';
 import { ADMIN_VIEWS, USER_ROLES } from '../utils/constants';
 import { getSubdomain } from '../utils/subdomain';
 import SelectChildModal from './SelectChildModal';
+import SpinnerIcon from './icons/SpinnerIcon';
+import useLocalStorage from '../hooks/useLocalStorage';
+
+const DashboardContent = lazy(() => import('./DashboardContent'));
+const MoreView = lazy(() => import('./MoreView'));
+const TeacherDashboard = lazy(() => import('./TeacherDashboard'));
+const StudentDashboard = lazy(() => import('./StudentDashboard'));
+const ParentDashboard = lazy(() => import('./ParentDashboard'));
+const WelcomeModal = lazy(() => import('./WelcomeModal'));
+
+const ContentLoader = () => (
+    <div className="flex items-center justify-center p-8">
+        <SpinnerIcon className="w-8 h-8 animate-spin text-indigo-500" />
+    </div>
+);
 
 const getViewFromUrl = () => new URLSearchParams(window.location.search).get('view');
 const getStudentIdFromUrl = () => new URLSearchParams(window.location.search).get('studentId');
@@ -34,6 +46,9 @@ const Dashboard = () => {
     const [headerTitle, setHeaderTitle] = useState('Dashboard');
     const isDemoSubdomain = getSubdomain() === 'demo';
     const [childrenToSelect, setChildrenToSelect] = useState([]);
+
+    const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage('onboardingComplete_v1', false);
+    const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
 
     useEffect(() => {
         setLoading(true);
@@ -68,7 +83,13 @@ const Dashboard = () => {
                 const teachers = await apiGetTeachers();
                 const currentUser = teachers.find(t => t.email.toLowerCase() === session.user.email.toLowerCase());
                 if (currentUser) {
-                    setUserRole(currentUser.role || USER_ROLES.ADMIN);
+                    const role = currentUser.role || USER_ROLES.ADMIN;
+                    setUserRole(role);
+                    
+                    if (role === USER_ROLES.ADMIN && !hasCompletedOnboarding) {
+                        setIsWelcomeModalOpen(true);
+                    }
+                    
                     setActiveUser(null);
                     setLoading(false);
                     return;
@@ -218,18 +239,34 @@ const Dashboard = () => {
     }
 
     if (userRole === USER_ROLES.TEACHER) {
-        return <TeacherDashboard onLogout={handleLogout} />;
+        return <Suspense fallback={<ContentLoader />}><TeacherDashboard onLogout={handleLogout} /></Suspense>;
     }
     if (userRole === USER_ROLES.STUDENT) {
-        return <StudentDashboard onLogout={handleLogout} demoUserId={activeUser?.userId} />;
+        return <Suspense fallback={<ContentLoader />}><StudentDashboard onLogout={handleLogout} demoUserId={activeUser?.userId} /></Suspense>;
     }
     if (userRole === USER_ROLES.PARENT) {
-        return <ParentDashboard onLogout={handleLogout} demoUserId={activeUser?.userId} />;
+        return <Suspense fallback={<ContentLoader />}><ParentDashboard onLogout={handleLogout} demoUserId={activeUser?.userId} /></Suspense>;
     }
 
     return (
         <TenantProvider>
             <PlanFeaturesProvider>
+                {isWelcomeModalOpen && (
+                    <Suspense fallback={<div/>}>
+                        <WelcomeModal
+                            isOpen={isWelcomeModalOpen}
+                            onNavigate={(view) => {
+                                handleViewChange(view);
+                                setIsWelcomeModalOpen(false);
+                            }}
+                            onClose={() => setIsWelcomeModalOpen(false)}
+                            onComplete={() => {
+                                setHasCompletedOnboarding(true);
+                                setIsWelcomeModalOpen(false);
+                            }}
+                        />
+                    </Suspense>
+                )}
                 <div className="flex h-screen bg-gray-100">
                     <Sidebar 
                         isSidebarOpen={isSidebarOpen} 
@@ -242,16 +279,18 @@ const Dashboard = () => {
                         <Header title={headerTitle} setSidebarOpen={setSidebarOpen} onLogout={handleLogout} isSidebarOpen={isSidebarOpen} />
                         <main className="flex-1 overflow-x-hidden overflow-y-auto">
                             <div className="container mx-auto px-6 py-8">
-                                {activeView === ADMIN_VIEWS.MORE 
-                                    ? <MoreView setActiveView={handleViewChange} /> 
-                                    : <DashboardContent 
-                                        activeView={activeView} 
-                                        setActiveView={handleViewChange} 
-                                        userRole={userRole}
-                                        profileStudentId={profileStudentId}
-                                        onViewStudentProfile={handleViewStudentProfile}
-                                      />
-                                }
+                                <Suspense fallback={<ContentLoader />}>
+                                    {activeView === ADMIN_VIEWS.MORE 
+                                        ? <MoreView setActiveView={handleViewChange} /> 
+                                        : <DashboardContent 
+                                            activeView={activeView} 
+                                            setActiveView={handleViewChange} 
+                                            userRole={userRole}
+                                            profileStudentId={profileStudentId}
+                                            onViewStudentProfile={handleViewStudentProfile}
+                                          />
+                                    }
+                                </Suspense>
                             </div>
                         </main>
                         <AdminBottomNavBar activeView={activeView} setActiveView={handleViewChange} />

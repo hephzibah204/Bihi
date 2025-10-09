@@ -150,6 +150,7 @@ export interface AssignmentScore {
 export interface Plan {
     id: string;
     name: string;
+    description?: string;
     price_monthly: number;
     price_termly: number;
     price_yearly: number;
@@ -165,6 +166,7 @@ export interface Tenant {
     planId?: string;
     subscriptionStatus: 'active' | 'trial' | 'expired' | 'unsubscribed';
     trialEndDate?: string | null;
+    subscriptionExpiryDate?: string | null;
 }
 
 
@@ -239,7 +241,6 @@ export interface LandingPageContent {
     problem: {
         title: string;
         points: string[];
-        // Fix: Added missing optional `extraText` property to align with its usage in LandingPage.tsx.
         extraText?: string;
     };
     solution: {
@@ -257,6 +258,14 @@ export interface LandingPageContent {
             desc: string;
         }[];
     };
+    comparison: {
+        title: string;
+        features: {
+            name: string;
+            regular: string;
+            reportsheet: string;
+        }[];
+    };
     testimonials: {
         title: string;
         items: Testimonial[];
@@ -268,16 +277,14 @@ export interface LandingPageContent {
     finalCta: {
         title: string;
         subtitle: string;
-        // Fix: Added missing optional `tagline` property to align with its usage in LandingPage.tsx.
         tagline?: string;
     };
-    // Fix: Added missing optional `pricing` property to align with its usage in LandingPage.tsx.
     pricing?: {
         title: string;
         subtitle: string;
     };
 }
-// Fix: Added missing type definitions for Fee, ScratchCard, and Announcement.
+
 export interface Fee {
     id: string;
     description: string;
@@ -298,4 +305,16 @@ export interface Announcement {
     content: string;
     recipients: string[];
     created_at: string;
+}
+
+export interface SharedLessonPlan {
+    id: string;
+    topic: string;
+    class: string;
+    subjectId: string;
+    content: string;
+    sharedByTeacherId: string;
+    sharedByTeacherName: string;
+    createdAt: string;
+    upvotes: number;
 }

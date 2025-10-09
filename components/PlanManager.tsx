@@ -11,8 +11,8 @@ const PlanManager = () => {
     const [isModalOpen, setModalOpen] = useState(false);
     const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
     const [planData, setPlanData] = useState<Partial<Plan>>({
-        name: '', price_monthly: 0, price_termly: 0, price_yearly: 0,
-        features: { maxStudents: 500 }
+        name: '', description: '', price_monthly: 0, price_termly: 0, price_yearly: 0,
+        features: { maxStudents: 100 }
     });
 
     useEffect(() => {
@@ -37,16 +37,18 @@ const PlanManager = () => {
             setEditingPlan(plan);
             setPlanData(plan);
         } else {
-            const defaultFeatures = { maxStudents: 500 };
+            const defaultFeatures = { maxStudents: 100 };
             CONTROLLABLE_FEATURES.forEach(f => defaultFeatures[f.key] = false);
             setEditingPlan(null);
-            setPlanData({ name: '', price_monthly: 0, price_termly: 0, price_yearly: 0, features: defaultFeatures });
+            setPlanData({ name: '', description: '', price_monthly: 0, price_termly: 0, price_yearly: 0, features: defaultFeatures });
         }
         setModalOpen(true);
     };
     
-    const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value, type, checked } = e.target;
+    const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value, type } = e.target;
+        const checked = (e.target as HTMLInputElement).checked;
+
         if (name.startsWith('features.')) {
             const featureKey = name.split('.')[1];
             setPlanData(prev => ({...prev, features: {...prev.features, [featureKey]: type === 'checkbox' ? checked : Number(value) }}));
@@ -96,6 +98,7 @@ const PlanManager = () => {
                 <Modal isOpen={isModalOpen} onClose={() => setModalOpen(false)} title={editingPlan ? 'Edit Plan' : 'Add New Plan'} size="lg">
                     <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
                         <div><label className="label">Plan Name</label><input name="name" value={planData.name} onChange={handleFormChange} className="input-field" /></div>
+                        <div><label className="label">Description</label><textarea name="description" value={planData.description} onChange={handleFormChange} className="input-field" rows={3}></textarea></div>
                         <div className="grid grid-cols-3 gap-4">
                             <div><label className="label">Monthly Price</label><input type="number" name="price_monthly" value={planData.price_monthly} onChange={handleFormChange} className="input-field" /></div>
                             <div><label className="label">Termly Price</label><input type="number" name="price_termly" value={planData.price_termly} onChange={handleFormChange} className="input-field" /></div>

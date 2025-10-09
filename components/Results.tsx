@@ -1,7 +1,7 @@
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-// Fix: Add missing import for apiUpsertScore
-import { apiGetStudents, apiGetSubjects, apiGetScores, apiGetSchoolSettings, apiUpsertScore } from '../services/api';
-import { Score, Student, Subject } from '../types';
+import { apiGetStudents, apiGetSubjects, apiGetScores, apiGetSchoolSettings, apiUpsertScore, apiGetTeachers, apiGetTimetableData } from '../services/api';
+import { Score, Student, Subject, Teacher } from '../types';
 import { debounce } from 'lodash';
 import BulkScoreImportModal from './BulkScoreImportModal';
 import ArrowUpTrayIcon from './icons/ArrowUpTrayIcon';
@@ -13,6 +13,7 @@ import SpinnerIcon from './icons/SpinnerIcon';
 import ScoreEntryModal from './ScoreEntryModal';
 import SkeletonLoader from './SkeletonLoader';
 import ListItemSkeleton from './skeletons/ListItemSkeleton';
+import { supabase } from '../services/supabaseClient';
 
 const PAGE_SIZE = 50;
 
@@ -28,7 +29,7 @@ const Results = () => {
     });
     const [students, setStudents] = useState<Student[]>([]);
     const [scores, setScores] = useState<Score[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [isImportModalOpen, setImportModalOpen] = useState(false);
     const [generatingForStudentId, setGeneratingForStudentId] = useState<string | null>(null);
@@ -59,35 +60,77 @@ const Results = () => {
 
     const visibleStudents = students.slice(0, visibleCount);
 
-    const fetchInitialData = useCallback(async () => {
-        setLoading(true);
-        try {
-            const [allSubjects, schoolSettings]: [Subject[], any] = await Promise.all([
-                apiGetSubjects(),
-                apiGetSchoolSettings()
-            ]);
-            setSubjects(allSubjects);
-            setSettings(schoolSettings);
-            const allClasses = [...new Set(allSubjects.flatMap(s => s.classes))].sort();
-            setClasses(allClasses);
-            if (allClasses.length > 0 && !selectedClass) {
-                setSelectedClass(allClasses[0]);
-            }
-        } catch (err) {
-            setError('Failed to load classes and subjects.');
-        } finally {
-            setLoading(false);
-        }
-    }, [selectedClass]);
-
     useEffect(() => {
+        const fetchInitialData = async () => {
+            setLoading(true);
+            try {
+                const [allSubjects, schoolSettings, teachers, timetable]: [Subject[], any, Teacher[], any] = await Promise.all([
+                    apiGetSubjects(),
+                    apiGetSchoolSettings(),
+                    apiGetTeachers(),
+                    apiGetTimetableData(),
+                ]);
+                
+                setSubjects(allSubjects);
+                setSettings(schoolSettings);
+
+                let availableClasses: string[] = [];
+                let isTeacher = false;
+                let userEmail = '';
+
+                if (supabase) {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if(user) {
+                        userEmail = user.email.toLowerCase();
+                        isTeacher = teachers.some(t => t.email.toLowerCase() === userEmail);
+                    }
+                }
+
+                if (isTeacher) {
+                    const me = teachers.find(t => t.email.toLowerCase() === userEmail);
+                    if (me) {
+                        const myClasses = new Set<string>();
+                        if (me.classTeacherOf) myClasses.add(me.classTeacherOf);
+
+                        Object.keys(timetable).forEach(className => {
+                            const classSchedule = timetable[className];
+                            Object.keys(classSchedule).forEach(day => {
+                                Object.keys(classSchedule[day]).forEach(timeSlot => {
+                                    if (classSchedule[day][timeSlot].teacherId === me.id) {
+                                        myClasses.add(className);
+                                    }
+                                });
+                            });
+                        });
+                        availableClasses = [...myClasses].sort();
+                    }
+                } else { // Admin view
+                    availableClasses = [...new Set(allSubjects.flatMap(s => s.classes))].sort();
+                }
+
+                setClasses(availableClasses);
+                if (availableClasses.length > 0) {
+                    const savedClass = JSON.parse(sessionStorage.getItem('reportsheet_results_filters') || '{}').selectedClass;
+                    if (savedClass && availableClasses.includes(savedClass)) {
+                        setSelectedClass(savedClass);
+                    } else {
+                        setSelectedClass(availableClasses[0]);
+                    }
+                } else {
+                    setSelectedClass('');
+                }
+            } catch (err) {
+                setError('Failed to load classes and subjects.');
+            }
+        };
         fetchInitialData();
-    }, [fetchInitialData]);
+    }, []);
 
     const fetchStudentsAndScores = useCallback(async () => {
         if (!selectedClass) {
             setStudents([]);
             setScores([]);
+            setLoading(false);
             return;
         }
 
@@ -113,8 +156,10 @@ const Results = () => {
     }, [selectedClass, selectedSubject, settings]);
 
     useEffect(() => {
-        fetchStudentsAndScores();
-    }, [fetchStudentsAndScores]);
+        if (settings) {
+            fetchStudentsAndScores();
+        }
+    }, [fetchStudentsAndScores, settings]);
 
     const currentScoresMap = useMemo(() => {
         return scores.reduce((acc, score) => {
@@ -275,7 +320,7 @@ const Results = () => {
     const editingStudentIndex = students.findIndex(s => s.id === editingStudentId);
     const editingStudent = editingStudentIndex !== -1 ? students[editingStudentIndex] : null;
 
-    if (loading) return (
+    if (loading && classes.length === 0) return (
         <div>
             {/* Filters skeleton */}
             <div className="my-6 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
@@ -353,104 +398,110 @@ const Results = () => {
 
             {error && <div className="mb-4 p-3 text-sm text-red-700 bg-red-100 rounded-lg">{error}</div>}
 
-            {/* MOBILE VIEW */}
-            <div className="md:hidden">
-                {!selectedClass || !selectedSubject ? <div className="card p-6 text-center text-gray-500">Please select a class and subject to begin.</div>
-                : students.length === 0 ? <div className="card p-6 text-center text-gray-500">No students found for this class.</div>
-                : (
-                     <ul className="space-y-2">
-                        {students.map(student => {
-                             const score: Partial<Score> = currentScoresMap[student.id] || {};
-                             const total = (score.ca1 || 0) + (score.ca2 || 0) + (score.exam || 0);
-                            return (
-                                <li key={student.id}>
-                                    <button onClick={() => setEditingStudentId(student.id)} className="w-full text-left p-4 bg-white rounded-lg shadow-sm flex justify-between items-center">
-                                        <div>
-                                            <p className="font-medium">{student.name}</p>
-                                            <p className="text-sm text-gray-500">{student.admissionNo}</p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-lg font-bold">{total}</p>
-                                            <p className="text-xs text-gray-400">Total</p>
-                                        </div>
-                                    </button>
-                                </li>
-                            );
-                        })}
-                    </ul>
-                )}
-            </div>
-
-            {/* DESKTOP VIEW */}
-            <div className="hidden md:block table-container">
-                <table className="table">
-                    <thead>
-                        <tr>
-                            <th scope="col" className="th sticky left-0 bg-slate-100 z-10">Student Name</th>
-                            <th scope="col" className="th text-center w-24">CA 1 ({maxCa1})</th>
-                            <th scope="col" className="th text-center w-24">CA 2 ({maxCa2})</th>
-                            <th scope="col" className="th text-center w-24">Exam ({maxExam})</th>
-                            <th scope="col" className="th text-center w-24">Total (100)</th>
-                            <th scope="col" className="th w-1/3">Comment</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white">
-                        {!selectedClass || !selectedSubject ? (
-                             <tr><td colSpan={6} className="td text-center">Please select a class and subject to begin.</td></tr>
-                        ) : students.length === 0 ? (
-                            <tr><td colSpan={6} className="td text-center">No students found for this class.</td></tr>
-                        ) : (
-                            <>
-                            {visibleStudents.map(student => {
-                                const score: Partial<Score> = currentScoresMap[student.id] || {};
-                                const total = (score.ca1 || 0) + (score.ca2 || 0) + (score.exam || 0);
+            {loading ? (
+                <div className="card p-6 text-center text-gray-500">Loading student data...</div>
+            ) : (
+                <>
+                {/* MOBILE VIEW */}
+                <div className="md:hidden">
+                    {!selectedClass || !selectedSubject ? <div className="card p-6 text-center text-gray-500">Please select a class and subject to begin.</div>
+                    : students.length === 0 ? <div className="card p-6 text-center text-gray-500">No students found for this class.</div>
+                    : (
+                         <ul className="space-y-2">
+                            {students.map(student => {
+                                 const score: Partial<Score> = currentScoresMap[student.id] || {};
+                                 const total = (score.ca1 || 0) + (score.ca2 || 0) + (score.exam || 0);
                                 return (
-                                    <tr key={student.id} className="group">
-                                        <td className="td font-medium text-gray-900 sticky left-0 z-10 bg-white group-hover:bg-indigo-50">
-                                            <div className="truncate max-w-xs" title={student.name}>{student.name}</div>
-                                        </td>
-                                        <td className="td"><input type="number" min="0" max={maxCa1} className="input-field p-1 text-sm text-center w-full" value={score.ca1 ?? ''} onChange={e => handleScoreChange(student.id, 'ca1', e.target.value)} aria-label={`CA 1 score for ${student.name}`} /></td>
-                                        <td className="td"><input type="number" min="0" max={maxCa2} className="input-field p-1 text-sm text-center w-full" value={score.ca2 ?? ''} onChange={e => handleScoreChange(student.id, 'ca2', e.target.value)} aria-label={`CA 2 score for ${student.name}`} /></td>
-                                        <td className="td"><input type="number" min="0" max={maxExam} className="input-field p-1 text-sm text-center w-full" value={score.exam ?? ''} onChange={e => handleScoreChange(student.id, 'exam', e.target.value)} aria-label={`Exam score for ${student.name}`} /></td>
-                                        <td className="td text-center font-semibold text-gray-700">{total}</td>
-                                        <td className="td">
-                                            <div className="flex items-center gap-1">
-                                                <input 
-                                                    type="text"
-                                                    className="input-field p-1 text-sm w-full"
-                                                    value={score.comment ?? ''} 
-                                                    onChange={e => handleCommentChange(student.id, e.target.value)}
-                                                    aria-label={`Comment for ${student.name}`}
-                                                    placeholder="Optional comment..."
-                                                />
-                                                <button 
-                                                    onClick={() => handleGenerateComment(student)}
-                                                    className="btn btn-secondary p-1"
-                                                    disabled={generatingForStudentId === student.id}
-                                                    title="Generate with AI"
-                                                >
-                                                     {generatingForStudentId === student.id 
-                                                        ? <SpinnerIcon className="w-4 h-4 animate-spin" />
-                                                        : <SparklesIcon className="w-4 h-4" />
-                                                    }
-                                                </button>
+                                    <li key={student.id}>
+                                        <button onClick={() => setEditingStudentId(student.id)} className="w-full text-left p-4 bg-white rounded-lg shadow-sm flex justify-between items-center">
+                                            <div>
+                                                <p className="font-medium">{student.name}</p>
+                                                <p className="text-sm text-gray-500">{student.admissionNo}</p>
                                             </div>
-                                        </td>
-                                    </tr>
+                                            <div className="text-right">
+                                                <p className="text-lg font-bold">{total}</p>
+                                                <p className="text-xs text-gray-400">Total</p>
+                                            </div>
+                                        </button>
+                                    </li>
                                 );
                             })}
-                             {visibleCount < students.length && (
-                                <tr ref={loaderRef}>
-                                    <td colSpan={6} className="text-center p-4 text-gray-500">
-                                        Loading more...
-                                    </td>
-                                </tr>
+                        </ul>
+                    )}
+                </div>
+
+                {/* DESKTOP VIEW */}
+                <div className="hidden md:block table-container">
+                    <table className="table">
+                        <thead>
+                            <tr>
+                                <th scope="col" className="th sticky left-0 bg-slate-100 z-10">Student Name</th>
+                                <th scope="col" className="th text-center w-24">CA 1 ({maxCa1})</th>
+                                <th scope="col" className="th text-center w-24">CA 2 ({maxCa2})</th>
+                                <th scope="col" className="th text-center w-24">Exam ({maxExam})</th>
+                                <th scope="col" className="th text-center w-24">Total (100)</th>
+                                <th scope="col" className="th w-1/3">Comment</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white">
+                            {!selectedClass || !selectedSubject ? (
+                                 <tr><td colSpan={6} className="td text-center">Please select a class and subject to begin.</td></tr>
+                            ) : students.length === 0 ? (
+                                <tr><td colSpan={6} className="td text-center">No students found for this class.</td></tr>
+                            ) : (
+                                <>
+                                {visibleStudents.map(student => {
+                                    const score: Partial<Score> = currentScoresMap[student.id] || {};
+                                    const total = (score.ca1 || 0) + (score.ca2 || 0) + (score.exam || 0);
+                                    return (
+                                        <tr key={student.id} className="group">
+                                            <td className="td font-medium text-gray-900 sticky left-0 z-10 bg-white group-hover:bg-indigo-50">
+                                                <div className="truncate max-w-xs" title={student.name}>{student.name}</div>
+                                            </td>
+                                            <td className="td"><input type="number" min="0" max={maxCa1} className="input-field p-1 text-sm text-center w-full" value={score.ca1 ?? ''} onChange={e => handleScoreChange(student.id, 'ca1', e.target.value)} aria-label={`CA 1 score for ${student.name}`} /></td>
+                                            <td className="td"><input type="number" min="0" max={maxCa2} className="input-field p-1 text-sm text-center w-full" value={score.ca2 ?? ''} onChange={e => handleScoreChange(student.id, 'ca2', e.target.value)} aria-label={`CA 2 score for ${student.name}`} /></td>
+                                            <td className="td"><input type="number" min="0" max={maxExam} className="input-field p-1 text-sm text-center w-full" value={score.exam ?? ''} onChange={e => handleScoreChange(student.id, 'exam', e.target.value)} aria-label={`Exam score for ${student.name}`} /></td>
+                                            <td className="td text-center font-semibold text-gray-700">{total}</td>
+                                            <td className="td">
+                                                <div className="flex items-center gap-1">
+                                                    <input 
+                                                        type="text"
+                                                        className="input-field p-1 text-sm w-full"
+                                                        value={score.comment ?? ''} 
+                                                        onChange={e => handleCommentChange(student.id, e.target.value)}
+                                                        aria-label={`Comment for ${student.name}`}
+                                                        placeholder="Optional comment..."
+                                                    />
+                                                    <button 
+                                                        onClick={() => handleGenerateComment(student)}
+                                                        className="btn btn-secondary p-1"
+                                                        disabled={generatingForStudentId === student.id}
+                                                        title="Generate with AI"
+                                                    >
+                                                         {generatingForStudentId === student.id 
+                                                            ? <SpinnerIcon className="w-4 h-4 animate-spin" />
+                                                            : <SparklesIcon className="w-4 h-4" />
+                                                        }
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                                 {visibleCount < students.length && (
+                                    <tr ref={loaderRef}>
+                                        <td colSpan={6} className="text-center p-4 text-gray-500">
+                                            Loading more...
+                                        </td>
+                                    </tr>
+                                )}
+                                </>
                             )}
-                            </>
-                        )}
-                    </tbody>
-                </table>
-            </div>
+                        </tbody>
+                    </table>
+                </div>
+                </>
+            )}
             <p className="text-xs text-gray-500 mt-2 text-center">Your changes are saved automatically.</p>
             
             {editingStudent && (

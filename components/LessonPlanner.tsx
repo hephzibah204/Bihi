@@ -1,19 +1,18 @@
 
+
 import React, { useState, useEffect, useMemo } from 'react';
-import { generateText } from '../services/geminiService';
 import SparklesIcon from './icons/SparklesIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
-import { useOnlineStatus } from '../hooks/useOnlineStatus';
-import { getFallbackLessonPlan } from '../services/fallbackAiService';
-import { apiGetSubjects } from '../services/api';
+import { apiGetSubjects, apiShareLessonPlan, getCurrentUser } from '../services/api';
 import { Subject } from '../types';
+import BookmarkSquareIcon from './icons/BookmarkSquareIcon';
+import { useAI } from '../hooks/useAI';
 
 const LessonPlanner = () => {
     const [topic, setTopic] = useState('');
     const [lessonPlan, setLessonPlan] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     
-    // New state for filters and data
     const [classes, setClasses] = useState<string[]>([]);
     const [allSubjects, setAllSubjects] = useState<Subject[]>([]);
     const [selectedClass, setSelectedClass] = useState('');
@@ -21,20 +20,21 @@ const LessonPlanner = () => {
     const [selectedTerm, setSelectedTerm] = useState('First Term');
     const [selectedCurriculum, setSelectedCurriculum] = useState('NERDC');
 
-    // New state for AI suggestions
     const [suggestedTopics, setSuggestedTopics] = useState<string[]>([]);
     const [isSuggesting, setIsSuggesting] = useState(false);
     const [suggestionError, setSuggestionError] = useState('');
 
-    const isOnline = useOnlineStatus();
+    const { generateResponse, status } = useAI();
+    const isOnline = status === 'gemini';
 
-    // Fetch classes and subjects on mount
+    const [isSharing, setIsSharing] = useState(false);
+    const [shareSuccess, setShareSuccess] = useState(false);
+
     useEffect(() => {
         const fetchPrerequisites = async () => {
             try {
                 const subjectsData = await apiGetSubjects();
                 setAllSubjects(subjectsData);
-                // Fix: Specify the generic type for `new Set` as `<string>` to ensure `allClasses` is correctly typed as `string[]`.
                 const allClasses = [...new Set<string>(subjectsData.flatMap(s => s.classes))].sort();
                 setClasses(allClasses);
                 if (allClasses.length > 0) {
@@ -47,16 +47,13 @@ const LessonPlanner = () => {
         fetchPrerequisites();
     }, []);
 
-    // Memoize filtered subjects for performance
     const filteredSubjects = useMemo(() => {
         if (!selectedClass) return [];
         return allSubjects.filter(s => s.classes.includes(selectedClass));
     }, [selectedClass, allSubjects]);
 
-    // Update selected subject when class changes
     useEffect(() => {
         if (filteredSubjects.length > 0) {
-            // Check if the previously selected subject is still valid
             if (!filteredSubjects.some(s => s.id === selectedSubject)) {
                 setSelectedSubject(filteredSubjects[0].id);
             }
@@ -65,7 +62,6 @@ const LessonPlanner = () => {
         }
     }, [selectedClass, filteredSubjects, selectedSubject]);
 
-    // Fetch AI topic suggestions when filters change
     useEffect(() => {
         if (!selectedClass || !selectedSubject || !isOnline) {
             setSuggestedTopics([]);
@@ -86,7 +82,7 @@ const LessonPlanner = () => {
 - Term: "${selectedTerm}"
 - Curriculum/Scheme: "${selectedCurriculum}"
 Return the response as a valid JSON object with a single key "topics" which is an array of strings. For example: {"topics": ["Topic 1", "Topic 2"]}`;
-                const response = await generateText(prompt);
+                const response = await generateResponse({ prompt });
                 const cleanedResponse = response.replace(/```json/g, '').replace(/```/g, '').trim();
                 const jsonResponse = JSON.parse(cleanedResponse);
                 setSuggestedTopics(jsonResponse.topics || []);
@@ -108,15 +104,10 @@ Return the response as a valid JSON object with a single key "topics" which is a
         setIsLoading(true);
         setLessonPlan('');
         try {
-            let plan;
             const subjectName = allSubjects.find(s => s.id === selectedSubject)?.name;
             const prompt = `Generate a detailed lesson plan for a Nigerian secondary school class. Topic: "${topic}". Class: "${selectedClass}". Subject: "${subjectName}". Term: "${selectedTerm}". Curriculum: "${selectedCurriculum}". Include: 1. Learning Objectives (3-4 points). 2. 21st Century Skills (Identify and list 2-3 relevant skills like Critical Thinking, Collaboration, etc.). 3. Materials Needed. 4. A detailed 5-step lesson procedure (Introduction, Presentation, Practice, Evaluation, Conclusion). 5. Evaluation Method with sample questions. 6. A relevant take-home assignment. Format the response neatly.`;
             
-            if (isOnline) {
-                plan = await generateText(prompt);
-            } else {
-                plan = getFallbackLessonPlan(topic);
-            }
+            const plan = await generateResponse({ prompt, context: { userRole: 'Teacher' } });
             setLessonPlan(plan);
         } catch (error) {
             console.error("Failed to generate lesson plan:", error);
@@ -126,13 +117,50 @@ Return the response as a valid JSON object with a single key "topics" which is a
         }
     };
 
+    const handleShare = async () => {
+        if (!lessonPlan) return;
+        setIsSharing(true);
+        setShareSuccess(false);
+
+        try {
+            const user = await getCurrentUser();
+            if (!user) throw new Error("Could not identify current user.");
+            
+            const planData = {
+                topic: topic,
+                class: selectedClass,
+                subjectId: selectedSubject,
+                content: lessonPlan,
+                sharedByTeacherId: user.id,
+                sharedByTeacherName: user.name,
+            };
+            
+            await apiShareLessonPlan(planData);
+            setShareSuccess(true);
+            setTimeout(() => setShareSuccess(false), 3000);
+
+        } catch (error) {
+            alert(`Could not share lesson plan: ${error.message}`);
+        } finally {
+            setIsSharing(false);
+        }
+    };
+
     return (
         <div className="card">
             <div className="p-6">
-                <h2 className="text-xl font-semibold">AI Lesson Planner</h2>
-                <p className="mt-2 text-sm text-gray-500">
-                    Select your class criteria to get topic suggestions, then enter a topic to quickly generate a structured lesson plan.
-                </p>
+                <div className="flex justify-between items-start">
+                    <div>
+                        <h2 className="text-xl font-semibold">AI Lesson Planner</h2>
+                        <p className="mt-2 text-sm text-gray-500">
+                            Select criteria to get topic suggestions, then generate a structured lesson plan.
+                        </p>
+                    </div>
+                     <div className="flex items-center text-xs text-gray-500">
+                         <span className={`w-2 h-2 rounded-full mr-2 ${status === 'gemini' ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
+                         {status === 'gemini' ? 'Online' : 'Offline'}
+                    </div>
+                </div>
 
                 <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
@@ -205,6 +233,12 @@ Return the response as a valid JSON object with a single key "topics" which is a
                     <div className="mt-4 p-4 bg-gray-100 rounded-md">
                         <h4 className="font-semibold text-sm">Generated Lesson Plan:</h4>
                         <pre className="mt-1 text-gray-800 whitespace-pre-wrap font-sans text-sm">{lessonPlan}</pre>
+                        <div className="mt-4 border-t pt-4">
+                            <button onClick={handleShare} className="btn btn-secondary" disabled={isSharing || shareSuccess}>
+                                {isSharing ? <SpinnerIcon className="w-5 h-5 animate-spin mr-2" /> : <BookmarkSquareIcon className="w-5 h-5 mr-2" />}
+                                {shareSuccess ? "Shared!" : isSharing ? "Sharing..." : "Share to Resource Hub"}
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>

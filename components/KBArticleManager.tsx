@@ -6,29 +6,30 @@ import { formatDate } from '../utils/dateHelpers';
 import EditIcon from './icons/EditIcon';
 import TrashIcon from './icons/TrashIcon';
 import RichTextEditor from './RichTextEditor';
+import { Page as Article } from '../types'; // Using Page as it has the same structure
 
 const KBArticleManager = () => {
-    const [articles, setArticles] = useState([]);
+    const [articles, setArticles] = useState<Article[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setModalOpen] = useState(false);
-    const [editingArticle, setEditingArticle] = useState(null);
+    const [editingArticle, setEditingArticle] = useState<Article | null>(null);
     const [articleData, setArticleData] = useState({ title: '', content: '', status: 'draft' });
 
     useEffect(() => {
         const fetchArticles = async () => {
-            const kbArticles = await apiGetKbArticles();
-            setArticles(kbArticles || []);
+            const data = await apiGetKbArticles();
+            setArticles(data || []);
             setLoading(false);
         };
         fetchArticles();
     }, []);
 
-    const handleSave = async (updatedArticles) => {
+    const handleSave = async (updatedArticles: Article[]) => {
         await apiSaveKbArticles(updatedArticles);
         setArticles(updatedArticles);
     };
 
-    const handleOpenModal = (article = null) => {
+    const handleOpenModal = (article: Article | null = null) => {
         if (article) {
             setEditingArticle(article);
             setArticleData(article);
@@ -46,21 +47,21 @@ const KBArticleManager = () => {
             lastUpdated: new Date().toISOString()
         };
         if (editingArticle) {
-            updatedArticles = articles.map(a => a.id === editingArticle.id ? { ...articlePayload, id: a.id } : a);
+            updatedArticles = articles.map(a => a.id === editingArticle.id ? { ...articlePayload, id: a.id } as Article : a);
         } else {
-            updatedArticles = [...articles, { ...articlePayload, id: `kb_${Date.now()}` }];
+            updatedArticles = [...articles, { ...articlePayload, id: `kb_${Date.now()}` } as Article];
         }
         await handleSave(updatedArticles);
         setModalOpen(false);
     };
     
-    const handleDelete = async (articleId) => {
+    const handleDelete = async (articleId: string) => {
         if (!window.confirm("Are you sure?")) return;
         const updatedArticles = articles.filter(a => a.id !== articleId);
         await handleSave(updatedArticles);
     }
 
-    if (loading) return <p>Loading articles...</p>;
+    if (loading) return <p>Loading Knowledge Base articles...</p>;
 
     return (
         <div className="card">
@@ -103,7 +104,7 @@ const KBArticleManager = () => {
                     </div>
                     <div>
                         <label className="label">Status</label>
-                         <select value={articleData.status} onChange={e => setArticleData({...articleData, status: e.target.value})} className="input-field">
+                         <select value={articleData.status} onChange={e => setArticleData({...articleData, status: e.target.value as 'draft' | 'published'})} className="input-field">
                             <option value="draft">Draft</option>
                             <option value="published">Published</option>
                         </select>

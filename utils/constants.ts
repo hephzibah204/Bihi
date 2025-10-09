@@ -41,6 +41,9 @@ export const ADMIN_VIEWS = {
     PLATFORM_SETTINGS: 'platform-settings',
     BROADSHEET: 'broadsheet',
     ALUMNI: 'alumni',
+    BLOG_ARTICLES: 'blog-articles',
+    KB_ARTICLES: 'kb-articles',
+    KNOWLEDGE_BASE: 'knowledge-base',
 } as const;
 
 export const CONTROLLABLE_FEATURES = [
@@ -74,6 +77,8 @@ export const TEACHER_VIEWS = {
     BEHAVIORAL_LOG: 'behavioral-log',
     AI_TOOLS: 'ai-tools',
     MESSAGES: 'messages',
+    RESOURCE_HUB: 'resource-hub',
+    KNOWLEDGE_BASE: 'knowledge-base',
     MORE: 'more',
 } as const;
 
