@@ -113,9 +113,9 @@ export async function onRequestPost({ request, env }) {
             body: JSON.stringify({
                 id: subdomain,
                 name: schoolName,
-                subscription_status: 'trial',
-                trial_end_date: trialExpiry,
-                subscription_expiry_date: trialExpiry,
+                subscriptionStatus: 'trial',
+                trialEndDate: trialExpiry,
+                subscriptionExpiryDate: trialExpiry,
             })
         });
         

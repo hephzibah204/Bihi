@@ -430,31 +430,6 @@ export const apiSaveScratchCards = async (cards: ScratchCard[]): Promise<void> =
     if (error) throw error;
 };
 
-// --- Mappers for DB <> App data structures ---
-const fromDbTenant = (dbTenant: any): Tenant | null => {
-    if (!dbTenant) return null;
-    return {
-        id: dbTenant.id,
-        name: dbTenant.name,
-        planId: dbTenant.plan_id,
-        subscriptionStatus: dbTenant.subscription_status,
-        trialEndDate: dbTenant.trial_end_date,
-        subscriptionExpiryDate: dbTenant.subscription_expiry_date,
-    };
-};
-
-const toDbTenant = (tenant: Partial<Tenant>) => {
-    const dbTenant: any = {};
-    if (tenant.id !== undefined) dbTenant.id = tenant.id;
-    if (tenant.name !== undefined) dbTenant.name = tenant.name;
-    if (tenant.planId !== undefined) dbTenant.plan_id = tenant.planId;
-    if (tenant.subscriptionStatus !== undefined) dbTenant.subscription_status = tenant.subscriptionStatus;
-    if (tenant.trialEndDate !== undefined) dbTenant.trial_end_date = tenant.trialEndDate;
-    if (tenant.subscriptionExpiryDate !== undefined) dbTenant.subscription_expiry_date = tenant.subscriptionExpiryDate;
-    return dbTenant;
-};
-
-
 // --- Public / Multi-tenant (Simulations to be replaced) ---
 export const apiGetPublicStudentResult = async (schoolId: string, admissionNo: string) => {
     // This is a public function, so we must be very careful.
@@ -494,27 +469,31 @@ export const apiUseScratchCard = async (pin: string, tenantId: string) => {
 // --- Super Admin / Platform ---
 export const apiGetTenants = async (): Promise<Tenant[]> => {
     if (!supabase) throw new Error("Database client not initialized.");
-    const { data, error } = await supabase.from('tenants').select('id, name, plan_id, subscription_status, trial_end_date, subscription_expiry_date');
+    // Select all columns and let Supabase return them. The names should match the camelCase Tenant type.
+    const { data, error } = await supabase.from('tenants').select('*');
     if (error) throw error;
-    return data ? data.map(fromDbTenant).filter((t): t is Tenant => t !== null) : [];
+    return data || [];
 };
 
 export const apiAddTenant = async (tenant: { id: string, name: string }) => {
     if (!supabase) throw new Error("Database client not initialized.");
     const trialExpiry = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+    // The newTenant object is already in camelCase, matching the Tenant type.
     const newTenant: Partial<Tenant> = {
         ...tenant,
         subscriptionStatus: 'trial',
         trialEndDate: trialExpiry,
         subscriptionExpiryDate: trialExpiry,
     };
-    const { error } = await supabase.from('tenants').insert(toDbTenant(newTenant));
+    // Insert the camelCase object directly.
+    const { error } = await supabase.from('tenants').insert(newTenant);
     if (error) throw error;
 };
 
 export const apiUpdateTenant = async (tenantData: Tenant) => {
     if (!supabase) throw new Error("Database client not initialized.");
-    const { error } = await supabase.from('tenants').update(toDbTenant(tenantData)).match({ id: tenantData.id });
+    // Update with the camelCase object directly.
+    const { error } = await supabase.from('tenants').update(tenantData).match({ id: tenantData.id });
     if (error) throw error;
 };
 
