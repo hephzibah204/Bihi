@@ -1,18 +1,15 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import * as React from 'react';
 
 interface ErrorBoundaryProps {
-  children?: ReactNode;
+  children?: React.ReactNode;
 }
 
 interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-// Fix: The 'props' property was not being found on the component instance.
-// Switched from a namespace import (`import * as React`) to named imports
-// for `Component`, `ErrorInfo`, and `ReactNode` to resolve potential
-// type resolution issues in the project's TypeScript configuration.
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+// Fix: Reverted to a namespace import (`import * as React`) and updated type references (e.g., React.Component) to ensure robust type resolution for the component class, which should resolve the error about the 'props' property not being found.
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public state: ErrorBoundaryState = {
     hasError: false,
   };
@@ -22,11 +19,11 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     return { hasError: true };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
     console.error("Uncaught error:", error, errorInfo);
   }
 
-  public render(): ReactNode {
+  public render(): React.ReactNode {
     if (this.state.hasError) {
       return (
         <div style={{ padding: '2rem', textAlign: 'center', fontFamily: 'sans-serif' }}>
