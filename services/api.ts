@@ -517,12 +517,13 @@ export const apiGetTenants = async (): Promise<Tenant[]> => {
 
 export const apiAddTenant = async (tenant: { id: string, name: string }) => {
     if (!supabase) throw new Error("Database client not initialized.");
-    const trialExpiry = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+    const trialEndDate = new Date();
+    trialEndDate.setDate(trialEndDate.getDate() + 7); // 7-day trial
+
     const newTenant: Partial<Tenant> = {
         ...tenant,
         subscriptionStatus: 'trial',
-        trialEndDate: trialExpiry,
-        subscriptionExpiryDate: trialExpiry,
+        trialEndDate: trialEndDate.toISOString(),
     };
     const { error } = await supabase.from('tenants').insert(toDbTenant(newTenant));
     if (error) throw error;

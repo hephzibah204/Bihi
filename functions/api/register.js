@@ -105,8 +105,10 @@ export async function onRequestPost({ request, env }) {
             'Content-Type': 'application/json'
         };
 
+        const trialEndDate = new Date();
+        trialEndDate.setDate(trialEndDate.getDate() + 7); // 7-day trial
+
         // --- Step 1: Create the Tenant Record ---
-        const trialExpiry = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
         const tenantRes = await fetch(`${SUPABASE_URL}/rest/v1/tenants`, {
             method: 'POST',
             headers: adminHeaders,
@@ -114,8 +116,7 @@ export async function onRequestPost({ request, env }) {
                 id: subdomain,
                 name: schoolName,
                 subscription_status: 'trial',
-                trial_end_date: trialExpiry,
-                subscription_expiry_date: trialExpiry,
+                trial_end_date: trialEndDate.toISOString(),
             })
         });
         
