@@ -106,14 +106,16 @@ export async function onRequestPost({ request, env }) {
         };
 
         // --- Step 1: Create the Tenant Record ---
+        const trialExpiry = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
         const tenantRes = await fetch(`${SUPABASE_URL}/rest/v1/tenants`, {
             method: 'POST',
             headers: adminHeaders,
             body: JSON.stringify({
                 id: subdomain,
                 name: schoolName,
-                subscriptionStatus: 'trial',
-                trialEndDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+                subscription_status: 'trial',
+                trial_end_date: trialExpiry,
+                subscription_expiry_date: trialExpiry,
             })
         });
         
