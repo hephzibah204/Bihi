@@ -467,33 +467,70 @@ export const apiUseScratchCard = async (pin: string, tenantId: string) => {
 };
 
 // --- Super Admin / Platform ---
+
+// NEW: Mappers to handle snake_case from DB vs camelCase in app
+const fromDbTenant = (dbTenant: any): Tenant => {
+    if (!dbTenant) return null;
+    return {
+        id: dbTenant.id,
+        name: dbTenant.name,
+        planId: dbTenant.plan_id,
+        subscriptionStatus: dbTenant.subscription_status,
+        trialEndDate: dbTenant.trial_end_date,
+        subscriptionExpiryDate: dbTenant.subscription_expiry_date,
+    };
+};
+
+const toDbTenant = (tenant: Partial<Tenant>): any => {
+    const dbTenant: any = {};
+    if (tenant.id) dbTenant.id = tenant.id;
+    if (tenant.name) dbTenant.name = tenant.name;
+    if (tenant.planId !== undefined) dbTenant.plan_id = tenant.planId;
+    if (tenant.subscriptionStatus) dbTenant.subscription_status = tenant.subscriptionStatus;
+    if (tenant.trialEndDate !== undefined) dbTenant.trial_end_date = tenant.trialEndDate;
+    if (tenant.subscriptionExpiryDate !== undefined) dbTenant.subscription_expiry_date = tenant.subscriptionExpiryDate;
+    return dbTenant;
+};
+
+// NEW: Public function to fetch tenants securely via serverless function
+export const apiGetPublicTenantList = async (): Promise<{id: string, name: string}[]> => {
+     try {
+        // This endpoint is now handled by functions/api/login.js with a GET handler
+        const response = await fetch('/api/login?action=list_tenants');
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.details || 'Failed to fetch school list.');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching tenants:", error);
+        return []; 
+    }
+}
+
 export const apiGetTenants = async (): Promise<Tenant[]> => {
     if (!supabase) throw new Error("Database client not initialized.");
-    // Select all columns and let Supabase return them. The names should match the camelCase Tenant type.
     const { data, error } = await supabase.from('tenants').select('*');
     if (error) throw error;
-    return data || [];
+    return (data || []).map(fromDbTenant);
 };
 
 export const apiAddTenant = async (tenant: { id: string, name: string }) => {
     if (!supabase) throw new Error("Database client not initialized.");
     const trialExpiry = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
-    // The newTenant object is already in camelCase, matching the Tenant type.
     const newTenant: Partial<Tenant> = {
         ...tenant,
         subscriptionStatus: 'trial',
         trialEndDate: trialExpiry,
         subscriptionExpiryDate: trialExpiry,
     };
-    // Insert the camelCase object directly.
-    const { error } = await supabase.from('tenants').insert(newTenant);
+    const { error } = await supabase.from('tenants').insert(toDbTenant(newTenant));
     if (error) throw error;
 };
 
 export const apiUpdateTenant = async (tenantData: Tenant) => {
     if (!supabase) throw new Error("Database client not initialized.");
-    // Update with the camelCase object directly.
-    const { error } = await supabase.from('tenants').update(tenantData).match({ id: tenantData.id });
+    const { error } = await supabase.from('tenants').update(toDbTenant(tenantData)).match({ id: tenantData.id });
     if (error) throw error;
 };
 

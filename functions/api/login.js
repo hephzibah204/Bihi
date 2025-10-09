@@ -40,6 +40,42 @@ function getCorsHeaders(request) {
     };
 }
 
+export async function onRequestGet({ request, env }) {
+    const corsHeaders = { ...getCorsHeaders(request), 'Content-Type': 'application/json' };
+    if (!corsHeaders['Access-Control-Allow-Origin']) {
+        return new Response(JSON.stringify({ error: 'Forbidden: Invalid Origin' }), { status: 403, headers: corsHeaders });
+    }
+
+    try {
+        const { searchParams } = new URL(request.url);
+        if (searchParams.get('action') !== 'list_tenants') {
+            return new Response(JSON.stringify({ error: 'Invalid action' }), { status: 400, headers: corsHeaders });
+        }
+
+        const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = env;
+        if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+            return new Response(JSON.stringify({ error: 'Server not configured.' }), { status: 500, headers: corsHeaders });
+        }
+        const adminHeaders = {
+            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            'apikey': SUPABASE_SERVICE_ROLE_KEY
+        };
+
+        // Fetch only the columns needed by the client for subdomain validation.
+        const tenantsRes = await fetch(`${SUPABASE_URL}/rest/v1/tenants?select=id,name`, { headers: adminHeaders });
+
+        if (!tenantsRes.ok) {
+            const error = await tenantsRes.json();
+            throw new Error(error.message || 'Failed to fetch tenants from database.');
+        }
+        
+        const tenants = await tenantsRes.json();
+        return new Response(JSON.stringify(tenants), { status: 200, headers: corsHeaders });
+    } catch (err) {
+        return new Response(JSON.stringify({ error: "Failed to fetch tenants", details: err.message }), { status: 500, headers: corsHeaders });
+    }
+}
+
 export async function onRequestPost({ request, env }) {
     const corsHeaders = { ...getCorsHeaders(request), 'Content-Type': 'application/json' };
 

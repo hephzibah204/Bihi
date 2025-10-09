@@ -8,7 +8,7 @@ interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-// Fix: Changed to named imports for React.Component and related types to ensure TypeScript correctly recognizes this as a React component, resolving the error where the 'props' property was not found.
+// Fix: Converted ErrorBoundary to a proper React class component by extending `Component` and adding types for props and state. This resolves the error where 'this.props' was not accessible because the class was not a component.
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public state: ErrorBoundaryState = {
     hasError: false,

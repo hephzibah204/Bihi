@@ -1,8 +1,9 @@
 
+
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { getSubdomain } from './utils/subdomain';
 import { APP_VIEWS } from './utils/constants';
-import { apiGetPlatformSettings, apiGetTenants } from './services/api';
+import { apiGetPlatformSettings, apiGetPublicTenantList } from './services/api';
 import { DEMO_TENANT_ID } from './utils/demoData';
 
 // Lazy load components for code splitting
@@ -59,7 +60,7 @@ const App = () => {
             // If a subdomain is found, check if it's a real, registered tenant.
             // This prevents users from landing on a dead-end login for a non-existent school.
             if (sd && sd !== 'admin' && sd !== DEMO_TENANT_ID) {
-                const tenants = await apiGetTenants();
+                const tenants = await apiGetPublicTenantList();
                 const isValidTenant = tenants.some(t => t.id === sd);
                 if (!isValidTenant) {
                     // Invalid subdomain found, redirect to the root marketing page.
