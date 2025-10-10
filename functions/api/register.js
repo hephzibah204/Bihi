@@ -160,7 +160,14 @@ export async function onRequestPost({ request, env }) {
             })
         });
 
-        if (!teacherRes.ok) throw new Error('Failed to create admin profile.');
+        if (!teacherRes.ok) {
+            const teacherError = await teacherRes.json();
+            // Cleanup failed registration to allow retry
+            await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userData.id}`, { method: 'DELETE', headers: adminHeaders });
+            await fetch(`${SUPABASE_URL}/rest/v1/tenants?id=eq.${subdomain}`, { method: 'DELETE', headers: adminHeaders });
+            
+            throw new Error(`Failed to create admin profile. Reason from database: ${teacherError.message}`);
+        }
 
         // --- Step 4: Seed Default Data ---
         const settingsPayload = { ...defaultSettings, schoolName, schoolType, schoolAddress: '', tenant_id: subdomain, id: 1 };
