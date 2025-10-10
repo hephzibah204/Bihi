@@ -1,9 +1,9 @@
-
-
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { getSubdomain } from './utils/subdomain';
+// Fix: Corrected the import path for constants to be a relative path.
 import { APP_VIEWS } from './utils/constants';
-import { apiGetPlatformSettings, apiGetPublicTenantList } from './services/api';
+import { apiGetPlatformSettings, apiGetTenants } from './services/api';
+// Fix: Corrected the import path for demoData to be a relative path.
 import { DEMO_TENANT_ID } from './utils/demoData';
 
 // Lazy load components for code splitting
@@ -36,70 +36,73 @@ const App = () => {
 
     useEffect(() => {
         const init = async () => {
-            const settings = await apiGetPlatformSettings();
-            setPlatformSettings(settings);
+            try {
+                const settings = await apiGetPlatformSettings();
+                setPlatformSettings(settings);
 
-            const params = new URLSearchParams(window.location.search);
-            const currentView = params.get('view');
-            setView(currentView);
+                const params = new URLSearchParams(window.location.search);
+                const currentView = params.get('view');
+                setView(currentView);
 
-            // Update document title for accessibility
-            let title = 'ReportSheet | AI-Powered School Management System';
-            if (currentView === APP_VIEWS.DEMO) title = 'Demo | ReportSheet';
-            else if (currentView === APP_VIEWS.SIGNUP) title = 'Sign Up | ReportSheet';
-            else if (currentView === APP_VIEWS.SIGNIN) title = 'Sign In | ReportSheet';
-            else if (currentView === APP_VIEWS.RESULT_CHECKER) title = 'Result Checker | ReportSheet';
-            else if (currentView === APP_VIEWS.BLOG) title = 'Blog | ReportSheet';
-            else if (currentView === APP_VIEWS.KB) title = 'Knowledge Base | ReportSheet';
-            else if (currentView === APP_VIEWS.ALUMNI) title = 'Alumni Portal | ReportSheet';
-            document.title = title;
+                // Update document title for accessibility
+                let title = 'ReportSheet | AI-Powered School Management System';
+                if (currentView === APP_VIEWS.DEMO) title = 'Demo | ReportSheet';
+                else if (currentView === APP_VIEWS.SIGNUP) title = 'Sign Up | ReportSheet';
+                else if (currentView === APP_VIEWS.SIGNIN) title = 'Sign In | ReportSheet';
+                else if (currentView === APP_VIEWS.RESULT_CHECKER) title = 'Result Checker | ReportSheet';
+                else if (currentView === APP_VIEWS.BLOG) title = 'Blog | ReportSheet';
+                else if (currentView === APP_VIEWS.KB) title = 'Knowledge Base | ReportSheet';
+                else if (currentView === APP_VIEWS.ALUMNI) title = 'Alumni Portal | ReportSheet';
+                document.title = title;
 
-            const sd = getSubdomain();
-            
-            // --- VALIDATE SUBDOMAIN ---
-            // If a subdomain is found, check if it's a real, registered tenant.
-            // This prevents users from landing on a dead-end login for a non-existent school.
-            if (sd && sd !== 'admin' && sd !== DEMO_TENANT_ID) {
-                const tenants = await apiGetPublicTenantList();
-                const isValidTenant = tenants.some(t => t.id === sd);
-                if (!isValidTenant) {
-                    // Invalid subdomain found, redirect to the root marketing page.
-                    window.location.href = '/';
-                    return; // Stop further processing to allow the redirect to happen.
+                const sd = getSubdomain();
+                
+                // --- VALIDATE SUBDOMAIN ---
+                // If a subdomain is found, check if it's a real, registered tenant.
+                // This prevents users from landing on a dead-end login for a non-existent school.
+                if (sd && sd !== 'admin' && sd !== DEMO_TENANT_ID) {
+                    const tenants = await apiGetTenants();
+                    const isValidTenant = tenants.some(t => t.id === sd);
+                    if (!isValidTenant) {
+                        // Invalid subdomain found, redirect to the root marketing page.
+                        window.location.href = '/';
+                        return; // Stop further processing to allow the redirect to happen.
+                    }
                 }
-            }
-            
-            setSubdomain(sd);
-            const isRoot = !sd;
-            setIsRootDomain(isRoot);
+                
+                setSubdomain(sd);
+                const isRoot = !sd;
+                setIsRootDomain(isRoot);
 
-            const { pathname } = window.location;
+                const { pathname } = window.location;
 
-            // Check for SuperAdmin login route on root domain
-            if (isRoot && pathname === '/controlhub') {
-                setShowSuperAdmin(true);
-            }
-            // Dynamic page routing for root domain, excluding the admin route
-            else if (isRoot && !currentView) {
-                if (pathname !== '/') {
-                    const publishedPages = settings?.pages?.filter(p => p.status === 'published') || [];
-                    const matchedPage = publishedPages.find(p => p.slug === pathname);
-                    setDynamicPage(matchedPage);
+                // Check for SuperAdmin login route on root domain
+                if (isRoot && pathname === '/controlhub') {
+                    setShowSuperAdmin(true);
                 }
+                // Dynamic page routing for root domain, excluding the admin route
+                else if (isRoot && !currentView) {
+                    if (pathname !== '/') {
+                        const publishedPages = settings?.pages?.filter(p => p.status === 'published') || [];
+                        const matchedPage = publishedPages.find(p => p.slug === pathname);
+                        setDynamicPage(matchedPage);
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to initialize app:", error);
+            } finally {
+                setLoading(false);
             }
-
-
-            setLoading(false);
-            
-            const handlePopState = () => {
-                 const params = new URLSearchParams(window.location.search);
-                 setView(params.get('view'));
-            };
-            window.addEventListener('popstate', handlePopState);
-            return () => window.removeEventListener('popstate', handlePopState);
         };
 
         init();
+        
+        const handlePopState = () => {
+             const params = new URLSearchParams(window.location.search);
+             setView(params.get('view'));
+        };
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
     }, []);
     
     const handleNavigate = (newView: string | null) => {

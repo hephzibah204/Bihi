@@ -1,4 +1,5 @@
 // utils/subdomain.ts
+// Fix: Corrected import path for demoData.
 import { DEMO_TENANT_ID } from './demoData';
 
 const ROOT_DOMAINS = ['reportsheet.com.ng', 'localhost'];

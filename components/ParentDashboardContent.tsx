@@ -1,5 +1,5 @@
-
 import React, { lazy } from 'react';
+// Fix: Correct import path
 import { ParentView } from '../types';
 import { PARENT_VIEWS } from '../utils/constants';
 
@@ -11,6 +11,8 @@ const ParentBehavioral = lazy(() => import('./ParentBehavioral'));
 const NotificationViewer = lazy(() => import('./NotificationViewer'));
 const ParentAssignments = lazy(() => import('./ParentAssignments'));
 const DirectMessages = lazy(() => import('./DirectMessages'));
+// Fix: Correct import path
+const ParentFees = lazy(() => import('./ParentFees'));
 
 interface ParentDashboardContentProps {
     activeView: ParentView;
@@ -24,6 +26,8 @@ const ParentDashboardContent = ({ activeView, setActiveView, demoUserId }: Paren
             return <ParentHome setActiveView={setActiveView} demoUserId={demoUserId} />;
         case PARENT_VIEWS.RESULTS:
             return <ParentResults demoUserId={demoUserId} />;
+        case PARENT_VIEWS.FEES:
+            return <ParentFees demoUserId={demoUserId} />;
         case PARENT_VIEWS.ATTENDANCE:
             return <ParentAttendance demoUserId={demoUserId} />;
         case PARENT_VIEWS.BEHAVIORAL:

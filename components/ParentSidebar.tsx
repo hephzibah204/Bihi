@@ -11,6 +11,7 @@ import Logo from './icons/Logo';
 import XIcon from './icons/XIcon';
 import ChatBubbleLeftRightIcon from './icons/ChatBubbleLeftRightIcon';
 import { useTenant } from '../contexts/TenantContext';
+import CreditCardIcon from './icons/CreditCardIcon';
 
 interface SidebarProps {
     isSidebarOpen: boolean;
@@ -39,6 +40,7 @@ const ParentSidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveVie
     const allNavLinks = [
         { view: PARENT_VIEWS.DASHBOARD, label: 'Dashboard', icon: <HomeIcon className="h-5 w-5" />, alwaysVisible: true },
         { view: PARENT_VIEWS.RESULTS, label: 'Results', icon: <ClipboardListIcon className="h-5 w-5" /> },
+        { view: PARENT_VIEWS.FEES, label: 'School Fees', icon: <CreditCardIcon className="h-5 w-5" /> },
         { view: PARENT_VIEWS.ASSIGNMENTS, label: 'Assignments', icon: <DocumentDuplicateIcon className="h-5 w-5" /> },
         { view: PARENT_VIEWS.MESSAGES, label: 'Messages', icon: <ChatBubbleLeftRightIcon className="h-5 w-5" /> },
         { view: PARENT_VIEWS.ATTENDANCE, label: 'Attendance', icon: <CheckBadgeIcon className="h-5 w-5" /> },

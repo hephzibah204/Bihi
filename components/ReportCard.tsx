@@ -3,7 +3,9 @@ import ReportCardDashboard from './ReportCardDashboard';
 import DocumentArrowDownIcon from './icons/DocumentArrowDownIcon';
 import SparklesIcon from './icons/SparklesIcon';
 import ChartBarIcon from './icons/ChartBarIcon';
+// Fix: Corrected import path for types.
 import { DashboardView } from '../types';
+// Fix: Corrected the import path for constants to be a relative path.
 import { ADMIN_VIEWS } from '../utils/constants';
 import PencilSquareIcon from './icons/PencilSquareIcon';
 

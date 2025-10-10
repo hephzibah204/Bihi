@@ -105,17 +105,17 @@ export async function onRequestPost({ request, env }) {
             'Content-Type': 'application/json'
         };
 
-        const trialEndDate = new Date();
-        trialEndDate.setDate(trialEndDate.getDate() + 7); // 7-day trial
-
         // --- Step 1: Create the Tenant Record ---
+        const trialExpiry = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
         const tenantRes = await fetch(`${SUPABASE_URL}/rest/v1/tenants`, {
             method: 'POST',
             headers: adminHeaders,
             body: JSON.stringify({
                 id: subdomain,
                 name: schoolName,
-                trial_end_date: trialEndDate.toISOString(),
+                subscriptionStatus: 'trial',
+                trialEndDate: trialExpiry,
+                subscriptionExpiryDate: trialExpiry,
             })
         });
         
@@ -163,7 +163,7 @@ export async function onRequestPost({ request, env }) {
         if (!teacherRes.ok) throw new Error('Failed to create admin profile.');
 
         // --- Step 4: Seed Default Data ---
-        const settingsPayload = { ...defaultSettings, schoolName, schoolType, tenant_id: subdomain, id: 1 };
+        const settingsPayload = { ...defaultSettings, schoolName, schoolType, schoolAddress: '', tenant_id: subdomain, id: 1 };
         const subjectsPayload = defaultSubjects.map(s => ({ ...s, tenant_id: subdomain }));
 
         await Promise.all([

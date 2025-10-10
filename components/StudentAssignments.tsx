@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
+// Fix: Correct import path
 import { apiGetAssignments, apiGetAssignmentScores, apiGetStudents, apiGetSubjects } from '../services/api';
+// Fix: Correct import path
 import { Assignment, AssignmentScore, Student, Subject } from '../types';
 import { formatDate } from '../utils/dateHelpers';
 

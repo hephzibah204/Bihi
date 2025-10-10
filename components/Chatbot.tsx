@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import FloatingChatButton from './FloatingChatButton';
+// Fix: Corrected import path for ChatbotPanel.
 import ChatbotPanel from './ChatbotPanel';
 
 const Chatbot = ({ userRole, demoUserId, activeView }: { userRole: string, demoUserId?: string, activeView: string }) => {

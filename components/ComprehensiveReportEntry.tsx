@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 // Fix: Correctly import `apiGetRemarks` instead of the non-existent `getTenantData`.
 import { apiGetStudents, apiGetSubjects, apiGetSchoolSettings, apiUpsertRemark, apiGetRemarks, apiGetScores, apiGetBehavioralRecords, apiUpsertScore } from '../services/api';

@@ -1,17 +1,19 @@
 import React from 'react';
 import { TeacherView } from '../types';
 import HomeIcon from './icons/HomeIcon';
-import UsersIcon from './icons/UsersIcon';
 import ClipboardListIcon from './icons/ClipboardListIcon';
-import BrainCircuitIcon from './icons/BrainCircuitIcon';
+import UsersIcon from './icons/UsersIcon';
 import CalendarDaysIcon from './icons/CalendarDaysIcon';
+import DocumentDuplicateIcon from './icons/DocumentDuplicateIcon';
+import BrainCircuitIcon from './icons/BrainCircuitIcon';
 import { TEACHER_VIEWS, USER_ROLES } from '../utils/constants';
 import Logo from './icons/Logo';
 import XIcon from './icons/XIcon';
 import ChatBubbleLeftRightIcon from './icons/ChatBubbleLeftRightIcon';
-import { useTenant } from '../contexts/TenantContext';
+import { usePlanFeatures } from '../contexts/PlanFeaturesContext';
 import BookmarkSquareIcon from './icons/BookmarkSquareIcon';
-import QuestionMarkCircleIcon from './icons/QuestionMarkCircleIcon';
+import Bars3Icon from './icons/Bars3Icon';
+import BanknotesIcon from './icons/BanknotesIcon';
 
 interface SidebarProps {
     isSidebarOpen: boolean;
@@ -35,19 +37,21 @@ const NavLink: React.FC<{ icon: React.ReactNode; label: string; view: TeacherVie
 );
 
 const TeacherSidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView }: SidebarProps) => {
-    const { hasFeature } = useTenant();
+    const { hasFeature } = usePlanFeatures();
 
     const allNavLinks = [
         { view: TEACHER_VIEWS.DASHBOARD, label: 'Dashboard', icon: <HomeIcon className="h-5 w-5" />, alwaysVisible: true },
-        { view: TEACHER_VIEWS.MY_STUDENTS, label: 'My Students', icon: <UsersIcon className="h-5 w-5" /> },
         { view: TEACHER_VIEWS.ENTER_SCORES, label: 'Enter Scores', icon: <ClipboardListIcon className="h-5 w-5" /> },
-        { view: TEACHER_VIEWS.RESOURCE_HUB, label: 'Resource Hub', icon: <BookmarkSquareIcon className="h-5 w-5" /> },
-        { view: TEACHER_VIEWS.KNOWLEDGE_BASE, label: 'Knowledge Base', icon: <QuestionMarkCircleIcon className="h-5 w-5" /> },
+        { view: TEACHER_VIEWS.MY_STUDENTS, label: 'My Students', icon: <UsersIcon className="h-5 w-5" />, alwaysVisible: true },
+        { view: TEACHER_VIEWS.MY_SCHEDULE, label: 'My Schedule', icon: <CalendarDaysIcon className="h-5 w-5" />, alwaysVisible: true },
+        { view: TEACHER_VIEWS.ASSIGNMENTS, label: 'Assignments', icon: <DocumentDuplicateIcon className="h-5 w-5" /> },
         { view: TEACHER_VIEWS.MESSAGES, label: 'Messages', icon: <ChatBubbleLeftRightIcon className="h-5 w-5" /> },
-        { view: TEACHER_VIEWS.MY_SCHEDULE, label: 'My Schedule', icon: <CalendarDaysIcon className="h-5 w-5" /> },
+        { view: TEACHER_VIEWS.RESOURCE_HUB, label: 'Resource Hub', icon: <BookmarkSquareIcon className="h-5 w-5" /> },
         { view: TEACHER_VIEWS.AI_TOOLS, label: 'AI Tools', icon: <BrainCircuitIcon className="h-5 w-5" /> },
+        { view: TEACHER_VIEWS.MY_PAYSLIPS, label: 'My Payslips', icon: <BanknotesIcon className="h-5 w-5" /> },
+        { view: TEACHER_VIEWS.MORE, label: 'More', icon: <Bars3Icon className="h-5 w-5" />, alwaysVisible: true },
     ];
-
+    
     const navLinks = allNavLinks.filter(link => link.alwaysVisible || hasFeature(USER_ROLES.TEACHER, link.view));
 
     return (
@@ -60,7 +64,7 @@ const TeacherSidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveVi
                 className={`fixed inset-y-0 left-0 z-30 w-64 bg-white transform transition-transform duration-300 md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
             >
                 <div className="flex items-center justify-between h-16 px-4 border-b">
-                    <a href="/" className="flex items-center space-x-2">
+                     <a href="/" className="flex items-center space-x-2">
                         <Logo className="h-8 w-8" />
                         <span className="text-xl font-bold">ReportSheet</span>
                     </a>
@@ -69,7 +73,7 @@ const TeacherSidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveVi
                     </button>
                 </div>
                 <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-                    {navLinks.map(link => <NavLink key={link.view} view={link.view} label={link.label} icon={link.icon} activeView={activeView} setActiveView={setActiveView} />)}
+                    {navLinks.map(link => <NavLink key={link.view} {...link} activeView={activeView} setActiveView={setActiveView} />)}
                 </nav>
             </aside>
         </>

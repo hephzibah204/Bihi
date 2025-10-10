@@ -1,25 +1,43 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import ArrowTrendingUpIcon from './icons/ArrowTrendingUpIcon';
 import ArrowTrendingDownIcon from './icons/ArrowTrendingDownIcon';
 
-const StatCard = ({ title, value, icon, trend }) => (
-    <div className="card p-6">
-        <div className="flex justify-between items-start">
-            <div>
-                <h4 className="font-semibold text-gray-500">{title}</h4>
-                <p className="text-3xl font-bold mt-2">{value}</p>
+interface StatCardProps {
+    title: string;
+    value: string | number;
+    icon: ReactNode;
+    trend?: { value: string; direction: 'up' | 'down' } | null;
+}
+
+const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend }) => {
+    return (
+        <div className="card p-6">
+            <div className="flex items-center">
+                <div className="p-3 rounded-full bg-indigo-100 text-indigo-600">
+                    {icon}
+                </div>
+                <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-500 truncate">{title}</p>
+                    <p className="text-2xl font-semibold text-gray-900">{value}</p>
+                </div>
             </div>
-            <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center">
-                {icon}
-            </div>
+            {trend && (
+                <div className="mt-4 flex items-baseline">
+                    <div className={`flex items-center text-sm font-semibold ${trend.direction === 'up' ? 'text-green-600' : 'text-red-600'}`}>
+                        {trend.direction === 'up' ? (
+                            <ArrowTrendingUpIcon className="h-5 w-5 mr-1" />
+                        ) : (
+                            <ArrowTrendingDownIcon className="h-5 w-5 mr-1" />
+                        )}
+                        {trend.value}
+                    </div>
+                    <div className="ml-2 text-sm text-gray-500">
+                        from last period
+                    </div>
+                </div>
+            )}
         </div>
-        {trend && (
-            <p className={`text-sm mt-2 flex items-center ${trend.direction === 'up' ? 'text-green-500' : 'text-red-500'}`}>
-                {trend.direction === 'up' ? <ArrowTrendingUpIcon className="w-4 h-4 mr-1"/> : <ArrowTrendingDownIcon className="w-4 h-4 mr-1"/>}
-                {trend.value} vs last term
-            </p>
-        )}
-    </div>
-);
+    );
+};
 
 export default StatCard;

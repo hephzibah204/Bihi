@@ -19,7 +19,8 @@ const WelcomeModal: React.FC<WelcomeModalProps> = ({ isOpen, onClose, onComplete
     const checklistItems = [
         { view: ADMIN_VIEWS.SUBJECTS, icon: <BookOpenIcon className="w-6 h-6"/>, title: 'Set Up Subjects', description: 'Define the subjects taught in your school.' },
         { view: ADMIN_VIEWS.STUDENTS, icon: <UsersIcon className="w-6 h-6"/>, title: 'Add Your Students', description: 'Import or manually add your student records.' },
-        { view: ADMIN_VIEWS.TEACHERS, icon: <BriefcaseIcon className="w-6 h-6"/>, title: 'Invite Teachers', description: 'Add your teachers and other staff members.' },
+        // Fix: Changed ADMIN_VIEWS.TEACHERS to ADMIN_VIEWS.STAFF which is the correct key.
+        { view: ADMIN_VIEWS.STAFF, icon: <BriefcaseIcon className="w-6 h-6"/>, title: 'Invite Teachers', description: 'Add your teachers and other staff members.' },
         { view: ADMIN_VIEWS.RESULTS, icon: <ClipboardListIcon className="w-6 h-6"/>, title: 'Enter First Scores', description: 'Start inputting scores for the current term.' },
         { view: ADMIN_VIEWS.REPORT_CARDS, icon: <DocumentArrowDownIcon className="w-6 h-6"/>, title: 'Preview a Report Card', description: 'See how easy it is to generate reports.' },
     ];

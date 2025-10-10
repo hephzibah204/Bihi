@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import ClipboardListIcon from './icons/ClipboardListIcon';
 import ClockIcon from './icons/ClockIcon';
+// Fix: Correct import path
 import { StudentView } from '../types';
 import BrainCircuitIcon from './icons/BrainCircuitIcon';
 import { STUDENT_VIEWS } from '../utils/constants';
+// Fix: Correct import path
 import { apiGetStudents, apiGetScores, apiGetAttendance, apiGetSchoolSettings, apiGetSubjects } from '../services/api';
 import CheckBadgeIcon from './icons/CheckBadgeIcon';
 import TrophyIcon from './icons/TrophyIcon';

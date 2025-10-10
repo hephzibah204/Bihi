@@ -1,5 +1,3 @@
-
-
 import React, { lazy, Suspense } from 'react';
 import { StudentView } from '../types';
 import { STUDENT_VIEWS, USER_ROLES } from '../utils/constants';

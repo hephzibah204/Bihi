@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 // Fix: Corrected import path for supabase client
 import { supabase } from '../services/supabaseClient';
@@ -14,7 +12,8 @@ import { ADMIN_VIEWS } from '../utils/constants';
 import ArticleManager from './ArticleManager';
 import KBArticleManager from './KBArticleManager';
 
-const SuperAdminDashboard = () => {
+// Fix: Changed to a named export to resolve module export ambiguity.
+export const SuperAdminDashboard = () => {
     const [session, setSession] = useState(null);
     const [loading, setLoading] = useState(true);
     // Fix: Broaden the type of `activeView` from a specific literal to `string` to allow any of the valid admin view strings to be set.
@@ -68,23 +67,4 @@ const SuperAdminDashboard = () => {
                 <div className="h-16 flex items-center justify-center text-xl font-bold">ControlHub</div>
                 <nav className="flex-1 p-4 space-y-2">
                      <button onClick={() => setActiveView(ADMIN_VIEWS.DASHBOARD)} className="w-full text-left p-2 rounded hover:bg-gray-700">Analytics</button>
-                    <button onClick={() => setActiveView('tenants')} className="w-full text-left p-2 rounded hover:bg-gray-700">Schools</button>
-                     <button onClick={() => setActiveView(ADMIN_VIEWS.PAGES)} className="w-full text-left p-2 rounded hover:bg-gray-700">Pages</button>
-                     <button onClick={() => setActiveView(ADMIN_VIEWS.MENUS)} className="w-full text-left p-2 rounded hover:bg-gray-700">Menus</button>
-                     <button onClick={() => setActiveView(ADMIN_VIEWS.BLOG_ARTICLES)} className="w-full text-left p-2 rounded hover:bg-gray-700">Blog / Content</button>
-                     <button onClick={() => setActiveView(ADMIN_VIEWS.KB_ARTICLES)} className="w-full text-left p-2 rounded hover:bg-gray-700">Knowledge Base</button>
-                     <button onClick={() => setActiveView(ADMIN_VIEWS.USERS)} className="w-full text-left p-2 rounded hover:bg-gray-700">Users</button>
-                    <button onClick={() => setActiveView(ADMIN_VIEWS.PLATFORM_SETTINGS)} className="w-full text-left p-2 rounded hover:bg-gray-700">Settings</button>
-                </nav>
-                <div className="p-4 border-t border-gray-700">
-                    <button onClick={handleLogout} className="w-full text-left p-2 rounded hover:bg-gray-700">Logout</button>
-                </div>
-            </aside>
-            <main className="flex-1 p-8 overflow-y-auto">
-                {renderContent()}
-            </main>
-        </div>
-    );
-};
-
-export default SuperAdminDashboard;
+                    <button onClick={() => setActiveView('tenants')} className="w-full text-left p-2 rounded hover:bg-gray-7

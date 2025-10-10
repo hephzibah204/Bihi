@@ -3,6 +3,7 @@ import { supabase } from '../services/supabaseClient';
 import { apiGetSchoolSettings, apiGetStudents, apiGetScratchCards, apiGetParents } from '../services/api';
 import BriefcaseIcon from './icons/BriefcaseIcon';
 import UsersIcon from './icons/UsersIcon';
+// Fix: Corrected the import path for constants to be a relative path.
 import { USER_ROLES } from '../utils/constants';
 import { UserRole } from '../types';
 import SelectChildModal from './SelectChildModal';

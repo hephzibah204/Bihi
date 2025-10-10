@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import Modal from './Modal';
 import { apiGetStudents, apiBatchUpsertScores } from '../services/api';

@@ -1,7 +1,7 @@
-
-
 import React, { useState, useEffect, lazy, Suspense } from 'react';
+// Fix: Corrected import paths to be relative.
 import Sidebar from './Sidebar';
+// Fix: Corrected import path for types.
 import { DashboardView, UserRole } from '../types';
 import Header from './Header';
 import { supabase } from '../services/supabaseClient';

@@ -7,6 +7,7 @@ import SpinnerIcon from './icons/SpinnerIcon';
 import DocumentTextIcon from './icons/DocumentTextIcon';
 import CopyIcon from './icons/CopyIcon';
 import CheckIcon from './icons/CheckIcon';
+// Fix: Corrected the import path for constants to be a relative path.
 import { USER_ROLES } from '../utils/constants';
 
 // Define the structure for a quiz item

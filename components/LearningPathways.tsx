@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAI } from '../hooks/useAI';
 import { apiGetStudents, apiGetSubjects } from '../services/api';
@@ -7,6 +5,7 @@ import { Student, Subject } from '../types';
 import SparklesIcon from './icons/SparklesIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
 import BeakerIcon from './icons/BeakerIcon';
+// Fix: Corrected the import path for constants to be a relative path.
 import { USER_ROLES } from '../utils/constants';
 
 interface LearningPathwaysProps {

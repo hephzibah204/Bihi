@@ -8,6 +8,7 @@ import ClipboardListIcon from './icons/ClipboardListIcon';
 import { PARENT_VIEWS, USER_ROLES } from '../utils/constants';
 import ChatBubbleLeftRightIcon from './icons/ChatBubbleLeftRightIcon';
 import { useTenant } from '../contexts/TenantContext';
+import CreditCardIcon from './icons/CreditCardIcon';
 
 interface NavItemProps {
     icon: React.ReactNode;
@@ -38,9 +39,9 @@ const ParentBottomNavBar: FC<BottomNavBarProps> = ({ activeView, setActiveView }
     const allNavItems: { view: ParentView; label: string; icon: React.ReactNode }[] = [
         { view: PARENT_VIEWS.DASHBOARD, label: 'Home', icon: <HomeIcon className="h-6 w-6" /> },
         { view: PARENT_VIEWS.RESULTS, label: 'Results', icon: <ClipboardListIcon className="h-6 w-6" /> },
+        { view: PARENT_VIEWS.FEES, label: 'Fees', icon: <CreditCardIcon className="h-6 w-6" /> },
         { view: PARENT_VIEWS.MESSAGES, label: 'Messages', icon: <ChatBubbleLeftRightIcon className="h-6 w-6" /> },
         { view: PARENT_VIEWS.ATTENDANCE, label: 'Attendance', icon: <CheckBadgeIcon className="h-6 w-6" /> },
-        { view: PARENT_VIEWS.BEHAVIORAL, label: 'Behavior', icon: <ShieldExclamationIcon className="h-6 w-6" /> },
     ];
     
     const navItems = allNavItems.filter(item => hasFeature(USER_ROLES.PARENT, item.view) || item.view === PARENT_VIEWS.DASHBOARD);

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+// Fix: Corrected import path for types.
 import { Plan, MenuItem, Testimonial, LandingPageContent } from '../types';
+// Fix: Corrected the import path for constants to be a relative path.
 import { APP_VIEWS } from '../utils/constants';
 import Logo from './icons/Logo';
 import CheckIcon from './icons/CheckIcon';

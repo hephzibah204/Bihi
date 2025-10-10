@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { apiGetStudents, apiGetSubjects, apiGetScores, apiGetSchoolSettings, apiUpsertScore, apiGetTeachers, apiGetTimetableData } from '../services/api';
 import { Score, Student, Subject, Teacher } from '../types';

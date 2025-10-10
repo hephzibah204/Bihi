@@ -1,5 +1,6 @@
 import React from 'react';
-import SuperAdminDashboard from './SuperAdminDashboard';
+// Fix: Use a named import to resolve module export ambiguity.
+import { SuperAdminDashboard } from './SuperAdminDashboard';
 
 const AdminDashboard = () => {
   // This file acts as a wrapper for the main SuperAdminDashboard component.

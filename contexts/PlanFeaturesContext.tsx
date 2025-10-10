@@ -3,6 +3,7 @@ import { useTenant } from './TenantContext';
 import { apiGetPlatformSettings, getTenantId } from '../services/api';
 import { Plan } from '../types';
 import { DEMO_TENANT_ID } from '../utils/demoData';
+import { CONTROLLABLE_FEATURES } from '../utils/constants';
 
 interface PlanFeaturesContextType {
     isSubscribed: boolean;
@@ -46,22 +47,23 @@ export const PlanFeaturesProvider = ({ children }: PropsWithChildren<{}>) => {
         }
         
         if (isDemo) {
-            // In demo mode, grant access to a mock top-tier plan's features.
+            // In demo mode, grant access to a mock top-tier plan's features by
+            // dynamically enabling all defined controllable features.
+            // Fix: The type for allFeatures now explicitly includes the required 'maxStudents' property to match the 'Plan['features']' type, resolving the TypeScript error.
+            const allFeatures: { maxStudents: number; [key: string]: boolean | number } = { maxStudents: 9999 };
+            CONTROLLABLE_FEATURES.forEach(f => allFeatures[f.key] = true);
+            
+            // Also enable all sidebar group IDs
+            const groupIds = ['academics', 'records', 'management', 'finance', 'tools', 'alumni'];
+            groupIds.forEach(id => allFeatures[id] = true);
+            
             const demoEnterprisePlan: Plan = {
                 id: 'demo-enterprise',
                 name: 'Enterprise (Demo)',
                 price_monthly: 0,
                 price_termly: 0,
                 price_yearly: 0,
-                features: {
-                    maxStudents: 9999,
-                    'ai-tools': true,
-                    'analytics': true,
-                    'students': true, 'teachers': true, 'subjects': true, 'results': true,
-                    'general-remarks': true, 'report-cards': true, 'promotions': true,
-                    'id-cards': true, 'timetable': true, 'attendance': true,
-                    'communications': true, 'bursary': true, 'assignments': true
-                }
+                features: allFeatures
             };
             setActivePlan(demoEnterprisePlan);
             setIsLoading(false);
