@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { apiGetSchoolSettings, apiSaveSchoolSettings, apiGetPlatformSettings, apiUpdateTenant } from '../services/api';
@@ -32,21 +34,15 @@ const SubscriptionManagementModal: React.FC<SubscriptionManagementModalProps> = 
     const handleSave = async () => {
         setSaving(true);
         try {
-            // 1. Update the platform-level tenant record
             const updatedTenant: Tenant = {
                 ...tenant,
-                planId: selectedPlanId || null,
+                planId: selectedPlanId || undefined,
                 subscriptionStatus: status,
-                subscriptionExpiryDate: subscriptionExpiryDate || null,
-                trialEndDate: status === 'trial' ? (subscriptionExpiryDate || tenant.trialEndDate) : null,
+                subscriptionExpiryDate: subscriptionExpiryDate || undefined,
+                trialEndDate: status === 'trial' ? (subscriptionExpiryDate || tenant.trialEndDate) : undefined,
             };
             await apiUpdateTenant(updatedTenant);
             
-            // 2. Update the tenant's own settings for immediate effect in their portal
-            const schoolSettings = await apiGetSchoolSettings(tenant.id);
-            // Fix: Removed `planId` as it does not exist on the SchoolSettings type.
-            await apiSaveSchoolSettings({ ...schoolSettings }, tenant.id);
-
         } catch (error) {
             console.error("Failed to update subscription", error);
             alert("Error: Could not update subscription.");

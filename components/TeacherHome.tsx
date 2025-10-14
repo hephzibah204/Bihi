@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { TeacherView, Teacher, Student, Subject, Assignment, AssignmentScore } from '../types';
 // services
 import { supabase } from '../services/supabaseClient';
-import { apiGetTimetableData, apiGetSubjects, apiGetTeachers, apiGetAssignments, apiGetStudents, apiGetAssignmentScores } from '../services/api';
+import { apiGetTimetableData, apiGetSubjects, apiGetTeachers, apiGetAssignments, apiGetStudents, apiGetAssignmentScores, apiGetScores, apiGetAttendance, apiGetSchoolSettings } from '../services/api';
 // utils
 import { TEACHER_VIEWS } from '../utils/constants';
 import { formatDate } from '../utils/dateHelpers';
@@ -15,6 +15,8 @@ import BrainCircuitIcon from './icons/BrainCircuitIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
 import AcademicCapIcon from './icons/AcademicCapIcon';
 import TrophyIcon from './icons/TrophyIcon';
+import CheckBadgeIcon from './icons/CheckBadgeIcon';
+import ArrowTrendingUpIcon from './icons/ArrowTrendingUpIcon';
 
 
 const TeacherOfTheMonthWidget = ({ teacherName }) => (
@@ -27,6 +29,21 @@ const TeacherOfTheMonthWidget = ({ teacherName }) => (
                 <p className="text-sm text-yellow-200 mt-1">For your outstanding commitment to timely and accurate record-keeping.</p>
             </div>
         </div>
+    </div>
+);
+
+interface BadgeProps {
+    icon: React.ReactNode;
+    title: string;
+    text: string;
+}
+
+const Badge: React.FC<BadgeProps> = ({ icon, title, text }) => (
+    <div title={title} className="flex flex-col items-center text-center p-2">
+        <div className="w-16 h-16 flex items-center justify-center bg-gray-100 rounded-full">
+            {icon}
+        </div>
+        <p className="mt-2 text-xs font-semibold text-gray-700">{text}</p>
     </div>
 );
 
@@ -239,7 +256,7 @@ const TeacherHome = ({ setActiveView }: { setActiveView: (view: TeacherView) => 
                              {quickLinks.map(link => (
                                 <button 
                                     key={link.view} 
-                                    onClick={() => setActiveView(link.view)}
+                                    onClick={() => setActiveView(link.view as TeacherView)}
                                     className="w-full flex items-center p-3 rounded-lg hover:bg-gray-100 transition-colors"
                                 >
                                     <div className="text-gray-500">{link.icon}</div>

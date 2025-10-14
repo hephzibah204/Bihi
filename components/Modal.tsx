@@ -26,7 +26,7 @@ const Modal: FC<PropsWithChildren<ModalProps>> = ({ isOpen, onClose, title, chil
       >
         <div className="flex justify-between items-center p-4 border-b">
           <h2 className="text-xl font-semibold">{title}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close modal">
             <XIcon className="w-6 h-6" />
           </button>
         </div>

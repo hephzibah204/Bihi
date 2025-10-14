@@ -1,9 +1,11 @@
+
+
 import React, { useState } from 'react';
 import ReportCardDashboard from './ReportCardDashboard';
 import DocumentArrowDownIcon from './icons/DocumentArrowDownIcon';
 import SparklesIcon from './icons/SparklesIcon';
 import ChartBarIcon from './icons/ChartBarIcon';
-// Fix: Corrected import path for types.
+// FIX: Corrected import path for types.
 import { DashboardView } from '../types';
 // Fix: Corrected the import path for constants to be a relative path.
 import { ADMIN_VIEWS } from '../utils/constants';
@@ -17,7 +19,7 @@ const ReportCard = ({ setActiveView }: ReportCardProps) => {
     const [showGenerator, setShowGenerator] = useState(false);
 
     if (showGenerator) {
-        return <ReportCardDashboard />;
+        return <ReportCardDashboard onBack={() => setShowGenerator(false)} />;
     }
 
     const hubItems = [
@@ -25,7 +27,8 @@ const ReportCard = ({ setActiveView }: ReportCardProps) => {
             title: 'Dossier',
             description: 'Enter scores, comments, and skills for each student in one place.',
             icon: <PencilSquareIcon className="w-8 h-8" />,
-            action: () => setActiveView(ADMIN_VIEWS.COMPREHENSIVE_ENTRY),
+            // FIX: Cast ADMIN_VIEWS constant to DashboardView type.
+            action: () => setActiveView(ADMIN_VIEWS.COMPREHENSIVE_ENTRY as DashboardView),
         },
         {
             title: 'Generate & Print Reports',
@@ -37,13 +40,15 @@ const ReportCard = ({ setActiveView }: ReportCardProps) => {
             title: 'AI Comment Generator',
             description: 'Use AI to write insightful and personalized student comments.',
             icon: <SparklesIcon className="w-8 h-8" />,
-            action: () => setActiveView(ADMIN_VIEWS.AI_TOOLS),
+            // FIX: Cast ADMIN_VIEWS constant to DashboardView type.
+            action: () => setActiveView(ADMIN_VIEWS.AI_TOOLS as DashboardView),
         },
         {
             title: 'Performance Analytics',
             description: 'View class performance, subject averages, and trends.',
             icon: <ChartBarIcon className="w-8 h-8" />,
-            action: () => setActiveView(ADMIN_VIEWS.ANALYTICS),
+            // FIX: Cast ADMIN_VIEWS constant to DashboardView type.
+            action: () => setActiveView(ADMIN_VIEWS.ANALYTICS as DashboardView),
         },
     ];
 

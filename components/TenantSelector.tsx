@@ -23,7 +23,7 @@ const TenantSelector = () => {
         setSelectedTenant(tenantId);
         // In a full implementation, this would trigger a data reload for the selected tenant context.
         const tenant = tenants.find(t => t.id === tenantId);
-        alert(`Switched to tenant: ${tenant?.name}. Data would be reloaded in a full app.`);
+        window.dispatchEvent(new CustomEvent('show-global-success', { detail: { message: `Switched to tenant: ${tenant?.name}. Data would be reloaded in a full app.` } }));
     }
 
     if (loading) return <div className="card p-4 text-center">Loading schools...</div>;

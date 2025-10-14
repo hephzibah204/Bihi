@@ -1,4 +1,7 @@
+
+
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { apiGetPlatformSettings } from '../services/api';
 
 const BlogIndexPage = () => {
@@ -24,7 +27,7 @@ const BlogIndexPage = () => {
                 {articles.map(article => (
                     <div key={article.id} className="card p-6">
                         <h2 className="text-2xl font-semibold hover:text-indigo-600">
-                            <a href={`?view=article&id=${article.id}`}>{article.title}</a>
+                            <Link to={`/article/${article.id}`}>{article.title}</Link>
                         </h2>
                         <p className="mt-2 text-gray-600">
                             {article.content.substring(0, 150)}...

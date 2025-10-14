@@ -72,16 +72,16 @@ const MinimalistReportCard = ({ student, students, scores, subjects, settings, t
             <section className="mt-4">
                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Comments</h3>
                  <div className="text-sm space-y-3 text-gray-600 border-t pt-4">
-                    {generalRemark && <p><strong className="text-gray-800">General Remark:</strong> {generalRemark}</p>}
+                    {generalRemark && <p><strong className="text-gray-800">General Remark:</strong> <span dangerouslySetInnerHTML={{ __html: generalRemark }} /></p>}
                     {comments.map(c => (
-                        <p key={c.subjectName}><strong className="text-gray-800">{c.subjectName}:</strong> {c.comment}</p>
+                        <p key={c.subjectName}><strong className="text-gray-800">{c.subjectName}:</strong> <span dangerouslySetInnerHTML={{ __html: c.comment }} /></p>
                     ))}
                  </div>
             </section>
 
             <div className="mt-auto">
                 {/* Fix: Pass principalName prop to ReportCardFooter to resolve missing property error. */}
-                <ReportCardFooter principalName={settings.reportCardSettings.principalName} />
+                <ReportCardFooter principalName={settings.reportCardSettings?.principalName} />
             </div>
         </div>
     );

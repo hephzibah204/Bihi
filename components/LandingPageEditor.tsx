@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PlusIcon from './icons/PlusIcon';
 import TrashIcon from './icons/TrashIcon';
 import { LandingPageContent } from '../types';
+import { DEFAULT_LANDING_PAGE_CONTENT } from '../utils/landingPageContent';
 
 // An array of available icon names for the feature selector
 const availableIcons = [
@@ -10,7 +11,13 @@ const availableIcons = [
 ];
 
 const LandingPageEditor = ({ settings, onSave }) => {
-    const [content, setContent] = useState<LandingPageContent>(settings.landingPageContent);
+    const [content, setContent] = useState<LandingPageContent>(settings.landingPageContent || DEFAULT_LANDING_PAGE_CONTENT);
+
+    useEffect(() => {
+        // When settings are fetched and passed as props, update the local state.
+        // This ensures the editor loads content even if it's initially missing.
+        setContent(settings.landingPageContent || DEFAULT_LANDING_PAGE_CONTENT);
+    }, [settings.landingPageContent]);
 
     const handleContentChange = (section: string, field: string, value: any) => {
         setContent(prev => ({
@@ -19,10 +26,15 @@ const LandingPageEditor = ({ settings, onSave }) => {
         }));
     };
 
-    const handleArrayItemChange = (section: string, itemKey: string, index: number, field: string, value: any) => {
+    const handleArrayItemChange = (section: string, itemKey: string, index: number, field: string | null, value: any) => {
         setContent(prev => {
             const newItems = [...prev[section][itemKey]];
-            newItems[index] = { ...newItems[index], [field]: value };
+            if (field) {
+                newItems[index] = { ...newItems[index], [field]: value };
+            } else {
+                // For simple string arrays
+                newItems[index] = value;
+            }
             return {
                 ...prev,
                 [section]: { ...prev[section], [itemKey]: newItems }
@@ -50,6 +62,10 @@ const LandingPageEditor = ({ settings, onSave }) => {
     const handleSaveChanges = () => {
         onSave({ ...settings, landingPageContent: content });
     };
+    
+    if (!content) {
+        return <div>Loading editor...</div>;
+    }
 
     return (
         <div className="space-y-6">

@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import { apiGetSchoolSettings, apiGetStudents, apiGetScratchCards, apiGetParents } from '../services/api';
 import BriefcaseIcon from './icons/BriefcaseIcon';
 import UsersIcon from './icons/UsersIcon';
-// Fix: Corrected the import path for constants to be a relative path.
 import { USER_ROLES } from '../utils/constants';
 import { UserRole } from '../types';
 import SelectChildModal from './SelectChildModal';
@@ -240,9 +241,9 @@ const PortalLogin = ({ onStudentLoginSuccess }) => {
                     )}
                     <p className="text-center text-sm text-gray-500">
                         Not your school?{' '}
-                        <a href="/" className="font-medium text-indigo-600 hover:text-indigo-500">
+                        <Link to="/" className="font-medium text-indigo-600 hover:text-indigo-500">
                             Find your portal
-                        </a>
+                        </Link>
                     </p>
                 </div>
             </div>

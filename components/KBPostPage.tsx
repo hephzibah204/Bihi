@@ -1,15 +1,17 @@
+
+
 import React, { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import { apiGetKbArticles } from '../services/api';
 import { formatDate } from '../utils/dateHelpers';
 
 const KBPostPage = () => {
     const [article, setArticle] = useState(null);
     const [loading, setLoading] = useState(true);
+    const { id: articleId } = useParams();
 
     useEffect(() => {
         const fetchArticle = async () => {
-            const params = new URLSearchParams(window.location.search);
-            const articleId = params.get('id');
             if (!articleId) {
                 setLoading(false);
                 return;
@@ -20,17 +22,17 @@ const KBPostPage = () => {
             setLoading(false);
         };
         fetchArticle();
-    }, []);
+    }, [articleId]);
 
     if (loading) return <p>Loading article...</p>;
-    if (!article) return <div><h1 className="text-2xl">Article not found.</h1><a href="?view=kb">Back to Knowledge Base</a></div>;
+    if (!article) return <div><h1 className="text-2xl">Article not found.</h1><Link to="/kb">Back to Knowledge Base</Link></div>;
 
     return (
         <article className="prose max-w-none">
             <h1>{article.title}</h1>
             <p className="text-sm text-gray-500">Last updated: {formatDate(article.lastUpdated)}</p>
             <div className="prose-content" dangerouslySetInnerHTML={{ __html: article.content }} />
-             <a href="?view=kb" className="mt-8 inline-block no-underline hover:text-indigo-600">← Back to Knowledge Base</a>
+             <Link to="/kb" className="mt-8 inline-block no-underline hover:text-indigo-600">← Back to Knowledge Base</Link>
         </article>
     );
 };

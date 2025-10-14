@@ -1,6 +1,10 @@
+
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAI } from '../hooks/useAI';
+// FIX: Corrected import path for api services.
 import { apiGetStudents, apiGetSubjects } from '../services/api';
+// FIX: Corrected import path for types.
 import { Student, Subject } from '../types';
 import SparklesIcon from './icons/SparklesIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
@@ -11,13 +15,14 @@ import { USER_ROLES } from '../utils/constants';
 interface LearningPathwaysProps {
     studentId?: string; // Optional: If provided, component is in "student mode"
     userRole?: string;
+    initialTopic?: string;
 }
 
-const LearningPathways: React.FC<LearningPathwaysProps> = ({ studentId, userRole }) => {
+const LearningPathways: React.FC<LearningPathwaysProps> = ({ studentId, userRole, initialTopic = '' }) => {
     const [students, setStudents] = useState<Student[]>([]);
     const [subjects, setSubjects] = useState<Subject[]>([]);
     const [selectedStudentId, setSelectedStudentId] = useState<string>('');
-    const [topic, setTopic] = useState<string>('');
+    const [topic, setTopic] = useState<string>(initialTopic);
     const [learningStyle, setLearningStyle] = useState<string>('Balanced');
     const [generatedPathway, setGeneratedPathway] = useState<string>('');
     const { generateResponse, status } = useAI();
@@ -78,13 +83,14 @@ const LearningPathways: React.FC<LearningPathwaysProps> = ({ studentId, userRole
                 - **Preferred Learning Style:** "${learningStyle}"
 
                 **Your Task:**
-                Generate a step-by-step learning pathway with 3 to 5 distinct steps. For each step, provide:
-                1. A clear title for the step.
-                2. A brief, simple explanation of the goal for that step.
-                3. A practical activity the student can do to complete the step.
+                Generate a step-by-step learning pathway with 3 to 5 distinct steps.
+                Format the response as a single HTML string. Use <h3> for step titles, <p> for explanations, and <ul>/<li> for lists of activities. Use <strong> for emphasis.
+                For each step, provide:
+                1. A clear title for the step (in an <h3> tag).
+                2. A brief, simple explanation of the goal for that step (in a <p> tag).
+                3. A practical activity the student can do to complete the step (in a <ul> with <li> tags).
 
                 Make the language accessible and motivating for a secondary school student.
-                Format the response clearly with headings for each step.
             `;
 
             const result = await generateResponse({ prompt });
@@ -164,7 +170,7 @@ const LearningPathways: React.FC<LearningPathwaysProps> = ({ studentId, userRole
                 {generatedPathway && (
                     <div className="mt-4 p-4 bg-gray-100 rounded-md">
                         <h4 className="font-semibold text-sm">Your Learning Pathway for "{topic}":</h4>
-                        <pre className="mt-1 text-gray-800 whitespace-pre-wrap font-sans text-sm">{generatedPathway}</pre>
+                        <div className="mt-1 text-gray-800 font-sans text-sm prose-content" dangerouslySetInnerHTML={{ __html: generatedPathway }} />
                     </div>
                 )}
             </div>

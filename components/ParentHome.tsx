@@ -38,7 +38,7 @@ const ParentHome = ({ setActiveView, demoUserId }: { setActiveView: (view: Paren
                 {quickLinks.map(link => (
                     <button 
                         key={link.view} 
-                        onClick={() => setActiveView(link.view)}
+                        onClick={() => setActiveView(link.view as ParentView)}
                         className="card p-6 text-center hover:shadow-lg hover:scale-105 transition-transform duration-200"
                     >
                         <div className="text-indigo-500 mx-auto w-16 h-16 flex items-center justify-center bg-indigo-100 rounded-full">

@@ -1,6 +1,8 @@
+
+
 import React, { useState } from 'react';
 import FloatingChatButton from './FloatingChatButton';
-// Fix: Corrected import path for ChatbotPanel.
+// FIX: Changed to a default import as the error "no exported member" suggests ChatbotPanel is a default export.
 import ChatbotPanel from './ChatbotPanel';
 
 const Chatbot = ({ userRole, demoUserId, activeView }: { userRole: string, demoUserId?: string, activeView: string }) => {

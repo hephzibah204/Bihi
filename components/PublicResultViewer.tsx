@@ -1,5 +1,7 @@
+
+
 import React, { useState } from 'react';
-import { apiGetPublicStudentResult, apiGetScratchCards, apiUseScratchCard } from '../services/api';
+import { apiGetPublicStudentResult, apiUseScratchCard } from '../services/api';
 import { getReportCardTemplate } from '../utils/reportCardHelper';
 import PrinterIcon from './icons/PrinterIcon';
 
@@ -19,28 +21,13 @@ const PublicResultViewer = () => {
         setResultData(null);
 
         try {
-            // 1. Validate scratch card first
-            // Fix: Pass schoolId to apiGetScratchCards to correctly scope the search.
-            const allCards = await apiGetScratchCards(schoolId);
-            if (!allCards) {
-                throw new Error("Could not verify school portal ID or find scratch card data.");
-            }
-
-            const card = allCards.find(c => c.pin === pin);
-            if (!card) {
-                 throw new Error("Invalid scratch card PIN.");
-            }
-            if (card.used) {
-                throw new Error("This scratch card has already been used.");
-            }
+            // 1. Securely validate and use scratch card via backend
+            await apiUseScratchCard(pin, schoolId);
 
             // 2. If card is valid, get student result
             const data = await apiGetPublicStudentResult(schoolId, admissionNo);
             
-            // 3. Mark card as used and save
-            await apiUseScratchCard(pin, schoolId);
-            
-            // 4. Display result
+            // 3. Display result
             setResultData(data);
 
         } catch (err) {

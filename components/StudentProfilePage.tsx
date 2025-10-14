@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { apiGetStudents, apiGetScores, apiGetSubjects } from '../services/api';
 import { Student, Score, Subject } from '../types';
 import { ADMIN_VIEWS } from '../utils/constants';
+import { useQRCodeGenerator } from '../hooks/useQRCodeGenerator';
 
 // Make Chart.js available from CDN
 declare global {
@@ -81,6 +82,7 @@ const StudentProfilePage = ({ studentId, setActiveView }) => {
     const [loading, setLoading] = useState(true);
     const chartRef = useRef<HTMLCanvasElement>(null);
     const chartInstanceRef = useRef(null);
+    const qrCodeUrl = useQRCodeGenerator(student?.admissionNo || '');
 
     useEffect(() => {
         if (!studentId) {
@@ -204,22 +206,37 @@ const StudentProfilePage = ({ studentId, setActiveView }) => {
                         </div>
                     </div>
                 </div>
-                <div className="lg:col-span-1 card">
-                    <div className="p-6">
-                        <h3 className="text-xl font-semibold">Recent Scores</h3>
-                         {recentScores.length > 0 ? (
-                            <ul className="mt-4 divide-y">
-                                {recentScores.map((s, i) => 
-                                    <li key={i} className="py-3">
-                                        <div className="flex justify-between font-semibold">
-                                            <span>{s.subjectName}</span>
-                                            <span>{s.total}%</span>
-                                        </div>
-                                        <p className="text-xs text-gray-500">{s.term}</p>
-                                    </li>
+                <div className="lg:col-span-1 space-y-6">
+                    <div className="card">
+                        <div className="p-6">
+                            <h3 className="text-xl font-semibold">Digital ID</h3>
+                            <div className="text-center mt-4">
+                                {qrCodeUrl ? (
+                                    <img src={qrCodeUrl} alt="QR Code" className="w-32 h-32 mx-auto" />
+                                ) : (
+                                    <p className="text-gray-400">QR code generating...</p>
                                 )}
-                            </ul>
-                        ) : <p className="mt-4 text-gray-500">No scores recorded yet.</p>}
+                                <p className="mt-2 text-sm text-gray-500">Scan for attendance & verification.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="card">
+                        <div className="p-6">
+                            <h3 className="text-xl font-semibold">Recent Scores</h3>
+                            {recentScores.length > 0 ? (
+                                <ul className="mt-4 divide-y">
+                                    {recentScores.map((s, i) => 
+                                        <li key={i} className="py-3">
+                                            <div className="flex justify-between font-semibold">
+                                                <span>{s.subjectName}</span>
+                                                <span>{s.total}%</span>
+                                            </div>
+                                            <p className="text-xs text-gray-500">{s.term}</p>
+                                        </li>
+                                    )}
+                                </ul>
+                            ) : <p className="mt-4 text-gray-500">No scores recorded yet.</p>}
+                        </div>
                     </div>
                 </div>
             </div>

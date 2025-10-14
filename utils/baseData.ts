@@ -1,1 +1,1 @@
-// This file is deprecated. Constants have been moved to /utils/constants.ts
+// This file is deprecated and has been removed to reduce technical debt. Its contents were moved to /utils/constants.ts.

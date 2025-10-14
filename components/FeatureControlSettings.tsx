@@ -1,64 +1,47 @@
 import React from 'react';
 import { SchoolSettings } from '../types';
-import { TEACHER_CONTROLLABLE_FEATURES, STUDENT_CONTROLLABLE_FEATURES, PARENT_CONTROLLABLE_FEATURES } from '../utils/constants';
-
-const FeatureToggleList = ({ title, features, controls, onChange }) => (
-    <div>
-        <h4 className="font-semibold text-lg mb-2">{title}</h4>
-        <div className="space-y-3">
-            {features.map(feature => (
-                <label key={feature.key} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <span>{feature.name}</span>
-                    <input
-                        type="checkbox"
-                        className="h-5 w-5 rounded"
-                        checked={controls?.[feature.key] ?? true}
-                        onChange={(e) => onChange(feature.key, e.target.checked)}
-                    />
-                </label>
-            ))}
-        </div>
-    </div>
-);
+import { CONTROLLABLE_FEATURES } from '../utils/constants';
 
 interface FeatureControlSettingsProps {
-    settings: SchoolSettings;
-    onSettingsChange: (newSettings: Partial<SchoolSettings>) => void;
+    settings: Partial<SchoolSettings>;
+    onSettingsChange: (changed: Partial<SchoolSettings>) => void;
 }
 
 const FeatureControlSettings: React.FC<FeatureControlSettingsProps> = ({ settings, onSettingsChange }) => {
-
-    const handleFeatureChange = (role: 'teacher' | 'student' | 'parent', featureKey: string, isEnabled: boolean) => {
-        const updatedControls = {
-            ...settings.featureControls,
-            [role]: {
-                ...settings.featureControls[role],
-                [featureKey]: isEnabled,
-            },
+    
+    const handleFeatureChange = (featureKey: string, isEnabled: boolean) => {
+        const updatedFeatures = {
+            ...settings.features,
+            [featureKey]: isEnabled,
         };
-        onSettingsChange({ featureControls: updatedControls });
+        onSettingsChange({ features: updatedFeatures });
     };
 
     return (
         <div className="space-y-6">
-            <FeatureToggleList
-                title="Teacher Portal Features"
-                features={TEACHER_CONTROLLABLE_FEATURES}
-                controls={settings.featureControls?.teacher}
-                onChange={(key, val) => handleFeatureChange('teacher', key, val)}
-            />
-            <FeatureToggleList
-                title="Student Portal Features"
-                features={STUDENT_CONTROLLABLE_FEATURES}
-                controls={settings.featureControls?.student}
-                onChange={(key, val) => handleFeatureChange('student', key, val)}
-            />
-            <FeatureToggleList
-                title="Parent Portal Features"
-                features={PARENT_CONTROLLABLE_FEATURES}
-                controls={settings.featureControls?.parent}
-                onChange={(key, val) => handleFeatureChange('parent', key, val)}
-            />
+            <div>
+                <h3 className="text-xl font-semibold">Feature Access Control</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                    Enable or disable specific modules for all users in this school portal (Admin, Teacher, etc.).
+                    This does not affect your subscription plan.
+                </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {CONTROLLABLE_FEATURES.map(feature => (
+                    <div key={feature.key} className="p-4 border rounded-lg flex justify-between items-center">
+                        <label htmlFor={`feature-${feature.key}`} className="font-medium">{feature.name}</label>
+                        <div className="flex items-center">
+                             <input
+                                id={`feature-${feature.key}`}
+                                type="checkbox"
+                                className="toggle-switch"
+                                checked={!!settings.features?.[feature.key]}
+                                onChange={(e) => handleFeatureChange(feature.key, e.target.checked)}
+                            />
+                        </div>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 };

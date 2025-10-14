@@ -21,13 +21,13 @@ const TeacherSchedule = () => {
             }
             
             // FIX: Defensively destructure user data to prevent crash if 'data' is null.
-            const { data, error } = await supabase.auth.getUser();
-            if (error || !data?.user) {
+            const { data: userData, error } = await supabase.auth.getUser();
+            if (error || !userData?.user) {
                 console.error("Could not get user for teacher schedule:", error);
                 setLoading(false);
                 return;
             }
-            const { user } = data;
+            const { user } = userData;
 
 
             const [timetableData, subjectData, teacherData] = await Promise.all([

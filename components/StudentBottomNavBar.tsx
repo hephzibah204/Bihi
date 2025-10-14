@@ -1,13 +1,10 @@
 import React, { FC } from 'react';
 import HomeIcon from './icons/HomeIcon';
 import ClipboardListIcon from './icons/ClipboardListIcon';
-import ClockIcon from './icons/ClockIcon';
-// Fix: Import StudentView from the central types file to break a circular dependency.
-import { StudentView } from '../types';
-import DocumentDuplicateIcon from './icons/DocumentDuplicateIcon';
+import CalendarDaysIcon from './icons/CalendarDaysIcon';
 import BrainCircuitIcon from './icons/BrainCircuitIcon';
-import { STUDENT_VIEWS, USER_ROLES } from '../utils/constants';
-import { useTenant } from '../contexts/TenantContext';
+import { StudentView } from '../types';
+import { STUDENT_VIEWS } from '../utils/constants';
 
 interface NavItemProps {
     icon: React.ReactNode;
@@ -33,18 +30,12 @@ interface BottomNavBarProps {
 }
 
 const StudentBottomNavBar: FC<BottomNavBarProps> = ({ activeView, setActiveView }) => {
-    const { hasFeature } = useTenant();
-
-    const allNavItems: { view: StudentView; label: string; icon: React.ReactNode }[] = [
+    const navItems = [
         { view: STUDENT_VIEWS.DASHBOARD, label: 'Home', icon: <HomeIcon className="h-6 w-6" /> },
-        { view: STUDENT_VIEWS.RESULTS, label: 'Report Card', icon: <ClipboardListIcon className="h-6 w-6" /> },
+        { view: STUDENT_VIEWS.RESULTS, label: 'Results', icon: <ClipboardListIcon className="h-6 w-6" /> },
+        { view: STUDENT_VIEWS.TIMETABLE, label: 'Timetable', icon: <CalendarDaysIcon className="h-6 w-6" /> },
         { view: STUDENT_VIEWS.AI_TOOLS, label: 'AI Tools', icon: <BrainCircuitIcon className="h-6 w-6" /> },
-        { view: STUDENT_VIEWS.ASSIGNMENTS, label: 'Work', icon: <DocumentDuplicateIcon className="h-6 w-6" /> },
-        { view: STUDENT_VIEWS.TIMETABLE, label: 'Schedule', icon: <ClockIcon className="h-6 w-6" /> },
     ];
-
-    const navItems = allNavItems.filter(item => hasFeature(USER_ROLES.STUDENT, item.view));
-
 
     return (
         <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
@@ -54,7 +45,7 @@ const StudentBottomNavBar: FC<BottomNavBarProps> = ({ activeView, setActiveView 
                         key={view}
                         icon={icon}
                         label={label}
-                        view={view}
+                        view={view as StudentView}
                         isActive={activeView === view}
                         onClick={setActiveView}
                     />

@@ -1,12 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { GoogleGenAI, LiveServerMessage, Modality, Blob } from '@google/genai';
+import React, { useState, useEffect, useRef, lazy, Suspense, PropsWithChildren } from 'react';
+import { GoogleGenAI, LiveServerMessage, Modality, Blob, FunctionDeclaration, Type } from '@google/genai';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import StopIcon from './icons/StopIcon';
 import HeadsetIcon from './icons/HeadsetIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
 import SparklesIcon from './icons/SparklesIcon';
 import UserCircleIcon from './icons/UserCircleIcon';
-import { supabase } from '../services/supabaseClient';
+import { USER_ROLES } from '../utils/constants';
+import { useAuth } from '../contexts/AuthContext';
+
+const PracticeQuiz = lazy(() => import('./PracticeQuiz'));
+const LearningPathways = lazy(() => import('./LearningPathways'));
 
 // --- Audio Helper Functions ---
 function encode(bytes) {
@@ -39,8 +43,109 @@ async function decodeAudioData(data, ctx, sampleRate, numChannels) {
   return buffer;
 }
 
-// --- Component ---
-const AIAcademicTutor = () => {
+// --- Function Declarations for AI ---
+const generateQuizFunction: FunctionDeclaration = {
+  name: 'generateQuiz',
+  parameters: {
+    type: Type.OBJECT,
+    description: 'Generates a practice quiz for the student on a specific topic.',
+    properties: {
+      topic: { type: Type.STRING, description: 'The topic for the quiz.' },
+      numQuestions: { type: Type.NUMBER, description: 'The number of questions to generate, defaults to 5.' },
+    },
+    required: ['topic'],
+  },
+};
+
+const createLearningPathwayFunction: FunctionDeclaration = {
+    name: 'createLearningPathway',
+    parameters: {
+        type: Type.OBJECT,
+        description: 'Creates a personalized, step-by-step learning plan for a student to master a topic.',
+        properties: {
+            topic: { type: Type.STRING, description: 'The topic the student wants to learn.' },
+            learningStyle: { type: Type.STRING, description: 'The student\'s preferred learning style (e.g., Visual, Practical). Defaults to Balanced.' },
+        },
+        required: ['topic'],
+    },
+};
+
+
+const VoiceTutorUI = ({ startSession, cleanup, status, isSpeaking, errorMessage, transcripts }) => {
+    const transcriptsEndRef = useRef(null);
+    useEffect(() => {
+        transcriptsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [transcripts]);
+
+     const getStatusIndicator = () => {
+        switch (status) {
+            case 'connected':
+                return isSpeaking ? (
+                    <div className="flex items-center gap-2 text-sm font-semibold text-green-600">
+                        <div className="w-3 h-3 rounded-full bg-green-400 pulse-dot-animation"></div>
+                        <span>Tutor is speaking...</span>
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-2 text-sm font-semibold text-blue-600">
+                        <div className="w-3 h-3 rounded-full bg-blue-400"></div>
+                        <span>Listening...</span>
+                    </div>
+                );
+            case 'connecting': case 'initializing':
+                return (
+                    <div className="flex items-center gap-2 text-sm font-semibold text-gray-500">
+                        <SpinnerIcon className="w-4 h-4 animate-spin"/>
+                        <span>{status === 'connecting' ? 'Connecting...' : 'Initializing...'}</span>
+                    </div>
+                );
+            case 'idle':
+                 return <div className="flex items-center gap-2 text-sm font-semibold text-gray-500"><div className="w-3 h-3 rounded-full bg-gray-400"></div><span>Ready to start</span></div>;
+            case 'error':
+                 return <div className="flex items-center gap-2 text-sm font-semibold text-red-500"><div className="w-3 h-3 rounded-full bg-red-400"></div><span>Error</span></div>;
+            default: return null;
+        }
+    };
+
+    return (
+        <div className="flex flex-col h-full gap-6">
+            <div className="card text-center">
+                <div className="p-4 border-t flex flex-col items-center gap-4">
+                    <div className="h-6">{getStatusIndicator()}</div>
+                    {errorMessage && <p className="text-sm text-red-600 max-w-md">{errorMessage}</p>}
+                    {status === 'connected' || status === 'connecting' ? (
+                        <button onClick={cleanup} className="btn btn-secondary bg-red-100 text-red-700 hover:bg-red-200"><StopIcon className="w-5 h-5 mr-2" /> End Session</button>
+                    ) : (
+                        <button onClick={startSession} className="btn btn-primary" disabled={status !== 'idle'}><MicrophoneIcon className="w-5 h-5 mr-2" /> Start Session</button>
+                    )}
+                </div>
+            </div>
+            <div className="card flex-grow flex flex-col min-h-0">
+                <div className="p-4 border-b"><h3 className="font-semibold">Live Transcription</h3></div>
+                <div className="p-6 flex-grow overflow-y-auto flex flex-col space-y-4">
+                    {transcripts.length === 0 && status !== 'error' && <p className="text-center text-gray-400 my-auto">Your conversation will appear here...</p>}
+                    {transcripts.map((t, i) => (
+                        <div key={i} className={`flex items-end gap-3 ${t.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            {t.sender === 'ai' && <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-500 flex-shrink-0"><SparklesIcon className="w-5 h-5"/></div>}
+                            <div className={`max-w-[80%] p-3 rounded-2xl ${t.sender === 'ai' ? 'bg-gray-100 rounded-bl-lg' : 'bg-indigo-500 text-white rounded-br-lg'} ${!t.isFinal ? 'opacity-70' : ''}`}>
+                                <p className="text-sm">{t.text}</p>
+                            </div>
+                            {t.sender === 'user' && <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 flex-shrink-0"><UserCircleIcon className="w-6 h-6"/></div>}
+                        </div>
+                    ))}
+                    <div ref={transcriptsEndRef}></div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
+const AIAcademicTutor = ({ demoUserId }) => {
+    const { session } = useAuth(); // Using the new centralized auth context
+    const [activeTool, setActiveTool] = useState<'voice' | 'quiz' | 'pathway'>('voice');
+    const [toolProps, setToolProps] = useState<any>({});
+    
+    // Voice session state
     const [sessionPromise, setSessionPromise] = useState(null);
     const [status, setStatus] = useState('idle'); // idle, initializing, connecting, connected, error
     const [errorMessage, setErrorMessage] = useState('');
@@ -56,11 +161,6 @@ const AIAcademicTutor = () => {
     const audioSourcesRef = useRef(new Set());
     const streamRef = useRef(null);
 
-    const transcriptsEndRef = useRef(null);
-    useEffect(() => {
-        transcriptsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [transcripts]);
-    
     const cleanup = () => {
         if (sessionPromise) {
             sessionPromise.then(session => session.close()).catch(console.error);
@@ -70,22 +170,16 @@ const AIAcademicTutor = () => {
             streamRef.current.getTracks().forEach(track => track.stop());
             streamRef.current = null;
         }
-        if (scriptProcessorRef.current) {
-            scriptProcessorRef.current.disconnect();
-            scriptProcessorRef.current = null;
-        }
-        if (mediaStreamSourceRef.current) {
-            mediaStreamSourceRef.current.disconnect();
-            mediaStreamSourceRef.current = null;
-        }
-        if (inputAudioContextRef.current && inputAudioContextRef.current.state !== 'closed') {
-            inputAudioContextRef.current.close().catch(console.error);
-            inputAudioContextRef.current = null;
-        }
-        if (outputAudioContextRef.current && outputAudioContextRef.current.state !== 'closed') {
-            outputAudioContextRef.current.close().catch(console.error);
-            outputAudioContextRef.current = null;
-        }
+        if (scriptProcessorRef.current) scriptProcessorRef.current.disconnect();
+        if (mediaStreamSourceRef.current) mediaStreamSourceRef.current.disconnect();
+        if (inputAudioContextRef.current && inputAudioContextRef.current.state !== 'closed') inputAudioContextRef.current.close().catch(console.error);
+        if (outputAudioContextRef.current && outputAudioContextRef.current.state !== 'closed') outputAudioContextRef.current.close().catch(console.error);
+        
+        scriptProcessorRef.current = null;
+        mediaStreamSourceRef.current = null;
+        inputAudioContextRef.current = null;
+        outputAudioContextRef.current = null;
+
         setStatus('idle');
         setIsSpeaking(false);
     };
@@ -95,29 +189,20 @@ const AIAcademicTutor = () => {
             setStatus('initializing');
             setErrorMessage('');
             try {
-                if (!supabase) throw new Error("Authentication service not available.");
-
-                const { data: { session } } = await supabase.auth.getSession();
                 const isDemo = sessionStorage.getItem('isDemoMode') === 'true';
-
                 if (!session && !isDemo) throw new Error("User not authenticated.");
-
+                
                 const headers: HeadersInit = {};
-                if (isDemo) {
-                    headers['X-Demo-Mode'] = 'true';
-                } else if (session) {
-                    headers['Authorization'] = `Bearer ${session.access_token}`;
-                }
+                if (isDemo) headers['X-Demo-Mode'] = 'true';
+                else if (session) headers['Authorization'] = `Bearer ${session.access_token}`;
 
                 const response = await fetch('/api/ai/client-key', { headers });
-                
                 if (!response.ok) {
                     const errorData = await response.json();
-                    throw new Error(errorData.error || 'Failed to fetch AI configuration from server.');
+                    throw new Error(errorData.error || 'Failed to fetch AI configuration.');
                 }
                 const { key } = await response.json();
                 if (!key) throw new Error('Server did not provide an API key.');
-                
                 aiRef.current = new GoogleGenAI({ apiKey: key });
                 setStatus('idle');
             } catch (e) {
@@ -126,29 +211,13 @@ const AIAcademicTutor = () => {
             }
         };
         initialize();
-
-        const handleBeforeUnload = (e) => {
-            if (status === 'connected') {
-                e.preventDefault();
-                e.returnValue = 'You have an active AI Tutor session. Are you sure you want to leave?';
-            }
-        };
-        window.addEventListener('beforeunload', handleBeforeUnload);
-
-        return () => {
-            cleanup();
-            window.removeEventListener('beforeunload', handleBeforeUnload);
-        };
-    }, []); // Run only once on mount
+        return () => cleanup(); // Full cleanup on component unmount
+    }, [session]);
 
     const startSession = async () => {
-        if (status !== 'idle' || !aiRef.current) {
-            return;
-        }
-
+        if (status !== 'idle' || !aiRef.current) return;
         setStatus('connecting');
         setTranscripts([]);
-
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             streamRef.current = stream;
@@ -162,69 +231,36 @@ const AIAcademicTutor = () => {
                         setStatus('connected');
                         mediaStreamSourceRef.current = inputAudioContextRef.current.createMediaStreamSource(stream);
                         scriptProcessorRef.current = inputAudioContextRef.current.createScriptProcessor(4096, 1, 1);
-                        
-                        scriptProcessorRef.current.onaudioprocess = (audioProcessingEvent) => {
-                            const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
+                        scriptProcessorRef.current.onaudioprocess = (e) => {
+                            const inputData = e.inputBuffer.getChannelData(0);
                             const pcmBlob = createBlob(inputData);
-                            promise.then((session) => {
-                                session.sendRealtimeInput({ media: pcmBlob });
-                            });
+                            promise.then((session) => session.sendRealtimeInput({ media: pcmBlob }));
                         };
                         mediaStreamSourceRef.current.connect(scriptProcessorRef.current);
                         scriptProcessorRef.current.connect(inputAudioContextRef.current.destination);
                     },
-                    onmessage: async (message) => handleServerMessage(message),
-                    onerror: (e) => {
-                        console.error('Session error:', e);
-                        setStatus('error');
-                        setErrorMessage('A connection error occurred with the AI service.');
-                        cleanup();
-                    },
-                    onclose: (e) => {
-                        console.log('Session closed');
-                        cleanup();
-                    },
+                    onmessage: async (message) => handleServerMessage(message, promise),
+                    onerror: (e) => { console.error('Session error:', e); setStatus('error'); setErrorMessage('Connection error.'); cleanup(); },
+                    onclose: (e) => { console.log('Session closed'); cleanup(); },
                 },
                 config: {
                     responseModalities: [Modality.AUDIO],
                     speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } },
-                    systemInstruction: `You are to adopt the persona of a friendly, patient, and brilliant Nigerian academic tutor. Your primary audience is a secondary school student in Nigeria.
-
-Your core mission is to provide clear, encouraging, and accurate academic help.
-
-**Language Style:**
-1.  **Foundation:** Your main language for explaining concepts, definitions, and formulas must be clear, standard English. This is crucial for academic clarity.
-2.  **Nigerian Flavour:** To make the conversation feel natural and build rapport, you must sprinkle in common Nigerian English phrases and colloquialisms. Do this naturally, not forcefully.
-
-**When to use Nigerian English:**
-*   **Encouragement:** After a student shows understanding or makes an effort. Examples: "Ah, correct! Well done o!", "You're trying!", "E go soon clear, no worry."
-*   **Checking Understanding:** Periodically check if the student is following. Examples: "Shey you understand now?", "You grab?", "Are we together on this?"
-*   **Transitions & Starters:** Use them to start or move between parts of an explanation. Examples: "Oya, let's look at it this way...", "Ehen, so the next step is...", "Okay, see..."
-
-**Tone and Demeanor:**
-*   **Patient and Encouraging:** Never sound frustrated. Always be positive. If a student is wrong, gently correct them.
-*   **Simplifier:** Break down complex topics into simple, relatable, step-by-step explanations.
-*   **Focused:** Keep your answers concise and directly related to the student's question.
-
-Example Interaction Flow:
-Student: "I don't understand photosynthesis."
-You: "Ah, no wahala, we go solve am together. Photosynthesis can sound complex, but it's just how plants make their own food. Let's break it down. The main things the plant needs are sunlight, water, and a gas called carbon dioxide. Shey you understand up to this point?"
-`,
+                    systemInstruction: `You are a friendly Nigerian academic tutor for secondary school students. Your main language is clear English, but you must sprinkle in common Nigerian English phrases (like "Well done o!", "Shey you understand?", "No wahala") for encouragement and to build rapport. You have access to tools to generate quizzes and learning plans. When a user asks for one, use the appropriate tool.`,
                     outputAudioTranscription: {},
                     inputAudioTranscription: {},
+                    tools: [{ functionDeclarations: [generateQuizFunction, createLearningPathwayFunction] }],
                 },
             });
             setSessionPromise(promise);
-
         } catch (err) {
-            console.error("Microphone access denied:", err);
             setStatus('error');
-            setErrorMessage('Microphone access was denied. Please allow microphone access to use the tutor.');
+            setErrorMessage('Microphone access denied. Please allow it in browser settings.');
             cleanup();
         }
     };
     
-    const handleServerMessage = async (message) => {
+    const handleServerMessage = async (message, sessionPromise) => {
         const audioData = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
         if (audioData) {
             setIsSpeaking(true);
@@ -242,122 +278,105 @@ You: "Ah, no wahala, we go solve am together. Photosynthesis can sound complex, 
             nextStartTimeRef.current += audioBuffer.duration;
             audioSourcesRef.current.add(source);
         }
+        
+        if (message.toolCall) {
+            for (const fc of message.toolCall.functionCalls) {
+              console.debug('Function call received:', fc);
+              sessionPromise.then((session) => {
+                session.sendToolResponse({
+                  functionResponses: { id: fc.id, name: fc.name, response: { result: 'ok, switching view' } }
+                });
+              });
+              switch (fc.name) {
+                case 'generateQuiz':
+                  setToolProps(fc.args);
+                  setActiveTool('quiz');
+                  cleanup();
+                  break;
+                case 'createLearningPathway':
+                  setToolProps(fc.args);
+                  setActiveTool('pathway');
+                  cleanup();
+                  break;
+              }
+            }
+        }
     
         setTranscripts(prev => {
             const newTranscripts = [...prev];
-            const lastTranscript = newTranscripts[newTranscripts.length - 1];
-    
+            const last = newTranscripts[newTranscripts.length - 1];
             if (message.serverContent?.inputTranscription) {
-                const text = message.serverContent.inputTranscription.text;
-                if (lastTranscript && lastTranscript.sender === 'user' && !lastTranscript.isFinal) lastTranscript.text += text;
-                else newTranscripts.push({ sender: 'user', text: text, isFinal: false });
+                if (last?.sender === 'user' && !last.isFinal) last.text += message.serverContent.inputTranscription.text;
+                else newTranscripts.push({ sender: 'user', text: message.serverContent.inputTranscription.text, isFinal: false });
             } else if (message.serverContent?.outputTranscription) {
-                const text = message.serverContent.outputTranscription.text;
-                if (lastTranscript && lastTranscript.sender === 'ai' && !lastTranscript.isFinal) lastTranscript.text += text;
-                else newTranscripts.push({ sender: 'ai', text: text, isFinal: false });
-            } else if (message.serverContent?.turnComplete) {
-                if (lastTranscript) lastTranscript.isFinal = true;
+                if (last?.sender === 'ai' && !last.isFinal) last.text += message.serverContent.outputTranscription.text;
+                else newTranscripts.push({ sender: 'ai', text: message.serverContent.outputTranscription.text, isFinal: false });
+            } else if (message.serverContent?.turnComplete && last) {
+                last.isFinal = true;
             }
             return newTranscripts;
         });
     };
     
     const createBlob = (data) => {
-        const l = data.length;
-        const int16 = new Int16Array(l);
+        const l = data.length; const int16 = new Int16Array(l);
         for (let i = 0; i < l; i++) int16[i] = data[i] * 32768;
         return { data: encode(new Uint8Array(int16.buffer)), mimeType: 'audio/pcm;rate=16000' };
     };
 
-    const getStatusIndicator = () => {
-        switch (status) {
-            case 'connected':
-                return isSpeaking ? (
-                    <div className="flex items-center gap-2 text-sm font-semibold text-green-600">
-                        <div className="w-3 h-3 rounded-full bg-green-400 pulse-dot-animation"></div>
-                        <span>Tutor is speaking...</span>
-                    </div>
-                ) : (
-                    <div className="flex items-center gap-2 text-sm font-semibold text-blue-600">
-                        <div className="w-3 h-3 rounded-full bg-blue-400"></div>
-                        <span>Listening...</span>
-                    </div>
-                );
-            case 'connecting':
-            case 'initializing':
+    const ToolWrapper = ({ title, children, onBack }: PropsWithChildren<{ title: string; onBack: () => void }>) => (
+        <div className="card h-full">
+            <div className="p-4 border-b">
+                <button onClick={onBack} className="btn btn-secondary mb-4">&larr; Back to Voice Tutor</button>
+                <h2 className="text-xl font-semibold">{title}</h2>
+            </div>
+            <div className="p-6 overflow-y-auto">
+                {children}
+            </div>
+        </div>
+    );
+
+    const renderContent = () => {
+        switch (activeTool) {
+            case 'quiz':
                 return (
-                    <div className="flex items-center gap-2 text-sm font-semibold text-gray-500">
-                        <SpinnerIcon className="w-4 h-4 animate-spin"/>
-                        <span>{status === 'connecting' ? 'Connecting...' : 'Initializing...'}</span>
-                    </div>
+                    <ToolWrapper title="Practice Quiz Generator" onBack={() => setActiveTool('voice')}>
+                        <Suspense fallback={<SpinnerIcon className="w-8 h-8 animate-spin mx-auto"/>}>
+                            <PracticeQuiz userRole={USER_ROLES.STUDENT} studentId={demoUserId} initialTopic={toolProps.topic} />
+                        </Suspense>
+                    </ToolWrapper>
                 );
-            case 'idle':
-                 return (
-                    <div className="flex items-center gap-2 text-sm font-semibold text-gray-500">
-                        <div className="w-3 h-3 rounded-full bg-gray-400"></div>
-                        <span>Ready to start</span>
-                    </div>
-                 );
-            case 'error':
-                 return (
-                    <div className="flex items-center gap-2 text-sm font-semibold text-red-500">
-                        <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                        <span>Error</span>
-                    </div>
-                 );
-            default: return null;
+            case 'pathway':
+                return (
+                    <ToolWrapper title="Personalized Learning Pathway" onBack={() => setActiveTool('voice')}>
+                        <Suspense fallback={<SpinnerIcon className="w-8 h-8 animate-spin mx-auto"/>}>
+                            <LearningPathways userRole={USER_ROLES.STUDENT} studentId={demoUserId} initialTopic={toolProps.topic} />
+                        </Suspense>
+                    </ToolWrapper>
+                );
+            case 'voice':
+            default:
+                return (
+                    <VoiceTutorUI 
+                        startSession={startSession} 
+                        cleanup={cleanup} 
+                        status={status} 
+                        isSpeaking={isSpeaking} 
+                        errorMessage={errorMessage} 
+                        transcripts={transcripts}
+                    />
+                );
         }
     };
 
     return (
-        <div className="flex flex-col h-full max-w-3xl mx-auto gap-6">
-            <div className="card text-center">
-                <div className="p-6">
-                    <HeadsetIcon className="w-12 h-12 mx-auto text-indigo-500" />
-                    <h1 className="text-2xl font-bold mt-2">AI Academic Tutor</h1>
-                    <p className="text-gray-500 mt-1">Have a real-time voice conversation with your personal AI tutor.</p>
-                </div>
-
-                <div className="p-4 border-t flex flex-col items-center gap-4">
-                    <div className="h-6">{getStatusIndicator()}</div>
-                    {errorMessage && <p className="text-sm text-red-600 max-w-md">{errorMessage}</p>}
-
-                    {status === 'connected' || status === 'connecting' ? (
-                        <button onClick={cleanup} className="btn btn-secondary bg-red-100 text-red-700 hover:bg-red-200"><StopIcon className="w-5 h-5 mr-2" /> End Session</button>
-                    ) : (
-                        <button onClick={startSession} className="btn btn-primary" disabled={status !== 'idle'}>
-                            <MicrophoneIcon className="w-5 h-5 mr-2" /> Start Session
-                        </button>
-                    )}
-                </div>
+        <div className="h-full max-w-3xl mx-auto">
+             <div className="text-center mb-6">
+                <HeadsetIcon className="w-12 h-12 mx-auto text-indigo-500" />
+                <h1 className="text-2xl font-bold mt-2">AI Academic Tutor</h1>
+                <p className="text-gray-500 mt-1">Your personal AI learning companion. Ask questions, generate quizzes, and create study plans with your voice.</p>
             </div>
-
-            <div className="card flex-grow flex flex-col min-h-0">
-                <div className="p-4 border-b">
-                     <h3 className="font-semibold">Live Transcription</h3>
-                </div>
-                <div className="p-6 flex-grow overflow-y-auto flex flex-col space-y-4">
-                    {transcripts.length === 0 && status !== 'error' && <p className="text-center text-gray-400 my-auto">Your conversation will appear here...</p>}
-                    {transcripts.map((t, i) => (
-                        <div key={i} className={`flex items-end gap-3 ${t.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                            {t.sender === 'ai' && (
-                                <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-500 flex-shrink-0">
-                                    <SparklesIcon className="w-5 h-5"/>
-                                </div>
-                            )}
-                            <div className={`max-w-[80%] p-3 rounded-2xl ${t.sender === 'ai' ? 'bg-gray-100 rounded-bl-lg' : 'bg-indigo-500 text-white rounded-br-lg'} ${!t.isFinal ? 'opacity-70' : ''}`}>
-                                <p className="text-sm">{t.text}</p>
-                            </div>
-                            {t.sender === 'user' && (
-                                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 flex-shrink-0">
-                                    <UserCircleIcon className="w-6 h-6"/>
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                    <div ref={transcriptsEndRef}></div>
-                </div>
-            </div>
+            {renderContent()}
         </div>
     );
 };

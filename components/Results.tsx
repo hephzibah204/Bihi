@@ -1,530 +1,203 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { apiGetStudents, apiGetSubjects, apiGetScores, apiGetSchoolSettings, apiUpsertScore, apiGetTeachers, apiGetTimetableData } from '../services/api';
-import { Score, Student, Subject, Teacher } from '../types';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Student, Subject, Score, SchoolSettings } from '../types';
+import { apiGetStudents, apiGetSubjects, apiGetScores, apiGetSchoolSettings, apiUpsertScore, apiBatchUpsertScores } from '../services/api';
 import { debounce } from 'lodash';
-import BulkScoreImportModal from './BulkScoreImportModal';
-import ArrowUpTrayIcon from './icons/ArrowUpTrayIcon';
-import { exportToCSV } from '../utils/csvExporter';
-import ArrowDownTrayIcon from './icons/ArrowDownTrayIcon';
-import { generateText } from '../services/geminiService';
-import SparklesIcon from './icons/SparklesIcon';
-import SpinnerIcon from './icons/SpinnerIcon';
 import ScoreEntryModal from './ScoreEntryModal';
-import SkeletonLoader from './SkeletonLoader';
-import ListItemSkeleton from './skeletons/ListItemSkeleton';
-import { supabase } from '../services/supabaseClient';
-
-const PAGE_SIZE = 50;
+import ArrowUpTrayIcon from './icons/ArrowUpTrayIcon';
+import BulkScoreImportModal from './BulkScoreImportModal';
+import SparklesIcon from './icons/SparklesIcon';
+import { useAI } from '../hooks/useAI';
+import { useTenant } from '../contexts/TenantContext';
+import { generateClassNames } from '../utils/classManager';
+// FIX: Added missing import for SpinnerIcon.
+import SpinnerIcon from './icons/SpinnerIcon';
 
 const Results = () => {
-    const [classes, setClasses] = useState<string[]>([]);
-    const [subjects, setSubjects] = useState<Subject[]>([]);
-    const [settings, setSettings] = useState<any>(null);
-    const [selectedClass, setSelectedClass] = useState(() => {
-        try { return JSON.parse(sessionStorage.getItem('reportsheet_results_filters') || '{}').selectedClass || '' } catch { return '' }
-    });
-    const [selectedSubject, setSelectedSubject] = useState(() => {
-        try { return JSON.parse(sessionStorage.getItem('reportsheet_results_filters') || '{}').selectedSubject || '' } catch { return '' }
-    });
     const [students, setStudents] = useState<Student[]>([]);
+    const [subjects, setSubjects] = useState<Subject[]>([]);
     const [scores, setScores] = useState<Score[]>([]);
+    const [settings, setSettings] = useState<Partial<SchoolSettings>>({});
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+    const [selectedClass, setSelectedClass] = useState('');
+    const [selectedSubjectId, setSelectedSubjectId] = useState('');
+    
+    // For single student editing modal
+    const [editingStudentIndex, setEditingStudentIndex] = useState<number | null>(null);
+
+    // For bulk import modal
     const [isImportModalOpen, setImportModalOpen] = useState(false);
-    const [generatingForStudentId, setGeneratingForStudentId] = useState<string | null>(null);
-    const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
+    
+    // For AI Comment Generation
+    const { generateResponse } = useAI();
+    const [isGenerating, setIsGenerating] = useState(false);
 
+    const { settings: tenantSettings } = useTenant();
+    const classNames = useMemo(() => generateClassNames(tenantSettings), [tenantSettings]);
 
-    const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-    const loaderRef = useRef(null);
-
-    useEffect(() => {
-        try {
-            sessionStorage.setItem('reportsheet_results_filters', JSON.stringify({ selectedClass, selectedSubject }));
-        } catch (e) {
-            console.error("Failed to save results filters", e);
-        }
-    }, [selectedClass, selectedSubject]);
-
-    useEffect(() => {
-        const observer = new IntersectionObserver((entries) => {
-            if (entries[0].isIntersecting) {
-                setVisibleCount(prev => Math.min(prev + PAGE_SIZE, students.length));
-            }
-        }, { threshold: 1 });
-        const currentLoader = loaderRef.current;
-        if (currentLoader) observer.observe(currentLoader);
-        return () => { if (currentLoader) observer.unobserve(currentLoader); };
-    }, [loaderRef, students.length]);
-
-    const visibleStudents = students.slice(0, visibleCount);
-
-    useEffect(() => {
-        const fetchInitialData = async () => {
-            setLoading(true);
-            try {
-                const [allSubjects, schoolSettings, teachers, timetable]: [Subject[], any, Teacher[], any] = await Promise.all([
-                    apiGetSubjects(),
-                    apiGetSchoolSettings(),
-                    apiGetTeachers(),
-                    apiGetTimetableData(),
-                ]);
-                
-                setSubjects(allSubjects);
-                setSettings(schoolSettings);
-
-                let availableClasses: string[] = [];
-                let isTeacher = false;
-                let userEmail = '';
-
-                if (supabase) {
-                    const { data: { user } } = await supabase.auth.getUser();
-                    if(user) {
-                        userEmail = user.email.toLowerCase();
-                        isTeacher = teachers.some(t => t.email.toLowerCase() === userEmail);
-                    }
-                }
-
-                if (isTeacher) {
-                    const me = teachers.find(t => t.email.toLowerCase() === userEmail);
-                    if (me) {
-                        const myClasses = new Set<string>();
-                        if (me.classTeacherOf) myClasses.add(me.classTeacherOf);
-
-                        Object.keys(timetable).forEach(className => {
-                            const classSchedule = timetable[className];
-                            Object.keys(classSchedule).forEach(day => {
-                                Object.keys(classSchedule[day]).forEach(timeSlot => {
-                                    if (classSchedule[day][timeSlot].teacherId === me.id) {
-                                        myClasses.add(className);
-                                    }
-                                });
-                            });
-                        });
-                        availableClasses = [...myClasses].sort();
-                    }
-                } else { // Admin view
-                    availableClasses = [...new Set(allSubjects.flatMap(s => s.classes))].sort();
-                }
-
-                setClasses(availableClasses);
-                if (availableClasses.length > 0) {
-                    const savedClass = JSON.parse(sessionStorage.getItem('reportsheet_results_filters') || '{}').selectedClass;
-                    if (savedClass && availableClasses.includes(savedClass)) {
-                        setSelectedClass(savedClass);
-                    } else {
-                        setSelectedClass(availableClasses[0]);
-                    }
-                } else {
-                    setSelectedClass('');
-                }
-            } catch (err) {
-                setError('Failed to load classes and subjects.');
-            }
-        };
-        fetchInitialData();
-    }, []);
-
-    const fetchStudentsAndScores = useCallback(async () => {
-        if (!selectedClass) {
-            setStudents([]);
-            setScores([]);
-            setLoading(false);
-            return;
-        }
-
+    const fetchData = useCallback(async () => {
         setLoading(true);
-        setError('');
         try {
-            const fetchedStudents = await apiGetStudents({ classFilter: selectedClass });
-            setStudents(fetchedStudents);
-            setVisibleCount(PAGE_SIZE);
-
-            if (selectedSubject && fetchedStudents.length > 0) {
-                const studentIds = fetchedStudents.map(s => s.id);
-                const fetchedScores = await apiGetScores({ studentIds, subjectId: selectedSubject, session: settings?.session, term: settings?.term });
-                setScores(fetchedScores);
-            } else {
-                setScores([]);
-            }
-        } catch (err) {
-            setError('Failed to load students or scores.');
+            const [studentsData, subjectsData, scoresData, settingsData] = await Promise.all([
+                apiGetStudents(), apiGetSubjects(), apiGetScores(), apiGetSchoolSettings()
+            ]);
+            setStudents(studentsData);
+            setSubjects(subjectsData);
+            setScores(scoresData);
+            setSettings(settingsData || {});
+            if (classNames.length > 0 && !selectedClass) setSelectedClass(classNames[0]);
+        } catch(e) {
+            console.error("Failed to load data for results entry", e);
         } finally {
             setLoading(false);
         }
-    }, [selectedClass, selectedSubject, settings]);
+    }, [classNames, selectedClass]);
+    
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
+
+    const filteredSubjects = useMemo(() => {
+        if (!selectedClass) return [];
+        return subjects.filter(s => s.classes.includes(selectedClass));
+    }, [subjects, selectedClass]);
 
     useEffect(() => {
-        if (settings) {
-            fetchStudentsAndScores();
+        if (filteredSubjects.length > 0 && !selectedSubjectId) {
+            setSelectedSubjectId(filteredSubjects[0].id);
         }
-    }, [fetchStudentsAndScores, settings]);
+    }, [filteredSubjects, selectedSubjectId]);
 
-    const currentScoresMap = useMemo(() => {
-        return scores.reduce((acc, score) => {
-            if (score.studentId) acc[score.studentId] = score;
-            return acc;
-        }, {} as Record<string, Score>);
-    }, [scores]);
+    const studentsInClass = useMemo(() => {
+        return students.filter(s => s.class === selectedClass);
+    }, [students, selectedClass]);
 
-    const maxCa1 = settings?.maxCa1 ?? 20;
-    const maxCa2 = settings?.maxCa2 ?? 20;
-    const maxExam = settings?.maxExam ?? 60;
-
-    const debouncedSave = useCallback(
-        debounce((scoreData: Partial<Score>) => {
-            apiUpsertScore({...scoreData, session: settings.session, term: settings.term });
-        }, 500),
-        [settings]
-    );
-
-    const handleScoreChange = useCallback((studentId: string, field: 'ca1' | 'ca2' | 'exam', value: string) => {
-        const maxScores = { ca1: maxCa1, ca2: maxCa2, exam: maxExam };
-        const max = maxScores[field];
-        let numericValue = value === '' ? undefined : Number(value);
-
-        if (numericValue !== undefined) {
-            if (numericValue > max) numericValue = max;
-            else if (numericValue < 0) numericValue = 0;
-        }
-        
-        const existingScore = scores.find(s => s.studentId === studentId);
-        const newScoreData = {
-            id: existingScore?.id,
-            studentId,
-            subjectId: selectedSubject,
-            session: settings.session,
-            term: settings.term,
-            ca1: existingScore?.ca1,
-            ca2: existingScore?.ca2,
-            exam: existingScore?.exam,
-            comment: existingScore?.comment,
-            [field]: numericValue,
+    const debouncedSave = useCallback(debounce((studentId: string, field: keyof Score, value: any) => {
+        const existingScore = scores.find(s => s.studentId === studentId && s.subjectId === selectedSubjectId && s.session === settings.session && s.term === settings.term);
+        const scoreData = {
+            ...(existingScore || { studentId, subjectId: selectedSubjectId, session: settings.session, term: settings.term }),
+            [field]: value
         };
-        
-        setScores(prevScores => {
-            const index = prevScores.findIndex(s => s.studentId === studentId);
-            if (index > -1) {
-                const newScores = [...prevScores];
-                newScores[index] = { ...newScores[index], [field]: numericValue };
-                return newScores;
-            }
-            return [...prevScores, newScoreData as Score];
-        });
-        
-        debouncedSave(newScoreData);
-    }, [selectedSubject, scores, maxCa1, maxCa2, maxExam, debouncedSave, settings]);
-
-    const handleCommentChange = useCallback((studentId: string, value: string) => {
-        const existingScore = scores.find(s => s.studentId === studentId);
-        const newScoreData: Partial<Score> = {
-            id: existingScore?.id,
-            studentId,
-            subjectId: selectedSubject,
-            session: settings.session,
-            term: settings.term,
-            comment: value,
-        };
-        
-        setScores(prevScores => {
-            const index = prevScores.findIndex(s => s.studentId === studentId);
-            if (index > -1) {
-                const newScores = [...prevScores];
-                newScores[index] = { ...newScores[index], comment: value };
-                return newScores;
-            }
-            return [...prevScores, {...existingScore, ...newScoreData, id: existingScore?.id || `score_${Date.now()}`} as Score];
-        });
-        
-        debouncedSave(newScoreData);
-    }, [selectedSubject, scores, debouncedSave, settings]);
+        apiUpsertScore(scoreData);
+    }, 500), [scores, selectedSubjectId, settings]);
     
-    const handleGenerateComment = async (student: Student) => {
-        if (!settings) return;
-        setGeneratingForStudentId(student.id);
+    const handleScoreChange = (studentId: string, field: keyof Score, value: string | number) => {
+        setScores(prevScores => {
+            const index = prevScores.findIndex(s => s.studentId === studentId && s.subjectId === selectedSubjectId && s.session === settings.session && s.term === settings.term);
+            if (index !== -1) {
+                const newScores = [...prevScores];
+                newScores[index] = { ...newScores[index], [field]: value };
+                return newScores;
+            } else {
+                return [...prevScores, { studentId, subjectId: selectedSubjectId, session: settings.session, term: settings.term, [field]: value } as Score];
+            }
+        });
+        debouncedSave(studentId, field, value);
+    };
 
+    const handleGenerateAllComments = async () => {
+        if (!window.confirm("This will use AI to generate and overwrite comments for all students in this view. Continue?")) return;
+        setIsGenerating(true);
+        
         try {
-            // Fix: Explicitly type `score` as Partial<Score> to inform TypeScript of its potential shape, preventing errors when accessing properties on a potentially empty object.
-            const score: Partial<Score> = currentScoresMap[student.id] || {};
-            const total = (score.ca1 || 0) + (score.ca2 || 0) + (score.exam || 0);
-            const subjectName = subjects.find(s => s.id === selectedSubject)?.name || 'this subject';
-
-            const prompt = `
-                You are a Nigerian teacher writing a subject-specific comment for a student's report card.
-                Based on the scores provided, write a brief (1-2 sentences), constructive comment.
-
-                **Student & Subject Data:**
-                - Student Name: ${student.name}
-                - Subject: ${subjectName}
-                - Scores this Term:
-                  - CA1: ${score.ca1 ?? 'N/A'} / ${maxCa1}
-                  - CA2: ${score.ca2 ?? 'N/A'} / ${maxCa2}
-                  - Exam: ${score.exam ?? 'N/A'} / ${maxExam}
-                  - **Total:** ${total} / 100
-
-                **Your Task:**
-                Comment on the student's performance in this subject. Mention if they are strong, improving, or need to focus more.
-            `;
+            const scoresToUpdate: Partial<Score>[] = [];
+            for (const student of studentsInClass) {
+                // FIX: Explicitly type `score` as Partial<Score> to avoid type errors on properties like `ca1`.
+                const score: Partial<Score> = scores.find(s => s.studentId === student.id && s.subjectId === selectedSubjectId && s.session === settings.session && s.term === settings.term) || {};
+                const total = (score.ca1 || 0) + (score.ca2 || 0) + (score.exam || 0);
+                
+                const prompt = `Generate a short, insightful report card comment (1 sentence) for a student's performance in a subject. Use simple HTML for emphasis (e.g., <strong>).
+- Student: ${student.name}
+- Subject: ${subjects.find(s=>s.id === selectedSubjectId)?.name}
+- Performance: Scored ${total}/100.
+Comment on their strength or a key area for improvement based on this score.`;
+                
+                const comment = await generateResponse({ prompt });
+                
+                const scoreData = {
+                    ...score,
+                    studentId: student.id,
+                    subjectId: selectedSubjectId,
+                    session: settings.session,
+                    term: settings.term,
+                    comment: comment.trim(),
+                };
+                scoresToUpdate.push(scoreData);
+            }
             
-            const comment = await generateText(prompt);
-            handleCommentChange(student.id, comment);
+            await apiBatchUpsertScores(scoresToUpdate);
+            fetchData();
 
         } catch (error) {
-            alert(`Error generating comment: ${error.message}`);
+            alert(`AI Error: ${error.message}`);
         } finally {
-            setGeneratingForStudentId(null);
-        }
-    };
-
-    const handleExport = () => {
-        const subjectName = subjects.find(s => s.id === selectedSubject)?.name || 'subject';
-        const dataToExport = students.map(student => {
-            // Fix: Explicitly type `score` as Partial<Score> to ensure properties can be safely accessed even if the student has no score record yet.
-            const score: Partial<Score> = currentScoresMap[student.id] || {};
-            const total = (score.ca1 || 0) + (score.ca2 || 0) + (score.exam || 0);
-            return {
-                student_name: student.name,
-                admission_no: student.admissionNo,
-                ca1: score.ca1 ?? '',
-                ca2: score.ca2 ?? '',
-                exam: score.exam ?? '',
-                total,
-                comment: score.comment ?? ''
-            };
-        });
-        exportToCSV(dataToExport, `scores_${selectedClass}_${subjectName}.csv`);
-    };
-
-    const filteredSubjects = subjects.filter(s => s.classes.includes(selectedClass));
-    
-    // Handlers for the mobile modal
-    const handleSaveFromModal = useCallback((studentId: string, field: 'ca1' | 'ca2' | 'exam' | 'comment', value: string | number) => {
-        if (field === 'comment') {
-            handleCommentChange(studentId, value as string);
-        } else {
-            handleScoreChange(studentId, field, value as string);
-        }
-    }, [handleCommentChange, handleScoreChange]);
-
-    const handleNavigateInModal = (direction: 'next' | 'prev') => {
-        const currentIndex = students.findIndex(s => s.id === editingStudentId);
-        if (currentIndex === -1) return;
-
-        const newIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
-        if (newIndex >= 0 && newIndex < students.length) {
-            setEditingStudentId(students[newIndex].id);
+            setIsGenerating(false);
         }
     };
     
-    const editingStudentIndex = students.findIndex(s => s.id === editingStudentId);
-    const editingStudent = editingStudentIndex !== -1 ? students[editingStudentIndex] : null;
-
-    if (loading && classes.length === 0) return (
-        <div>
-            {/* Filters skeleton */}
-            <div className="my-6 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                <div className="md:col-span-1"><SkeletonLoader className="h-10 w-full" /></div>
-                <div className="md:col-span-1"><SkeletonLoader className="h-10 w-full" /></div>
-                <div className="md:col-span-2 flex gap-2">
-                    <SkeletonLoader className="h-10 w-full" />
-                    <SkeletonLoader className="h-10 w-full" />
-                </div>
-            </div>
-            
-            {/* Mobile Skeleton */}
-            <div className="md:hidden space-y-2">
-                {[...Array(5)].map((_, i) => <ListItemSkeleton key={i} />)}
-            </div>
-
-            {/* Desktop Skeleton */}
-            <div className="hidden md:block table-container">
-                 <table className="table">
-                    <thead>
-                        <tr>
-                            <th scope="col" className="th">Student Name</th>
-                            <th scope="col" className="th text-center w-24">CA 1 ({maxCa1})</th>
-                            <th scope="col" className="th text-center w-24">CA 2 ({maxCa2})</th>
-                            <th scope="col" className="th text-center w-24">Exam ({maxExam})</th>
-                            <th scope="col" className="th text-center w-24">Total (100)</th>
-                            <th scope="col" className="th w-1/3">Comment</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {[...Array(5)].map((_, i) => (
-                            <tr key={i}>
-                                <td className="td"><SkeletonLoader className="h-4 w-32" /></td>
-                                <td className="td"><SkeletonLoader className="h-8 w-full" /></td>
-                                <td className="td"><SkeletonLoader className="h-8 w-full" /></td>
-                                <td className="td"><SkeletonLoader className="h-8 w-full" /></td>
-                                <td className="td"><SkeletonLoader className="h-6 w-12 mx-auto" /></td>
-                                <td className="td"><SkeletonLoader className="h-8 w-full" /></td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    );
+    if (loading) return <div>Loading...</div>;
 
     return (
         <div>
-            <div className="my-6 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                <div className="md:col-span-1">
-                    <label htmlFor="class-select" className="label">Select Class</label>
-                    <select id="class-select" className="input-field" value={selectedClass} onChange={e => { setSelectedClass(e.target.value); setSelectedSubject(''); }}>
-                        <option value="">-- Select a Class --</option>
-                        {classes.map(c => <option key={c} value={c}>{c}</option>)}
+            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                <div className="flex gap-4 w-full md:w-auto">
+                    <select value={selectedClass} onChange={e => setSelectedClass(e.target.value)} className="input-field">
+                        {classNames.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
-                </div>
-                <div className="md:col-span-1">
-                    <label htmlFor="subject-select" className="label">Select Subject</label>
-                    <select id="subject-select" className="input-field" value={selectedSubject} onChange={e => setSelectedSubject(e.target.value)} disabled={!selectedClass}>
-                        <option value="">-- Select a Subject --</option>
+                    <select value={selectedSubjectId} onChange={e => setSelectedSubjectId(e.target.value)} className="input-field">
                         {filteredSubjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
                 </div>
-                 <div className="md:col-span-2 flex gap-2">
-                    <button onClick={handleExport} className="btn btn-secondary w-full" disabled={!selectedClass || !selectedSubject || students.length === 0}>
-                        <ArrowDownTrayIcon className="w-5 h-5 mr-2" />
-                        Export Scores
-                    </button>
-                    <button onClick={() => setImportModalOpen(true)} className="btn btn-secondary w-full" disabled={!selectedClass || !selectedSubject}>
-                        <ArrowUpTrayIcon className="w-5 h-5 mr-2"/>
-                        Import Scores
+                <div className="flex gap-2 w-full md:w-auto">
+                    <button onClick={() => setImportModalOpen(true)} className="btn btn-secondary flex-1"><ArrowUpTrayIcon className="w-5 h-5 mr-2"/> Import</button>
+                    <button onClick={handleGenerateAllComments} className="btn btn-secondary flex-1" disabled={isGenerating}>
+                        {isGenerating ? <SpinnerIcon className="w-5 h-5 animate-spin"/> : <SparklesIcon className="w-5 h-5"/>}
                     </button>
                 </div>
             </div>
 
-            {error && <div className="mb-4 p-3 text-sm text-red-700 bg-red-100 rounded-lg">{error}</div>}
+            <div className="table-container">
+                <table className="table">
+                    <thead>
+                        <tr>
+                            <th className="th">Student Name</th>
+                            <th className="th text-center">CA 1 ({settings.maxCa1})</th>
+                            <th className="th text-center">CA 2 ({settings.maxCa2})</th>
+                            <th className="th text-center">Exam ({settings.maxExam})</th>
+                            <th className="th text-center">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {studentsInClass.map((student, index) => {
+                            // FIX: Explicitly type `score` as Partial<Score> to avoid type errors on properties like `ca1`.
+                            const score: Partial<Score> = scores.find(s => s.studentId === student.id && s.subjectId === selectedSubjectId && s.session === settings.session && s.term === settings.term) || {};
+                            const total = (score.ca1 || 0) + (score.ca2 || 0) + (score.exam || 0);
+                            return (
+                                <tr key={student.id} onClick={() => setEditingStudentIndex(index)} className="cursor-pointer hover:bg-gray-50">
+                                    <td className="td">{student.name}</td>
+                                    <td className="td text-center">{score.ca1 ?? '-'}</td>
+                                    <td className="td text-center">{score.ca2 ?? '-'}</td>
+                                    <td className="td text-center">{score.exam ?? '-'}</td>
+                                    <td className="td text-center font-bold">{total}</td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
 
-            {loading ? (
-                <div className="card p-6 text-center text-gray-500">Loading student data...</div>
-            ) : (
-                <>
-                {/* MOBILE VIEW */}
-                <div className="md:hidden">
-                    {!selectedClass || !selectedSubject ? <div className="card p-6 text-center text-gray-500">Please select a class and subject to begin.</div>
-                    : students.length === 0 ? <div className="card p-6 text-center text-gray-500">No students found for this class.</div>
-                    : (
-                         <ul className="space-y-2">
-                            {students.map(student => {
-                                 const score: Partial<Score> = currentScoresMap[student.id] || {};
-                                 const total = (score.ca1 || 0) + (score.ca2 || 0) + (score.exam || 0);
-                                return (
-                                    <li key={student.id}>
-                                        <button onClick={() => setEditingStudentId(student.id)} className="w-full text-left p-4 bg-white rounded-lg shadow-sm flex justify-between items-center">
-                                            <div>
-                                                <p className="font-medium">{student.name}</p>
-                                                <p className="text-sm text-gray-500">{student.admissionNo}</p>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="text-lg font-bold">{total}</p>
-                                                <p className="text-xs text-gray-400">Total</p>
-                                            </div>
-                                        </button>
-                                    </li>
-                                );
-                            })}
-                        </ul>
-                    )}
-                </div>
-
-                {/* DESKTOP VIEW */}
-                <div className="hidden md:block table-container">
-                    <table className="table">
-                        <thead>
-                            <tr>
-                                <th scope="col" className="th sticky left-0 bg-slate-100 z-10">Student Name</th>
-                                <th scope="col" className="th text-center w-24">CA 1 ({maxCa1})</th>
-                                <th scope="col" className="th text-center w-24">CA 2 ({maxCa2})</th>
-                                <th scope="col" className="th text-center w-24">Exam ({maxExam})</th>
-                                <th scope="col" className="th text-center w-24">Total (100)</th>
-                                <th scope="col" className="th w-1/3">Comment</th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white">
-                            {!selectedClass || !selectedSubject ? (
-                                 <tr><td colSpan={6} className="td text-center">Please select a class and subject to begin.</td></tr>
-                            ) : students.length === 0 ? (
-                                <tr><td colSpan={6} className="td text-center">No students found for this class.</td></tr>
-                            ) : (
-                                <>
-                                {visibleStudents.map(student => {
-                                    const score: Partial<Score> = currentScoresMap[student.id] || {};
-                                    const total = (score.ca1 || 0) + (score.ca2 || 0) + (score.exam || 0);
-                                    return (
-                                        <tr key={student.id} className="group">
-                                            <td className="td font-medium text-gray-900 sticky left-0 z-10 bg-white group-hover:bg-indigo-50">
-                                                <div className="truncate max-w-xs" title={student.name}>{student.name}</div>
-                                            </td>
-                                            <td className="td"><input type="number" min="0" max={maxCa1} className="input-field p-1 text-sm text-center w-full" value={score.ca1 ?? ''} onChange={e => handleScoreChange(student.id, 'ca1', e.target.value)} aria-label={`CA 1 score for ${student.name}`} /></td>
-                                            <td className="td"><input type="number" min="0" max={maxCa2} className="input-field p-1 text-sm text-center w-full" value={score.ca2 ?? ''} onChange={e => handleScoreChange(student.id, 'ca2', e.target.value)} aria-label={`CA 2 score for ${student.name}`} /></td>
-                                            <td className="td"><input type="number" min="0" max={maxExam} className="input-field p-1 text-sm text-center w-full" value={score.exam ?? ''} onChange={e => handleScoreChange(student.id, 'exam', e.target.value)} aria-label={`Exam score for ${student.name}`} /></td>
-                                            <td className="td text-center font-semibold text-gray-700">{total}</td>
-                                            <td className="td">
-                                                <div className="flex items-center gap-1">
-                                                    <input 
-                                                        type="text"
-                                                        className="input-field p-1 text-sm w-full"
-                                                        value={score.comment ?? ''} 
-                                                        onChange={e => handleCommentChange(student.id, e.target.value)}
-                                                        aria-label={`Comment for ${student.name}`}
-                                                        placeholder="Optional comment..."
-                                                    />
-                                                    <button 
-                                                        onClick={() => handleGenerateComment(student)}
-                                                        className="btn btn-secondary p-1"
-                                                        disabled={generatingForStudentId === student.id}
-                                                        title="Generate with AI"
-                                                    >
-                                                         {generatingForStudentId === student.id 
-                                                            ? <SpinnerIcon className="w-4 h-4 animate-spin" />
-                                                            : <SparklesIcon className="w-4 h-4" />
-                                                        }
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                                 {visibleCount < students.length && (
-                                    <tr ref={loaderRef}>
-                                        <td colSpan={6} className="text-center p-4 text-gray-500">
-                                            Loading more...
-                                        </td>
-                                    </tr>
-                                )}
-                                </>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-                </>
-            )}
-            <p className="text-xs text-gray-500 mt-2 text-center">Your changes are saved automatically.</p>
+            {isImportModalOpen && <BulkScoreImportModal isOpen={isImportModalOpen} onClose={() => setImportModalOpen(false)} onSuccess={fetchData} selectedClass={selectedClass} selectedSubjectId={selectedSubjectId} settings={settings} />}
             
-            {editingStudent && (
+            {editingStudentIndex !== null && (
                 <ScoreEntryModal
-                    isOpen={!!editingStudentId}
-                    onClose={() => setEditingStudentId(null)}
-                    onSave={handleSaveFromModal}
-                    onNavigate={handleNavigateInModal}
-                    student={editingStudent}
-                    score={currentScoresMap[editingStudentId] || {}}
+                    isOpen={editingStudentIndex !== null}
+                    onClose={() => setEditingStudentIndex(null)}
+                    onSave={handleScoreChange}
+                    onNavigate={(dir) => setEditingStudentIndex(prev => dir === 'next' ? prev! + 1 : prev! - 1)}
+                    student={studentsInClass[editingStudentIndex]}
+                    score={scores.find(s => s.studentId === studentsInClass[editingStudentIndex].id && s.subjectId === selectedSubjectId && s.session === settings.session && s.term === settings.term) || {}}
                     settings={settings}
                     isFirst={editingStudentIndex === 0}
-                    isLast={editingStudentIndex === students.length - 1}
-                />
-            )}
-
-            {isImportModalOpen && (
-                <BulkScoreImportModal 
-                    isOpen={isImportModalOpen}
-                    onClose={() => setImportModalOpen(false)}
-                    onSuccess={() => { setImportModalOpen(false); fetchStudentsAndScores(); }}
-                    selectedClass={selectedClass}
-                    selectedSubjectId={selectedSubject}
-                    settings={settings}
+                    isLast={editingStudentIndex === studentsInClass.length - 1}
                 />
             )}
         </div>

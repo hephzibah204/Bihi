@@ -1,29 +1,54 @@
 import React, { useState, useEffect } from 'react';
-import { apiGetStudents, apiGetScores } from '../services/api';
-import ArrowTrendingUpIcon from './icons/ArrowTrendingUpIcon';
+import { apiGetStudents, apiGetScores, apiGetSchoolSettings, apiGetAttendance } from '../services/api';
+import StatCard from './StatCard';
+import UsersIcon from './icons/UsersIcon';
+import StatCardSkeleton from './skeletons/StatCardSkeleton';
+import BookOpenIcon from './icons/BookOpenIcon';
+import CheckBadgeIcon from './icons/CheckBadgeIcon';
 
 const DashboardInsights = () => {
-    const [totalStudents, setTotalStudents] = useState(0);
-    const [averagePerformance, setAveragePerformance] = useState(0);
+    const [stats, setStats] = useState({ studentCount: 0, newStudents: 0, averagePerformance: 0, attendancePercentage: 0 });
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchInsights = async () => {
             try {
-                const [students, scores] = await Promise.all([
+                const [students, scores, settings, attendance] = await Promise.all([
                     apiGetStudents(),
-                    apiGetScores()
+                    apiGetScores(),
+                    apiGetSchoolSettings(),
+                    apiGetAttendance()
                 ]);
 
-                setTotalStudents(students.length);
+                // Student stats
+                const studentCount = students.length;
+                const newStudents = students.filter(s => s.created_at && new Date(s.created_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length;
+                
+                // Performance stats
+                const currentTermScores = scores.filter(s => s.session === settings.session && s.term === settings.term);
+                const totalScore = currentTermScores.reduce((sum, s) => sum + (s.ca1 || 0) + (s.ca2 || 0) + (s.exam || 0), 0);
+                const averagePerformance = currentTermScores.length > 0 ? totalScore / currentTermScores.length : 0;
 
-                if (scores.length > 0) {
-                    const totalScoreSum = scores.reduce((sum, score) => {
-                        return sum + (score.ca1 || 0) + (score.ca2 || 0) + (score.exam || 0);
-                    }, 0);
-                    const average = totalScoreSum / scores.length;
-                    setAveragePerformance(Math.round(average));
-                }
+                // Attendance stats
+                let totalPresentOrLate = 0;
+                let totalRecords = 0;
+                attendance.forEach(record => {
+                    const statuses = Object.values(record.statuses);
+                    totalRecords += statuses.length;
+                    statuses.forEach(status => {
+                        if (status === 'present' || status === 'late') {
+                            totalPresentOrLate++;
+                        }
+                    });
+                });
+                const attendancePercentage = totalRecords > 0 ? (totalPresentOrLate / totalRecords) * 100 : 100;
+
+                setStats({
+                    studentCount,
+                    newStudents,
+                    averagePerformance,
+                    attendancePercentage,
+                });
             } catch (error) {
                 console.error("Failed to load dashboard insights:", error);
             } finally {
@@ -35,26 +60,35 @@ const DashboardInsights = () => {
     }, []);
 
     if (loading) {
-        return <div className="card mt-6 p-6">Loading insights...</div>;
+        return (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+                <StatCardSkeleton />
+                <StatCardSkeleton />
+                <StatCardSkeleton />
+            </div>
+        );
     }
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-             <div className="card p-6">
-                <h4 className="font-semibold text-gray-500">Total Students</h4>
-                <p className="text-3xl font-bold mt-2">{totalStudents}</p>
-            </div>
-             <div className="card p-6">
-                <h4 className="font-semibold text-gray-500">Overall Average</h4>
-                 <p className="text-3xl font-bold mt-2 flex items-center">
-                    {averagePerformance}%
-                    <ArrowTrendingUpIcon className="w-6 h-6 ml-2 text-green-500" />
-                </p>
-            </div>
-             <div className="card p-6">
-                <h4 className="font-semibold text-gray-500">Next Feature</h4>
-                <p className="text-lg mt-2">More insights coming soon!</p>
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+            <StatCard
+                title="Total Students"
+                value={stats.studentCount}
+                icon={<UsersIcon className="w-6 h-6" />}
+                trend={stats.newStudents > 0 ? { value: `${stats.newStudents} new this month`, direction: 'up' } : null}
+            />
+             <StatCard
+                title="Class Average (Current Term)"
+                value={`${stats.averagePerformance.toFixed(1)}%`}
+                icon={<BookOpenIcon className="w-6 h-6" />}
+                trend={null}
+            />
+            <StatCard
+                title="Overall Attendance"
+                value={`${stats.attendancePercentage.toFixed(1)}%`}
+                icon={<CheckBadgeIcon className="w-6 h-6" />}
+                trend={null}
+            />
         </div>
     );
 };

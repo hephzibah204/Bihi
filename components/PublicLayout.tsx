@@ -1,37 +1,33 @@
+
+
 import React, { PropsWithChildren } from 'react';
+import { Link } from 'react-router-dom';
 import { MenuItem } from '../types';
 
 interface PublicLayoutProps {
-    onNavigate?: (view: string | null) => void;
     menuItems?: MenuItem[];
 }
 
-const PublicLayout = ({ children, onNavigate, menuItems }: PropsWithChildren<PublicLayoutProps>) => {
+const PublicLayout = ({ children, menuItems }: PropsWithChildren<PublicLayoutProps>) => {
     
-    const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, url: string) => {
-        if (onNavigate && url.startsWith('?view=')) {
-            e.preventDefault();
-            onNavigate(url.replace('?view=', ''));
+    const getLinkPath = (url: string) => {
+        if (!url) return '/';
+        if (url.startsWith('?view=')) {
+            return `/${url.replace('?view=', '')}`;
         }
-    };
-    
-    const handleBackToHome = (e: React.MouseEvent<HTMLAnchorElement>) => {
-        if (onNavigate) {
-            e.preventDefault();
-            onNavigate(null);
-        }
+        return url;
     };
 
     return (
         <div className="min-h-screen bg-gray-50 text-gray-800">
             <header className="bg-white shadow-sm">
                 <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-                    <a href="/" onClick={handleBackToHome} className="text-2xl font-bold text-indigo-600">ReportSheet</a>
+                    <Link to="/" className="text-2xl font-bold text-indigo-600">ReportSheet</Link>
                     <nav className="flex items-center space-x-6">
                         {menuItems?.map(item => (
-                             <a key={item.id} href={item.url} onClick={(e) => handleLinkClick(e, item.url)} className="text-gray-600 hover:text-indigo-600 font-medium">{item.label}</a>
+                             <Link key={item.id} to={getLinkPath(item.url)} className="text-gray-600 hover:text-indigo-600 font-medium">{item.label}</Link>
                         ))}
-                         <a href="/" onClick={handleBackToHome} className="btn btn-secondary">Back to Main Site</a>
+                         <Link to="/" className="btn btn-secondary">Back to Main Site</Link>
                     </nav>
                 </div>
             </header>

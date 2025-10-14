@@ -15,12 +15,12 @@ const CommentGenerator = () => {
         setGeneratedComment('');
         
         try {
-            const prompt = `Generate a constructive and encouraging report card comment (2-3 sentences) for a student based on the following performance summary: "${studentInfo}"`;
+            const prompt = `Generate a constructive and encouraging report card comment (2-3 sentences) for a student based on the following performance summary: "${studentInfo}". Use HTML tags like <strong> for emphasis where appropriate.`;
             const comment = await generateResponse({ prompt, context: { userRole: 'Teacher' } });
             setGeneratedComment(comment);
         } catch (error) {
             console.error("Failed to generate comment:", error);
-            setGeneratedComment(`Sorry, an error occurred: ${error.message}`);
+            setGeneratedComment(`<p>Sorry, an error occurred: ${error.message}</p>`);
         } finally {
             setIsLoading(false);
         }
@@ -57,7 +57,7 @@ const CommentGenerator = () => {
                 {generatedComment && (
                     <div className="mt-4 p-4 bg-gray-100 rounded-md">
                         <h4 className="font-semibold text-sm">Suggested Comment:</h4>
-                        <p className="mt-1 text-gray-800">{generatedComment}</p>
+                        <div className="mt-1 text-gray-800 prose-content" dangerouslySetInnerHTML={{ __html: generatedComment }} />
                     </div>
                 )}
             </div>

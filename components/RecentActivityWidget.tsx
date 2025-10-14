@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiGetActivities } from '../services/api';
+import { apiGetActivityLog as apiGetActivities } from '../services/api';
 import UsersIcon from './icons/UsersIcon';
 import BriefcaseIcon from './icons/BriefcaseIcon';
 import BookOpenIcon from './icons/BookOpenIcon';

@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-// Fix: Correctly import `apiGetRemarks` instead of the non-existent `getTenantData`.
 import { apiGetStudents, apiGetSubjects, apiGetSchoolSettings, apiUpsertRemark, apiGetRemarks, apiGetScores, apiGetBehavioralRecords, apiUpsertScore } from '../services/api';
-// Fix: Import `Remark` type to correctly type the component's state.
 import { Student, Subject, Remark, SchoolSettings, Score, BehavioralLogEntry, ReportCardSkill } from '../types';
 import Modal from './Modal';
 import { debounce } from 'lodash';
@@ -10,9 +8,8 @@ import SparklesIcon from './icons/SparklesIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
 import EditIcon from './icons/EditIcon';
 import TableSkeleton from './skeletons/TableSkeleton';
-import SkeletonLoader from './SkeletonLoader';
+import SkeletonLoader from './skeletons/SkeletonLoader';
 
-// Fix: Typed Star as a React.FC to allow React's special 'key' prop to be passed during iteration without causing a type error.
 const Star: React.FC<{ filled: boolean, onClick: () => void }> = ({ filled, onClick }) => (
     <button type="button" onClick={onClick} className="focus:outline-none">
         <svg className={`w-5 h-5 ${filled ? 'text-yellow-400' : 'text-gray-300'}`} fill="currentColor" viewBox="0 0 20 20">
@@ -49,7 +46,6 @@ const EditableSkillsRating = ({ title, skills, ratings, onRatingChange }: { titl
 const StudentReportCardEditorModal = ({ student, allData, onClose, onDataUpdate }) => {
     const { subjects, scores, remarks, settings, behavioralRecords } = allData;
     const [currentScores, setCurrentScores] = useState({});
-    // Fix: Explicitly type `currentRemark` state as `Partial<Remark>` to prevent errors when accessing its properties.
     const [currentRemark, setCurrentRemark] = useState<Partial<Remark>>({});
     const [generating, setGenerating] = useState({ subjectComment: null, generalComment: false });
 
@@ -73,6 +69,7 @@ const StudentReportCardEditorModal = ({ student, allData, onClose, onDataUpdate 
         updatedScores[subjectId][field] = value;
         setCurrentScores(updatedScores);
         debouncedSaveScore(updatedScores[subjectId]);
+        onDataUpdate();
     };
     
     const handleRemarkDataChange = (field, value) => {
@@ -84,14 +81,61 @@ const StudentReportCardEditorModal = ({ student, allData, onClose, onDataUpdate 
             term: settings.term,
             ...updatedRemark
         });
+        onDataUpdate();
     };
 
     const handleGenerateSubjectComment = async (subjectId) => {
-        // AI generation logic for subject comment
+        setGenerating(prev => ({ ...prev, subjectComment: subjectId }));
+        try {
+            const subject = subjects.find(s => s.id === subjectId);
+            const score = currentScores[subjectId] || {};
+            const total = (score.ca1 || 0) + (score.ca2 || 0) + (score.exam || 0);
+
+            const prompt = `Generate a constructive and encouraging report card comment (1-2 sentences) for a student's performance in a single subject. Use simple HTML like <strong> to emphasize key points.
+- Student Name: ${student.name}
+- Subject: ${subject.name}
+- Scores: CA1: ${score.ca1 ?? 'N/A'}/${settings.maxCa1}, CA2: ${score.ca2 ?? 'N/A'}/${settings.maxCa2}, Exam: ${score.exam ?? 'N/A'}/${settings.maxExam}.
+- Total Score: ${total}/100.
+Based on these scores, comment on their strengths or areas for improvement.`;
+            
+            const comment = await generateText(prompt);
+            handleScoreChange(subjectId, 'comment', comment);
+
+        } catch (error) {
+            window.dispatchEvent(new CustomEvent('show-global-error', { detail: { message: `AI Error: ${error.message}` } }));
+        } finally {
+            setGenerating(prev => ({ ...prev, subjectComment: null }));
+        }
     };
     
     const handleGenerateGeneralComment = async () => {
-        // AI generation logic for general comment
+        setGenerating(prev => ({ ...prev, generalComment: true }));
+        try {
+            const studentScores = subjects
+                .filter(s => s.classes.includes(student.class))
+                .map(subject => {
+                    const score = currentScores[subject.id] || {};
+                    const total = (score.ca1 || 0) + (score.ca2 || 0) + (score.exam || 0);
+                    return { subject: subject.name, total };
+                });
+
+            const academicSummary = studentScores.map(s => `${s.subject}: ${s.total}%`).join(', ');
+            const studentBehavior = behavioralRecords.filter(b => b.studentId === student.id).map(b => b.remark).join('. ');
+
+            const prompt = `Generate a holistic, end-of-term general comment for a student's report card. Use simple HTML tags like <strong> for emphasis on key phrases.
+- Student Name: ${student.name}
+- Academic Summary: ${academicSummary || 'No scores yet.'}
+- Behavioral Notes: ${studentBehavior || 'No behavioral notes.'}
+Synthesize this information into a 2-3 sentence comment about their overall progress, character, and potential.`;
+
+            const comment = await generateText(prompt);
+            handleRemarkDataChange('generalComment', comment);
+
+        } catch (error) {
+            window.dispatchEvent(new CustomEvent('show-global-error', { detail: { message: `AI Error: ${error.message}` } }));
+        } finally {
+            setGenerating(prev => ({ ...prev, generalComment: false }));
+        }
     };
 
     const subjectsForClass = subjects.filter(s => s.classes.includes(student.class));
@@ -123,7 +167,14 @@ const StudentReportCardEditorModal = ({ student, allData, onClose, onDataUpdate 
                                                 <td className="td"><input type="number" className="input-field p-1 text-sm text-center" value={score.ca1 ?? ''} onChange={e => handleScoreChange(subject.id, 'ca1', e.target.valueAsNumber)} /></td>
                                                 <td className="td"><input type="number" className="input-field p-1 text-sm text-center" value={score.ca2 ?? ''} onChange={e => handleScoreChange(subject.id, 'ca2', e.target.valueAsNumber)} /></td>
                                                 <td className="td"><input type="number" className="input-field p-1 text-sm text-center" value={score.exam ?? ''} onChange={e => handleScoreChange(subject.id, 'exam', e.target.valueAsNumber)} /></td>
-                                                <td className="td"><input type="text" className="input-field p-1 text-sm" value={score.comment ?? ''} onChange={e => handleScoreChange(subject.id, 'comment', e.target.value)} /></td>
+                                                <td className="td">
+                                                    <div className="flex items-center gap-1">
+                                                        <input type="text" className="input-field p-1 text-sm" value={score.comment ?? ''} onChange={e => handleScoreChange(subject.id, 'comment', e.target.value)} />
+                                                        <button type="button" onClick={() => handleGenerateSubjectComment(subject.id)} disabled={generating.subjectComment === subject.id} className="btn btn-secondary p-1.5" title="Generate with AI">
+                                                            {generating.subjectComment === subject.id ? <SpinnerIcon className="w-4 h-4 animate-spin"/> : <SparklesIcon className="w-4 h-4"/>}
+                                                        </button>
+                                                    </div>
+                                                </td>
                                             </tr>
                                         )
                                     })}
@@ -156,7 +207,13 @@ const StudentReportCardEditorModal = ({ student, allData, onClose, onDataUpdate 
                         />
                     </div>
                      <div className="card p-4 flex flex-col">
-                        <h3 className="text-lg font-semibold">General Comment</h3>
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-lg font-semibold">General Comment</h3>
+                            <button onClick={handleGenerateGeneralComment} disabled={generating.generalComment} className="btn btn-secondary text-sm">
+                                {generating.generalComment ? <SpinnerIcon className="w-4 h-4 animate-spin"/> : <SparklesIcon className="w-4 h-4"/>}
+                                <span className="ml-2 hidden sm:inline">Generate with AI</span>
+                            </button>
+                        </div>
                         <textarea
                             className="input-field flex-grow mt-2"
                             value={currentRemark.generalComment || ''}
@@ -190,7 +247,7 @@ const ComprehensiveReportEntry = () => {
             const allClasses = [...new Set<string>(subjects.flatMap(s => s.classes))].sort();
             setClasses(allClasses);
             if (allClasses.length > 0) setSelectedClass(allClasses[0]);
-        } catch(e) { console.error("Failed to load comprehensive data", e); }
+        } catch(e) { /* error handled silently */ }
         finally { setLoading(false); }
     };
 
@@ -255,7 +312,7 @@ const ComprehensiveReportEntry = () => {
                     student={editingStudent}
                     allData={allData}
                     onClose={() => setEditingStudent(null)}
-                    onDataUpdate={fetchData} // A way to refresh data if needed
+                    onDataUpdate={fetchData}
                 />
             )}
         </div>

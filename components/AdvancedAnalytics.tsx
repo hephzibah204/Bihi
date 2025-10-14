@@ -1,10 +1,16 @@
+
+
 import React, { useState, useEffect, useRef, PropsWithChildren } from 'react';
-import { apiGetStudents, apiGetSubjects, apiGetTeachers, apiGetScores, apiGetSchoolSettings, apiGetTimetableData } from '../services/api';
+// Fix: Add missing imports
+import { apiGetStudents, apiGetScores, apiGetAttendance, apiGetSchoolSettings, apiGetSubjects, apiGetTeachers, apiGetTimetableData } from '../services/api';
 import { useAI } from '../hooks/useAI';
 import { Score, Student, Subject } from '../types';
 import SparklesIcon from './icons/SparklesIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
 import { USER_ROLES } from '../utils/constants';
+import UsersIcon from './icons/UsersIcon';
+import BriefcaseIcon from './icons/BriefcaseIcon';
+import BookOpenIcon from './icons/BookOpenIcon';
 
 declare global {
     interface Window {
@@ -12,7 +18,7 @@ declare global {
     }
 }
 
-const AdvancedAnalytics = () => {
+const AdminAnalyticsDashboard = () => {
     // State for visual dashboards
     const [stats, setStats] = useState({ students: 0, subjects: 0, teachers: 0 });
     const [allData, setAllData] = useState<{students: Student[], scores: Score[], subjects: Subject[], settings: any}>({ students: [], scores: [], subjects: [], settings: null });
@@ -48,6 +54,7 @@ const AdvancedAnalytics = () => {
     useEffect(() => {
         const fetchAndProcessData = async () => {
             try {
+                // Fix: Add apiGetTeachers to Promise.all
                 const [studentData, subjectData, teacherData, scoreData, settingsData]: [Student[], Subject[], any[], Score[], any] = await Promise.all([
                     apiGetStudents(),
                     apiGetSubjects(),
@@ -68,6 +75,7 @@ const AdvancedAnalytics = () => {
 
                 const allClasses = [...new Set(studentData.map(s => s.class))].sort();
                 if(allClasses.length > 0) setSelectedClassForCharts(allClasses[0]);
+                // FIX: Corrected typo from setSelectedStudent to setSelectedStudentId.
                 if(studentData.length > 0) setSelectedStudentId(studentData[0].id);
 
             } catch (error) {
@@ -124,6 +132,7 @@ const AdvancedAnalytics = () => {
     
         try {
             // Step 1: Fetch all necessary data in parallel
+            // Fix: add apiGetTeachers and apiGetTimetableData
             const [
                 allStudents,
                 allScores,
@@ -380,4 +389,4 @@ const processStudentTrajectoryData = (scores: Score[], subjects: Subject[], stud
     return { labels, datasets: [ { label: `${selectedStudent.name}'s Average`, data: studentData.map(d => d ? d.toFixed(2) : null), borderColor: COLORS[1], tension: 0.1, borderWidth: 2, fill: false }, { label: `${selectedStudent.class} Average`, data: classData.map(d => d ? d.toFixed(2) : null), borderColor: COLORS[3], tension: 0.1, borderDash: [5, 5], borderWidth: 2, backgroundColor: 'transparent', fill: false } ] };
 };
 
-export default AdvancedAnalytics;
+export default AdminAnalyticsDashboard;

@@ -2,17 +2,14 @@ import React from 'react';
 import { StudentView } from '../types';
 import HomeIcon from './icons/HomeIcon';
 import ClipboardListIcon from './icons/ClipboardListIcon';
-import ClockIcon from './icons/ClockIcon';
+import CalendarDaysIcon from './icons/CalendarDaysIcon';
+import BrainCircuitIcon from './icons/BrainCircuitIcon';
 import UserCircleIcon from './icons/UserCircleIcon';
 import BellIcon from './icons/BellIcon';
-import HeadsetIcon from './icons/HeadsetIcon';
-import DocumentDuplicateIcon from './icons/DocumentDuplicateIcon';
-import { STUDENT_VIEWS, USER_ROLES } from '../utils/constants';
+import DocumentTextIcon from './icons/DocumentTextIcon';
+import { STUDENT_VIEWS } from '../utils/constants';
 import Logo from './icons/Logo';
 import XIcon from './icons/XIcon';
-import BrainCircuitIcon from './icons/BrainCircuitIcon';
-import { useTenant } from '../contexts/TenantContext';
-import BookOpenIcon from './icons/BookOpenIcon';
 
 interface SidebarProps {
     isSidebarOpen: boolean;
@@ -36,21 +33,16 @@ const NavLink: React.FC<{ icon: React.ReactNode; label: string; view: StudentVie
 );
 
 const StudentSidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView }: SidebarProps) => {
-    const { hasFeature } = useTenant();
 
-    const allNavLinks = [
-        { view: STUDENT_VIEWS.DASHBOARD, label: 'Dashboard', icon: <HomeIcon className="h-5 w-5" />, alwaysVisible: true },
-        { view: STUDENT_VIEWS.RESULTS, label: 'My Report Card', icon: <ClipboardListIcon className="h-5 w-5" /> },
-        { view: STUDENT_VIEWS.TRANSCRIPT, label: 'Transcript', icon: <BookOpenIcon className="h-5 w-5" /> },
-        { view: STUDENT_VIEWS.ASSIGNMENTS, label: 'My Assignments', icon: <DocumentDuplicateIcon className="h-5 w-5" /> },
-        { view: STUDENT_VIEWS.AI_TUTOR, label: 'Live AI Tutor', icon: <HeadsetIcon className="h-5 w-5" /> },
+    const navLinks = [
+        { view: STUDENT_VIEWS.DASHBOARD, label: 'Dashboard', icon: <HomeIcon className="h-5 w-5" /> },
+        { view: STUDENT_VIEWS.RESULTS, label: 'My Results', icon: <ClipboardListIcon className="h-5 w-5" /> },
+        { view: STUDENT_VIEWS.ASSIGNMENTS, label: 'Assignments', icon: <DocumentTextIcon className="h-5 w-5" /> },
+        { view: STUDENT_VIEWS.TIMETABLE, label: 'My Timetable', icon: <CalendarDaysIcon className="h-5 w-5" /> },
         { view: STUDENT_VIEWS.AI_TOOLS, label: 'AI Tools', icon: <BrainCircuitIcon className="h-5 w-5" /> },
-        { view: STUDENT_VIEWS.TIMETABLE, label: 'Timetable', icon: <ClockIcon className="h-5 w-5" /> },
-        { view: STUDENT_VIEWS.NOTIFICATIONS, label: 'Notifications', icon: <BellIcon className="h-5 w-5" />, alwaysVisible: true },
-        { view: STUDENT_VIEWS.PROFILE, label: 'My Profile', icon: <UserCircleIcon className="h-5 w-5" />, alwaysVisible: true },
+        { view: STUDENT_VIEWS.PROFILE, label: 'My Profile', icon: <UserCircleIcon className="h-5 w-5" /> },
+        { view: STUDENT_VIEWS.NOTIFICATIONS, label: 'Notifications', icon: <BellIcon className="h-5 w-5" /> },
     ];
-
-    const navLinks = allNavLinks.filter(link => link.alwaysVisible || hasFeature(USER_ROLES.STUDENT, link.view));
 
     return (
         <>
@@ -62,16 +54,18 @@ const StudentSidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveVi
                 className={`fixed inset-y-0 left-0 z-30 w-64 bg-white transform transition-transform duration-300 md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
             >
                 <div className="flex items-center justify-between h-16 px-4 border-b">
-                     <a href="/" className="flex items-center space-x-2">
+                     <div className="flex items-center space-x-2">
                         <Logo className="h-8 w-8" />
-                        <span className="text-xl font-bold">ReportSheet</span>
-                    </a>
+                        <span className="text-xl font-bold">Student Portal</span>
+                    </div>
                     <button className="md:hidden" onClick={() => setSidebarOpen(false)} aria-label="Close sidebar">
                         <XIcon className="h-6 w-6"/>
                     </button>
                 </div>
-                <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-                    {navLinks.map(link => <NavLink key={link.view} view={link.view} label={link.label} icon={link.icon} activeView={activeView} setActiveView={setActiveView} />)}
+                <nav className="flex-1 p-4 space-y-2">
+                    {navLinks.map(link => (
+                        <NavLink key={link.view} {...link} activeView={activeView} setActiveView={setActiveView} />
+                    ))}
                 </nav>
             </aside>
         </>

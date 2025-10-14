@@ -1,7 +1,7 @@
 // hooks/useAI.ts
 import { useState, useEffect } from 'react';
 import { useOnlineStatus } from './useOnlineStatus';
-import { callGeminiApi } from '../services/geminiService';
+import { callGeminiApi, callGeminiApiStream } from '../services/geminiService';
 import { generateFallbackResponse } from '../services/fallbackAiService';
 
 export type AIStatus = 'gemini' | 'fallback';
@@ -34,14 +34,34 @@ export const useAI = () => {
         console.error("Gemini API call failed, switching to fallback:", e);
         setStatus('fallback');
         setStatusChange('to_fallback_error'); 
-        // Pass the full context to the fallback for intelligent responses
         return generateFallbackResponse({ prompt, context });
       }
     } else {
-      // Pass the full context to the fallback for intelligent responses
       return generateFallbackResponse({ prompt, context });
     }
   };
+
+  const generateResponseStream = async ({ prompt, context = {}, onChunk }: { prompt: string; context?: any; onChunk: (chunk: string) => void; }) => {
+    if (status === 'gemini') {
+        try {
+            const fullPrompt = context.history
+                ? buildPromptWithHistory(prompt, context)
+                : prompt;
+            await callGeminiApiStream(fullPrompt, onChunk);
+        } catch (e) {
+            console.error("Gemini API stream call failed, switching to fallback:", e);
+            setStatus('fallback');
+            setStatusChange('to_fallback_error');
+            const fallbackResponse = generateFallbackResponse({ prompt, context });
+            onChunk(fallbackResponse); // Send the full fallback response in one chunk
+            throw e; // Re-throw so the UI can also handle the error state
+        }
+    } else {
+        const fallbackResponse = generateFallbackResponse({ prompt, context });
+        onChunk(fallbackResponse);
+    }
+  };
+
 
   const clearStatusChange = () => setStatusChange(null);
   
@@ -55,5 +75,5 @@ export const useAI = () => {
       return fullPrompt;
   };
 
-  return { generateResponse, status, statusChange, clearStatusChange };
+  return { generateResponse, generateResponseStream, status, statusChange, clearStatusChange };
 };

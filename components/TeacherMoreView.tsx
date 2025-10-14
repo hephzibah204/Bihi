@@ -1,3 +1,4 @@
+
 import React, { FC } from 'react';
 import { TeacherView } from '../types';
 import LogoutIcon from './icons/LogoutIcon';
@@ -28,7 +29,7 @@ const TeacherMoreView: FC<TeacherMoreViewProps> = ({ setActiveView }) => {
         { view: TEACHER_VIEWS.MY_PAYSLIPS, icon: <BanknotesIcon className="h-6 w-6" />, label: 'My Payslips' },
     ];
 
-    const visibleMenuItems = menuItems.filter(item => item.alwaysVisible || hasFeature(USER_ROLES.TEACHER, item.view));
+    const visibleMenuItems = menuItems.filter(item => item.alwaysVisible || hasFeature(item.view));
 
     return (
         <div>

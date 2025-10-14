@@ -1,24 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { apiGetSubjects, apiUpsertSubject, apiDeleteSubject } from '../services/api';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Subject } from '../types';
+import { apiGetSubjects, apiSaveSubjects } from '../services/api';
 import Modal from './Modal';
 import PlusIcon from './icons/PlusIcon';
-import ConfirmationModal from './ConfirmationModal';
-import TrashIcon from './icons/TrashIcon';
 import EditIcon from './icons/EditIcon';
+import { useTenant } from '../contexts/TenantContext';
+import { generateClassNames } from '../utils/classManager';
+import TableSkeleton from './skeletons/TableSkeleton';
+import EmptyState from './EmptyState';
 
 const Subjects = () => {
     const [subjects, setSubjects] = useState<Subject[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setModalOpen] = useState(false);
-    const [editingSubject, setEditingSubject] = useState<Partial<Subject> | null>(null);
-    const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
-    const [subjectToDelete, setSubjectToDelete] = useState<Subject | null>(null);
-
+    const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
+    const { settings } = useTenant();
+    const classNames = useMemo(() => generateClassNames(settings), [settings]);
+    
     const fetchSubjects = async () => {
         setLoading(true);
-        const data = await apiGetSubjects();
-        setSubjects(data);
+        const subjectsData = await apiGetSubjects();
+        setSubjects(subjectsData);
         setLoading(false);
     };
 
@@ -26,37 +28,26 @@ const Subjects = () => {
         fetchSubjects();
     }, []);
 
-    const handleOpenModal = (subject: Subject | null = null) => {
-        setEditingSubject(subject);
-        setModalOpen(true);
-    };
-
     const handleSaveSubject = async (subjectData: Partial<Subject>) => {
-        await apiUpsertSubject(subjectData);
-        fetchSubjects();
+        let updatedSubjects;
+        if (editingSubject) {
+            updatedSubjects = subjects.map(s => s.id === editingSubject.id ? { ...s, ...subjectData } : s);
+        } else {
+            updatedSubjects = [...subjects, { id: `subj_${Date.now()}`, ...subjectData }];
+        }
+        await apiSaveSubjects(updatedSubjects as Subject[]);
+        setSubjects(updatedSubjects as Subject[]);
         setModalOpen(false);
     };
 
-    const openDeleteModal = (subject: Subject) => {
-        setSubjectToDelete(subject);
-        setDeleteModalOpen(true);
-    };
+    const renderContent = () => {
+        if (loading) return <TableSkeleton cols={2} />;
 
-    const handleDeleteSubject = async () => {
-        if (!subjectToDelete) return;
-        await apiDeleteSubject(subjectToDelete.id);
-        fetchSubjects();
-        setDeleteModalOpen(false);
-        setSubjectToDelete(null);
-    };
-    
-    if (loading) return <div>Loading subjects...</div>;
+        if (subjects.length === 0) {
+            return <EmptyState message="No subjects have been added yet." actionText="Add Your First Subject" onAction={() => { setEditingSubject(null); setModalOpen(true); }} />;
+        }
 
-    return (
-        <div>
-            <div className="flex justify-end mb-6">
-                <button onClick={() => handleOpenModal()} className="btn btn-primary"><PlusIcon className="w-5 h-5 mr-2"/> Add Subject</button>
-            </div>
+        return (
             <div className="table-container">
                 <table className="table">
                     <thead>
@@ -66,54 +57,70 @@ const Subjects = () => {
                             <th className="th text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="bg-white divide-y">
+                    <tbody className="bg-white">
                         {subjects.map(subject => (
                             <tr key={subject.id}>
                                 <td className="td font-medium">{subject.name}</td>
                                 <td className="td">{subject.classes.join(', ')}</td>
-                                <td className="td text-right space-x-1">
-                                    <button onClick={() => handleOpenModal(subject)} className="icon-button" title="Edit"><EditIcon className="w-5 h-5"/></button>
-                                    <button onClick={() => openDeleteModal(subject)} className="icon-button text-red-500" title="Delete"><TrashIcon className="w-5 h-5"/></button>
+                                <td className="td text-right">
+                                    <button onClick={() => { setEditingSubject(subject); setModalOpen(true); }} className="icon-button" title="Edit"><EditIcon className="w-5 h-5" /></button>
                                 </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
             </div>
+        );
+    }
 
-            {isModalOpen && <SubjectFormModal subject={editingSubject} onSave={handleSaveSubject} onClose={() => setModalOpen(false)} />}
-            <ConfirmationModal
-                isOpen={isDeleteModalOpen}
-                onClose={() => setDeleteModalOpen(false)}
-                onConfirm={handleDeleteSubject}
-                title="Delete Subject"
-                message={`Are you sure you want to delete ${subjectToDelete?.name}?`}
-            />
+    return (
+        <div>
+            <div className="flex justify-end mb-6">
+                <button onClick={() => { setEditingSubject(null); setModalOpen(true); }} className="btn btn-primary">
+                    <PlusIcon className="w-5 h-5 mr-2" /> Add Subject
+                </button>
+            </div>
+            
+            {renderContent()}
+
+            {isModalOpen && <SubjectFormModal subject={editingSubject} onSave={handleSaveSubject} onClose={() => setModalOpen(false)} all_classes={classNames} />}
         </div>
     );
 };
 
-const SubjectFormModal = ({ subject, onSave, onClose }) => {
-    // Fix: Correctly initialize state by spreading the subject and then overriding the 'classes' property to be a string, avoiding a duplicate property error.
-    const [formData, setFormData] = useState({ name: '', ...subject, classes: subject?.classes?.join(', ') || '' });
-
+const SubjectFormModal = ({ subject, onSave, onClose, all_classes }) => {
+    const [formData, setFormData] = useState({ name: '', classes: [], ...subject });
+    
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    const handleClassChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const selectedClasses = Array.from(e.target.selectedOptions, (option: HTMLOptionElement) => option.value);
+        setFormData({ ...formData, classes: selectedClasses });
+    };
+    
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const { name, classes } = formData;
-        const classesArray = classes.split(',').map(c => c.trim()).filter(Boolean);
-        onSave({ id: subject?.id, name, classes: classesArray });
+        onSave(formData);
     };
 
     return (
         <Modal isOpen={true} onClose={onClose} title={subject ? 'Edit Subject' : 'Add Subject'}>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                <div><label className="label">Subject Name</label><input name="name" value={formData.name} onChange={handleChange} className="input-field" required /></div>
-                <div><label className="label">Classes (comma-separated)</label><input name="classes" value={formData.classes} onChange={handleChange} className="input-field" placeholder="e.g., JSS 1, JSS 2" /></div>
-                <div className="flex justify-end pt-2"><button type="submit" className="btn btn-primary">Save Subject</button></div>
+                <div>
+                    <label className="label">Subject Name</label>
+                    <input name="name" value={formData.name} onChange={handleChange} className="input-field" required />
+                </div>
+                <div>
+                    <label className="label">Classes (Hold Ctrl/Cmd to select multiple)</label>
+                    <select multiple value={formData.classes} onChange={handleClassChange} className="input-field h-40">
+                        {all_classes.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                </div>
+                <div className="flex justify-end pt-2">
+                    <button type="submit" className="btn btn-primary">Save Subject</button>
+                </div>
             </form>
         </Modal>
     );

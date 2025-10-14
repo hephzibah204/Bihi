@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import Modal from './Modal';
-import { apiUpsertInvoice, apiUpsertPayment } from '../services/api';
+import { apiUpsertInvoice, apiUpsertPayment, getTenantId } from '../services/api';
 import SpinnerIcon from './icons/SpinnerIcon';
 import { Invoice } from '../types';
+import { supabase } from '../services/supabaseClient';
 
 interface UploadProofModalProps {
     isOpen: boolean;
@@ -19,17 +20,33 @@ const UploadProofModal: React.FC<UploadProofModalProps> = ({ isOpen, onClose, in
     const [error, setError] = useState('');
 
     const handleSubmit = async () => {
-        if (!file || !reference) {
-            setError('Please select a file and enter a payment reference.');
+        if (!file) {
+            setError('Please select a file to upload.');
             return;
         }
         setSubmitting(true);
         setError('');
 
         try {
-            // In a real app, you would upload the file to a storage bucket (e.g., Supabase Storage)
-            // and get a URL. Here, we'll simulate this.
-            const simulatedProofUrl = 'https://i.imgur.com/3p3dF9c.png'; // Placeholder image
+            if (!supabase) throw new Error("Storage client is not available.");
+            const tenantId = getTenantId();
+            if (!tenantId) throw new Error("Could not determine tenant ID for file upload.");
+
+            const filePath = `${tenantId}/payment-proofs/${studentId}/${Date.now()}-${file.name}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('payment-proofs')
+                .upload(filePath, file);
+
+            if (uploadError) {
+                throw uploadError;
+            }
+
+            const { data } = supabase.storage
+                .from('payment-proofs')
+                .getPublicUrl(filePath);
+
+            const proofUrl = data.publicUrl;
 
             const updatedInvoice = { ...invoice, status: 'pending-verification' as const };
             const newPayment = {
@@ -40,7 +57,7 @@ const UploadProofModal: React.FC<UploadProofModalProps> = ({ isOpen, onClose, in
                 paymentDate: new Date().toISOString(),
                 method: 'Bank Transfer' as const,
                 reference,
-                proofUrl: simulatedProofUrl,
+                proofUrl: proofUrl,
                 status: 'pending' as const,
             };
 
@@ -51,7 +68,7 @@ const UploadProofModal: React.FC<UploadProofModalProps> = ({ isOpen, onClose, in
             
             onSuccess();
         } catch (err) {
-            setError('Failed to submit proof. Please try again.');
+            setError(`Failed to submit proof: ${err.message}`);
         } finally {
             setSubmitting(false);
         }

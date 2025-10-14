@@ -1,5 +1,5 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
-import ParentSidebar from './ParentSidebar';
+import { ParentSidebar } from './ParentSidebar';
 import Header from './Header';
 import { ParentView } from '../types';
 import SyncStatusIndicator from './SyncStatusIndicator';

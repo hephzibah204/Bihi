@@ -1,16 +1,13 @@
-import React, { useState, useEffect } from 'react';
+
+import React from 'react';
+import { useParams } from 'react-router-dom';
 import KBIndexPage from './KBIndexPage';
 import KBPostPage from './KBPostPage';
 
 const KnowledgeBaseViewer = () => {
-    const [articleId, setArticleId] = useState<string | null>(null);
+    const { id: articleId } = useParams();
 
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        setArticleId(params.get('id'));
-    }, []);
-
-    // Simple router: if an ID is present, show the post page, otherwise show the index.
+    // If an ID is present in the URL, show the specific post page. Otherwise, show the index.
     return articleId ? <KBPostPage /> : <KBIndexPage />;
 };
 

@@ -44,11 +44,12 @@ interface BottomNavBarProps {
 
 const AdminBottomNavBar: FC<BottomNavBarProps> = ({ activeView, setActiveView }) => {
     const navItems: { view: DashboardView; label: string; icon: React.ReactNode }[] = [
-        { view: ADMIN_VIEWS.DASHBOARD, label: 'Home', icon: <HomeIcon className="h-6 w-6" /> },
-        { view: ADMIN_VIEWS.STUDENTS, label: 'Students', icon: <UsersIcon className="h-6 w-6" /> },
-        { view: ADMIN_VIEWS.REPORT_CARDS, label: 'Dossier', icon: <DocumentArrowDownIcon className="h-6 w-6" /> },
-        { view: ADMIN_VIEWS.ATTENDANCE, label: 'Attendance', icon: <ClipboardListIcon className="h-6 w-6" /> },
-        { view: ADMIN_VIEWS.SETTINGS, label: 'Settings', icon: <Cog6ToothIcon className="h-6 w-6" /> },
+        // Fix: Cast string constants to DashboardView
+        { view: ADMIN_VIEWS.DASHBOARD as DashboardView, label: 'Home', icon: <HomeIcon className="h-6 w-6" /> },
+        { view: ADMIN_VIEWS.STUDENTS as DashboardView, label: 'Students', icon: <UsersIcon className="h-6 w-6" /> },
+        { view: ADMIN_VIEWS.REPORT_CARDS as DashboardView, label: 'Dossier', icon: <DocumentArrowDownIcon className="h-6 w-6" /> },
+        { view: ADMIN_VIEWS.ATTENDANCE as DashboardView, label: 'Attendance', icon: <ClipboardListIcon className="h-6 w-6" /> },
+        { view: ADMIN_VIEWS.SETTINGS as DashboardView, label: 'Settings', icon: <Cog6ToothIcon className="h-6 w-6" /> },
     ];
 
     return (

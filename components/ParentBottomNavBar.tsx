@@ -1,14 +1,10 @@
 import React, { FC } from 'react';
 import HomeIcon from './icons/HomeIcon';
-import CheckBadgeIcon from './icons/CheckBadgeIcon';
-import ShieldExclamationIcon from './icons/ShieldExclamationIcon';
-// Fix: Import ParentView from the central types file to break a circular dependency.
-import { ParentView } from '../types';
 import ClipboardListIcon from './icons/ClipboardListIcon';
-import { PARENT_VIEWS, USER_ROLES } from '../utils/constants';
-import ChatBubbleLeftRightIcon from './icons/ChatBubbleLeftRightIcon';
-import { useTenant } from '../contexts/TenantContext';
-import CreditCardIcon from './icons/CreditCardIcon';
+import WalletIcon from './icons/WalletIcon';
+import CheckBadgeIcon from './icons/CheckBadgeIcon';
+import { ParentView } from '../types';
+import { PARENT_VIEWS } from '../utils/constants';
 
 interface NavItemProps {
     icon: React.ReactNode;
@@ -34,18 +30,12 @@ interface BottomNavBarProps {
 }
 
 const ParentBottomNavBar: FC<BottomNavBarProps> = ({ activeView, setActiveView }) => {
-    const { hasFeature } = useTenant();
-
-    const allNavItems: { view: ParentView; label: string; icon: React.ReactNode }[] = [
+    const navItems = [
         { view: PARENT_VIEWS.DASHBOARD, label: 'Home', icon: <HomeIcon className="h-6 w-6" /> },
         { view: PARENT_VIEWS.RESULTS, label: 'Results', icon: <ClipboardListIcon className="h-6 w-6" /> },
-        { view: PARENT_VIEWS.FEES, label: 'Fees', icon: <CreditCardIcon className="h-6 w-6" /> },
-        { view: PARENT_VIEWS.MESSAGES, label: 'Messages', icon: <ChatBubbleLeftRightIcon className="h-6 w-6" /> },
+        { view: PARENT_VIEWS.FEES, label: 'Fees', icon: <WalletIcon className="h-6 w-6" /> },
         { view: PARENT_VIEWS.ATTENDANCE, label: 'Attendance', icon: <CheckBadgeIcon className="h-6 w-6" /> },
     ];
-    
-    const navItems = allNavItems.filter(item => hasFeature(USER_ROLES.PARENT, item.view) || item.view === PARENT_VIEWS.DASHBOARD);
-
 
     return (
         <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">

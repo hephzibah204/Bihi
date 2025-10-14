@@ -1,34 +1,37 @@
-import React, { useState } from 'react';
+
+
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import DemoSchoolLandingPage from './DemoSchoolLandingPage';
-import Dashboard from './Dashboard';
 import { USER_ROLES } from '../utils/constants';
 
 const DemoPage = () => {
-    const [selectedProfile, setSelectedProfile] = useState<{ role: string, userId?: string } | null>(null);
+    const navigate = useNavigate();
 
-    React.useEffect(() => {
-        // Set a flag in sessionStorage to indicate demo mode.
-        // The getSubdomain utility will check for this flag.
+    const handleSelectProfile = (profile) => {
         sessionStorage.setItem('isDemoMode', 'true');
-    }, []);
-
-    const handleSelectProfile = (profile: { role: string, userId?: string }) => {
-        const userSession = {
-            role: profile.role,
-            userId: profile.userId,
-        };
-
-        // For all demo roles, create a fake session in sessionStorage.
-        // This allows Dashboard.tsx to pick up the role and bypass the login screen.
-        sessionStorage.setItem('activeUser', JSON.stringify(userSession));
         
-        setSelectedProfile(profile);
-    };
+        const sessionData = { 
+            role: profile.role, 
+            userId: profile.id, // For student/parent, this is the student's ID
+        };
+        sessionStorage.setItem('activeUser', JSON.stringify(sessionData));
 
-    if (selectedProfile) {
-        // The Dashboard component will now operate in demo mode because of the sessionStorage flag.
-        return <Dashboard />;
-    }
+        // For Admin/Bursar/Teacher, we don't set an activeUser session,
+        // as the Dashboard will simulate the Supabase auth state.
+        if (profile.role === USER_ROLES.ADMIN || profile.role === USER_ROLES.TEACHER || profile.role === USER_ROLES.BURSAR) {
+            sessionStorage.removeItem('activeUser');
+        }
+        
+        const searchParams = new URLSearchParams();
+        if (profile.role === USER_ROLES.BURSAR) {
+            searchParams.set('view', 'bursary');
+        }
+
+        // Navigate to the root path. The App component will detect demo mode via
+        // sessionStorage and render the Dashboard, which will then use the search param.
+        navigate({ pathname: '/', search: searchParams.toString() });
+    };
 
     return <DemoSchoolLandingPage onSelectProfile={handleSelectProfile} />;
 };

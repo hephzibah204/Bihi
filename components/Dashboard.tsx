@@ -1,13 +1,11 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
-// Fix: Corrected import paths to be relative.
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
-// Fix: Corrected import path for types.
 import { DashboardView, UserRole } from '../types';
 import Header from './Header';
 import { supabase } from '../services/supabaseClient';
 import PortalLogin from './PortalLogin';
 import { TenantProvider } from '../contexts/TenantContext';
-import { apiGetTeachers, apiGetStudents } from '../services/api';
 import SyncStatusIndicator from './SyncStatusIndicator';
 import AdminBottomNavBar from './AdminBottomNavBar';
 import { PlanFeaturesProvider } from '../contexts/PlanFeaturesContext';
@@ -18,6 +16,7 @@ import { getSubdomain } from '../utils/subdomain';
 import SelectChildModal from './SelectChildModal';
 import SpinnerIcon from './icons/SpinnerIcon';
 import useLocalStorage from '../hooks/useLocalStorage';
+import { useAuth } from '../contexts/AuthContext';
 
 const DashboardContent = lazy(() => import('./DashboardContent'));
 const MoreView = lazy(() => import('./MoreView'));
@@ -32,149 +31,37 @@ const ContentLoader = () => (
     </div>
 );
 
-const getViewFromUrl = () => new URLSearchParams(window.location.search).get('view');
-const getStudentIdFromUrl = () => new URLSearchParams(window.location.search).get('studentId');
-
 const Dashboard = () => {
-    const [session, setSession] = useState(null); // Supabase session for staff
-    const [userRole, setUserRole] = useState<UserRole | null>(null);
-    const [activeUser, setActiveUser] = useState(null); // Local session for student/parent
-    const [loading, setLoading] = useState(true);
+    const { user, role, session, loading, logout } = useAuth();
     const [isSidebarOpen, setSidebarOpen] = useState(false);
-    const [activeView, setActiveView] = useState<DashboardView>(getViewFromUrl() || ADMIN_VIEWS.DASHBOARD);
-    const [profileStudentId, setProfileStudentId] = useState<string | null>(getStudentIdFromUrl());
     const [headerTitle, setHeaderTitle] = useState('Dashboard');
     const isDemoSubdomain = getSubdomain() === 'demo';
-    const [childrenToSelect, setChildrenToSelect] = useState([]);
+    
+    const [searchParams, setSearchParams] = useSearchParams();
+    const navigate = useNavigate();
+    const activeView = (searchParams.get('view') as DashboardView) || ADMIN_VIEWS.DASHBOARD;
+    const profileStudentId = searchParams.get('studentId');
 
     const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage('onboardingComplete_v1', false);
     const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
 
     useEffect(() => {
-        setLoading(true);
-
-        const handlePopState = () => {
-            setActiveView(getViewFromUrl() || ADMIN_VIEWS.DASHBOARD);
-            setProfileStudentId(getStudentIdFromUrl());
-        };
-        window.addEventListener('popstate', handlePopState);
-
-        const activeUserSession = sessionStorage.getItem('activeUser');
-        if (activeUserSession) {
-            try {
-                const parsedUser = JSON.parse(activeUserSession);
-                setActiveUser(parsedUser);
-                setUserRole(parsedUser.role);
-                setLoading(false);
-                return;
-            } catch (e) {
-                sessionStorage.removeItem('activeUser');
-            }
+        if (!loading && role === USER_ROLES.ADMIN && !hasCompletedOnboarding) {
+            setIsWelcomeModalOpen(true);
         }
-        
-        if (!supabase) {
-            setLoading(false);
-            return () => window.removeEventListener('popstate', handlePopState);
-        }
-        
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            setSession(session);
-            if (session) {
-                const teachers = await apiGetTeachers();
-                const currentUser = teachers.find(t => t.email.toLowerCase() === session.user.email.toLowerCase());
-                if (currentUser) {
-                    const role = currentUser.role || USER_ROLES.ADMIN;
-                    setUserRole(role);
-                    
-                    if (role === USER_ROLES.ADMIN && !hasCompletedOnboarding) {
-                        setIsWelcomeModalOpen(true);
-                    }
-                    
-                    setActiveUser(null);
-                    setLoading(false);
-                    return;
-                }
-
-                if (session.user?.user_metadata?.parent_id) {
-                    const parentId = session.user.user_metadata.parent_id;
-                    const allStudents = await apiGetStudents();
-                    const children = allStudents.filter(s => s.parentId === parentId);
-                    
-                    if (children.length === 0) {
-                        await supabase.auth.signOut();
-                        alert("Your account is active, but no students are linked to it. Please contact the school administrator.");
-                    } else if (children.length === 1) {
-                        handleStudentLoginSuccess({ role: USER_ROLES.PARENT, userId: children[0].id, studentName: children[0].name });
-                    } else {
-                        setChildrenToSelect(children);
-                    }
-                }
-                
-            } else {
-                setActiveUser(null);
-                setUserRole(null);
-                setSession(null);
-            }
-            setLoading(false);
-        });
-
-        const checkAIHealth = async () => {
-            try {
-                const response = await fetch('/api/ai/health');
-                const data = await response.json();
-                if (!response.ok) {
-                    console.error('AI Health Check Failed:', data.message);
-                    window.dispatchEvent(new CustomEvent('show-global-error', { detail: { message: data.message } }));
-                }
-            } catch (e) {
-                console.warn('AI proxy server may not be available.', e);
-            }
-        };
-        checkAIHealth();
-
-        return () => {
-            subscription.unsubscribe();
-            window.removeEventListener('popstate', handlePopState);
-        };
-    }, []);
+    }, [loading, role, hasCompletedOnboarding]);
 
     useEffect(() => {
-        if (!loading && !session && !activeUser && isDemoSubdomain) {
-            window.location.href = '/?view=demo';
+        if (!loading && !session && !user && isDemoSubdomain) {
+            navigate('/demo');
         }
-    }, [loading, session, activeUser, isDemoSubdomain]);
-
-    const handleStudentLoginSuccess = (userData) => {
-        setActiveUser(userData);
-        setUserRole(userData.role);
-    };
-
-    const handleLogout = async () => {
-        const isDemoLogout = !session && sessionStorage.getItem('isDemoMode') === 'true';
-
-        sessionStorage.removeItem('activeUser');
-        sessionStorage.removeItem('isDemoMode');
-        setActiveUser(null);
-        if (supabase) {
-            await supabase.auth.signOut();
-        }
-        setSession(null);
-        setUserRole(null);
-        
-        if (isDemoLogout) {
-            window.location.href = '/?view=demo';
-        } else {
-            window.location.href = '/';
-        }
-    };
-
+    }, [loading, session, user, isDemoSubdomain, navigate]);
+    
     useEffect(() => {
         let title = 'Dashboard';
         if (activeView === ADMIN_VIEWS.STUDENT_PROFILE) {
             title = 'Student Profile';
-        } else if (activeView === ADMIN_VIEWS.COMPREHENSIVE_ENTRY) {
-            title = 'Dossier';
-        } else if (activeView === ADMIN_VIEWS.REPORT_CARDS) {
+        } else if (activeView === ADMIN_VIEWS.COMPREHENSIVE_ENTRY || activeView === ADMIN_VIEWS.REPORT_CARDS) {
             title = 'Dossier';
         } else {
             const viewName = (activeView || '').replace(/-/g, ' ');
@@ -184,79 +71,56 @@ const Dashboard = () => {
         document.title = `${title} | ReportSheet`;
     }, [activeView]);
 
-
     const handleViewChange = (view: DashboardView) => {
-        const url = new URL(window.location.toString());
-        url.searchParams.set('view', view);
+        const newSearchParams = new URLSearchParams(searchParams);
+        newSearchParams.set('view', view);
         if (view !== ADMIN_VIEWS.STUDENT_PROFILE) {
-            url.searchParams.delete('studentId');
-            setProfileStudentId(null);
+            newSearchParams.delete('studentId');
         }
-        window.history.pushState({}, '', url.toString());
-        setActiveView(view);
+        setSearchParams(newSearchParams);
         if (window.innerWidth < 768) {
             setSidebarOpen(false);
         }
     }
     
     const handleViewStudentProfile = (studentId: string) => {
-        const url = new URL(window.location.toString());
-        url.searchParams.set('view', ADMIN_VIEWS.STUDENT_PROFILE);
-        url.searchParams.set('studentId', studentId);
-        window.history.pushState({}, '', url.toString());
-        setProfileStudentId(studentId);
-        setActiveView(ADMIN_VIEWS.STUDENT_PROFILE);
+        const newSearchParams = new URLSearchParams(searchParams);
+        newSearchParams.set('view', ADMIN_VIEWS.STUDENT_PROFILE);
+        newSearchParams.set('studentId', studentId);
+        setSearchParams(newSearchParams);
     };
     
-    const handleSelectChild = (child) => {
-        handleStudentLoginSuccess({ role: USER_ROLES.PARENT, userId: child.id, studentName: child.name });
-        setChildrenToSelect([]);
-    };
-
     if (loading) {
         return <div className="flex items-center justify-center h-screen">Authenticating...</div>;
     }
-    
-    if (childrenToSelect.length > 0) {
-        return (
-            <SelectChildModal 
-                isOpen={true}
-                onClose={async () => { 
-                    setChildrenToSelect([]); 
-                    if(supabase) await supabase.auth.signOut();
-                }}
-                childrenList={childrenToSelect}
-                onSelectChild={handleSelectChild}
-            />
-        );
-    }
 
-    if (!session && !activeUser) {
+    if (!session && !user) {
         if (isDemoSubdomain) {
             return <div className="flex items-center justify-center h-screen">Redirecting to demo...</div>;
         }
-        return <PortalLogin onStudentLoginSuccess={handleStudentLoginSuccess} />;
+        return <PortalLogin onStudentLoginSuccess={() => window.location.reload()} />;
     }
 
-    if (userRole === USER_ROLES.TEACHER) {
-        return <Suspense fallback={<ContentLoader />}><TeacherDashboard onLogout={handleLogout} /></Suspense>;
+    if (role === USER_ROLES.TEACHER) {
+        return <Suspense fallback={<ContentLoader />}><TeacherDashboard onLogout={logout} /></Suspense>;
     }
-    if (userRole === USER_ROLES.STUDENT) {
-        return <Suspense fallback={<ContentLoader />}><StudentDashboard onLogout={handleLogout} demoUserId={activeUser?.userId} /></Suspense>;
+    if (role === USER_ROLES.STUDENT) {
+        return <Suspense fallback={<ContentLoader />}><StudentDashboard onLogout={logout} demoUserId={user?.id} /></Suspense>;
     }
-    if (userRole === USER_ROLES.PARENT) {
-        return <Suspense fallback={<ContentLoader />}><ParentDashboard onLogout={handleLogout} demoUserId={activeUser?.userId} /></Suspense>;
+    if (role === USER_ROLES.PARENT) {
+        return <Suspense fallback={<ContentLoader />}><ParentDashboard onLogout={logout} demoUserId={user?.id} /></Suspense>;
     }
 
     return (
         <TenantProvider>
             <PlanFeaturesProvider>
+                <>
                 {isWelcomeModalOpen && (
                     <Suspense fallback={<div/>}>
                         <WelcomeModal
                             isOpen={isWelcomeModalOpen}
                             onNavigate={(view) => {
-                                handleViewChange(view);
+                                handleViewChange(view as DashboardView);
                                 setIsWelcomeModalOpen(false);
                             }}
                             onClose={() => setIsWelcomeModalOpen(false)}
@@ -273,10 +137,10 @@ const Dashboard = () => {
                         setSidebarOpen={setSidebarOpen} 
                         activeView={activeView}
                         setActiveView={handleViewChange}
-                        userRole={userRole}
+                        userRole={role}
                     />
                     <div className="flex-1 flex flex-col overflow-hidden main-content-mobile-padding">
-                        <Header title={headerTitle} setSidebarOpen={setSidebarOpen} onLogout={handleLogout} isSidebarOpen={isSidebarOpen} />
+                        <Header title={headerTitle} setSidebarOpen={setSidebarOpen} onLogout={logout} isSidebarOpen={isSidebarOpen} />
                         <main className="flex-1 overflow-x-hidden overflow-y-auto">
                             <div className="container mx-auto px-6 py-8">
                                 <Suspense fallback={<ContentLoader />}>
@@ -285,7 +149,7 @@ const Dashboard = () => {
                                         : <DashboardContent 
                                             activeView={activeView} 
                                             setActiveView={handleViewChange} 
-                                            userRole={userRole}
+                                            userRole={role}
                                             profileStudentId={profileStudentId}
                                             onViewStudentProfile={handleViewStudentProfile}
                                           />
@@ -298,7 +162,8 @@ const Dashboard = () => {
                 </div>
                 <SyncStatusIndicator />
                 <GlobalNotification />
-                <Chatbot userRole={userRole} activeView={activeView} />
+                <Chatbot userRole={role as string} activeView={activeView} />
+                </>
             </PlanFeaturesProvider>
         </TenantProvider>
     );

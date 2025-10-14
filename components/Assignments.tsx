@@ -22,7 +22,6 @@ const Assignments = () => {
             setAssignments(asgData);
             setSubjects(subData);
             setScores(scoreData);
-            // Fix: Specify the generic type for `new Set` as `<string>` to ensure `allClasses` is correctly typed as `string[]`.
             const allClasses = [...new Set<string>(subData.flatMap(s => s.classes))].sort();
             setClasses(allClasses);
             if (allClasses.length > 0) {

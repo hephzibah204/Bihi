@@ -1,17 +1,18 @@
 import React from 'react';
 import { ParentView } from '../types';
-import HomeIcon from './icons/HomeIcon';
-import ClipboardListIcon from './icons/ClipboardListIcon';
-import CheckBadgeIcon from './icons/CheckBadgeIcon';
-import ShieldExclamationIcon from './icons/ShieldExclamationIcon';
-import BellIcon from './icons/BellIcon';
-import DocumentDuplicateIcon from './icons/DocumentDuplicateIcon';
-import { PARENT_VIEWS, USER_ROLES } from '../utils/constants';
 import Logo from './icons/Logo';
 import XIcon from './icons/XIcon';
+import HomeIcon from './icons/HomeIcon';
+import ClipboardListIcon from './icons/ClipboardListIcon';
+import WalletIcon from './icons/WalletIcon';
+import CheckBadgeIcon from './icons/CheckBadgeIcon';
+import ShieldExclamationIcon from './icons/ShieldExclamationIcon';
+import DocumentTextIcon from './icons/DocumentTextIcon';
+import CalendarDaysIcon from './icons/CalendarDaysIcon';
+import UserCircleIcon from './icons/UserCircleIcon';
+import { PARENT_VIEWS } from '../utils/constants';
 import ChatBubbleLeftRightIcon from './icons/ChatBubbleLeftRightIcon';
-import { useTenant } from '../contexts/TenantContext';
-import CreditCardIcon from './icons/CreditCardIcon';
+import CalendarMinusIcon from './icons/CalendarMinusIcon';
 
 interface SidebarProps {
     isSidebarOpen: boolean;
@@ -34,21 +35,20 @@ const NavLink: React.FC<{ icon: React.ReactNode; label: string; view: ParentView
     </button>
 );
 
-const ParentSidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView }: SidebarProps) => {
-    const { hasFeature } = useTenant();
+export const ParentSidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView }: SidebarProps) => {
 
-    const allNavLinks = [
-        { view: PARENT_VIEWS.DASHBOARD, label: 'Dashboard', icon: <HomeIcon className="h-5 w-5" />, alwaysVisible: true },
+    const navLinks = [
+        { view: PARENT_VIEWS.DASHBOARD, label: 'Dashboard', icon: <HomeIcon className="h-5 w-5" /> },
         { view: PARENT_VIEWS.RESULTS, label: 'Results', icon: <ClipboardListIcon className="h-5 w-5" /> },
-        { view: PARENT_VIEWS.FEES, label: 'School Fees', icon: <CreditCardIcon className="h-5 w-5" /> },
-        { view: PARENT_VIEWS.ASSIGNMENTS, label: 'Assignments', icon: <DocumentDuplicateIcon className="h-5 w-5" /> },
-        { view: PARENT_VIEWS.MESSAGES, label: 'Messages', icon: <ChatBubbleLeftRightIcon className="h-5 w-5" /> },
+        { view: PARENT_VIEWS.FEES, label: 'Fees', icon: <WalletIcon className="h-5 w-5" /> },
         { view: PARENT_VIEWS.ATTENDANCE, label: 'Attendance', icon: <CheckBadgeIcon className="h-5 w-5" /> },
-        { view: PARENT_VIEWS.BEHAVIORAL, label: 'Behavior', icon: <ShieldExclamationIcon className="h-5 w-5" /> },
-        { view: PARENT_VIEWS.NOTIFICATIONS, label: 'Notifications', icon: <BellIcon className="h-5 w-5" />, alwaysVisible: true },
+        { view: PARENT_VIEWS.BEHAVIORAL, label: 'Behavioral', icon: <ShieldExclamationIcon className="h-5 w-5" /> },
+        { view: PARENT_VIEWS.ASSIGNMENTS, label: 'Assignments', icon: <DocumentTextIcon className="h-5 w-5" /> },
+        { view: PARENT_VIEWS.MESSAGES, label: 'Messages', icon: <ChatBubbleLeftRightIcon className="h-5 w-5" /> },
+        { view: PARENT_VIEWS.PROFILE, label: 'My Profile', icon: <UserCircleIcon className="h-5 w-5" /> },
+        { view: PARENT_VIEWS.EVENTS, label: 'Events', icon: <CalendarDaysIcon className="h-5 w-5" /> },
+        { view: PARENT_VIEWS.REPORT_ABSENCE, label: 'Report Absence', icon: <CalendarMinusIcon className="h-5 w-5" /> },
     ];
-
-    const navLinks = allNavLinks.filter(link => link.alwaysVisible || hasFeature(USER_ROLES.PARENT, link.view));
 
     return (
         <>
@@ -60,20 +60,20 @@ const ParentSidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveVie
                 className={`fixed inset-y-0 left-0 z-30 w-64 bg-white transform transition-transform duration-300 md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
             >
                 <div className="flex items-center justify-between h-16 px-4 border-b">
-                     <a href="/" className="flex items-center space-x-2">
+                     <div className="flex items-center space-x-2">
                         <Logo className="h-8 w-8" />
-                        <span className="text-xl font-bold">ReportSheet</span>
-                    </a>
+                        <span className="text-xl font-bold">Parent Portal</span>
+                    </div>
                     <button className="md:hidden" onClick={() => setSidebarOpen(false)} aria-label="Close sidebar">
                         <XIcon className="h-6 w-6"/>
                     </button>
                 </div>
-                <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-                    {navLinks.map(link => <NavLink key={link.view} view={link.view} label={link.label} icon={link.icon} activeView={activeView} setActiveView={setActiveView} />)}
+                <nav className="flex-1 p-4 space-y-2">
+                    {navLinks.map(link => (
+                        <NavLink key={link.view} {...link} activeView={activeView} setActiveView={setActiveView} />
+                    ))}
                 </nav>
             </aside>
         </>
     );
 };
-
-export default ParentSidebar;

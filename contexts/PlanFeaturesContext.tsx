@@ -1,3 +1,5 @@
+
+
 import React, { createContext, useContext, useState, useEffect, ReactNode, PropsWithChildren } from 'react';
 import { useTenant } from './TenantContext';
 import { apiGetPlatformSettings, getTenantId } from '../services/api';
@@ -21,7 +23,8 @@ const PlanFeaturesContext = createContext<PlanFeaturesContextType>({
 
 export const usePlanFeatures = () => useContext(PlanFeaturesContext);
 
-export const PlanFeaturesProvider = ({ children }: PropsWithChildren<{}>) => {
+// FIX: Changed props type from { children: ReactNode } to React.FC<PropsWithChildren<{}>> to fix type errors.
+export const PlanFeaturesProvider: React.FC<PropsWithChildren<{}>> = ({ children }) => {
     const { settings: tenantSettings, loading: tenantLoading } = useTenant() as any;
     const [allPlans, setAllPlans] = useState<Plan[]>([]);
     const [activePlan, setActivePlan] = useState<Plan | null>(null);

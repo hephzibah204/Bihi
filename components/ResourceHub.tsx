@@ -28,7 +28,7 @@ const ResourceHub = () => {
                 setPlans(plansData);
                 setSubjects(subjectsData);
             } catch (error) {
-                console.error("Failed to load resource hub:", error);
+                // error handled silently
             } finally {
                 setLoading(false);
             }
@@ -44,7 +44,7 @@ const ResourceHub = () => {
         } catch (error) {
             // Revert on error
             setPlans(prev => prev.map(p => p.id === planId ? { ...p, upvotes: p.upvotes - 1 } : p));
-            alert("Failed to upvote. Please try again.");
+            window.dispatchEvent(new CustomEvent('show-global-error', { detail: { message: "Failed to upvote. Please try again." } }));
         }
     };
     

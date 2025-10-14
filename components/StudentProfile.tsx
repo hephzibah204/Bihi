@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { apiGetStudents } from '../services/api';
+import { useQRCodeGenerator } from '../hooks/useQRCodeGenerator';
 
 const StudentProfile = ({ demoUserId }) => {
     const [student, setStudent] = useState(null);
     const [loading, setLoading] = useState(true);
+    const qrCodeUrl = useQRCodeGenerator(student?.admissionNo || '');
 
     useEffect(() => {
         if (!demoUserId) {
@@ -40,6 +42,14 @@ const StudentProfile = ({ demoUserId }) => {
                             <strong>Date of Birth:</strong><span>{student.dob}</span>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <div className="card mt-6">
+                <div className="p-6 text-center">
+                    <h3 className="text-lg font-semibold">My Digital ID</h3>
+                    {qrCodeUrl && <img src={qrCodeUrl} alt="Your QR Code" className="w-40 h-40 mx-auto mt-4" />}
+                    <p className="mt-2 text-sm text-gray-500">Present this QR code for attendance scanning.</p>
                 </div>
             </div>
         </div>

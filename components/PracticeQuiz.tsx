@@ -1,6 +1,10 @@
+
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAI } from '../hooks/useAI';
+// FIX: Corrected import path for api services.
 import { apiGetSubjects, apiGetStudents } from '../services/api';
+// FIX: Corrected import path for types.
 import { Student, Subject } from '../types';
 import SparklesIcon from './icons/SparklesIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
@@ -17,13 +21,13 @@ interface QuizItem {
     answer: string;
 }
 
-const PracticeQuiz = ({ userRole, studentId }: { userRole?: string, studentId?: string }) => {
+const PracticeQuiz = ({ userRole, studentId, initialTopic = '' }: { userRole?: string, studentId?: string, initialTopic?: string }) => {
     // State for inputs
     const [subjects, setSubjects] = useState<Subject[]>([]);
     const [classes, setClasses] = useState<string[]>([]);
     const [selectedSubject, setSelectedSubject] = useState('');
     const [selectedClass, setSelectedClass] = useState('');
-    const [topic, setTopic] = useState('');
+    const [topic, setTopic] = useState(initialTopic);
     const [numQuestions, setNumQuestions] = useState(5);
 
     // State for generation process

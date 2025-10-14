@@ -1,153 +1,120 @@
-import React, { useState, useEffect } from 'react';
-import { apiGetStudents, apiGetScores, apiGetSubjects } from '../services/api';
-import { Student, Score, Subject } from '../types';
-import { exportToCSV } from '../utils/csvExporter';
-import ArrowDownTrayIcon from './icons/ArrowDownTrayIcon';
-import TableSkeleton from './skeletons/TableSkeleton';
-import SkeletonLoader from './SkeletonLoader';
+import React, { useState, useEffect, useMemo } from 'react';
+import { apiGetStudents, apiGetSubjects, apiGetScores, apiGetSchoolSettings } from '../services/api';
+import { Student, Subject, Score, SchoolSettings } from '../types';
+import { calculateGrade } from '../utils/reportCardHelper';
+import { useTenant } from '../contexts/TenantContext';
+import { generateClassNames } from '../utils/classManager';
 
 const BroadsheetAnalysis = () => {
-    const [classes, setClasses] = useState<string[]>([]);
-    const [selectedClass, setSelectedClass] = useState('');
     const [students, setStudents] = useState<Student[]>([]);
     const [subjects, setSubjects] = useState<Subject[]>([]);
     const [scores, setScores] = useState<Score[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [settings, setSettings] = useState<SchoolSettings | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [selectedClass, setSelectedClass] = useState('');
+    const { settings: tenantSettings } = useTenant();
+    const classNames = useMemo(() => generateClassNames(tenantSettings), [tenantSettings]);
 
     useEffect(() => {
-        const fetchInitialData = async () => {
-            const allSubjects: Subject[] = await apiGetSubjects();
-            const allClasses = [...new Set(allSubjects.flatMap(s => s.classes))].sort();
-            setClasses(allClasses);
-            if (allClasses.length > 0) {
-                setSelectedClass(allClasses[0]);
-            }
-        };
-        fetchInitialData();
-    }, []);
-
+        if (classNames.length > 0 && !selectedClass) {
+            setSelectedClass(classNames[0]);
+        }
+    }, [classNames, selectedClass]);
+    
     useEffect(() => {
-        if (!selectedClass) return;
-        const fetchDataForClass = async () => {
+        const fetchData = async () => {
             setLoading(true);
-            const [classStudents, allSubjects] = await Promise.all([
-                apiGetStudents({ classFilter: selectedClass }),
-                apiGetSubjects()
-            ]);
-            
-            const subjectsForClass = allSubjects.filter(s => s.classes.includes(selectedClass));
-            setSubjects(subjectsForClass);
-            setStudents(classStudents);
-            
-            if (classStudents.length > 0) {
-                const studentIds = classStudents.map(s => s.id);
-                const classScores = await apiGetScores({ studentIds });
-                setScores(classScores);
-            } else {
-                setScores([]);
+            try {
+                const [studentsData, subjectsData, scoresData, settingsData] = await Promise.all([
+                    apiGetStudents(),
+                    apiGetSubjects(),
+                    apiGetScores(),
+                    apiGetSchoolSettings()
+                ]);
+                setStudents(studentsData);
+                setSubjects(subjectsData);
+                setScores(scoresData);
+                setSettings(settingsData);
+            } catch (e) {
+                console.error(e);
             }
-
             setLoading(false);
         };
-        fetchDataForClass();
-    }, [selectedClass]);
+        fetchData();
+    }, []);
 
-    const scoresMap = React.useMemo(() => {
-        return scores.reduce((acc, score) => {
-            if (!acc[score.studentId]) acc[score.studentId] = {};
-            acc[score.studentId][score.subjectId] = score;
-            return acc;
-        }, {});
-    }, [scores]);
-
-    const getStudentScore = (studentId, subjectId) => {
-        const score = scoresMap[studentId]?.[subjectId];
-        if (!score) return { total: 0 };
-        const total = (score.ca1 || 0) + (score.ca2 || 0) + (score.exam || 0);
-        return { ...score, total };
-    };
-
-    const studentTotals = students.map(student => {
-        const totalScore = subjects.reduce((acc, subject) => {
-            return acc + getStudentScore(student.id, subject.id).total;
-        }, 0);
-        return { studentId: student.id, total: totalScore };
-    });
-
-    const handleExport = () => {
-        const dataToExport = students.map(student => {
-            const row: { [key: string]: any } = {
-                'Student Name': student.name,
-                'Admission No': student.admissionNo,
-            };
-            
+    const broadsheetData = useMemo(() => {
+        if (!selectedClass || !settings) return { students: [], subjects: [] };
+        
+        const studentsInClass = students.filter(s => s.class === selectedClass);
+        const subjectsForClass = subjects.filter(s => s.classes.includes(selectedClass));
+        
+        const studentResults = studentsInClass.map(student => {
             let totalScore = 0;
-            subjects.forEach(subject => {
-                const score = getStudentScore(student.id, subject.id).total;
-                row[subject.name] = score;
-                totalScore += score;
-            });
-
-            row['Total'] = totalScore;
-            row['Average'] = subjects.length > 0 ? (totalScore / subjects.length).toFixed(1) : 0;
+            const scoresBySubject = subjectsForClass.reduce((acc, subject) => {
+                const score = scores.find(s => 
+                    s.studentId === student.id && 
+                    s.subjectId === subject.id &&
+                    s.session === settings.session &&
+                    s.term === settings.term
+                );
+                const total = (score?.ca1 || 0) + (score?.ca2 || 0) + (score?.exam || 0);
+                totalScore += total;
+                acc[subject.id] = total;
+                return acc;
+            }, {});
             
-            return row;
+            return {
+                ...student,
+                scoresBySubject,
+                total: totalScore,
+                average: subjectsForClass.length > 0 ? totalScore / subjectsForClass.length : 0
+            };
         });
 
-        exportToCSV(dataToExport, `broadsheet_${selectedClass}.csv`);
-    };
+        studentResults.sort((a, b) => b.average - a.average);
+
+        return { students: studentResults, subjects: subjectsForClass };
+    }, [selectedClass, students, subjects, scores, settings]);
+
+    if (loading) return <div>Loading broadsheet...</div>;
+
+    const { students: results, subjects: classSubjects } = broadsheetData;
 
     return (
-        <div>
-            <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-semibold">Broadsheet Analysis</h1>
-                <div className="flex items-center gap-4">
-                    <select className="input-field max-w-xs" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
-                        {classes.map(c => <option key={c} value={c}>{c}</option>)}
+        <div className="card">
+            <div className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                     <h2 className="text-xl font-semibold">Broadsheet Analysis</h2>
+                     <select value={selectedClass} onChange={e => setSelectedClass(e.target.value)} className="input-field w-auto">
+                        {classNames.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
-                    <button onClick={handleExport} className="btn btn-primary" disabled={students.length === 0}>
-                        <ArrowDownTrayIcon className="w-5 h-5 mr-2" />
-                        Export Broadsheet
-                    </button>
                 </div>
-            </div>
-
-            {loading ? (
-                <div className="mt-6">
-                    <TableSkeleton cols={subjects.length > 0 ? subjects.length + 2 : 6} rows={10} />
-                </div>
-            ) : (
-            <div className="table-container overflow-x-auto mt-6">
-                <table className="table">
-                    <thead>
-                        <tr className="divide-x divide-gray-200">
-                            <th className="th sticky left-0 bg-slate-100 z-10">Student Name</th>
-                            {subjects.map(sub => <th key={sub.id} className="th text-center"><div className="truncate max-w-[100px] mx-auto" title={sub.name}>{sub.name}</div></th>)}
-                            <th className="th text-center">Total</th>
-                            <th className="th text-center">Average</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white">
-                        {students.map((student, index) => {
-                            const studentTotal = studentTotals.find(st => st.studentId === student.id)?.total || 0;
-                            const average = subjects.length > 0 ? (studentTotal / subjects.length).toFixed(1) : 0;
-                            const isEvenRow = index % 2 === 1;
-                            return (
-                                <tr key={student.id} className="divide-x divide-gray-200 group">
-                                    <td className={`td font-medium sticky left-0 z-10 ${isEvenRow ? 'bg-slate-100' : 'bg-white'} group-hover:bg-indigo-50`}><div className="truncate max-w-xs" title={student.name}>{student.name}</div></td>
-                                    {subjects.map(sub => {
-                                        const score = getStudentScore(student.id, sub.id);
-                                        return <td key={sub.id} className="td text-center">{score.total}</td>
-                                    })}
-                                    <td className="td text-center font-bold">{studentTotal}</td>
-                                    <td className="td text-center font-semibold">{average}</td>
+                <div className="table-container">
+                    <table className="table">
+                        <thead>
+                            <tr>
+                                <th className="th sticky left-0 bg-gray-50 z-10">Student Name</th>
+                                {classSubjects.map(sub => <th key={sub.id} className="th text-center">{sub.name}</th>)}
+                                <th className="th text-center">Total</th>
+                                <th className="th text-center">Average</th>
+                                <th className="th text-center">Position</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {results.map((student, index) => (
+                                <tr key={student.id}>
+                                    <td className="td sticky left-0 bg-white font-medium z-10">{student.name}</td>
+                                    {classSubjects.map(sub => <td key={sub.id} className="td text-center">{student.scoresBySubject[sub.id]}</td>)}
+                                    <td className="td text-center font-bold">{student.total}</td>
+                                    <td className="td text-center font-bold">{student.average.toFixed(2)}</td>
+                                    <td className="td text-center font-bold">{index + 1}</td>
                                 </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
-            )}
         </div>
     );
 };

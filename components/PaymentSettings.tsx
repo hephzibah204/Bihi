@@ -3,9 +3,9 @@ import PlusIcon from './icons/PlusIcon';
 import Modal from './Modal';
 import TrashIcon from './icons/TrashIcon';
 import ConfirmationModal from './ConfirmationModal';
-import { apiGetSchoolSettings } from '../services/api';
-// Fix: Corrected import path for supabase client
+import { apiGetSchoolSettings, apiGetPaymentMethods, apiSavePaymentMethods } from '../services/api';
 import { supabase } from '../services/supabaseClient';
+import SpinnerIcon from './icons/SpinnerIcon';
 
 declare global {
   interface Window {
@@ -15,6 +15,7 @@ declare global {
 
 const PaymentSettings = () => {
     const [methods, setMethods] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
     const [methodToDelete, setMethodToDelete] = useState(null);
     const [paystackKey, setPaystackKey] = useState('');
@@ -22,17 +23,25 @@ const PaymentSettings = () => {
 
     useEffect(() => {
         const fetchInitialData = async () => {
-            const settings = await apiGetSchoolSettings();
-            setPaystackKey(settings.paystackPublicKey || '');
+            setLoading(true);
+            try {
+                const [settings, paymentMethods] = await Promise.all([
+                    apiGetSchoolSettings(),
+                    apiGetPaymentMethods()
+                ]);
+                setPaystackKey(settings.paystackPublicKey || '');
+                setMethods(paymentMethods || []);
 
-            if (supabase) {
-                const { data, error } = await supabase.auth.getUser();
-                if (error) {
-                    console.error('Error fetching user for payment settings:', error);
+                if (supabase) {
+                    const { data, error } = await supabase.auth.getUser();
+                    if (data?.user) {
+                        setUserEmail(data.user.email);
+                    }
                 }
-                if (data?.user) {
-                    setUserEmail(data.user.email);
-                }
+            } catch (error) {
+                // error handled silently
+            } finally {
+                setLoading(false);
             }
         };
         fetchInitialData();
@@ -40,7 +49,7 @@ const PaymentSettings = () => {
 
     const handleAddMethod = () => {
         if (!window.PaystackPop || !paystackKey || !userEmail) {
-            alert("Payment service is not configured correctly. Please contact support.");
+            window.dispatchEvent(new CustomEvent('show-global-error', { detail: { message: "Payment service is not configured correctly. Please contact support." } }));
             return;
         }
 
@@ -49,23 +58,21 @@ const PaymentSettings = () => {
             email: userEmail,
             amount: 5000, // Authorize card with ₦50 (in kobo)
             ref: 'auth_' + Math.floor((Math.random() * 1000000000) + 1),
-            onClose: () => {
-                // User closed the popup
-            },
-            callback: (response) => {
+            onClose: () => {},
+            callback: async (response) => {
                 if (response.status === 'success') {
-                    // In a real app, you'd save the authorization code from the response
-                    // to charge the card later. Here, we'll just add it to the UI.
                     const { authorization } = response;
                     const newMethod = {
-                        id: authorization.last4 + Date.now(), // Create a unique enough ID for the UI
+                        id: authorization.last4 + Date.now(),
                         type: authorization.card_type,
                         last4: authorization.last4,
                         expiry: `${authorization.exp_month}/${authorization.exp_year.slice(-2)}`,
                     };
-                    setMethods(prev => [...prev, newMethod]);
+                    const updatedMethods = [...methods, newMethod];
+                    await apiSavePaymentMethods(updatedMethods);
+                    setMethods(updatedMethods);
                 } else {
-                    alert('Card authorization failed. Please try again.');
+                    window.dispatchEvent(new CustomEvent('show-global-error', { detail: { message: 'Card authorization failed. Please try again.' } }));
                 }
             }
         });
@@ -77,12 +84,18 @@ const PaymentSettings = () => {
         setDeleteModalOpen(true);
     };
     
-    const handleDeleteMethod = () => {
+    const handleDeleteMethod = async () => {
         if (!methodToDelete) return;
-        setMethods(prev => prev.filter(m => m.id !== methodToDelete.id));
+        const updatedMethods = methods.filter(m => m.id !== methodToDelete.id);
+        await apiSavePaymentMethods(updatedMethods);
+        setMethods(updatedMethods);
         setDeleteModalOpen(false);
         setMethodToDelete(null);
     };
+
+    if (loading) {
+        return <div className="card p-6">Loading payment methods...</div>;
+    }
 
     return (
         <>

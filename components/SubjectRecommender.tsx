@@ -80,8 +80,7 @@ const SubjectRecommender: React.FC<SubjectRecommenderProps> = ({ studentId, user
                 - **Recent Academic Performance:** ${performanceSummary || 'No scores available.'}
                 **Your Task:**
                 Based *only* on the performance data and interests provided, suggest 3 subjects this student is likely to excel in. For each subject, provide a 1-2 sentence justification connecting your suggestion to their strengths (high scores) or interests. If performance is generally low, focus on subjects related to their interests where they might find more motivation.
-                Format the output as a simple list. For example:
-                1.  **Subject Name:** Justification text here.
+                Format the response as an HTML unordered list (<ul>). Each item (<li>) should contain a <strong> tag for the subject name, followed by the justification.
             `;
 
             const result = await generateResponse({ prompt });
@@ -149,7 +148,7 @@ const SubjectRecommender: React.FC<SubjectRecommenderProps> = ({ studentId, user
                 {recommendations && (
                     <div className="mt-4 p-4 bg-gray-100 rounded-md">
                         <h4 className="font-semibold text-sm">Suggested Subjects for {isStudentView ? 'You' : student?.name || 'the Student'}:</h4>
-                        <pre className="mt-1 text-gray-800 whitespace-pre-wrap font-sans text-sm">{recommendations}</pre>
+                        <div className="mt-1 text-gray-800 font-sans text-sm prose-content" dangerouslySetInnerHTML={{ __html: recommendations }} />
                     </div>
                 )}
             </div>

@@ -54,13 +54,13 @@ const ModernReportCard = ({ student, students, scores, subjects, settings, term,
                     </div>
                      <h3 className="font-semibold mb-3 mt-6">Comments</h3>
                      <div className="space-y-2 bg-gray-50 p-4 rounded-lg min-h-[100px]">
-                        <p><strong>General:</strong> {generalRemark || 'N/A'}</p>
+                        <p><strong>General:</strong> <span dangerouslySetInnerHTML={{ __html: generalRemark || 'N/A' }} /></p>
                      </div>
                 </div>
             </section>
              <div className="mt-auto pt-10">
                 {/* Fix: Pass principalName prop to ReportCardFooter to resolve missing property error. */}
-                <ReportCardFooter principalName={settings.reportCardSettings.principalName} />
+                <ReportCardFooter principalName={settings.reportCardSettings?.principalName} />
             </div>
         </div>
     );

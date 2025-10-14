@@ -1,162 +1,180 @@
-
-import React, { useState, useEffect, PropsWithChildren } from 'react';
-import { apiGetAnnouncements, apiSendAnnouncement, apiGetSubjects } from '../services/api';
-import { Subject } from '../types';
-import SpinnerIcon from './icons/SpinnerIcon';
+import React, { useState, useEffect, useMemo, PropsWithChildren } from 'react';
+import { apiGetStudents, apiGetSubjects, apiSendMessage, apiGetCommunicationLogs, apiGetMessageTemplates } from '../services/api';
+import { Student, Subject, CommunicationLog, MessageTemplate } from '../types';
+import AIAnnouncementGenerator from './AIAnnouncementGenerator';
+import MessageTemplates from './MessageTemplates';
+import AutomatedReminders from './AutomatedReminders';
+import CommunicationHistory from './CommunicationHistory';
 import DirectMessages from './DirectMessages';
+import SetupPromptModal from './SetupPromptModal';
+import { ADMIN_VIEWS, USER_ROLES } from '../utils/constants';
+import { useAuth } from '../contexts/AuthContext';
+import SpinnerIcon from './icons/SpinnerIcon';
 
-const CommunicationsDashboard = () => {
-    const [announcements, setAnnouncements] = useState([]);
-    const [subjects, setSubjects] = useState<Subject[]>([]);
-    const [classes, setClasses] = useState<string[]>([]);
-    const [loading, setLoading] = useState(true);
-    
+const CommunicationsDashboard = ({ setActiveView }) => {
     const [activeTab, setActiveTab] = useState('compose');
-    const [title, setTitle] = useState('');
-    const [content, setContent] = useState('');
-    const [recipients, setRecipients] = useState<string[]>(['all']);
-    const [methods, setMethods] = useState({ portal: true, email: false });
+    const [setupModalInfo, setSetupModalInfo] = useState({ isOpen: false, serviceName: '' });
+    const [sharedMessage, setSharedMessage] = useState('');
+
+    const TabButton = ({ view, children }: PropsWithChildren<{ view: string }>) => (
+        <button
+            onClick={() => setActiveTab(view)}
+            className={`px-3 py-2 text-sm font-medium rounded-md ${activeTab === view ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:text-gray-700'}`}
+        >
+            {children}
+        </button>
+    );
+
+    const goToSettings = () => {
+        setSetupModalInfo({ isOpen: false, serviceName: '' });
+        setActiveView(ADMIN_VIEWS.SETTINGS);
+    };
+
+    const handleUseMessage = (message: string) => {
+        setSharedMessage(message);
+        setActiveTab('compose');
+    };
+
+    const renderContent = () => {
+        switch (activeTab) {
+            case 'compose': return <ComposeAnnouncement setSetupModalInfo={setSetupModalInfo} sharedMessage={sharedMessage} setSharedMessage={setSharedMessage} />;
+            case 'ai-generator': return <AIAnnouncementGenerator onUseMessage={handleUseMessage} />;
+            case 'templates': return <MessageTemplates />;
+            case 'reminders': return <AutomatedReminders />;
+            case 'history': return <CommunicationHistory />;
+            case 'dms': return <DirectMessages />;
+            default: return <ComposeAnnouncement setSetupModalInfo={setSetupModalInfo} sharedMessage={sharedMessage} setSharedMessage={setSharedMessage} />;
+        }
+    }
+
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-wrap items-center gap-2 border-b pb-2">
+                <TabButton view="compose">Compose Announcement</TabButton>
+                <TabButton view="ai-generator">AI Generator</TabButton>
+                <TabButton view="templates">Templates</TabButton>
+                <TabButton view="reminders">Automated Reminders</TabButton>
+                <TabButton view="history">Sent History</TabButton>
+                <TabButton view="dms">Direct Messages</TabButton>
+            </div>
+            {renderContent()}
+            <SetupPromptModal
+                isOpen={setupModalInfo.isOpen}
+                onClose={() => setSetupModalInfo({ isOpen: false, serviceName: '' })}
+                serviceName={setupModalInfo.serviceName}
+                onGoToSettings={goToSettings}
+            />
+        </div>
+    );
+};
+
+
+const ComposeAnnouncement = ({ setSetupModalInfo, sharedMessage, setSharedMessage }) => {
+    const { role, isSmsConfigured } = useAuth();
+    const [message, setMessage] = useState('');
+    const [target, setTarget] = useState('all');
+    const [classes, setClasses] = useState<string[]>([]);
+    const [students, setStudents] = useState<Student[]>([]);
+    const [templates, setTemplates] = useState<MessageTemplate[]>([]);
     const [sending, setSending] = useState(false);
-    const [notification, setNotification] = useState<{ message: string; type: string }>({ message: '', type: '' });
-    
-    const fetchInitialData = async () => {
-        setLoading(true);
-        try {
-            const [annData, subData] = await Promise.all([
-                apiGetAnnouncements(),
-                apiGetSubjects()
-            ]);
-            setAnnouncements(annData || []);
-            setSubjects(subData || []);
-            // Fix: Specify the generic type for `new Set` as `<string>` to prevent TypeScript from inferring `unknown[]` for `allClasses`.
-            const allClasses = [...new Set<string>((subData || []).flatMap(s => s.classes))].sort();
+    const [channel, setChannel] = useState<'sms' | 'email'>('sms');
+
+    useEffect(() => {
+        const fetchData = async () => {
+            const [subjectsData, studentsData, templatesData] = await Promise.all([apiGetSubjects(), apiGetStudents(), apiGetMessageTemplates()]);
+            const allClasses = [...new Set<string>(subjectsData.flatMap(s => s.classes))].sort();
             setClasses(allClasses);
-        } catch (err) {
-            console.error("Failed to load communications data", err);
-            setNotification({ message: 'Failed to load data.', type: 'error' });
-        } finally {
-            setLoading(false);
+            setStudents(studentsData);
+            setTemplates(templatesData);
+        };
+        fetchData();
+    }, []);
+
+    useEffect(() => {
+        if (sharedMessage) {
+            setMessage(sharedMessage);
+            setSharedMessage(''); // Clear after use
+        }
+    }, [sharedMessage, setSharedMessage]);
+
+    const handleUseTemplate = (templateId: string) => {
+        if (!templateId) {
+            setMessage('');
+            return;
+        }
+        const template = templates.find(t => t.id === templateId);
+        if (template) {
+            setMessage(template.content);
         }
     };
 
-    useEffect(() => {
-        if (activeTab === 'sent') {
-            fetchInitialData();
-        }
-    }, [activeTab]);
-
-    useEffect(() => {
-        fetchInitialData();
-    }, []);
-
     const handleSend = async () => {
-        if (!title || !content) {
-            setNotification({ message: "Title and content are required.", type: 'error' });
+        if (channel === 'sms' && !isSmsConfigured) {
+            if (role === USER_ROLES.ADMIN) {
+                setSetupModalInfo({ isOpen: true, serviceName: 'SMS Gateway' });
+            } else {
+                window.dispatchEvent(new CustomEvent('show-global-error', { detail: { message: "SMS is not configured. Please contact your administrator." } }));
+            }
             return;
         }
+
         setSending(true);
-        setNotification({ message: '', type: '' });
         try {
-            // Fix: Removed `methods` property as it does not exist on the Announcement type.
-            await apiSendAnnouncement({ title, content, recipients });
-            setNotification({ message: "Announcement sent successfully!", type: 'success' });
-            setTitle('');
-            setContent('');
-            setRecipients(['all']);
-            setActiveTab('sent');
-        } catch (err) {
-            setNotification({ message: `Failed to send announcement: ${err.message}`, type: 'error' });
+            let targetRecipients: string[] = [];
+            if (target === 'all') {
+                targetRecipients = [...new Set<string>(students.map(s => channel === 'sms' ? s.parentId : s.parentEmail).filter(Boolean))];
+            } else {
+                targetRecipients = [...new Set<string>(students.filter(s => s.class === target).map(s => channel === 'sms' ? s.parentId : s.parentEmail).filter(Boolean))];
+            }
+
+            await apiSendMessage({ channel, content: message, recipients: targetRecipients });
+            window.dispatchEvent(new CustomEvent('show-global-success', { detail: { message: `Message sent to ${targetRecipients.length} recipients.` } }));
+            setMessage('');
+        } catch (error) {
+             window.dispatchEvent(new CustomEvent('show-global-error', { detail: { message: `Error sending message: ${error.message}` } }));
         } finally {
             setSending(false);
         }
     };
 
-    interface TabButtonProps {
-        view: string;
-    }
-    
-    const TabButton = ({ view, children }: PropsWithChildren<TabButtonProps>) => (
-        <button
-            onClick={() => setActiveTab(view)}
-            className={`px-4 py-2 font-semibold ${activeTab === view ? 'border-b-2 border-indigo-500 text-indigo-600' : 'text-gray-500'}`}
-        >
-            {children}
-        </button>
-    );
-    
-    const renderActiveTab = () => {
-        switch (activeTab) {
-            case 'messages':
-                return <DirectMessages />;
-            case 'sent':
-                 return (
-                    <div className="card">
-                        <div className="p-6">
-                            {loading ? <p>Loading...</p> : (
-                                <ul className="space-y-4">
-                                    {announcements.map(ann => (
-                                        <li key={ann.id} className="p-4 border rounded-lg">
-                                            <p className="font-semibold">{ann.title}</p>
-                                            <p className="text-sm text-gray-600 mt-1">{ann.content}</p>
-                                            <p className="text-xs text-gray-400 mt-2">{new Date(ann.created_at).toLocaleString()}</p>
-                                        </li>
-                                    ))}
-                                    {announcements.length === 0 && <p className="text-center text-gray-500">No announcements have been sent.</p>}
-                                </ul>
-                            )}
-                        </div>
-                    </div>
-                );
-            case 'compose':
-            default:
-                return (
-                    <div className="card">
-                        <div className="p-6 space-y-4">
-                            <div>
-                                <label className="label">Title</label>
-                                <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="input-field" />
-                            </div>
-                            <div>
-                                <label className="label">Content</label>
-                                <textarea value={content} onChange={e => setContent(e.target.value)} className="input-field" rows={6}></textarea>
-                            </div>
-                            <div>
-                                <label className="label">Recipients</label>
-                                 <select multiple value={recipients} onChange={e => setRecipients(Array.from(e.target.selectedOptions, (option: HTMLOptionElement) => option.value))} className="input-field h-32">
-                                    <option value="all">All Students & Parents</option>
-                                    {classes.map(c => <option key={c} value={c}>Class: {c}</option>)}
-                                </select>
-                                <p className="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple.</p>
-                            </div>
-                            <div className="flex justify-end">
-                                <button onClick={handleSend} className="btn btn-primary" disabled={sending}>
-                                    {sending && <SpinnerIcon className="w-5 h-5 mr-2 animate-spin" />}
-                                    {sending ? 'Sending...' : 'Send Announcement'}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                );
-        }
-    };
-
     return (
-        <div>
-            <div className="flex border-b mb-6">
-                <TabButton view="compose">Compose Announcement</TabButton>
-                <TabButton view="sent">Sent Announcements</TabButton>
-                <TabButton view="messages">Direct Messages</TabButton>
-            </div>
-
-            {notification.message && (
-                <div className={`p-3 mb-4 text-sm rounded-lg ${notification.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                    {notification.message}
+        <div className="card">
+            <div className="p-6 space-y-4">
+                <div>
+                    <label className="label">Channel</label>
+                    <div className="flex gap-4 p-1 bg-gray-100 rounded-lg">
+                        <button onClick={() => setChannel('sms')} className={`flex-1 p-2 rounded-md font-semibold text-sm ${channel === 'sms' ? 'bg-white shadow' : ''}`}>SMS</button>
+                        <button onClick={() => setChannel('email')} className={`flex-1 p-2 rounded-md font-semibold text-sm ${channel === 'email' ? 'bg-white shadow' : ''}`}>Email</button>
+                    </div>
                 </div>
-            )}
-            
-            {renderActiveTab()}
+                 <div>
+                    <label className="label">Use Template</label>
+                    <select onChange={e => handleUseTemplate(e.target.value)} className="input-field">
+                        <option value="">-- Start from scratch --</option>
+                        {templates.map(t => <option key={t.id} value={t.id}>{t.name} ({t.type})</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label className="label">Message</label>
+                    <textarea value={message} onChange={e => setMessage(e.target.value)} rows={5} className="input-field"></textarea>
+                </div>
+                <div>
+                    <label className="label">Send To</label>
+                    <select value={target} onChange={e => setTarget(e.target.value)} className="input-field">
+                        <option value="all">All Parents</option>
+                        {classes.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                </div>
+                <div className="text-right">
+                    <button onClick={handleSend} disabled={sending || !message} className="btn btn-primary">
+                        {sending ? <SpinnerIcon className="w-5 h-5 animate-spin mr-2" /> : null}
+                        {sending ? 'Sending...' : 'Send Announcement'}
+                    </button>
+                </div>
+            </div>
         </div>
     );
 };
+
 
 export default CommunicationsDashboard;

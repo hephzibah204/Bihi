@@ -1,66 +1,102 @@
 // services/supabaseClient.ts
+// Smart Supabase client: supports both "publishable" and legacy "anon" keys.
+// Prioritizes CDN client, then ESM fallback, then offline mode.
 
-// This reference helps TypeScript understand Vite's `import.meta.env`
-// Fix: The `vite/client` type definitions are not available in this environment, causing an error.
-// The reference is commented out and replaced with a manual type declaration below.
-// /// <reference types="vite/client" />
-
-// Declare the global 'process' object to prevent TypeScript errors in environments
-// where it might not be defined by default (like a strict browser context).
-declare var process: {
-  env: {
-    [key: string]: string | undefined;
-  }
-};
-
-// Declare the 'supabase' property on the global Window interface for the CDN script.
 declare global {
-  interface Window {
-    supabase: any;
-  }
-
-  // Fix: Manually define the ImportMeta and ImportMetaEnv interfaces to include
-  // Vite's `env` property. This resolves errors when the `vite/client` type
-  // definitions are not available in the project's configuration.
   interface ImportMeta {
-    readonly env: ImportMetaEnv;
+    readonly env: {
+      readonly VITE_SUPABASE_PUBLISHABLE_KEY?: string;
+      readonly VITE_SUPABASE_ANON_KEY?: string;
+    };
   }
-  
-  interface ImportMetaEnv {
-    readonly VITE_SUPABASE_URL: string;
-    readonly VITE_SUPABASE_ANON_KEY: string;
-    // Fix: Add optional properties for non-prefixed env vars to satisfy the type checker.
-    readonly SUPABASE_URL?: string;
-    readonly SUPABASE_ANON_KEY?: string;
-    // Add other environment variables here if needed
-    [key: string]: any;
+  interface Window {
+    supabase?: any;
+    process?: {
+      env?: {
+        VITE_SUPABASE_PUBLISHABLE_KEY?: string;
+        VITE_SUPABASE_ANON_KEY?: string;
+      };
+    };
   }
 }
 
-function initializeSupabaseClient() {
-    if (!window.supabase || typeof window.supabase.createClient !== 'function') {
-        console.warn("Supabase client is not available on `window`. Supabase features will be disabled.");
-        return null;
+let supabase: any = null;
+
+export async function initSupabase() {
+  if (supabase) return supabase;
+
+  let createClient: any;
+
+  // 1️⃣ Prefer CDN client (AI Studio / Cloudflare)
+  if (window.supabase && typeof window.supabase.createClient === "function") {
+    createClient = window.supabase.createClient;
+    console.info("[Supabase] Using CDN client.");
+  } else {
+    console.warn("[Supabase] CDN not found. Trying ESM fallback...");
+    try {
+      const mod = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm");
+      createClient = mod.createClient;
+      console.info("[Supabase] Loaded client via ESM fallback.");
+    } catch (err) {
+      console.error("[Supabase] Failed to load Supabase library:", err);
     }
+  }
 
-    const { createClient } = window.supabase;
+  // 2️⃣ Fixed project URL
+  const SUPABASE_URL = "https://shzwolantavauszuxwlp.supabase.co";
 
-    // --- UNIVERSAL KEY LOGIC ---
-    // This logic is now more robust, checking for multiple common naming conventions for env vars.
-    // Fix: Fallback to `undefined` instead of `{}` to avoid type errors when accessing properties
-    // on what could be an empty object. Optional chaining now works as expected.
-    const envSource1 = typeof import.meta !== 'undefined' ? import.meta.env : undefined;
-    const envSource2 = typeof process !== 'undefined' ? process.env : undefined;
+  // 3️⃣ Key detection logic (publishable preferred)
+  const SUPABASE_KEY =
+    window.process?.env?.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    import.meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    window.process?.env?.VITE_SUPABASE_ANON_KEY ||
+    import.meta.env?.VITE_SUPABASE_ANON_KEY ||
+    "<MISSING_KEY>";
 
-    const supabaseUrl = envSource1?.VITE_SUPABASE_URL || envSource2?.VITE_SUPABASE_URL || envSource1?.SUPABASE_URL || envSource2?.SUPABASE_URL;
-    const supabaseAnonKey = envSource1?.VITE_SUPABASE_ANON_KEY || envSource2?.VITE_SUPABASE_ANON_KEY || envSource1?.SUPABASE_ANON_KEY || envSource2?.SUPABASE_ANON_KEY;
-    
-    if (!supabaseUrl || !supabaseAnonKey) {
-        console.error("Supabase URL and Anon Key must be provided in environment variables.");
-        return null;
-    }
+  const keySource = SUPABASE_KEY.includes("publishable_")
+    ? "publishable"
+    : SUPABASE_KEY.includes("anon")
+    ? "anon"
+    : "unknown";
 
-    return createClient(supabaseUrl, supabaseAnonKey);
+  console.log(`[Supabase] URL: ${SUPABASE_URL}`);
+  console.log(`[Supabase] Key type detected: ${keySource}`);
+  console.log(
+    "[Supabase] Key:",
+    SUPABASE_KEY !== "<MISSING_KEY>" ? "✅ Present" : "❌ Missing"
+  );
+
+  // 4️⃣ Offline fallback
+  if (!SUPABASE_KEY || !createClient || SUPABASE_KEY === "<MISSING_KEY>") {
+    console.error("[Supabase] Missing publishable/anon key or client. Running in offline mode.");
+    supabase = { _offline: true };
+    return supabase;
+  }
+
+  // 5️⃣ Create client
+  supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+  supabase._offline = false;
+  console.info(`[Supabase] Client initialized successfully using ${keySource} key.`);
+  return supabase;
 }
 
-export const supabase = initializeSupabaseClient();
+// Get initialized client safely
+export function getSupabase() {
+  if (!supabase)
+    throw new Error("Supabase not initialized. Call await initSupabase() first.");
+  return supabase;
+}
+
+// Optional: test connectivity
+export async function isSupabaseOnline() {
+  if (!supabase || supabase._offline) return false;
+  try {
+    const { data, error } = await supabase.from("platform_settings").select("id").limit(1);
+    if (error) throw error;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export { supabase };

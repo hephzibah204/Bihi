@@ -1,5 +1,6 @@
+
 import React, { FC } from 'react';
-// Fix: Correctly import DashboardView from the central types file.
+// FIX: Correctly import DashboardView from the central types file.
 import { DashboardView } from '../types';
 import Cog6ToothIcon from './icons/Cog6ToothIcon';
 import ChartBarIcon from './icons/ChartBarIcon';

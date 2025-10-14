@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiGetAnnouncements, apiGetStudents } from '../services/api';
-// Fix: Corrected import path for supabase client
+import { apiGetCommunicationLogs, apiGetStudents } from '../services/api';
 import { supabase } from '../services/supabaseClient';
 import { formatDate } from '../utils/dateHelpers';
 
@@ -13,7 +12,7 @@ const NotificationViewer = ({ demoUserId }) => {
         setLoading(true);
         try {
             const [allAnnouncements, allStudents] = await Promise.all([
-                apiGetAnnouncements(),
+                apiGetCommunicationLogs(),
                 apiGetStudents()
             ]);
 
@@ -26,11 +25,11 @@ const NotificationViewer = ({ demoUserId }) => {
             const filterAndSetNotifications = (announcements) => {
                  if (studentProfile) {
                     const relevantAnnouncements = announcements.filter(ann => 
-                        ann.recipients?.includes('all') || ann.recipients?.includes(studentProfile.class)
+                        ann.type === 'announcement' && (ann.recipients?.includes('all') || ann.recipients?.includes(studentProfile.class))
                     );
                     setNotifications(relevantAnnouncements);
                 } else {
-                    setNotifications(allAnnouncements);
+                    setNotifications(allAnnouncements.filter(ann => ann.type === 'announcement'));
                 }
             };
             
@@ -65,10 +64,10 @@ const NotificationViewer = ({ demoUserId }) => {
             });
         };
 
-        const channel = supabase.channel('announcements-viewer-channel')
+        const channel = supabase.channel('communication-logs-viewer-channel')
             .on(
                 'postgres_changes',
-                { event: 'INSERT', schema: 'public', table: 'announcements' },
+                { event: 'INSERT', schema: 'public', table: 'communication_logs', filter: 'type=eq.announcement' },
                 handleNewAnnouncement
             )
             .subscribe();
@@ -88,8 +87,8 @@ const NotificationViewer = ({ demoUserId }) => {
                     notifications.map(ann => (
                         <div key={ann.id} className="card p-4">
                             <div className="flex justify-between items-start">
-                                <h2 className="font-bold text-lg">{ann.title}</h2>
-                                <p className="text-sm text-gray-500">{formatDate(ann.created_at)}</p>
+                                <h2 className="font-bold text-lg">{`${ann.channel.toUpperCase()} Announcement`}</h2>
+                                <p className="text-sm text-gray-500">{formatDate(ann.sentAt)}</p>
                             </div>
                              <p className="mt-2 text-gray-600 whitespace-pre-wrap">{ann.content}</p>
                         </div>

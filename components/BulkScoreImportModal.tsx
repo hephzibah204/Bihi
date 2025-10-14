@@ -215,7 +215,7 @@ const BulkScoreImportModal = ({ isOpen, onClose, onSuccess, selectedClass, selec
 
     return (
         <Modal isOpen={isOpen} onClose={handleClose} title="Import Scores from CSV">
-            <div className="p-6">
+             <div className="p-6">
                 {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
                 {renderContent()}
             </div>

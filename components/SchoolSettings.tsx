@@ -1,257 +1,277 @@
 import React, { useState, useEffect, PropsWithChildren } from 'react';
 import { apiGetSchoolSettings, apiSaveSchoolSettings } from '../services/api';
-import { SchoolSettings, Grading, ReportCardSection, ReportCardSkill } from '../types';
+import { SchoolSettings, ReportCardSkill, ClassLevel, ClassSection } from '../types';
 import SpinnerIcon from './icons/SpinnerIcon';
 import PlusIcon from './icons/PlusIcon';
 import TrashIcon from './icons/TrashIcon';
 import FeatureControlSettings from './FeatureControlSettings';
+import IntegrationSettings from './IntegrationSettings';
 
-const SkillEditor = ({ title, skills, onSkillsChange }) => {
-    
-    const handleLabelChange = (index, newLabel) => {
-        const newSkills = [...skills];
-        newSkills[index].label = newLabel;
-        onSkillsChange(newSkills);
+const TabButton = ({ view, active, onClick, children }: PropsWithChildren<{ view: string, active: boolean, onClick: (view: string) => void }>) => (
+    <button
+        onClick={() => onClick(view)}
+        className={`px-4 py-2 font-semibold text-sm transition-colors ${active ? 'border-b-2 border-indigo-500 text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+    >
+        {children}
+    </button>
+);
+
+const GeneralSettings = ({ settings, onSettingsChange }) => (
+    <div className="space-y-4">
+        <div><label className="label">School Name</label><input type="text" value={settings.schoolName || ''} onChange={e => onSettingsChange({ schoolName: e.target.value })} className="input-field" /></div>
+        <div><label className="label">School Address</label><input type="text" value={settings.schoolAddress || ''} onChange={e => onSettingsChange({ schoolAddress: e.target.value })} className="input-field" /></div>
+        <div><label className="label">School Logo URL</label><input type="text" value={settings.schoolLogo || ''} onChange={e => onSettingsChange({ schoolLogo: e.target.value })} className="input-field" /></div>
+        <div className="grid grid-cols-2 gap-4">
+            <div><label className="label">Current Session</label><input type="text" value={settings.session || ''} onChange={e => onSettingsChange({ session: e.target.value })} className="input-field" placeholder="e.g., 2023/2024" /></div>
+            <div><label className="label">Current Term</label><select value={settings.term || ''} onChange={e => onSettingsChange({ term: e.target.value })} className="input-field"><option>First Term</option><option>Second Term</option><option>Third Term</option></select></div>
+        </div>
+    </div>
+);
+
+const GradingSettings = ({ settings, onSettingsChange }) => {
+    const handleChange = (index: number, field: string, value: any) => {
+        const newGrading = [...(settings.gradingSystem || [])];
+        newGrading[index] = { ...newGrading[index], [field]: value };
+        onSettingsChange({ gradingSystem: newGrading });
     };
 
-    const addSkill = () => {
-        onSkillsChange([...skills, { id: `skill_${Date.now()}`, label: '' }]);
+    const addGrade = () => {
+        onSettingsChange({ gradingSystem: [...(settings.gradingSystem || []), { grade: '', from: 0, to: 0, remark: '' }] });
     };
 
-    const removeSkill = (index) => {
-        onSkillsChange(skills.filter((_, i) => i !== index));
+    const removeGrade = (index: number) => {
+        onSettingsChange({ gradingSystem: (settings.gradingSystem || []).filter((_, i) => i !== index) });
     };
 
     return (
-        <div className="mt-4">
-            <div className="flex justify-between items-center mb-2">
-                <h4 className="font-semibold">{title}</h4>
-                <button onClick={addSkill} className="btn btn-secondary text-sm"><PlusIcon className="w-4 h-4 mr-1"/> Add</button>
+        <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-4">
+                <div><label className="label">Max CA 1 Score</label><input type="number" value={settings.maxCa1 || 0} onChange={e => onSettingsChange({ maxCa1: Number(e.target.value) })} className="input-field"/></div>
+                <div><label className="label">Max CA 2 Score</label><input type="number" value={settings.maxCa2 || 0} onChange={e => onSettingsChange({ maxCa2: Number(e.target.value) })} className="input-field"/></div>
+                <div><label className="label">Max Exam Score</label><input type="number" value={settings.maxExam || 0} onChange={e => onSettingsChange({ maxExam: Number(e.target.value) })} className="input-field"/></div>
             </div>
             <div className="space-y-2">
-                {skills.map((skill, index) => (
-                    <div key={skill.id} className="flex items-center gap-2">
-                        <input 
-                            value={skill.label}
-                            onChange={(e) => handleLabelChange(index, e.target.value)}
-                            className="input-field"
-                            placeholder="Skill label (e.g., Punctuality)"
-                        />
-                         <button onClick={() => removeSkill(index)} className="icon-button text-red-500"><TrashIcon className="w-5 h-5"/></button>
+                {settings.gradingSystem?.map((grade, index) => (
+                    <div key={index} className="grid grid-cols-5 gap-2 items-center">
+                        <input type="text" placeholder="Grade" value={grade.grade} onChange={e => handleChange(index, 'grade', e.target.value)} className="input-field"/>
+                        <input type="number" placeholder="From" value={grade.from} onChange={e => handleChange(index, 'from', Number(e.target.value))} className="input-field"/>
+                        <input type="number" placeholder="To" value={grade.to} onChange={e => handleChange(index, 'to', Number(e.target.value))} className="input-field"/>
+                        <input type="text" placeholder="Remark" value={grade.remark} onChange={e => handleChange(index, 'remark', e.target.value)} className="input-field"/>
+                        <button onClick={() => removeGrade(index)} className="icon-button text-red-500"><TrashIcon className="w-5 h-5"/></button>
                     </div>
                 ))}
+            </div>
+            <button onClick={addGrade} className="btn btn-secondary"><PlusIcon className="w-4 h-4 mr-2"/>Add Grade</button>
+        </div>
+    );
+};
+
+const ReportCardSettingsTab = ({ settings, onSettingsChange }) => {
+    const handleSkillChange = (type: 'affectiveSkills' | 'psychomotorSkills', index: number, value: string) => {
+        const reportCardSettings = settings.reportCardSettings || { principalName: '', affectiveSkills: [], psychomotorSkills: [] };
+        const newSkills = [...(reportCardSettings[type] || [])];
+        newSkills[index] = { ...newSkills[index], label: value };
+        onSettingsChange({ reportCardSettings: { ...reportCardSettings, [type]: newSkills } });
+    };
+
+    const addSkill = (type: 'affectiveSkills' | 'psychomotorSkills') => {
+        const reportCardSettings = settings.reportCardSettings || { principalName: '', affectiveSkills: [], psychomotorSkills: [] };
+        const newSkill: ReportCardSkill = { id: `skill_${Date.now()}`, label: '' };
+        onSettingsChange({ reportCardSettings: { ...reportCardSettings, [type]: [...(reportCardSettings[type] || []), newSkill] } });
+    };
+
+    const removeSkill = (type: 'affectiveSkills' | 'psychomotorSkills', index: number) => {
+        const reportCardSettings = settings.reportCardSettings || { principalName: '', affectiveSkills: [], psychomotorSkills: [] };
+        onSettingsChange({ reportCardSettings: { ...reportCardSettings, [type]: (reportCardSettings[type] || []).filter((_, i) => i !== index) } });
+    };
+    
+    const reportCardSettings = settings.reportCardSettings || { principalName: '', schoolMotto: '', affectiveSkills: [], psychomotorSkills: [] };
+
+    return (
+        <div className="space-y-4">
+            <div><label className="label">Principal's Name</label><input type="text" value={reportCardSettings.principalName || ''} onChange={e => onSettingsChange({ reportCardSettings: { ...reportCardSettings, principalName: e.target.value } })} className="input-field" /></div>
+            <div><label className="label">School Motto</label><input type="text" value={reportCardSettings.schoolMotto || ''} onChange={e => onSettingsChange({ reportCardSettings: { ...reportCardSettings, schoolMotto: e.target.value } })} className="input-field" /></div>
+            
+            <div className="grid grid-cols-2 gap-6">
+                <div>
+                    <h4 className="font-semibold">Affective Skills</h4>
+                    {reportCardSettings.affectiveSkills.map((skill, index) => (
+                        <div key={skill.id} className="flex items-center gap-2 mt-2">
+                            <input type="text" value={skill.label} onChange={e => handleSkillChange('affectiveSkills', index, e.target.value)} className="input-field" />
+                            <button onClick={() => removeSkill('affectiveSkills', index)}><TrashIcon className="w-4 h-4 text-red-500"/></button>
+                        </div>
+                    ))}
+                    <button onClick={() => addSkill('affectiveSkills')} className="btn btn-secondary text-sm mt-2"><PlusIcon className="w-4 h-4 mr-1"/>Add</button>
+                </div>
+                 <div>
+                    <h4 className="font-semibold">Psychomotor Skills</h4>
+                    {reportCardSettings.psychomotorSkills.map((skill, index) => (
+                        <div key={skill.id} className="flex items-center gap-2 mt-2">
+                            <input type="text" value={skill.label} onChange={e => handleSkillChange('psychomotorSkills', index, e.target.value)} className="input-field" />
+                            <button onClick={() => removeSkill('psychomotorSkills', index)}><TrashIcon className="w-4 h-4 text-red-500"/></button>
+                        </div>
+                    ))}
+                    <button onClick={() => addSkill('psychomotorSkills')} className="btn btn-secondary text-sm mt-2"><PlusIcon className="w-4 h-4 mr-1"/>Add</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const ClassSettings = ({ settings, onSettingsChange }) => {
+    const structure = settings.schoolStructure || { levels: [], sections: [] };
+
+    const handleLevelChange = (index, value) => {
+        const newLevels = [...structure.levels];
+        newLevels[index].name = value;
+        onSettingsChange({ schoolStructure: { ...structure, levels: newLevels } });
+    };
+
+    const handleSectionChange = (index, value) => {
+        const newSections = [...structure.sections];
+        newSections[index].name = value;
+        onSettingsChange({ schoolStructure: { ...structure, sections: newSections } });
+    };
+
+    const addLevel = () => {
+        const newLevel: ClassLevel = { id: `level_${Date.now()}`, name: '', classes: [] };
+        onSettingsChange({ schoolStructure: { ...structure, levels: [...structure.levels, newLevel] } });
+    };
+
+    const removeLevel = (index) => {
+        onSettingsChange({ schoolStructure: { ...structure, levels: structure.levels.filter((_, i) => i !== index) } });
+    };
+    
+    const addClassToLevel = (levelIndex) => {
+        const newLevels = [...structure.levels];
+        const newClass = { id: `class_${Date.now()}`, name: '' };
+        newLevels[levelIndex].classes.push(newClass);
+        onSettingsChange({ schoolStructure: { ...structure, levels: newLevels } });
+    };
+    
+     const handleClassNameChange = (levelIndex, classIndex, value) => {
+        const newLevels = [...structure.levels];
+        newLevels[levelIndex].classes[classIndex].name = value;
+        onSettingsChange({ schoolStructure: { ...structure, levels: newLevels } });
+    };
+    
+    const removeClassFromLevel = (levelIndex, classIndex) => {
+        const newLevels = [...structure.levels];
+        newLevels[levelIndex].classes.splice(classIndex, 1);
+        onSettingsChange({ schoolStructure: { ...structure, levels: newLevels } });
+    };
+
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <h4 className="font-semibold">Class Levels</h4>
+                <p className="text-xs text-gray-500 mb-2">e.g., Nursery, Primary, JSS</p>
+                <div className="space-y-4">
+                    {structure.levels.map((level, levelIndex) => (
+                        <div key={level.id} className="p-3 border rounded-md">
+                            <div className="flex items-center gap-2">
+                                <input type="text" value={level.name} onChange={e => handleLevelChange(levelIndex, e.target.value)} className="input-field font-semibold" placeholder="Level Name"/>
+                                <button onClick={() => removeLevel(levelIndex)} className="icon-button text-red-500"><TrashIcon className="w-5 h-5"/></button>
+                            </div>
+                            <div className="pl-4 mt-2 space-y-2">
+                                {level.classes.map((cls, classIndex) => (
+                                    <div key={cls.id} className="flex items-center gap-2">
+                                        <input type="text" value={cls.name} onChange={e => handleClassNameChange(levelIndex, classIndex, e.target.value)} className="input-field text-sm" placeholder="Class Name (e.g., 1, 2)"/>
+                                        <button onClick={() => removeClassFromLevel(levelIndex, classIndex)} className="icon-button text-red-500"><TrashIcon className="w-4 h-4"/></button>
+                                    </div>
+                                ))}
+                                <button onClick={() => addClassToLevel(levelIndex)} className="btn btn-secondary btn-sm text-xs"><PlusIcon className="w-3 h-3 mr-1"/> Add Class</button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                 <button onClick={addLevel} className="btn btn-secondary mt-4"><PlusIcon className="w-4 h-4 mr-2"/> Add Level</button>
+            </div>
+             <div>
+                <h4 className="font-semibold">Class Sections / Arms</h4>
+                <p className="text-xs text-gray-500 mb-2">e.g., A, B, Gold, Blue</p>
+                <div className="space-y-2">
+                    {structure.sections.map((section, index) => (
+                        <div key={section.id} className="flex items-center gap-2">
+                            <input type="text" value={section.name} onChange={e => handleSectionChange(index, e.target.value)} className="input-field" placeholder="Section Name"/>
+                        </div>
+                    ))}
+                </div>
+                {/* A simplified section manager for now. You can add remove buttons if needed. */}
             </div>
         </div>
     );
 };
 
 
-const SchoolSettingsComponent = () => {
+const SchoolSettings = () => {
     const [settings, setSettings] = useState<Partial<SchoolSettings> | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [activeTab, setActiveTab] = useState('general');
 
     useEffect(() => {
-        const fetchSettings = async () => {
-            setLoading(true);
-            const data = await apiGetSchoolSettings();
-            setSettings(data || { gradingSystem: [] });
+        apiGetSchoolSettings().then(data => {
+            setSettings(data || {});
             setLoading(false);
-        };
-        fetchSettings();
+        });
     }, []);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setSettings(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleSubSettingsChange = (key, value) => {
-        setSettings(prev => ({ ...prev, [key]: value }));
-    };
-    
-    const handleGradingChange = (index: number, field: keyof Grading, value: string | number) => {
-        const newGradingSystem = [...(settings.gradingSystem || [])];
-        newGradingSystem[index] = { ...newGradingSystem[index], [field]: value };
-        setSettings(prev => ({ ...prev, gradingSystem: newGradingSystem }));
-    };
-
-    const addGrade = () => {
-        const newGradingSystem = [...(settings.gradingSystem || []), { grade: '', from: 0, to: 0, remark: '' }];
-        setSettings(prev => ({ ...prev, gradingSystem: newGradingSystem }));
-    };
-
-    const removeGrade = (index: number) => {
-        const newGradingSystem = settings.gradingSystem.filter((_, i) => i !== index);
-        setSettings(prev => ({ ...prev, gradingSystem: newGradingSystem }));
-    };
-
-    const handleReportCardSettingChange = (field: string, value: any) => {
-        setSettings(prev => ({
-            ...prev,
-            reportCardSettings: {
-                ...prev.reportCardSettings,
-                [field]: value,
-            }
-        }));
-    };
-    
-    const handleSectionChange = (index: number, field: keyof ReportCardSection, value: any) => {
-        const newSections = [...settings.reportCardSettings.sections];
-        newSections[index] = { ...newSections[index], [field]: value };
-        handleReportCardSettingChange('sections', newSections);
+    const handleSettingsChange = (changed: Partial<SchoolSettings>) => {
+        setSettings(prev => ({ ...prev, ...changed }));
     };
 
     const handleSave = async () => {
         setSaving(true);
-        await apiSaveSchoolSettings(settings as SchoolSettings);
-        setSaving(false);
-        alert("Settings Saved!");
+        try {
+            await apiSaveSchoolSettings(settings as SchoolSettings);
+            window.dispatchEvent(new CustomEvent('storage-update', { detail: { key: 'settings' } }));
+            window.dispatchEvent(new CustomEvent('show-global-success', { detail: { message: 'Settings saved successfully!' } }));
+        } catch (error) {
+            window.dispatchEvent(new CustomEvent('show-global-error', { detail: { message: 'Error saving settings.' } }));
+        } finally {
+            setSaving(false);
+        }
     };
-    
-    const TabButton = ({ view, children }: PropsWithChildren<{ view: string }>) => (
-        <button
-            onClick={() => setActiveTab(view)}
-            className={`px-4 py-2 font-semibold ${activeTab === view ? 'border-b-2 border-indigo-500 text-indigo-600' : 'text-gray-500'}`}
-        >
-            {children}
-        </button>
-    );
 
-    if (loading) return <div>Loading settings...</div>;
+    if (loading) return <div className="card p-6">Loading settings...</div>;
+
+    const renderTabContent = () => {
+        switch (activeTab) {
+            case 'general': return <GeneralSettings settings={settings!} onSettingsChange={handleSettingsChange} />;
+            case 'classes': return <ClassSettings settings={settings!} onSettingsChange={handleSettingsChange} />;
+            case 'grading': return <GradingSettings settings={settings!} onSettingsChange={handleSettingsChange} />;
+            case 'report-card': return <ReportCardSettingsTab settings={settings!} onSettingsChange={handleSettingsChange} />;
+            case 'features': return <FeatureControlSettings settings={settings!} onSettingsChange={handleSettingsChange} />;
+            case 'integrations': return <IntegrationSettings settings={settings!} onSettingsChange={handleSettingsChange} />;
+            default: return null;
+        }
+    };
 
     return (
-        <div className="space-y-8">
-            <div className="flex justify-between items-center">
+        <div>
+            <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-semibold">School Settings</h1>
-                <button onClick={handleSave} className="btn btn-primary" disabled={saving}>
-                    {saving && <SpinnerIcon className="w-5 h-5 mr-2 animate-spin" />}
-                    {saving ? 'Saving...' : 'Save Settings'}
+                <button onClick={handleSave} disabled={saving} className="btn btn-primary">
+                    {saving ? <SpinnerIcon className="w-5 h-5 animate-spin"/> : 'Save Settings'}
                 </button>
             </div>
             
             <div className="card">
                 <div className="p-6">
-                    <div className="border-b">
-                        <TabButton view="general">General</TabButton>
-                        <TabButton view="academic">Academic</TabButton>
-                        <TabButton view="report-card">Report Card</TabButton>
-                        <TabButton view="feature-access">Feature Access</TabButton>
+                    <div className="border-b flex flex-wrap">
+                        <TabButton view="general" active={activeTab === 'general'} onClick={setActiveTab}>General</TabButton>
+                        <TabButton view="classes" active={activeTab === 'classes'} onClick={setActiveTab}>Classes</TabButton>
+                        <TabButton view="grading" active={activeTab === 'grading'} onClick={setActiveTab}>Grading</TabButton>
+                        <TabButton view="report-card" active={activeTab === 'report-card'} onClick={setActiveTab}>Report Card</TabButton>
+                        <TabButton view="features" active={activeTab === 'features'} onClick={setActiveTab}>Features</TabButton>
+                        <TabButton view="integrations" active={activeTab === 'integrations'} onClick={setActiveTab}>Integrations</TabButton>
                     </div>
-
-                    <div className="mt-6">
-                        {activeTab === 'general' && (
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div><label className="label">School Name</label><input name="schoolName" value={settings?.schoolName || ''} onChange={handleChange} className="input-field" /></div>
-                                <div><label className="label">School Address</label><input name="schoolAddress" value={settings?.schoolAddress || ''} onChange={handleChange} className="input-field" /></div>
-                                <div><label className="label">School Logo URL</label><input name="schoolLogo" value={settings?.schoolLogo || ''} onChange={handleChange} className="input-field" /></div>
-                                <div><label className="label">School Type</label><select name="schoolType" value={settings?.schoolType || 'secondary'} onChange={handleChange} className="input-field"><option value="nursery_primary">Nursery/Primary</option><option value="secondary">Secondary</option><option value="all">All Levels</option></select></div>
-                            </div>
-                        )}
-                        {activeTab === 'academic' && (
-                             <div className="space-y-6">
-                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div><label className="label">Current Session</label><input name="session" value={settings?.session || ''} onChange={handleChange} className="input-field" placeholder="e.g., 2023/2024" /></div>
-                                    <div><label className="label">Current Term</label><select name="term" value={settings?.term || 'First Term'} onChange={handleChange} className="input-field"><option>First Term</option><option>Second Term</option><option>Third Term</option></select></div>
-                                    <div><label className="label">Max CA 1 Score</label><input type="number" name="maxCa1" value={settings?.maxCa1 || 20} onChange={handleChange} className="input-field" /></div>
-                                    <div><label className="label">Max CA 2 Score</label><input type="number" name="maxCa2" value={settings?.maxCa2 || 20} onChange={handleChange} className="input-field" /></div>
-                                    <div><label className="label">Max Exam Score</label><input type="number" name="maxExam" value={settings?.maxExam || 60} onChange={handleChange} className="input-field" /></div>
-                                </div>
-                                <div>
-                                    <div className="flex justify-between items-center">
-                                        <h3 className="text-xl font-semibold">Grading System</h3>
-                                        <button onClick={addGrade} className="btn btn-secondary"><PlusIcon className="w-5 h-5 mr-2"/> Add Grade</button>
-                                    </div>
-
-                                    {/* Desktop Headers */}
-                                    <div className="hidden md:grid md:grid-cols-10 md:gap-2 mt-4 mb-2">
-                                        <label className="label text-xs col-span-1">Grade</label>
-                                        <label className="label text-xs col-span-2">From (%)</label>
-                                        <label className="label text-xs col-span-2">To (%)</label>
-                                        <label className="label text-xs col-span-4">Remark</label>
-                                        <label className="label text-xs col-span-1 text-right">Action</label>
-                                    </div>
-                                    
-                                    {/* Grading System Rows */}
-                                    <div className="mt-4 space-y-4">
-                                        {settings?.gradingSystem?.map((grade, index) => (
-                                            <div key={index} className="p-3 border rounded-lg space-y-2 md:space-y-0 md:grid md:grid-cols-10 md:gap-2 md:items-center bg-gray-50 md:bg-transparent md:p-0 md:border-0">
-                                                
-                                                <label className="label text-xs md:hidden">Grade</label>
-                                                <input placeholder="A" value={grade.grade} onChange={e => handleGradingChange(index, 'grade', e.target.value)} className="input-field md:col-span-1" />
-
-                                                <label className="label text-xs md:hidden">From (%)</label>
-                                                <input type="number" placeholder="75" value={grade.from} onChange={e => handleGradingChange(index, 'from', Number(e.target.value))} className="input-field md:col-span-2" />
-
-                                                <label className="label text-xs md:hidden">To (%)</label>
-                                                <input type="number" placeholder="100" value={grade.to} onChange={e => handleGradingChange(index, 'to', Number(e.target.value))} className="input-field md:col-span-2" />
-                                                
-                                                <label className="label text-xs md:hidden">Remark</label>
-                                                <input placeholder="Excellent" value={grade.remark} onChange={e => handleGradingChange(index, 'remark', e.target.value)} className="input-field md:col-span-4" />
-
-                                                <div className="md:col-span-1 flex justify-end">
-                                                    <button onClick={() => removeGrade(index)} className="icon-button text-red-500">
-                                                        <TrashIcon className="w-5 h-5"/>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                             </div>
-                        )}
-                        {activeTab === 'report-card' && (
-                             <div className="space-y-6">
-                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="label">Principal's Name</label>
-                                        <input value={settings?.reportCardSettings?.principalName || ''} onChange={e => handleReportCardSettingChange('principalName', e.target.value)} className="input-field" />
-                                    </div>
-                                    <div>
-                                        <label className="label">School Motto</label>
-                                        <input value={settings?.reportCardSettings?.schoolMotto || ''} onChange={e => handleReportCardSettingChange('schoolMotto', e.target.value)} className="input-field" />
-                                    </div>
-                                </div>
-                                <div>
-                                    <h3 className="font-semibold">Report Card Sections</h3>
-                                    <p className="text-sm text-gray-500">Enable, disable, and rename sections that appear on the report card.</p>
-                                    <div className="space-y-2 mt-2">
-                                        {settings?.reportCardSettings?.sections.map((section, index) => (
-                                            <div key={section.id} className="flex items-center gap-4 p-2 border rounded-md">
-                                                <input type="checkbox" checked={section.enabled} onChange={e => handleSectionChange(index, 'enabled', e.target.checked)} className="h-5 w-5"/>
-                                                <input value={section.title} onChange={e => handleSectionChange(index, 'title', e.target.value)} className="input-field" />
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                                    <SkillEditor 
-                                        title="Affective Skills"
-                                        skills={settings?.reportCardSettings?.affectiveSkills || []}
-                                        onSkillsChange={(newSkills) => handleReportCardSettingChange('affectiveSkills', newSkills)}
-                                    />
-                                     <SkillEditor 
-                                        title="Psychomotor Skills"
-                                        skills={settings?.reportCardSettings?.psychomotorSkills || []}
-                                        onSkillsChange={(newSkills) => handleReportCardSettingChange('psychomotorSkills', newSkills)}
-                                    />
-                                </div>
-                            </div>
-                        )}
-                        {activeTab === 'feature-access' && (
-                            <FeatureControlSettings
-                                settings={settings}
-                                onSettingsChange={(changed) => handleSubSettingsChange(Object.keys(changed)[0], Object.values(changed)[0])}
-                            />
-                        )}
-                    </div>
+                    <div className="mt-6">{renderTabContent()}</div>
                 </div>
             </div>
-            
         </div>
     );
 };
 
-export default SchoolSettingsComponent;
+export default SchoolSettings;

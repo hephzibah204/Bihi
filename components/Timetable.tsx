@@ -29,7 +29,12 @@ const MasterTimetableView = ({ timetable, subjects, teachers }) => {
     const teacherMap = useMemo(() => new Map(teachers.map(t => [t.id, t.name])), [teachers]);
 
     const { periodsBySlot, clashes } = useMemo(() => {
-        const periods: Record<string, any[]> = {};
+        interface PeriodInfo {
+            className: string;
+            subjectId: string;
+            teacherId: string;
+        }
+        const periods: Record<string, PeriodInfo[]> = {};
         const clashes: Record<string, Record<string, string[]>> = {};
         
         Object.entries(timetable).forEach(([className, classSchedule]) => {
@@ -37,9 +42,8 @@ const MasterTimetableView = ({ timetable, subjects, teachers }) => {
                 Object.entries(daySchedule).forEach(([time, slot]) => {
                     const key = `${day}-${time}`;
                     if (!periods[key]) periods[key] = [];
-                    // Fix: Ensure the slot is a valid object before spreading to prevent "Spread types may only be created from object types" error if data is malformed (e.g., null).
                     if (slot && typeof slot === 'object') {
-                        periods[key].push({ className, ...slot });
+                        periods[key].push({ className, ...(slot as TimetableSlot) });
                     }
                 });
             });

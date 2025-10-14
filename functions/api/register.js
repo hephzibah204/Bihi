@@ -1,42 +1,39 @@
 // functions/api/register.js
 
-function getCorsHeaders(request) {
-    const origin = request.headers.get('Origin') || '';
+const allowedOriginPatterns = [
+    /^https?:\/\/localhost(:\d+)?$/,
+    /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
+    /^https:\/\/reportsheet\.com\.ng$/,
+    /^https:\/\/.+\.reportsheet\.com\.ng$/,
+    /^https:\/\/reportsheet\.pages\.dev$/,
+    /^https:\/\/.+\.pages\.dev$/,
+    /^https:\/\/([a-z0-9-]+\.)?aistudio\.google\.com$/,
+    /^https:\/\/.+\.googleusercontent\.com$/,
+    /^https:\/\/.+\.web\.app$/,
+    /^https:\/\/.*\.google\.internal$/,
+];
 
-    // Define allowed origin patterns. This is more robust and explicit.
-    const allowedOriginPatterns = [
-        // Local development
-        /^http:\/\/localhost:\d+$/,
-        /^http:\/\/127\.0\.0\.1:\d+$/,
-        
-        // Production domains
-        /^https:\/\/reportsheet\.com\.ng$/,      // Root domain
-        /^https:\/\/.+\.reportsheet\.com\.ng$/,    // Subdomains e.g., www. or demo.
-
-        // Preview/Staging domains
-        /^https:\/\/reportsheet\.pages\.dev$/,   // Root preview domain
-        /^https:\/\/.+\.pages\.dev$/,             // Any other pages.dev URL (covers branches)
-
-        // External services
-        /\.aistudio\.google\.com$/,
-    ];
-
-    let isOriginAllowed = false;
-    for (const pattern of allowedOriginPatterns) {
-        if (pattern.test(origin)) {
-            isOriginAllowed = true;
-            break;
-        }
-    }
-    
-    return {
-        'Access-Control-Allow-Origin': isOriginAllowed ? origin : '',
-        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Demo-Mode',
+function handleCors(request) {
+    const origin = request.headers.get("Origin");
+    const headers = {
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
     };
+    let isAllowed = false;
+
+    if (origin && allowedOriginPatterns.some((p) => p.test(origin))) {
+        headers["Access-Control-Allow-Origin"] = origin;
+        isAllowed = true;
+    }
+
+    if (request.method === "OPTIONS") {
+        return { response: new Response(null, { headers }), corsHeaders: headers, isAllowed };
+    }
+
+    return { response: null, corsHeaders: headers, isAllowed };
 }
 
-// Default data to seed for a new tenant
+// ... (defaultSubjects and defaultSettings remain the same) ...
 const defaultSubjects = [
     { name: 'Mathematics', classes: ['JSS 1', 'JSS 2', 'JSS 3', 'SSS 1', 'SSS 2', 'SSS 3'] },
     { name: 'English Language', classes: ['JSS 1', 'JSS 2', 'JSS 3', 'SSS 1', 'SSS 2', 'SSS 3'] },
@@ -79,24 +76,18 @@ const defaultSettings = {
     }
 };
 
-export async function onRequestPost({ request, env }) {
-    const corsHeaders = { ...getCorsHeaders(request), 'Content-Type': 'application/json' };
-    
-    if (!corsHeaders['Access-Control-Allow-Origin']) {
-        return new Response(JSON.stringify({ error: 'Forbidden: Invalid Origin' }), { status: 403, headers: corsHeaders });
-    }
-
+async function handlePost(request, env) {
     try {
         const { schoolName, subdomain, adminEmail, adminPassword, adminName, schoolType, emailRedirectTo } = await request.json();
 
         if (!schoolName || !subdomain || !adminEmail || !adminPassword || !adminName) {
-            return new Response(JSON.stringify({ error: 'Missing required fields.' }), { status: 400, headers: corsHeaders });
+            return new Response(JSON.stringify({ error: 'Missing required fields.' }), { status: 400 });
         }
 
         const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = env;
 
         if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-            return new Response(JSON.stringify({ error: 'Server is not configured for registration.' }), { status: 500, headers: corsHeaders });
+            return new Response(JSON.stringify({ error: 'Server is not configured for registration.' }), { status: 500 });
         }
         
         const adminHeaders = {
@@ -104,89 +95,77 @@ export async function onRequestPost({ request, env }) {
             'apikey': SUPABASE_SERVICE_ROLE_KEY,
             'Content-Type': 'application/json'
         };
-
-        // --- Step 1: Create the Tenant Record ---
+        
         const trialExpiry = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+
+        // Step 1: Create Tenant
         const tenantRes = await fetch(`${SUPABASE_URL}/rest/v1/tenants`, {
-            method: 'POST',
-            headers: adminHeaders,
-            body: JSON.stringify({
-                id: subdomain,
-                name: schoolName,
-                subscriptionStatus: 'trial',
-                trialEndDate: trialExpiry,
-                subscriptionExpiryDate: trialExpiry,
-            })
+            method: 'POST', headers: adminHeaders,
+            body: JSON.stringify({ id: subdomain, name: schoolName, subscriptionStatus: 'trial', trialEndDate: trialExpiry, subscriptionExpiryDate: trialExpiry })
         });
         
         if (!tenantRes.ok) {
             const tenantError = await tenantRes.json();
-            if (tenantError.code === '23505') { // unique_violation
-                 throw new Error(`The portal address '${subdomain}' is already taken. Please choose another.`);
-            }
+            if (tenantError.code === '23505') throw new Error(`The portal address '${subdomain}' is already taken.`);
             throw new Error(tenantError.message || 'Failed to create school record.');
         }
 
-        // --- Step 2: Create the Admin User in Auth ---
+        // Step 2: Create Auth User
         const userRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
-            method: 'POST',
-            headers: adminHeaders,
-            body: JSON.stringify({
-                email: adminEmail,
-                password: adminPassword,
-                email_confirm: true, // Auto-confirm for simplicity, or set to false to require email verification
-                user_metadata: { tenant_id: subdomain, full_name: adminName },
-                // email_redirect_to: emailRedirectTo, // Optional: if you want Supabase to handle the verification email link
-            })
+            method: 'POST', headers: adminHeaders,
+            body: JSON.stringify({ email: adminEmail, password: adminPassword, email_confirm: true, user_metadata: { tenant_id: subdomain, full_name: adminName } })
         });
-
         const userData = await userRes.json();
         if (!userRes.ok) {
-            // Attempt to clean up the tenant if user creation fails
             await fetch(`${SUPABASE_URL}/rest/v1/tenants?id=eq.${subdomain}`, { method: 'DELETE', headers: adminHeaders });
             throw new Error(userData.msg || 'Failed to create admin user.');
         }
 
-        // --- Step 3: Create the Teacher Profile ---
+        // Step 3: Create Teacher Profile
         const teacherRes = await fetch(`${SUPABASE_URL}/rest/v1/teachers`, {
-            method: 'POST',
-            headers: adminHeaders,
-            body: JSON.stringify({
-                auth_id: userData.id,
-                tenant_id: subdomain,
-                name: adminName,
-                email: adminEmail,
-                role: 'Admin'
-            })
+            method: 'POST', headers: adminHeaders,
+            body: JSON.stringify({ auth_id: userData.id, tenant_id: subdomain, name: adminName, email: adminEmail, role: 'Admin' })
         });
-
         if (!teacherRes.ok) {
-            const teacherError = await teacherRes.json();
-            // Cleanup failed registration to allow retry
             await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userData.id}`, { method: 'DELETE', headers: adminHeaders });
             await fetch(`${SUPABASE_URL}/rest/v1/tenants?id=eq.${subdomain}`, { method: 'DELETE', headers: adminHeaders });
-            
-            throw new Error(`Failed to create admin profile. Reason from database: ${teacherError.message}`);
+            throw new Error(`Failed to create admin profile.`);
         }
 
-        // --- Step 4: Seed Default Data ---
-        const settingsPayload = { ...defaultSettings, schoolName, schoolType, schoolAddress: '', tenant_id: subdomain, id: 1 };
-        const subjectsPayload = defaultSubjects.map(s => ({ ...s, tenant_id: subdomain }));
-
+        // Step 4: Seed Data
         await Promise.all([
-             fetch(`${SUPABASE_URL}/rest/v1/settings`, { method: 'POST', headers: adminHeaders, body: JSON.stringify(settingsPayload) }),
-             fetch(`${SUPABASE_URL}/rest/v1/subjects`, { method: 'POST', headers: adminHeaders, body: JSON.stringify(subjectsPayload) })
+             fetch(`${SUPABASE_URL}/rest/v1/settings`, { method: 'POST', headers: adminHeaders, body: JSON.stringify({ ...defaultSettings, schoolName, schoolType, tenant_id: subdomain, id: 1 }) }),
+             fetch(`${SUPABASE_URL}/rest/v1/subjects`, { method: 'POST', headers: adminHeaders, body: JSON.stringify(defaultSubjects.map(s => ({ ...s, tenant_id: subdomain }))) })
         ]);
 
-        return new Response(JSON.stringify({
-            message: "Registration successful! Your portal is ready.",
-        }), { status: 201, headers: corsHeaders });
-
+        return new Response(JSON.stringify({ message: "Registration successful!" }), { status: 201 });
     } catch (err) {
-        return new Response(JSON.stringify({ error: "Registration failed", details: err.message }), { status: 500, headers: corsHeaders });
+        return new Response(JSON.stringify({ error: "Registration failed", details: err.message }), { status: 500 });
     }
 }
 
-export async function onRequestOptions({ request }) {
-    return new Response(null, { headers: getCorsHeaders(request) });
+export async function onRequest(context) {
+    const { request, env } = context;
+    const { response: corsResponse, corsHeaders, isAllowed } = handleCors(request);
+
+    if (corsResponse) {
+        return corsResponse;
+    }
+
+    if (!isAllowed) {
+        return new Response(JSON.stringify({ error: "Forbidden: Invalid Origin" }), { status: 403 });
+    }
+    
+    let response;
+    if (request.method === 'POST') {
+        response = await handlePost(request, env);
+    } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+    }
+
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+        response.headers.set(key, value);
+    });
+
+    return response;
 }

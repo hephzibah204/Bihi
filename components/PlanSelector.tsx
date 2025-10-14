@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiGetPlatformSettings, apiGetSchoolSettings, apiUpdateSubscription } from '../services/api';
+import { apiGetPlatformSettings, apiGetSchoolSettings, apiUpdateTenantSubscription } from '../services/api';
 import { supabase } from '../services/supabaseClient';
 import { Plan } from '../types';
 import CheckIcon from './icons/CheckIcon';
@@ -77,7 +77,7 @@ const PlanSelector: React.FC<PlanSelectorProps> = ({ isSubscribed, planName }) =
             callback: async (response) => {
                 if (response.status === 'success') {
                     try {
-                        await apiUpdateSubscription(plan.id);
+                        await apiUpdateTenantSubscription(plan.id, billingCycle);
                         alert('Subscription successful! The page will now reload to apply your new plan.');
                         window.location.reload();
                     } catch (error) {

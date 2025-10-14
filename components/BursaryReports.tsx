@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiGetPayments, apiGetExpenses } from '../services/api';
+import { apiGetInvoices, apiGetExpenses, apiGetPayrollRuns, apiGetIncome } from '../services/api';
 
 const BursaryReports = () => {
     const [reportData, setReportData] = useState({ income: 0, expenses: 0 });
@@ -9,16 +9,29 @@ const BursaryReports = () => {
         const generateReport = async () => {
             setLoading(true);
             try {
-                const [payments, expenses] = await Promise.all([
-                    apiGetPayments(),
-                    apiGetExpenses()
+                // Fetch all relevant financial data
+                const [invoices, manualExpenses, payrollRuns, otherIncomeData] = await Promise.all([
+                    apiGetInvoices(),
+                    apiGetExpenses(),
+                    apiGetPayrollRuns(),
+                    apiGetIncome(),
                 ]);
 
-                // Simple report for all time
-                const income = payments.filter(p => p.status === 'verified').reduce((sum, p) => sum + p.amount, 0);
-                const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+                // Calculate total income from all paid amounts on invoices and other income sources
+                const feeIncome = invoices.reduce((sum, inv) => sum + inv.amountPaid, 0);
+                const otherIncome = otherIncomeData.reduce((sum, inc) => sum + inc.amount, 0);
+                const totalIncome = feeIncome + otherIncome;
+                
+                // Calculate total expenses from both manual entries and payroll runs
+                const totalManualExpenses = manualExpenses
+                    .filter(exp => exp.category !== 'payroll') // Avoid double-counting if an old payroll was manually entered
+                    .reduce((sum, e) => sum + e.amount, 0);
+                
+                const totalPayrollExpenses = payrollRuns.reduce((sum, run) => sum + run.totalNet, 0);
+                
+                const totalExpenses = totalManualExpenses + totalPayrollExpenses;
 
-                setReportData({ income, expenses: totalExpenses });
+                setReportData({ income: totalIncome, expenses: totalExpenses });
             } catch (error) {
                 console.error("Failed to generate report:", error);
             } finally {

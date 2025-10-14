@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 // Fix: Corrected import path for supabase client
 import { supabase } from '../services/supabaseClient';

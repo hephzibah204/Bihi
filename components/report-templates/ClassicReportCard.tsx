@@ -3,7 +3,7 @@ import { calculateGrade, calculateOverallPerformance } from '../../utils/reportC
 import ReportCardHeader from './ReportCardHeader';
 import ReportCardFooter from './ReportCardFooter';
 
-const ClassicReportCard = ({ student, students, scores, subjects, settings, term, session, remarks }) => {
+const ClassicReportCard = ({ student, students, scores, subjects, settings, term, session, remarks, attendance }) => {
     if (!student || !settings) return null;
 
     const studentScores = scores.filter(s => s.studentId === student.id && s.term === term && s.session === session);
@@ -57,11 +57,11 @@ const ClassicReportCard = ({ student, students, scores, subjects, settings, term
             </table>
              <div className="mt-6">
                 <h3 className="font-bold text-md mb-2">General Comment</h3>
-                <p className="text-sm p-2 border rounded-md min-h-[40px]">{generalRemark || ''}</p>
+                <div className="text-sm p-2 border rounded-md min-h-[40px] prose-content" dangerouslySetInnerHTML={{ __html: generalRemark || '' }} />
             </div>
             <div className="mt-auto pt-8">
                 {/* Fix: Pass principalName prop to ReportCardFooter to resolve missing property error. */}
-                <ReportCardFooter principalName={settings.reportCardSettings.principalName} />
+                <ReportCardFooter principalName={settings.reportCardSettings?.principalName} />
             </div>
         </div>
     );

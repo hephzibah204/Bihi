@@ -58,7 +58,7 @@ const StudentDashboardContent = ({ activeView, setActiveView, demoUserId }: Stud
                                 <p className="text-gray-500 mt-1">Have a real-time voice conversation about any topic.</p>
                             </div>
                         </div>
-                        <button onClick={() => setActiveView(STUDENT_VIEWS.AI_TUTOR)} className="btn btn-primary w-full md:w-auto">
+                        <button onClick={() => setActiveView(STUDENT_VIEWS.AI_TUTOR as StudentView)} className="btn btn-primary w-full md:w-auto">
                            Start Session
                         </button>
                     </div>

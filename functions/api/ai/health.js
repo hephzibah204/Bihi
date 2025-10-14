@@ -1,53 +1,40 @@
 // functions/api/ai/health.js
 
-function getCorsHeaders(request) {
-    const origin = request.headers.get('Origin') || '';
+const allowedOriginPatterns = [
+    /^https?:\/\/localhost(:\d+)?$/,
+    /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
+    /^https:\/\/reportsheet\.com\.ng$/,
+    /^https:\/\/.+\.reportsheet\.com\.ng$/,
+    /^https:\/\/reportsheet\.pages\.dev$/,
+    /^https:\/\/.+\.pages\.dev$/,
+    /^https:\/\/([a-z0-9-]+\.)?aistudio\.google\.com$/,
+    /^https:\/\/.+\.googleusercontent\.com$/,
+    /^https:\/\/.+\.web\.app$/,
+    /^https:\/\/.*\.google\.internal$/,
+];
 
-    // Define allowed origin patterns. This is more robust and explicit.
-    const allowedOriginPatterns = [
-        // Local development
-        /^http:\/\/localhost:\d+$/,
-        /^http:\/\/127\.0\.0\.1:\d+$/,
-        
-        // Production domains
-        /^https:\/\/reportsheet\.com\.ng$/,      // Root domain
-        /^https:\/\/.+\.reportsheet\.com\.ng$/,    // Subdomains e.g., www. or demo.
-
-        // Preview/Staging domains
-        /^https:\/\/reportsheet\.pages\.dev$/,   // Root preview domain
-        /^https:\/\/.+\.pages\.dev$/,             // Any other pages.dev URL (covers branches)
-
-        // External services
-        /\.aistudio\.google\.com$/,
-    ];
-
-    let isOriginAllowed = false;
-    for (const pattern of allowedOriginPatterns) {
-        if (pattern.test(origin)) {
-            isOriginAllowed = true;
-            break;
-        }
-    }
-    
-    return {
-        'Access-Control-Allow-Origin': isOriginAllowed ? origin : '',
-        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Demo-Mode',
+function handleCors(request) {
+    const origin = request.headers.get("Origin");
+    const headers = {
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Demo-Mode",
     };
+    let isAllowed = false;
+
+    if (origin && allowedOriginPatterns.some((p) => p.test(origin))) {
+        headers["Access-Control-Allow-Origin"] = origin;
+        isAllowed = true;
+    }
+
+    if (request.method === "OPTIONS") {
+        return { response: new Response(null, { headers }), corsHeaders: headers, isAllowed };
+    }
+
+    return { response: null, corsHeaders: headers, isAllowed };
 }
 
-
-/**
- * Handles GET requests to check the health of the AI service.
- * This endpoint is public and uses a wildcard CORS policy for simple diagnostics.
- */
-export async function onRequestGet({ request, env }) {
-    const corsHeaders = getCorsHeaders(request);
-    const responseHeaders = { ...corsHeaders, 'Content-Type': 'application/json' };
-
-    if (!corsHeaders['Access-Control-Allow-Origin']) {
-        return new Response(JSON.stringify({ error: 'Forbidden: Invalid Origin' }), { status: 403, headers: corsHeaders });
-    }
+async function handleGet(request, env) {
+    const responseHeaders = { 'Content-Type': 'application/json' };
 
     if (env.API_KEY && env.API_KEY.startsWith("AIza")) {
         return new Response(
@@ -64,11 +51,28 @@ export async function onRequestGet({ request, env }) {
     );
 }
 
-/**
- * Handles OPTIONS requests for CORS preflight.
- */
-export async function onRequestOptions({ request }) {
-    return new Response(null, { 
-        headers: getCorsHeaders(request)
+export async function onRequest(context) {
+    const { request, env } = context;
+    const { response: corsResponse, corsHeaders, isAllowed } = handleCors(request);
+
+    if (corsResponse) {
+        return corsResponse;
+    }
+
+    if (!isAllowed) {
+        return new Response(JSON.stringify({ error: "Forbidden: Invalid Origin" }), { status: 403 });
+    }
+
+    let response;
+    if (request.method === 'GET') {
+        response = await handleGet(request, env);
+    } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+    }
+    
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+        response.headers.set(key, value);
     });
+
+    return response;
 }

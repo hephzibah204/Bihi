@@ -1,134 +1,177 @@
-import React, { useState, useEffect } from 'react';
-import { apiGetInvoices, apiGetPayments, apiGetStudents, apiUpsertInvoice, apiUpsertPayment } from '../services/api';
-import { Invoice, Payment, Student } from '../types';
+import React, { useState, useEffect, useMemo } from 'react';
+import { apiGetPayments, apiUpsertPayment, apiGetInvoices, apiUpsertInvoice, apiGetStudents } from '../services/api';
+import { Payment, Invoice, Student } from '../types';
 import { formatDate } from '../utils/dateHelpers';
 import Modal from './Modal';
-import SpinnerIcon from '../icons/SpinnerIcon';
+import SpinnerIcon from './icons/SpinnerIcon';
+import TableSkeleton from './skeletons/TableSkeleton';
+import BulkFinancialsPrintView from './BulkFinancialsPrintView';
+import { useTenant } from '../contexts/TenantContext';
+import PrinterIcon from './icons/PrinterIcon';
+import AnimatedCheckbox from './AnimatedCheckbox';
 
 const BursaryVerifyPayments = () => {
-    const [pending, setPending] = useState<{ invoice: Invoice, payment: Payment }[]>([]);
+    const [allPayments, setAllPayments] = useState<Payment[]>([]);
+    const [invoices, setInvoices] = useState<Map<string, Invoice>>(new Map());
     const [students, setStudents] = useState<Map<string, Student>>(new Map());
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
-    const [verifyingItem, setVerifyingItem] = useState<{ invoice: Invoice, payment: Payment } | null>(null);
-    const [isProcessing, setIsProcessing] = useState(false);
+    const [verifyingId, setVerifyingId] = useState<string | null>(null);
+    const [viewingProof, setViewingProof] = useState<string | null>(null);
+    const [filterStatus, setFilterStatus] = useState<'pending' | 'verified' | 'all'>('pending');
+    const [selectedPayments, setSelectedPayments] = useState<Set<string>>(new Set());
+    const [isPrintView, setIsPrintView] = useState(false);
+    const { settings } = useTenant();
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [allInvoices, allPayments, allStudents] = await Promise.all([
-                apiGetInvoices(),
+            const [paymentsData, invoicesData, studentsData] = await Promise.all([
                 apiGetPayments(),
-                apiGetStudents()
+                apiGetInvoices(),
+                apiGetStudents(),
             ]);
-            
-            const studentMap = new Map(allStudents.map(s => [s.id, s]));
-            setStudents(studentMap);
-
-            const pendingPayments = allPayments.filter(p => p.status === 'pending');
-            const itemsToVerify = pendingPayments.map(payment => {
-                const invoice = allInvoices.find(inv => inv.id === payment.invoiceId);
-                return invoice ? { invoice, payment } : null;
-            }).filter(Boolean);
-            
-            setPending(itemsToVerify);
-        } catch (err) {
-            setError('Failed to load payments for verification.');
+            setAllPayments(paymentsData.sort((a,b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime()));
+            setInvoices(new Map(invoicesData.map(i => [i.id, i])));
+            setStudents(new Map(studentsData.map(s => [s.id, s])));
+        } catch (error) {
+            console.error("Failed to load data for verification:", error);
         } finally {
             setLoading(false);
         }
     };
-    
+
     useEffect(() => {
         fetchData();
     }, []);
+    
+    const filteredPayments = useMemo(() => {
+        if (filterStatus === 'all') return allPayments;
+        return allPayments.filter(p => p.status === filterStatus);
+    }, [allPayments, filterStatus]);
 
-    const handleAction = async (action: 'approve' | 'reject') => {
-        if (!verifyingItem) return;
-        setIsProcessing(true);
-
-        const { invoice, payment } = verifyingItem;
-        
+    const handleVerify = async (payment: Payment) => {
+        setVerifyingId(payment.id);
         try {
-            if (action === 'approve') {
-                const newAmountPaid = invoice.amountPaid + payment.amount;
-                const newStatus = newAmountPaid >= invoice.totalAmount ? 'paid' : 'partially-paid';
-                
-                await Promise.all([
-                    apiUpsertInvoice({ ...invoice, status: newStatus, amountPaid: newAmountPaid }),
-                    apiUpsertPayment({ ...payment, status: 'verified' })
-                ]);
-            } else { // Reject
-                await Promise.all([
-                    apiUpsertInvoice({ ...invoice, status: invoice.amountPaid > 0 ? 'partially-paid' : 'unpaid' }),
-                    // In a real app, you might delete the payment record. Here we'll just update it.
-                    apiUpsertPayment({ ...payment, status: 'verified', amount: 0 }) // Effectively cancels it
-                ]);
-            }
-            setVerifyingItem(null);
-            fetchData(); // Refresh list
-        } catch (err) {
-            alert(`Action failed: ${err.message}`);
+            const invoice = invoices.get(payment.invoiceId);
+            if (!invoice) throw new Error("Associated invoice not found.");
+
+            // Update payment status
+            const updatedPayment = { ...payment, status: 'verified' as const, verifiedBy: 'Admin' };
+            await apiUpsertPayment(updatedPayment);
+
+            // Update invoice status and amount paid
+            const newAmountPaid = invoice.amountPaid + payment.amount;
+            const newStatus = newAmountPaid >= invoice.totalAmount ? 'paid' : 'partially-paid';
+            const updatedInvoice = { ...invoice, amountPaid: newAmountPaid, status: newStatus as any };
+            await apiUpsertInvoice(updatedInvoice);
+            
+            fetchData();
+
+        } catch (error) {
+            alert(`Failed to verify payment: ${error.message}`);
         } finally {
-            setIsProcessing(false);
+            setVerifyingId(null);
         }
     };
+    
+    const handleSelectPayment = (paymentId: string, isSelected: boolean) => {
+        setSelectedPayments(prev => {
+            const newSet = new Set(prev);
+            isSelected ? newSet.add(paymentId) : newSet.delete(paymentId);
+            return newSet;
+        });
+    };
 
-    if (loading) return <div className="card p-6 text-center"><SpinnerIcon className="w-8 h-8 animate-spin mx-auto"/> Loading pending payments...</div>;
+    if (loading) return <TableSkeleton cols={5} />;
+    
+    if (isPrintView) {
+        return (
+            <BulkFinancialsPrintView
+                type="receipt"
+                items={allPayments.filter(p => selectedPayments.has(p.id))}
+                students={students}
+                invoices={invoices}
+                settings={settings}
+                onClose={() => setIsPrintView(false)}
+            />
+        );
+    }
 
     return (
         <div className="card">
             <div className="p-6">
-                 <h2 className="text-xl font-semibold">Verify Manual Payments</h2>
-                 <p className="text-sm text-gray-500 mt-1">Review and approve payments made via bank transfer or other manual methods.</p>
-                 <div className="table-container mt-4">
+                <div className="flex justify-between items-center">
+                    <h2 className="text-xl font-semibold">Verify & Manage Payments</h2>
+                     <div className="flex items-center gap-2">
+                        <div className="flex space-x-1 bg-gray-200 p-1 rounded-lg">
+                            <button onClick={() => setFilterStatus('pending')} className={`px-3 py-1.5 text-sm rounded-md ${filterStatus === 'pending' ? 'bg-white shadow' : ''}`}>Pending</button>
+                            <button onClick={() => setFilterStatus('verified')} className={`px-3 py-1.5 text-sm rounded-md ${filterStatus === 'verified' ? 'bg-white shadow' : ''}`}>Verified</button>
+                            <button onClick={() => setFilterStatus('all')} className={`px-3 py-1.5 text-sm rounded-md ${filterStatus === 'all' ? 'bg-white shadow' : ''}`}>All</button>
+                        </div>
+                        <button onClick={() => setIsPrintView(true)} className="btn btn-secondary" disabled={selectedPayments.size === 0}>
+                            <PrinterIcon className="w-5 h-5 mr-2" />
+                            Print ({selectedPayments.size})
+                        </button>
+                    </div>
+                </div>
+                <div className="table-container mt-4">
                     <table className="table">
-                        <thead><tr>
-                            <th className="th">Student</th>
-                            <th className="th">Invoice Date</th>
-                            <th className="th text-right">Amount Paid (₦)</th>
-                            <th className="th text-right">Actions</th>
-                        </tr></thead>
+                        <thead>
+                            <tr>
+                                <th className="th w-12"></th>
+                                <th className="th">Student</th>
+                                <th className="th text-right">Amount (₦)</th>
+                                <th className="th">Reference</th>
+                                <th className="th">Date Paid</th>
+                                <th className="th text-right">Actions</th>
+                            </tr>
+                        </thead>
                         <tbody>
-                            {pending.length > 0 ? pending.map(item => (
-                                <tr key={item.payment.id}>
-                                    <td className="td font-medium">{students.get(item.invoice.studentId)?.name || 'Unknown'}</td>
-                                    <td className="td">{formatDate(item.invoice.issueDate)}</td>
-                                    <td className="td text-right font-mono">{item.payment.amount.toLocaleString()}</td>
-                                    <td className="td text-right">
-                                        <button onClick={() => setVerifyingItem(item)} className="btn btn-secondary text-sm">Review</button>
-                                    </td>
+                            {filteredPayments.map(payment => {
+                                const student = students.get(payment.studentId);
+                                const isVerifying = verifyingId === payment.id;
+                                return (
+                                    <tr key={payment.id}>
+                                         <td className="td">
+                                            {payment.status === 'verified' && (
+                                                <AnimatedCheckbox
+                                                    checked={selectedPayments.has(payment.id)}
+                                                    onChange={(e) => handleSelectPayment(payment.id, e.target.checked)}
+                                                />
+                                            )}
+                                        </td>
+                                        <td className="td font-medium">{student?.name || 'N/A'}</td>
+                                        <td className="td text-right font-mono">{payment.amount.toLocaleString()}</td>
+                                        <td className="td">{payment.reference}</td>
+                                        <td className="td">{formatDate(payment.paymentDate)}</td>
+                                        <td className="td text-right space-x-2">
+                                            {payment.proofUrl && (
+                                                <button onClick={() => setViewingProof(payment.proofUrl)} className="btn btn-secondary text-sm">View Proof</button>
+                                            )}
+                                            {payment.status === 'pending' && (
+                                                <button onClick={() => handleVerify(payment)} disabled={isVerifying} className="btn btn-primary text-sm">
+                                                    {isVerifying ? <SpinnerIcon className="w-4 h-4 animate-spin"/> : 'Verify'}
+                                                </button>
+                                            )}
+                                        </td>
+                                    </tr>
+                                )
+                            })}
+                             {filteredPayments.length === 0 && (
+                                <tr>
+                                    <td colSpan={6} className="td text-center text-gray-500">No {filterStatus} payments found.</td>
                                 </tr>
-                            )) : (
-                                <tr><td colSpan={4} className="td text-center">No payments are pending verification.</td></tr>
                             )}
                         </tbody>
                     </table>
-                 </div>
+                </div>
             </div>
-            
-            {verifyingItem && (
-                <Modal isOpen={!!verifyingItem} onClose={() => setVerifyingItem(null)} title="Verify Payment">
-                    <div className="p-6 space-y-4">
-                        <div><label className="label">Student</label><p>{students.get(verifyingItem.invoice.studentId)?.name}</p></div>
-                        <div><label className="label">Amount</label><p>₦{verifyingItem.payment.amount.toLocaleString()}</p></div>
-                        <div><label className="label">Reference</label><p>{verifyingItem.payment.reference || 'Not provided'}</p></div>
-                        <div>
-                            <label className="label">Proof of Payment</label>
-                            <a href={verifyingItem.payment.proofUrl} target="_blank" rel="noopener noreferrer">
-                                <img src={verifyingItem.payment.proofUrl} alt="Proof of payment" className="max-w-full h-auto border rounded-md"/>
-                            </a>
-                        </div>
-                         <div className="flex justify-end pt-4 space-x-2">
-                            <button onClick={() => handleAction('reject')} disabled={isProcessing} className="btn btn-secondary bg-red-100 text-red-700">Reject</button>
-                            <button onClick={() => handleAction('approve')} disabled={isProcessing} className="btn btn-primary bg-green-600">
-                                {isProcessing && <SpinnerIcon className="w-4 h-4 mr-2 animate-spin"/>}
-                                Approve
-                            </button>
-                        </div>
-                    </div>
-                </Modal>
-            )}
+
+            <Modal isOpen={!!viewingProof} onClose={() => setViewingProof(null)} title="Payment Proof" size="lg">
+                <div className="p-4">
+                    <img src={viewingProof} alt="Proof of payment" className="max-w-full h-auto mx-auto" />
+                </div>
+            </Modal>
         </div>
     );
 };

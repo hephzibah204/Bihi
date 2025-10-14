@@ -48,14 +48,14 @@ export const getSubdomain = (): string | null => {
         }
     }
 
-    // 5. If on the absolute root path with no query parameters, never assume a demo tenant.
-    // This ensures the marketing page is always accessible, even if a demo flag is leftover in session.
-    if (window.location.pathname === '/' && window.location.search === '') {
+    // 5. If on the root path, it's the landing page. This now correctly ignores
+    // marketing query params (like ?utm_source) and takes precedence over the demo flag.
+    if (window.location.pathname === '/') {
         return null;
     }
 
-    // 6. If there are query params (like ?view=demo) or a different path,
-    // we can now safely check for the demo session flag.
+    // 6. Only if we are on an internal path (e.g., /dashboard), we check for a
+    // lingering demo session to correctly load the demo portal.
     if (sessionStorage.getItem('isDemoMode') === 'true') {
         return DEMO_TENANT_ID; // 'demo'
     }

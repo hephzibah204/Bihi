@@ -47,8 +47,8 @@ const StudentResults = ({ demoUserId }) => {
 
                 const studentScores = scores.filter(score => score.studentId === demoUserId);
                 
-                // Fix: Explicitly type `a` and `b` as strings in the sort function to resolve the `localeCompare` error on the `unknown` type.
-                const allSessions = [...new Set(studentScores.map(s => s.session))].sort((a: string, b: string) => b.localeCompare(a));
+                // Fix: Explicitly type `allSessions` as `string[]` to resolve the `unknown[]` type error when setting state.
+                const allSessions: string[] = [...new Set<string>(studentScores.map(s => s.session))].sort((a: string, b: string) => b.localeCompare(a));
                 const allTerms = ['First Term', 'Second Term', 'Third Term'];
                 setSessions(allSessions);
                 setTerms(allTerms);
@@ -155,96 +155,70 @@ const StudentResults = ({ demoUserId }) => {
                             {sessions.map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
                     </div>
-                    <div className="md:col-span-1">
+                    <div className="md:col-span-2">
                          <label className="label">Term</label>
-                         <select className="input-field" value={selectedTerm} onChange={e => setSelectedTerm(e.target.value)}>
-                            <option value="">All Terms</option>
-                            {terms.map(t => <option key={t} value={t}>{t}</option>)}
-                        </select>
+                         <div className="flex rounded-lg border">
+                            <button onClick={() => setSelectedTerm('')} className={`flex-1 p-2 text-sm rounded-l-md ${selectedTerm === '' ? 'bg-indigo-600 text-white' : 'bg-gray-100'}`}>All Terms</button>
+                            {terms.map(t => <button key={t} onClick={() => setSelectedTerm(t)} className={`flex-1 p-2 text-sm border-l ${selectedTerm === t ? 'bg-indigo-600 text-white' : 'bg-gray-100'}`}>{t}</button>)}
+                         </div>
                     </div>
                 </div>
             </div>
 
             <div className="space-y-4">
-                {filteredTerms.length > 0 ? filteredTerms.map(termKey => {
+                {filteredTerms.map(termKey => {
+                    const isOpen = expandedTermKey === termKey;
                     const summary = termSummaries[termKey];
-                    const isExpanded = expandedTermKey === termKey;
                     return (
-                        <div key={termKey} className="card overflow-hidden transition-all duration-300">
-                            <button
-                                onClick={() => setExpandedTermKey(isExpanded ? null : termKey)}
-                                className="w-full text-left p-4 flex justify-between items-center hover:bg-gray-50 focus:outline-none"
-                                aria-expanded={isExpanded}
-                            >
-                                <div>
-                                    <h2 className="text-lg font-semibold">{termKey}</h2>
-                                    {summary && (
-                                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600 mt-1">
-                                            <span>Avg: <strong>{summary.average}%</strong></span>
-                                            <span>Position: <strong>{summary.position} of {summary.totalStudentsInClass}</strong></span>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="flex items-center space-x-2 md:space-x-4">
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); handleViewReport(termKey); }}
-                                        className="btn btn-secondary text-sm py-1.5 px-3"
-                                    >
-                                        View Report
-                                    </button>
-                                    <ChevronDownIcon className={`w-6 h-6 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                        <div key={termKey} className="card">
+                            <button onClick={() => setExpandedTermKey(isOpen ? null : termKey)} className="w-full text-left p-4">
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <h3 className="font-semibold text-lg">{termKey}</h3>
+                                        {summary && <p className="text-sm text-gray-500">Average: {summary.average}% &middot; Position: {summary.position}/{summary.totalStudentsInClass}</p>}
+                                    </div>
+                                    <ChevronDownIcon className={`w-6 h-6 transition-transform ${isOpen ? 'transform rotate-180' : ''}`} />
                                 </div>
                             </button>
-
-                            {isExpanded && (
-                                <div className="table-container border-t">
-                                    <table className="table">
-                                        <thead>
-                                            <tr>
-                                                <th className="th">Subject</th>
-                                                <th className="th text-center">Total Score</th>
-                                                <th className="th">Remark</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {allResults[termKey].map((res, index) => (
-                                                <tr key={index}>
-                                                    <td className="td font-medium">
-                                                        <div className="truncate max-w-xs md:max-w-sm" title={res.subjectName}>{res.subjectName}</div>
-                                                    </td>
-                                                    <td className="td text-center">{res.total}</td>
-                                                    <td className="td">{res.remark}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                            {isOpen && (
+                                <div className="p-4 border-t">
+                                    <div className="table-container">
+                                        <table className="table">
+                                            <thead><tr><th className="th">Subject</th><th className="th text-center">Score</th><th className="th text-center">Grade</th></tr></thead>
+                                            <tbody>
+                                                {allResults[termKey].map(res => (
+                                                    <tr key={res.subjectName}>
+                                                        <td className="td">{res.subjectName}</td>
+                                                        <td className="td text-center">{res.total}</td>
+                                                        <td className="td text-center">{res.grade}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div className="text-right mt-4">
+                                        <button onClick={() => handleViewReport(termKey)} className="btn btn-secondary">View Full Report Card</button>
+                                    </div>
                                 </div>
                             )}
                         </div>
                     );
-                }) : (
-                    <div className="card mt-6 p-6 text-center">No results found for the selected filter.</div>
-                )}
+                })}
             </div>
 
-            {selectedTermData && student && (
-                <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={`Report Card for ${selectedTermData.term}`} size="full">
-                    <div className="bg-gray-100 p-4 md:p-8 flex flex-col items-center">
-                        <div className="printable-content bg-white shadow-lg">
-                           {ReportCardComponent && <ReportCardComponent
+            {isModalOpen && selectedTermData && ReportCardComponent && (
+                <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={`Report Card`} size="full">
+                     <div className="bg-gray-100 p-4 md:p-8 flex flex-col items-center printable-content">
+                        <div id="report-card-modal" className="bg-white shadow-lg">
+                            <ReportCardComponent
                                 student={student}
-                                students={allData.students}
-                                scores={allData.scores}
-                                subjects={allData.subjects}
-                                settings={allData.settings}
-                                term={selectedTermData.term}
+                                {...allData}
                                 session={selectedTermData.session}
-                                remarks={allData.remarks}
-                                attendance={allData.attendance}
-                            />}
+                                term={selectedTermData.term}
+                            />
                         </div>
-                        <div className="no-print mt-8">
-                             <button onClick={() => window.print()} className="btn btn-primary">
+                         <div className="no-print mt-8">
+                            <button onClick={() => window.print()} className="btn btn-primary">
                                 <PrinterIcon className="w-5 h-5 mr-2" />
                                 Print Report
                             </button>
