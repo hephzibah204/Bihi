@@ -45,7 +45,7 @@ const AppRouter = () => {
     return (
         <Suspense fallback={<FullPageLoader />}>
             <Routes>
-                <Route path="/" element={<LandingPage content={platformSettings.landingPageContent} menuItems={platformSettings.menus?.header} />} />
+                <Route path="/" element={<LandingPage content={platformSettings?.landingPageContent} menuItems={platformSettings?.menus?.header} />} />
                 <Route path="/demo" element={<DemoPage />} />
                 <Route path="/signup" element={<SubscriptionPage />} />
                 <Route path="/signin" element={<CentralLoginPage />} />

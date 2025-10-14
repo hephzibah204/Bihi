@@ -185,25 +185,15 @@ const AIAcademicTutor = ({ demoUserId }) => {
     };
 
     useEffect(() => {
-        const initialize = async () => {
+        const initialize = () => {
             setStatus('initializing');
             setErrorMessage('');
             try {
-                const isDemo = sessionStorage.getItem('isDemoMode') === 'true';
-                if (!session && !isDemo) throw new Error("User not authenticated.");
-                
-                const headers: HeadersInit = {};
-                if (isDemo) headers['X-Demo-Mode'] = 'true';
-                else if (session) headers['Authorization'] = `Bearer ${session.access_token}`;
-
-                const response = await fetch('/api/ai/client-key', { headers });
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Failed to fetch AI configuration.');
+                // Per coding guidelines, the API key must be sourced directly from the environment.
+                if (!process.env.API_KEY) {
+                    throw new Error('AI API key is not configured in the environment.');
                 }
-                const { key } = await response.json();
-                if (!key) throw new Error('Server did not provide an API key.');
-                aiRef.current = new GoogleGenAI({ apiKey: key });
+                aiRef.current = new GoogleGenAI({ apiKey: process.env.API_KEY });
                 setStatus('idle');
             } catch (e) {
                 setErrorMessage(`AI Tutor is unavailable: ${e.message}`);
@@ -211,8 +201,8 @@ const AIAcademicTutor = ({ demoUserId }) => {
             }
         };
         initialize();
-        return () => cleanup(); // Full cleanup on component unmount
-    }, [session]);
+        return () => cleanup();
+    }, []);
 
     const startSession = async () => {
         if (status !== 'idle' || !aiRef.current) return;

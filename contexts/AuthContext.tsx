@@ -36,13 +36,16 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
     useEffect(() => {
         const initializeAuth = async () => {
             setLoading(true);
+            
             const sd = getSubdomain();
             setSubdomain(sd);
 
+            // Fetch platform-wide settings first
             const platform = await apiGetPlatformSettings();
             setPlatformSettings(platform);
 
-            if (sd && sd !== 'admin' && sd !== DEMO_TENANT_ID) {
+            // Validate tenant and fetch tenant-specific settings
+            if (sd && sd !== 'admin') {
                 const tenants = await apiGetTenants();
                 const isValid = tenants.some(t => t.id === sd);
                 setIsValidTenant(isValid);
@@ -50,12 +53,14 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
                     setLoading(false);
                     return;
                 }
+                const schoolSettings = await apiGetSchoolSettings(sd);
+                setSettings(schoolSettings);
             }
 
+            // Set up auth listeners
             const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
                 setSession(session);
                 if (!session) {
-                    // Check for student/parent demo session
                     const activeUserSession = sessionStorage.getItem('activeUser');
                     if (activeUserSession) {
                         const parsedUser = JSON.parse(activeUserSession);
@@ -74,8 +79,8 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
                     }
                 }
             });
-            
-            // Initial session check
+
+            // Check initial session state
             const { data: { session: initialSession } } = await supabase.auth.getSession();
             setSession(initialSession);
             if (!initialSession) {
@@ -93,25 +98,17 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
                     setRole(currentUser.role);
                 }
             }
+            
+            // All initial async operations are done
+            setLoading(false);
 
             return () => {
                 subscription.unsubscribe();
             };
         };
+
         initializeAuth();
     }, []);
-
-    useEffect(() => {
-        const fetchTenantSettings = async () => {
-            if (subdomain) {
-                const schoolSettings = await apiGetSchoolSettings(subdomain);
-                setSettings(schoolSettings);
-            }
-            // Only set loading to false after all async operations are done
-            if(subdomain !== null) setLoading(false);
-        };
-        fetchTenantSettings();
-    }, [subdomain]);
 
     const logout = async () => {
         sessionStorage.removeItem('activeUser');
