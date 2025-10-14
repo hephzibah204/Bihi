@@ -10,6 +10,7 @@ import { usePlanFeatures } from '../contexts/PlanFeaturesContext';
 import SparklesIcon from './icons/SparklesIcon';
 import { ADMIN_VIEWS } from '../utils/constants';
 import PlanSelector from './PlanSelector';
+import DataChampionsWidget from './DataChampionsWidget';
 
 const DashboardHome = ({ setActiveView }: { setActiveView: (view: DashboardView) => void }) => {
     const { isSubscribed, planName, isLoading } = usePlanFeatures();
@@ -58,7 +59,10 @@ const DashboardHome = ({ setActiveView }: { setActiveView: (view: DashboardView)
                             </button>
                         ))}
                     </div>
-                    <RecentActivityWidget />
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <RecentActivityWidget />
+                        <DataChampionsWidget />
+                    </div>
                 </>
             ) : (
                 renderSubscriptionPrompt()

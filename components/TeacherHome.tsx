@@ -18,20 +18,6 @@ import TrophyIcon from './icons/TrophyIcon';
 import CheckBadgeIcon from './icons/CheckBadgeIcon';
 import ArrowTrendingUpIcon from './icons/ArrowTrendingUpIcon';
 
-
-const TeacherOfTheMonthWidget = ({ teacherName }) => (
-    <div className="card bg-gradient-to-br from-yellow-300 to-orange-400 text-white p-6 rounded-xl shadow-lg">
-        <div className="flex items-center space-x-4">
-            <TrophyIcon className="w-16 h-16 flex-shrink-0" />
-            <div>
-                <h3 className="text-2xl font-bold">Data Champion!</h3>
-                <p className="font-semibold text-yellow-100">Congratulations, {teacherName}!</p>
-                <p className="text-sm text-yellow-200 mt-1">For your outstanding commitment to timely and accurate record-keeping.</p>
-            </div>
-        </div>
-    </div>
-);
-
 interface BadgeProps {
     icon: React.ReactNode;
     title: string;
@@ -172,10 +158,6 @@ const TeacherHome = ({ setActiveView }: { setActiveView: (view: TeacherView) => 
         <div>
             <h1 className="text-2xl font-semibold text-gray-700">Welcome, {teacherName}!</h1>
             <p className="mt-1 text-gray-600">Here's what's happening today.</p>
-
-            <div className="mt-6">
-                 <TeacherOfTheMonthWidget teacherName={teacherName} />
-            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
                 {/* Main content area */}
