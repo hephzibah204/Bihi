@@ -193,7 +193,7 @@ const DatabaseStatus = ({ metrics }: { metrics: SystemMetrics }) => {
 };
 
 // Network Traffic Component
-const NetworkTraffic = ({ network }: { network: { inbound: number; outbound: number } }) => {
+export const NetworkTraffic = ({ network }: { network: { inbound: number; outbound: number } }) => {
     return (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
             <h3 className="text-lg font-semibold text-slate-900 mb-4">Network Traffic</h3>

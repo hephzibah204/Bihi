@@ -39,10 +39,13 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
             const sd = getSubdomain();
             setSubdomain(sd);
 
+            // Skip tenant validation for Super Admin routes
+            const isControlHub = typeof window !== 'undefined' && window.location.pathname.startsWith('/controlhub');
+
             const platform = await apiGetPlatformSettings();
             setPlatformSettings(platform);
 
-            if (sd && sd !== 'admin' && sd !== DEMO_TENANT_ID) {
+            if (sd && sd !== 'admin' && sd !== DEMO_TENANT_ID && !isControlHub) {
                 try {
                     const tenants = await apiGetTenants();
                     const isValid = tenants.some(t => {
@@ -117,7 +120,10 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
 
     useEffect(() => {
         const fetchTenantSettings = async () => {
-            if (subdomain) {
+            // Skip tenant settings fetch for Super Admin routes
+            const isControlHub = typeof window !== 'undefined' && window.location.pathname.startsWith('/controlhub');
+            
+            if (subdomain && !isControlHub) {
                 const schoolSettings = await apiGetSchoolSettings(subdomain);
                 setSettings(schoolSettings);
             }

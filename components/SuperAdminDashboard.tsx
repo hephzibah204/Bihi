@@ -2,6 +2,7 @@ import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { supabase } from '../services/supabaseClient';
 import SuperAdminLoginPage from './SuperAdminLoginPage';
 import { ADMIN_VIEWS } from '../utils/constants';
+import ConnectionStatusBar from './ConnectionStatusBar';
 
 // Lazy load components
 const SuperAdminOverview = lazy(() => import('./SuperAdmin/SuperAdminOverview'));
@@ -419,6 +420,16 @@ const SuperAdminDashboard = () => {
             />
             
             <div className="flex-1 flex flex-col min-w-0">
+                {/* Connection Status Bar */}
+                <div className="bg-white border-b border-slate-200">
+                    <div className="px-6">
+                        <ConnectionStatusBar 
+                            className="py-2" 
+                            showDetails={true} 
+                        />
+                    </div>
+                </div>
+                
                 <SuperAdminHeader activeView={activeView} onLogout={handleLogout} />
                 
                 <main className="flex-1 p-6 overflow-y-auto">

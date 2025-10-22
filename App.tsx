@@ -2,7 +2,6 @@ import { lazy, Suspense, PropsWithChildren, useEffect } from 'react';
 import { Routes, Route, useParams, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import GlobalSuccessNotification from './components/GlobalSuccessNotification';
-import ConnectionStatusBar from './components/ConnectionStatusBar';
 import { getConnectionManager } from './utils/connectionManager';
 
 // Lazy load components
@@ -53,7 +52,14 @@ const TenantRouter = () => {
 const AppRouter = () => {
     const { loading, isValidTenant, subdomain, platformSettings } = useAuth();
     
-    // Check for demo mode first - this takes precedence over other routing
+    // Check for Super Admin route first - this takes highest precedence
+    const isControlHub = typeof window !== 'undefined' && window.location.pathname.startsWith('/controlhub');
+    
+    if (isControlHub) {
+        return <Suspense fallback={<FullPageLoader />}><SuperAdminDashboard /></Suspense>;
+    }
+    
+    // Check for demo mode - this takes precedence over other routing
     const isDemoMode = typeof window !== 'undefined' && 
         (sessionStorage.getItem('isDemoMode') === 'true' || 
          localStorage.getItem('isDemoMode') === 'true');
@@ -118,21 +124,7 @@ const App = () => {
     const AppWrapper = ({ children }: PropsWithChildren) => (
         <AuthProvider>
             <div className="min-h-screen bg-gray-50">
-                {/* Connection Status Bar - Fixed at top */}
-                <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <ConnectionStatusBar 
-                            className="py-2" 
-                            showDetails={true} 
-                        />
-                    </div>
-                </div>
-                
-                {/* Main content with top padding to account for fixed status bar */}
-                <div className="pt-16">
-                    {children}
-                </div>
-                
+                {children}
                 <GlobalSuccessNotification />
             </div>
         </AuthProvider>

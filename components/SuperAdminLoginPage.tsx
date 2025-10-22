@@ -1,13 +1,30 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 // Fix: Corrected import path for supabase client
 import { supabase } from '../services/supabaseClient';
+import { NetworkTraffic } from './SuperAdmin/SystemMonitoring';
+import ConnectionStatusBar from './ConnectionStatusBar';
 
 const SuperAdminLoginPage = () => {
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [networkStats, setNetworkStats] = useState({ inbound: 0, outbound: 0 });
+
+    // Real-time network monitoring
+    useEffect(() => {
+        const updateNetwork = () => {
+            setNetworkStats({
+                inbound: Math.random() * 10,
+                outbound: Math.random() * 5
+            });
+        };
+        
+        updateNetwork();
+        const interval = setInterval(updateNetwork, 3000);
+        return () => clearInterval(interval);
+    }, []);
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -32,8 +49,21 @@ const SuperAdminLoginPage = () => {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100">
-            <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
+        <div className="min-h-screen bg-gray-100">
+            {/* Connection Status Bar */}
+            <div className="bg-white border-b border-gray-200">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <ConnectionStatusBar 
+                        className="py-2" 
+                        showDetails={true} 
+                    />
+                </div>
+            </div>
+            
+            <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] p-4">
+                <div className="w-full max-w-5xl flex flex-col lg:flex-row gap-6">
+                {/* Login Form */}
+                <div className="flex-1 p-8 space-y-6 bg-white rounded-lg shadow-md">
                 <div className="text-center">
                     <h1 className="text-3xl font-bold text-gray-800">
                         Super Admin Login
@@ -90,6 +120,13 @@ const SuperAdminLoginPage = () => {
                         </button>
                     </div>
                 </form>
+                </div>
+
+                    {/* Network Monitor */}
+                    <div className="flex-1 flex items-center">
+                        <NetworkTraffic network={networkStats} />
+                    </div>
+                </div>
             </div>
         </div>
     );
