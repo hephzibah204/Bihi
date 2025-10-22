@@ -29,6 +29,7 @@ const GeneralRemarks = lazy(() => import('./GeneralRemarks'));
 const ResourceHub = lazy(() => import('./ResourceHub'));
 const DashboardKnowledgeBase = lazy(() => import('./DashboardKnowledgeBase'));
 const BillingDashboard = lazy(() => import('./BillingDashboard'));
+const BursaryDashboard = lazy(() => import('./BursaryDashboard'));
 
 interface DashboardContentProps {
     activeView: DashboardView;
@@ -41,7 +42,8 @@ interface DashboardContentProps {
 const DashboardContent: React.FC<DashboardContentProps> = ({ activeView, setActiveView, userRole, profileStudentId, onViewStudentProfile }) => {
     switch (activeView) {
         case ADMIN_VIEWS.DASHBOARD:
-            return <DashboardHome setActiveView={setActiveView} />;
+            // Show bursary KPIs for Bursar on Home
+            return userRole === 'Bursar' ? <BursaryDashboard /> : <DashboardHome setActiveView={setActiveView} />;
         case ADMIN_VIEWS.STUDENTS:
             return <Students onViewProfile={onViewStudentProfile} />;
         case ADMIN_VIEWS.STUDENT_PROFILE:
