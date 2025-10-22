@@ -63,10 +63,10 @@ const Dashboard = () => {
     }, [loading, role, hasCompletedOnboarding, isDemoMode]);
 
     useEffect(() => {
-        if (!loading && !session && !user && isDemoSubdomain) {
+        if (!loading && !session && !user && isDemoSubdomain && !isDemoMode) {
             navigate('/demo');
         }
-    }, [loading, session, user, isDemoSubdomain, navigate]);
+    }, [loading, session, user, isDemoSubdomain, isDemoMode, navigate]);
     
     useEffect(() => {
         let title = 'Dashboard';

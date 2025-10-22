@@ -57,11 +57,15 @@ class AIService {
   }
 
   private getGeminiApiKey(): string | undefined {
-    if (typeof window !== 'undefined') {
-      return import.meta.env?.GEMINI_API_KEY || 
-             window.process?.env?.GEMINI_API_KEY;
+    // Check process.env first (mapped from GEMINI_API_KEY in vite.config.ts)
+    if (typeof process !== 'undefined' && process.env?.GEMINI_API_KEY) {
+      return process.env.GEMINI_API_KEY;
     }
-    return process.env?.GEMINI_API_KEY;
+    // Fallback to import.meta.env for direct Vite env access
+    if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY) {
+      return import.meta.env.VITE_GEMINI_API_KEY;
+    }
+    return undefined;
   }
 
   private initializeFallbackResponses() {
