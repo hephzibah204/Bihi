@@ -2,13 +2,14 @@
 import React, { useState } from 'react';
 import { SemanticCacheWidget } from '@/components/ai/SemanticCacheWidget';
 import { HuggingFaceConfigPanel } from '@/components/ai/HuggingFaceConfigPanel';
+import AIServiceTester from '@/components/AIServiceTester';
 import { 
     getTrainingDataExporter, 
     generateTrainingDataReport 
 } from '@/services/trainingDataExport';
 
 export default function AISystemDashboard() {
-    const [activeTab, setActiveTab] = useState<'overview' | 'config' | 'export'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'config' | 'export' | 'testing'>('testing');
     const [exportFormat, setExportFormat] = useState<'jsonl' | 'csv' | 'huggingface' | 'openai'>('jsonl');
     const [minQuality, setMinQuality] = useState(0.7);
     const [exportStatus, setExportStatus] = useState<string | null>(null);
@@ -87,6 +88,16 @@ export default function AISystemDashboard() {
                             }`}
                         >
                             Training Data Export
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('testing')}
+                            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                                activeTab === 'testing'
+                                    ? 'border-blue-500 text-blue-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            }`}
+                        >
+                            Testing
                         </button>
                     </nav>
                 </div>
@@ -323,6 +334,11 @@ export default function AISystemDashboard() {
                         </div>
                     </div>
                 )}
+            {activeTab === 'testing' && (
+                <div className="grid grid-cols-1 gap-6">
+                    <AIServiceTester />
+                </div>
+            )}
             </div>
         </div>
     );

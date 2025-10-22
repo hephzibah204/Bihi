@@ -7,11 +7,20 @@ import { initSupabase } from './services/supabaseClient';
 import { getSubdomain } from './utils/subdomain';
 import { DEMO_TENANT_ID } from './utils/demoData';
 import { getAIService } from './services/aiService';
+import { initializeSemanticCache } from './services/semanticSearchUtils';
 
 const main = async () => {
     // Initialize Supabase before rendering the app. This ensures the `supabase`
     // client object is available for synchronous imports in other components.
     await initSupabase();
+
+    // Initialize semantic cache for offline AI fallback
+    try {
+      initializeSemanticCache();
+      console.log('✓ Semantic cache initialized for offline AI fallback');
+    } catch (e) {
+      console.warn('Semantic cache init failed:', e);
+    }
 
     // Initialize AI service early to enable connection monitoring
     try {

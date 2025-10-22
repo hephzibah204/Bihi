@@ -2,14 +2,14 @@ import React from 'react';
 
 const ReportCardFooter = ({ principalName }) => {
   return (
-    <div className="mt-8 pt-4 border-t-2 border-gray-300 flex justify-between text-xs">
+    <div className="mt-10 pt-6 border-t border-gray-300 grid grid-cols-2 gap-8 text-sm">
       <div>
-        <p className="font-bold">_________________________</p>
-        <p className="mt-1">{principalName || "Principal's Signature"}</p>
+        <div className="h-10 border-b border-gray-400"></div>
+        <p className="mt-2 text-gray-700">{principalName || "Principal's Signature"}</p>
       </div>
       <div>
-        <p className="font-bold">_________________________</p>
-        <p className="mt-1">Class Teacher's Signature</p>
+        <div className="h-10 border-b border-gray-400"></div>
+        <p className="mt-2 text-gray-700">Class Teacher's Signature</p>
       </div>
     </div>
   );

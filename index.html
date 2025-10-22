@@ -115,9 +115,34 @@
             .countdown-timer .value { @apply font-bold text-2xl bg-white/20 px-2 py-1 rounded; }
             .countdown-timer .label { @apply text-xs mt-1; }
 
-            /* Production Accessibility Enhancement */
-            *:focus-visible {
-                @apply ring-2 ring-offset-2 ring-indigo-500;
+            @layer utilities {
+                /* Print utilities and report card theming */
+                .no-print { @apply hidden print:hidden; }
+                .printable-content { @apply max-w-[210mm] mx-auto my-6 p-6 bg-white shadow-xl rounded-xl; }
+                .report-card-a4-size { width: 210mm; min-height: 297mm; }
+                .report-card-layout { @apply relative bg-white rounded-xl ring-1 ring-gray-200; }
+                .report-card-layout::before {
+                  content: '';
+                  position: absolute;
+                  inset: 0;
+                  border: 8px solid rgba(79,70,229,0.08);
+                  border-radius: 12px;
+                  pointer-events: none;
+                }
+                .report-card-layout table { border-collapse: collapse; }
+                .report-card-layout thead { background-color: rgba(79,70,229,0.08); }
+                .report-card-layout th, .report-card-layout td { border: 1px solid rgba(148,163,184,0.5); }
+                .report-card-layout tbody tr:nth-child(even) { background-color: rgba(99,102,241,0.04); }
+                .report-card-layout h1, .report-card-layout h2, .report-card-layout h3 { @apply tracking-wide; }
+                .prose-content { @apply leading-relaxed text-gray-700; }
+
+                @media print {
+                  .no-print { display: none !important; }
+                  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                  @page { size: A4; margin: 12mm; }
+                  .printable-content { box-shadow: none !important; margin: 0 auto !important; }
+                  .page-break { break-after: page; page-break-after: always; }
+                }
             }
         }
     </style>
