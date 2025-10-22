@@ -123,7 +123,17 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
             // Skip tenant settings fetch for Super Admin routes
             const isControlHub = typeof window !== 'undefined' && window.location.pathname.startsWith('/controlhub');
             
-            if (subdomain && !isControlHub) {
+            // Check for demo mode - skip tenant settings and mark as loaded immediately
+            const isDemoMode = typeof window !== 'undefined' && 
+                (sessionStorage.getItem('isDemoMode') === 'true' || 
+                 localStorage.getItem('isDemoMode') === 'true');
+            
+            if (isDemoMode || isControlHub) {
+                setLoading(false);
+                return;
+            }
+            
+            if (subdomain) {
                 const schoolSettings = await apiGetSchoolSettings(subdomain);
                 setSettings(schoolSettings);
             }

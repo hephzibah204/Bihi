@@ -73,6 +73,11 @@ export const getSubdomain = (): string | null => {
   const hostname = window.location.hostname;
   const pathname = window.location.pathname;
 
+  // 0. Check demo mode FIRST - highest priority
+  if (sessionStorage.getItem('isDemoMode') === 'true' || localStorage.getItem('isDemoMode') === 'true') {
+    return DEMO_TENANT_ID;
+  }
+
   // 1. Handle subdomain-based routing first (most common for production)
   // Check if hostname has subdomain and is a configured root domain
   for (const rootDomain of config.rootDomains) {
@@ -126,11 +131,6 @@ export const getSubdomain = (): string | null => {
   // 6. Handle preview domain
   if (config.previewDomain && hostname === config.previewDomain) {
     return null;
-  }
-
-  // 7. Demo mode check for internal paths
-  if (sessionStorage.getItem('isDemoMode') === 'true') {
-    return DEMO_TENANT_ID;
   }
 
   return null;
