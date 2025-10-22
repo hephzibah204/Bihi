@@ -106,7 +106,7 @@ const Dashboard = () => {
     }
 
     if (!session && !user) {
-        if (isDemoSubdomain) {
+        if (isDemoSubdomain && !isDemoMode) {
             return <div className="flex items-center justify-center h-screen">Redirecting to demo...</div>;
         }
         
@@ -127,33 +127,42 @@ const Dashboard = () => {
                 <TenantProvider>
                     <PlanFeaturesProvider>
                         <div className="flex h-screen bg-gray-100">
-                            <Sidebar 
-                                isSidebarOpen={isSidebarOpen} 
-                                setSidebarOpen={setSidebarOpen} 
-                                activeView={activeView}
-                                setActiveView={handleViewChange}
-                                userRole={USER_ROLES.ADMIN}
-                            />
-                            <div className="flex-1 flex flex-col overflow-hidden main-content-mobile-padding">
-                                <Header title={headerTitle} setSidebarOpen={setSidebarOpen} onLogout={logout} isSidebarOpen={isSidebarOpen} />
-                                <main className="flex-1 overflow-x-hidden overflow-y-auto">
-                                    <div className="container mx-auto px-6 py-8">
-                                        <Suspense fallback={<ContentLoader />}>
-                                            {activeView === ADMIN_VIEWS.MORE 
-                                                ? <MoreView setActiveView={handleViewChange} /> 
-                                                : <DashboardContent 
-                                                    activeView={activeView} 
-                                                    setActiveView={handleViewChange}
-                                                    userRole={USER_ROLES.ADMIN}
-                                                    onViewStudentProfile={handleViewStudentProfile}
-                                                    profileStudentId={profileStudentId}
-                                                />
-                                            }
-                                        </Suspense>
-                                    </div>
-                                </main>
-                            </div>
-                            <AdminBottomNavBar activeView={activeView} setActiveView={handleViewChange} userRole={USER_ROLES.ADMIN} />
+                            {(() => {
+                                const demoRole = localStorage.getItem('demoUserRole');
+                                const effectiveRole = demoRole === USER_ROLES.BURSAR ? USER_ROLES.BURSAR : USER_ROLES.ADMIN;
+                                return (
+                                    <>
+                                        <Sidebar 
+                                            isSidebarOpen={isSidebarOpen} 
+                                            setSidebarOpen={setSidebarOpen} 
+                                            activeView={activeView}
+                                            setActiveView={handleViewChange}
+                                            userRole={effectiveRole}
+                                        />
+                                        <div className="flex-1 flex flex-col overflow-hidden main-content-mobile-padding">
+                                            <Header title={headerTitle} setSidebarOpen={setSidebarOpen} onLogout={logout} isSidebarOpen={isSidebarOpen} />
+                                            <main className="flex-1 overflow-x-hidden overflow-y-auto">
+                                                <div className="container mx-auto px-6 py-8">
+                                                    <Suspense fallback={<ContentLoader />}>
+                                                        {activeView === ADMIN_VIEWS.MORE 
+                                                            ? <MoreView setActiveView={handleViewChange} /> 
+                                                            : <DashboardContent 
+                                                                activeView={activeView} 
+                                                                setActiveView={handleViewChange}
+                                                                userRole={effectiveRole}
+                                                                onViewStudentProfile={handleViewStudentProfile}
+                                                                profileStudentId={profileStudentId}
+                                                            />
+                                                        }
+                                                    </Suspense>
+                                                </div>
+                                            </main>
+                                        </div>
+                                        <AdminBottomNavBar activeView={activeView} setActiveView={handleViewChange} userRole={effectiveRole} />
+                                    </>
+                                );
+                            })()}
+
                             <SyncStatusIndicator />
                             <GlobalNotification />
                             <Chatbot />

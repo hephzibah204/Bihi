@@ -13,7 +13,7 @@ import { getHuggingFaceClient } from './huggingFaceAPI';
 // Now uses the new enhanced AI system with 500+ templates and Nigerian curriculum support
 // Plus semantic search for finding cached responses
 // Plus optional Hugging Face API for dynamic content generation
-export const generateFallbackResponse = ({ prompt, context }: { prompt: string; context?: any }): string => {
+export const generateFallbackResponse = (prompt: string, context?: any, type?: string): string => {
     try {
         // Step 1: Try semantic search for cached responses
         const semanticMatches = searchSemanticCache(prompt, context);
@@ -22,22 +22,8 @@ export const generateFallbackResponse = ({ prompt, context }: { prompt: string; 
             return semanticMatches[0].response;
         }
         
-        // Step 2: Try Hugging Face API if configured (optional)
-        const hfClient = getHuggingFaceClient();
-        if (hfClient.hasApiKey()) {
-            try {
-                console.log('Attempting Hugging Face generation...');
-                const hfResponse = tryHuggingFaceGeneration(prompt, context);
-                if (hfResponse) {
-                    console.log('✓ Hugging Face generation successful');
-                    cacheResponse(prompt, hfResponse, context);
-                    return hfResponse;
-                }
-            } catch (hfError) {
-                console.log('Hugging Face generation failed, using templates:', hfError);
-                // Continue to next fallback
-            }
-        }
+        // Step 2: Skip async Hugging Face API in synchronous context
+        // (HuggingFace is async but this function must be sync for compatibility)
         
         // Step 3: Use the enhanced fallback AI system with 500+ templates
         // This provides much better responses with Nigerian curriculum alignment

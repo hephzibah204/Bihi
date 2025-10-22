@@ -2,24 +2,23 @@
 import React from 'react';
 
 // Create all the remaining placeholder components
-const createPlaceholderComponent = (name: string, title: string, description: string, icon: string, gradient: string) => {
-    const Component = () => (
-        <div className="space-y-6">
-            <div className={`bg-gradient-to-r ${gradient} text-white p-6 rounded-xl`}>
-                <h1 className="text-2xl font-bold mb-2">{title}</h1>
-                <p className="opacity-80">{description}</p>
-            </div>
-            
-            <div className="bg-white p-12 rounded-xl shadow-sm border border-slate-200 text-center">
-                <div className="text-6xl mb-4">{icon}</div>
-                <h3 className="text-xl font-semibold text-slate-900 mb-2">{title}</h3>
-                <p className="text-slate-600 mb-6">{description}</p>
-                <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                    Configure {name}
-                </button>
-            </div>
-        </div>
-    );
+const createPlaceholderComponent = (name: string, title: string, description: string, icon: string, gradient: string): React.FC => {
+    const Component: React.FC = () => {
+        return React.createElement('div', { className: 'space-y-6' },
+            React.createElement('div', { className: `bg-gradient-to-r ${gradient} text-white p-6 rounded-xl` },
+                React.createElement('h1', { className: 'text-2xl font-bold mb-2' }, title),
+                React.createElement('p', { className: 'opacity-80' }, description)
+            ),
+            React.createElement('div', { className: 'bg-white p-12 rounded-xl shadow-sm border border-slate-200 text-center' },
+                React.createElement('div', { className: 'text-6xl mb-4' }, icon),
+                React.createElement('h3', { className: 'text-xl font-semibold text-slate-900 mb-2' }, title),
+                React.createElement('p', { className: 'text-slate-600 mb-6' }, description),
+                React.createElement('button', { className: 'px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors' },
+                    `Configure ${name}`
+                )
+            )
+        );
+    };
     
     Component.displayName = name;
     return Component;

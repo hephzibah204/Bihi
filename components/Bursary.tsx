@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import BursaryDashboard from './BursaryDashboard';
 import BursaryFees from './BursaryFees';
 import BursaryInvoice from './BursaryInvoice';
@@ -34,6 +34,18 @@ interface NavigationItem {
 const Bursary = () => {
     const [activeView, setActiveView] = useState('dashboard');
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+    useEffect(() => {
+        try {
+            const initialTab = localStorage.getItem('bursaryInitialTab');
+            if (initialTab) {
+                setActiveView(initialTab);
+                localStorage.removeItem('bursaryInitialTab');
+            }
+        } catch (e) {
+            // no-op
+        }
+    }, []);
 
     const navigationItems: NavigationItem[] = [
         {

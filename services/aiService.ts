@@ -1,12 +1,10 @@
 // services/aiService.ts
 // Gemini-first AI service with graceful fallback and user notifications
-
-import { generateFallbackResponse } from './fallbackAiService';
 import { logger } from '../utils/logger';
 import { withRetry } from '../utils/retry';
 
 interface AIServiceConfig {
-  geminiApiKey?: string;
+  geminiApiKey?: string | undefined;
   fallbackEnabled: boolean;
   healthCheckInterval: number;
   maxRetries: number;
@@ -17,8 +15,8 @@ interface AIServiceStatus {
   service: 'gemini' | 'fallback' | 'offline';
   online: boolean;
   lastCheck: Date;
-  error?: string;
-  responseTime?: number;
+  error?: string | undefined;
+  responseTime?: number | undefined;
 }
 
 interface AIResponse {
@@ -31,7 +29,7 @@ class AIService {
   private config: AIServiceConfig;
   private status: AIServiceStatus;
   private healthCheckInterval: NodeJS.Timeout | null = null;
-  private logger: Logger;
+  private logger: typeof logger;
   private isMonitoring = false;
   private fallbackResponses: Map<string, string> = new Map();
 
@@ -62,8 +60,8 @@ class AIService {
       return process.env.GEMINI_API_KEY;
     }
     // Fallback to import.meta.env for direct Vite env access
-    if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY) {
-      return import.meta.env.VITE_GEMINI_API_KEY;
+    if (typeof import.meta !== 'undefined' && (import.meta.env as any).VITE_GEMINI_API_KEY) {
+      return (import.meta.env as any).VITE_GEMINI_API_KEY;
     }
     return undefined;
   }
@@ -131,7 +129,7 @@ class AIService {
         throw new Error('No Gemini API key configured');
       }
     } catch (error: any) {
-      this.logger.warn('AI service health check failed', { error: error.message });
+      this.logger.warn('AI service health check failed');
       
       this.updateStatus({
         service: this.config.fallbackEnabled ? 'fallback' : 'offline',
@@ -183,10 +181,7 @@ class AIService {
     
     // Log status changes
     if (previousService !== this.status.service || previousOnline !== this.status.online) {
-      this.logger.info('AI service status changed', {
-        from: { service: previousService, online: previousOnline },
-        to: { service: this.status.service, online: this.status.online }
-      });
+      this.logger.info('AI service status changed');
     }
   }
 
@@ -230,7 +225,7 @@ class AIService {
       throw new Error('All AI services are offline and fallback is disabled');
       
     } catch (error: any) {
-      this.logger.error('AI response generation failed', { error: error.message, prompt });
+      this.logger.error('AI response generation failed');
       
       // Try fallback even if primary service was supposed to work
       if (this.config.fallbackEnabled) {
@@ -244,7 +239,7 @@ class AIService {
   /**
    * Call Gemini API with retry logic
    */
-  private async callGeminiAPI(prompt: string, context?: any): Promise<AIResponse> {
+  private async callGeminiAPI(prompt: string, _context?: any): Promise<AIResponse> {
     if (!this.config.geminiApiKey) {
       throw new Error('Gemini API key not configured');
     }
@@ -287,8 +282,8 @@ class AIService {
       {
         maxRetries: this.config.maxRetries,
         initialDelay: 1000,
-        onRetry: (attempt, error) => {
-          this.logger.warn(`Gemini API retry attempt ${attempt}`, { error: error.message });
+        onRetry: (attempt, _error) => {
+          this.logger.warn(`Gemini API retry attempt ${attempt}`);
         }
       }
     );
@@ -349,24 +344,18 @@ class AIService {
       // Try to restore primary service first
       if (this.config.geminiApiKey && this.status.service === 'offline') {
         this.status.service = 'gemini';
-        this.status.isOnline = true;
-        this.updateStatus();
+        this.status.online = true;
       }
 
-      const response = await this.generateResponse('test', 'connection test');
+      const response = await this.generateResponse('test');
       
-      if (response.success) {
-        this.status.lastSuccessfulConnection = new Date();
-        this.status.consecutiveFailures = 0;
-        this.updateStatus();
+      if (response.content) {
         return true;
       } else {
         throw new Error('Test response failed');
       }
     } catch (error) {
-      this.logger.error('AI service test and restore failed', error);
-      this.status.consecutiveFailures++;
-      this.updateStatus();
+      this.logger.error('AI service test and restore failed');
       return false;
     }
   }

@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { getAIService, type AIServiceStatus } from '../services/aiService';
-import { Logger } from '../utils/logger';
+import { logger } from '../utils/logger';
 
 interface AIServiceStatusProps {
   showDetails?: boolean;
@@ -23,7 +23,6 @@ export const AIServiceStatusComponent: React.FC<AIServiceStatusProps> = ({
     timestamp: Date;
   } | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
-  const logger = Logger.getInstance();
 
   useEffect(() => {
     const aiService = getAIService();
@@ -49,7 +48,7 @@ export const AIServiceStatusComponent: React.FC<AIServiceStatusProps> = ({
     };
 
     const handleServiceDown = (event: CustomEvent) => {
-      const { service, error, status: newStatus } = event.detail;
+      const { service, status: newStatus } = event.detail;
       setStatus(newStatus);
       setNotification({
         type: 'down',
@@ -58,7 +57,7 @@ export const AIServiceStatusComponent: React.FC<AIServiceStatusProps> = ({
       });
       onStatusChange?.(newStatus);
       
-      logger.warn('AI service notification displayed', { service, error });
+      logger.warn('AI service notification displayed');
     };
 
     window.addEventListener('ai-service-restored', handleServiceRestored as EventListener);
@@ -93,7 +92,7 @@ export const AIServiceStatusComponent: React.FC<AIServiceStatusProps> = ({
         });
       }
     } catch (error: any) {
-      logger.error('Manual connection retry failed', { error: error.message });
+      logger.error('Manual connection retry failed');
       setNotification({
         type: 'down',
         message: 'Retry failed - please check your connection',

@@ -4,6 +4,8 @@ import UsersIcon from './icons/UsersIcon';
 import ClipboardListIcon from './icons/ClipboardListIcon';
 import DocumentArrowDownIcon from './icons/DocumentArrowDownIcon';
 import Cog6ToothIcon from './icons/Cog6ToothIcon';
+import BanknotesIcon from './icons/BanknotesIcon';
+import CheckIcon from './icons/CheckIcon';
 import { DashboardView, UserRole } from '../types';
 import { ADMIN_VIEWS } from '../utils/constants';
 
@@ -57,7 +59,8 @@ const AdminBottomNavBar: FC<BottomNavBarProps> = ({ activeView, setActiveView, u
     if (userRole === 'Bursar') {
         navItems = [
             { view: ADMIN_VIEWS.DASHBOARD as DashboardView, label: 'Home', icon: <HomeIcon className="h-6 w-6" /> },
-            { view: ADMIN_VIEWS.BURSARY as DashboardView, label: 'Bursary', icon: <ClipboardListIcon className="h-6 w-6" /> },
+            { view: ADMIN_VIEWS.BURSARY as DashboardView, label: 'Fee Setup', icon: <BanknotesIcon className="h-6 w-6" /> },
+            { view: ADMIN_VIEWS.BURSARY as DashboardView, label: 'Record Payment', icon: <CheckIcon className="h-6 w-6" /> },
             { view: ADMIN_VIEWS.SETTINGS as DashboardView, label: 'Settings', icon: <Cog6ToothIcon className="h-6 w-6" /> },
         ];
     }
@@ -73,7 +76,20 @@ const AdminBottomNavBar: FC<BottomNavBarProps> = ({ activeView, setActiveView, u
                     label={item.label}
                     view={item.view}
                     isActive={activeView === item.view}
-                    onClick={setActiveView}
+                    onClick={(view) => {
+                        try {
+                            if (item.label === 'Fee Setup') {
+                                localStorage.setItem('bursaryInitialTab', 'fees');
+                            } else if (item.label === 'Record Payment') {
+                                localStorage.setItem('bursaryInitialTab', 'verify');
+                            } else {
+                                localStorage.removeItem('bursaryInitialTab');
+                            }
+                        } catch (e) {
+                            // no-op
+                        }
+                        setActiveView(view);
+                    }}
                 />
             ))}
         </nav>

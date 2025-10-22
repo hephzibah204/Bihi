@@ -81,7 +81,7 @@ export const useAI = (onNotification?: AINotificationCallback) => {
           });
           
           // Fall through to fallback with reason
-          const fallbackResponse = generateFallbackResponse(prompt, context, type);
+          const fallbackResponse = generateFallbackResponse(prompt, context || type, type);
           setIsLoading(false);
           setIsOnline(false);
           
@@ -106,7 +106,7 @@ export const useAI = (onNotification?: AINotificationCallback) => {
       }
       
       // Use fallback AI service
-      const fallbackResponse = generateFallbackResponse(prompt, context, type);
+      const fallbackResponse = generateFallbackResponse(prompt, context || type, type);
       setIsLoading(false);
       setIsOnline(false);
       
