@@ -1,4 +1,6 @@
 name = "reportsheet-pages"
 compatibility_date = "2024-10-01"
-
 node_compat = true
+
+# Cloudflare Pages build output directory
+pages_build_output_dir = "dist"

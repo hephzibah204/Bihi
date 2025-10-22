@@ -340,7 +340,7 @@ const AIPerformanceMonitor = () => {
                             <div className="text-4xl font-bold text-red-600 mb-2">
                                 {cachedResponses.filter(r => r.metadata.confidence < 0.5).length}
                             </div>
-                            <p className="text-sm text-slate-600">Confidence < 50%</p>
+                            <p className="text-sm text-slate-600">Confidence &lt; 50%</p>
                             <div className="mt-4 w-full bg-slate-100 rounded-full h-2">
                                 <div
                                     className="bg-red-600 h-2 rounded-full"
