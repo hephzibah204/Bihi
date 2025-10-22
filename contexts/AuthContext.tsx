@@ -1,10 +1,10 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+﻿import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { getSubdomain } from '../utils/subdomain';
 import { apiGetTenants, apiGetPlatformSettings, apiGetTeachers, apiGetStudents, apiGetSchoolSettings } from '../services/api';
 import { DEMO_TENANT_ID, CORE_DEMO_DATA } from '../utils/demoData';
 import { USER_ROLES } from '../utils/constants';
-import { SchoolSettings, Teacher, Student, Parent, UserRole } from '../types';
+import type { SchoolSettings, Teacher, Student, Parent, UserRole } from '../types';
 
 interface AuthContextType {
     user: Teacher | Student | Parent | null;
@@ -36,31 +36,40 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
     useEffect(() => {
         const initializeAuth = async () => {
             setLoading(true);
-            
             const sd = getSubdomain();
             setSubdomain(sd);
 
-            // Fetch platform-wide settings first
             const platform = await apiGetPlatformSettings();
             setPlatformSettings(platform);
 
-            // Validate tenant and fetch tenant-specific settings
-            if (sd && sd !== 'admin') {
-                const tenants = await apiGetTenants();
-                const isValid = tenants.some(t => t.id === sd);
-                setIsValidTenant(isValid);
-                if (!isValid) {
-                    setLoading(false);
-                    return;
+            if (sd && sd !== 'admin' && sd !== DEMO_TENANT_ID) {
+                try {
+                    const tenants = await apiGetTenants();
+                    const isValid = tenants.some(t => {
+                        const candidates = [
+                            (t as any).id,
+                            (t as any).slug,
+                            (t as any).subdomain,
+                        ]
+                        .filter(Boolean)
+                        .map(v => String(v).toLowerCase());
+                        return candidates.includes(sd.toLowerCase());
+                    });
+                    setIsValidTenant(isValid);
+                    if (!isValid) {
+                        setLoading(false);
+                        return;
+                    }
+                } catch (e) {
+                    // Assume valid in local/offline to avoid blocking development
+                    setIsValidTenant(true);
                 }
-                const schoolSettings = await apiGetSchoolSettings(sd);
-                setSettings(schoolSettings);
             }
 
-            // Set up auth listeners
             const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
                 setSession(session);
                 if (!session) {
+                    // Check for student/parent demo session
                     const activeUserSession = sessionStorage.getItem('activeUser');
                     if (activeUserSession) {
                         const parsedUser = JSON.parse(activeUserSession);
@@ -79,8 +88,8 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
                     }
                 }
             });
-
-            // Check initial session state
+            
+            // Initial session check
             const { data: { session: initialSession } } = await supabase.auth.getSession();
             setSession(initialSession);
             if (!initialSession) {
@@ -98,26 +107,50 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
                     setRole(currentUser.role);
                 }
             }
-            
-            // All initial async operations are done
-            setLoading(false);
 
             return () => {
                 subscription.unsubscribe();
             };
         };
-
         initializeAuth();
     }, []);
 
+    useEffect(() => {
+        const fetchTenantSettings = async () => {
+            if (subdomain) {
+                const schoolSettings = await apiGetSchoolSettings(subdomain);
+                setSettings(schoolSettings);
+            }
+            // Set loading to false after async operations, regardless of subdomain
+            setLoading(false);
+        };
+        fetchTenantSettings();
+    }, [subdomain]);
+
     const logout = async () => {
-        sessionStorage.removeItem('activeUser');
-        sessionStorage.removeItem('isDemoMode');
+        const sd = getSubdomain();
+        const wasDemo = sd === 'demo' 
+            || (typeof window !== 'undefined' && (
+                sessionStorage.getItem('isDemoMode') === 'true' 
+                || localStorage.getItem('isDemoMode') === 'true'
+            ));
+
+        // Clear demo/session flags
+        try {
+            sessionStorage.removeItem('activeUser');
+            sessionStorage.removeItem('isDemoMode');
+            localStorage.removeItem('isDemoMode');
+            localStorage.removeItem('demoUserRole');
+        } catch {}
+
+        // Sign out real sessions if present
         await supabase.auth.signOut();
         setUser(null);
         setRole(null);
         setSession(null);
-        window.location.href = '/';
+
+        // Redirect: demo -> /demo selector; otherwise -> root
+        window.location.href = wasDemo ? '/demo' : '/';
     };
 
     const isSmsConfigured = !!(settings?.integrations?.sms_api_key && settings?.integrations?.sms_sender_id);
@@ -138,3 +171,4 @@ export const useAuth = () => {
     }
     return context;
 };
+

@@ -29,7 +29,7 @@ const PaymentSettings = () => {
                     apiGetSchoolSettings(),
                     apiGetPaymentMethods()
                 ]);
-                setPaystackKey(settings.paystackPublicKey || '');
+                setPaystackKey(settings?.integrations?.paystack_public_key || '');
                 setMethods(paymentMethods || []);
 
                 if (supabase) {

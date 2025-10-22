@@ -43,7 +43,7 @@ const ParentFees = ({ demoUserId }) => {
     }, [demoUserId]);
 
     const handlePayNow = (invoice: Invoice) => {
-        const paystackKey = settings?.paystackPublicKey;
+        const paystackKey = settings?.integrations?.paystack_public_key;
         if (!window.PaystackPop || !paystackKey || !student?.parentEmail) {
             setSelectedInvoice(invoice);
             setUploadModalOpen(true);
@@ -119,6 +119,27 @@ const ParentFees = ({ demoUserId }) => {
                                 <div className="flex justify-between"><span>Amount Paid:</span> <span className="font-mono">₦{invoice.amountPaid.toLocaleString()}</span></div>
                                 <div className="flex justify-between font-bold text-base"><span>Amount Due:</span> <span className="font-mono">₦{(invoice.totalAmount - invoice.amountPaid).toLocaleString()}</span></div>
                             </div>
+                            {/* Manual bank payment instructions */}
+                            {invoice.status !== 'paid' && settings?.integrations && (settings.integrations.manual_bank_name || settings.integrations.manual_bank_account_number || settings.integrations.manual_bank_account_name) && (
+                                <div className="mt-4 p-4 border rounded-lg bg-gray-50 dark:bg-slate-900/40">
+                                    <h4 className="font-semibold">Manual Payment (Bank Transfer)</h4>
+                                    <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
+                                        {settings.integrations.manual_bank_name && (
+                                            <div><span className="text-gray-600">Bank:</span> <span className="font-medium">{settings.integrations.manual_bank_name}</span></div>
+                                        )}
+                                        {settings.integrations.manual_bank_account_name && (
+                                            <div><span className="text-gray-600">Account Name:</span> <span className="font-medium">{settings.integrations.manual_bank_account_name}</span></div>
+                                        )}
+                                        {settings.integrations.manual_bank_account_number && (
+                                            <div><span className="text-gray-600">Account Number:</span> <span className="font-medium">{settings.integrations.manual_bank_account_number}</span></div>
+                                        )}
+                                    </div>
+                                    {settings.integrations.manual_payment_instructions && (
+                                        <p className="mt-2 text-xs text-gray-600">{settings.integrations.manual_payment_instructions}</p>
+                                    )}
+                                    <p className="mt-2 text-xs text-gray-500">After bank payment, please upload your proof using the button below.</p>
+                                </div>
+                            )}
                             {invoice.status !== 'paid' && (
                                 <div className="mt-4 text-right">
                                     <button onClick={() => handlePayNow(invoice)} className="btn btn-primary">

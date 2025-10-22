@@ -56,6 +56,18 @@ const Results = () => {
         fetchData();
     }, [fetchData]);
 
+    // Preselect class from dashboard drill-down
+    useEffect(() => {
+        try {
+            const preClass = localStorage.getItem('results_preselect_class');
+            if (preClass && classNames.includes(preClass)) {
+                setSelectedClass(preClass);
+                localStorage.removeItem('results_preselect_class');
+            }
+        } catch {}
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [classNames.length]);
+
     const filteredSubjects = useMemo(() => {
         if (!selectedClass) return [];
         return subjects.filter(s => s.classes.includes(selectedClass));
@@ -66,6 +78,17 @@ const Results = () => {
             setSelectedSubjectId(filteredSubjects[0].id);
         }
     }, [filteredSubjects, selectedSubjectId]);
+
+    // Preselect subject from dashboard drill-down
+    useEffect(() => {
+        try {
+            const preSubjectId = localStorage.getItem('results_preselect_subject_id');
+            if (preSubjectId && filteredSubjects.some(s => s.id === preSubjectId)) {
+                setSelectedSubjectId(preSubjectId);
+                localStorage.removeItem('results_preselect_subject_id');
+            }
+        } catch {}
+    }, [filteredSubjects]);
 
     const studentsInClass = useMemo(() => {
         return students.filter(s => s.class === selectedClass);

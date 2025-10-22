@@ -98,12 +98,76 @@ export const USER_ROLES: { [key: string]: UserRole } = {
 };
 
 export const CONTROLLABLE_FEATURES = [
-    { key: 'bursary', name: 'Bursary / Finance' },
-    { key: 'communications', name: 'Communications (SMS/Email)' },
-    { key: 'ai-tools', name: 'AI Tools' },
-    { key: 'analytics', name: 'Advanced Analytics' },
-    { key: 'alumni', name: 'Alumni Management' },
-    { key: 'id-cards', name: 'ID Card Generator' },
+    { 
+        key: 'bursary', 
+        name: 'Bursary / Finance',
+        description: 'Financial management, fees, invoicing, and payment tracking',
+        applicableRoles: ['admin', 'bursar', 'teacher'],
+        category: 'Financial'
+    },
+    { 
+        key: 'communications', 
+        name: 'Communications (SMS/Email)',
+        description: 'Send SMS and email notifications to parents and students',
+        applicableRoles: ['admin', 'teacher'],
+        category: 'Communication'
+    },
+    { 
+        key: 'ai-tools', 
+        name: 'AI Tools',
+        description: 'AI-powered features like tutoring, lesson planning, and analytics',
+        applicableRoles: ['admin', 'teacher', 'student', 'parent'],
+        category: 'AI & Automation'
+    },
+    { 
+        key: 'analytics', 
+        name: 'Advanced Analytics',
+        description: 'Detailed reports and insights on student performance and school metrics',
+        applicableRoles: ['admin', 'teacher'],
+        category: 'Analytics'
+    },
+    { 
+        key: 'alumni', 
+        name: 'Alumni Management',
+        description: 'Track and manage alumni information and engagement',
+        applicableRoles: ['admin'],
+        category: 'Management'
+    },
+    { 
+        key: 'id-cards', 
+        name: 'ID Card Generator',
+        description: 'Generate and print student and staff ID cards',
+        applicableRoles: ['admin', 'teacher'],
+        category: 'Utilities'
+    },
+    { 
+        key: 'parent-portal', 
+        name: 'Parent Portal Access',
+        description: 'Allow parents to access student information, results, and communications',
+        applicableRoles: ['parent'],
+        category: 'Portal Access'
+    },
+    { 
+        key: 'student-results', 
+        name: 'Student Results Viewing',
+        description: 'Allow students to view their academic results and progress',
+        applicableRoles: ['student', 'parent'],
+        category: 'Academic'
+    },
+    { 
+        key: 'teacher-gradebook', 
+        name: 'Teacher Gradebook',
+        description: 'Grade entry, attendance tracking, and class management tools',
+        applicableRoles: ['teacher'],
+        category: 'Academic'
+    },
+    { 
+        key: 'live-chat', 
+        name: 'Live Chat Support',
+        description: 'Real-time chat between teachers, parents, and students',
+        applicableRoles: ['admin', 'teacher', 'parent', 'student'],
+        category: 'Communication'
+    }
 ];
 
 export const PLATFORM_ROLES = {

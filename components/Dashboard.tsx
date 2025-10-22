@@ -33,6 +33,11 @@ const ContentLoader = () => (
 
 const Dashboard = () => {
     const { user, role, session, loading, logout } = useAuth();
+    // Detect demo mode early so we can bypass locks/gates
+    const isDemoMode = typeof window !== 'undefined' && (
+        sessionStorage.getItem('isDemoMode') === 'true' ||
+        localStorage.getItem('isDemoMode') === 'true'
+    );
     const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [headerTitle, setHeaderTitle] = useState('Dashboard');
     const isDemoSubdomain = getSubdomain() === 'demo';
@@ -46,10 +51,16 @@ const Dashboard = () => {
     const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
 
     useEffect(() => {
-        if (!loading && role === USER_ROLES.ADMIN && !hasCompletedOnboarding) {
-            setIsWelcomeModalOpen(true);
+        if (!loading && role === USER_ROLES.ADMIN) {
+            if (isDemoMode) {
+                // In demo, skip onboarding entirely
+                setHasCompletedOnboarding(true);
+                setIsWelcomeModalOpen(false);
+            } else if (!hasCompletedOnboarding) {
+                setIsWelcomeModalOpen(true);
+            }
         }
-    }, [loading, role, hasCompletedOnboarding]);
+    }, [loading, role, hasCompletedOnboarding, isDemoMode]);
 
     useEffect(() => {
         if (!loading && !session && !user && isDemoSubdomain) {
@@ -98,6 +109,60 @@ const Dashboard = () => {
         if (isDemoSubdomain) {
             return <div className="flex items-center justify-center h-screen">Redirecting to demo...</div>;
         }
+        
+        // Skip login for demo mode
+        if (isDemoMode) {
+            const demoRole = localStorage.getItem('demoUserRole');
+            if (demoRole === USER_ROLES.TEACHER) {
+                return <Suspense fallback={<ContentLoader />}><TeacherDashboard onLogout={logout} /></Suspense>;
+            }
+            if (demoRole === USER_ROLES.STUDENT) {
+                return <Suspense fallback={<ContentLoader />}><StudentDashboard onLogout={logout} demoUserId="demo-student" /></Suspense>;
+            }
+            if (demoRole === USER_ROLES.PARENT) {
+                return <Suspense fallback={<ContentLoader />}><ParentDashboard onLogout={logout} demoUserId="demo-parent" /></Suspense>;
+            }
+            // Default to admin dashboard for other roles
+            return (
+                <TenantProvider>
+                    <PlanFeaturesProvider>
+                        <div className="flex h-screen bg-gray-100">
+                            <Sidebar 
+                                isSidebarOpen={isSidebarOpen} 
+                                setSidebarOpen={setSidebarOpen} 
+                                activeView={activeView}
+                                setActiveView={handleViewChange}
+                                userRole={USER_ROLES.ADMIN}
+                            />
+                            <div className="flex-1 flex flex-col overflow-hidden main-content-mobile-padding">
+                                <Header title={headerTitle} setSidebarOpen={setSidebarOpen} onLogout={logout} isSidebarOpen={isSidebarOpen} />
+                                <main className="flex-1 overflow-x-hidden overflow-y-auto">
+                                    <div className="container mx-auto px-6 py-8">
+                                        <Suspense fallback={<ContentLoader />}>
+                                            {activeView === ADMIN_VIEWS.MORE 
+                                                ? <MoreView setActiveView={handleViewChange} /> 
+                                                : <DashboardContent 
+                                                    activeView={activeView} 
+                                                    setActiveView={handleViewChange}
+                                                    userRole={USER_ROLES.ADMIN}
+                                                    onViewStudentProfile={handleViewStudentProfile}
+                                                    profileStudentId={profileStudentId}
+                                                />
+                                            }
+                                        </Suspense>
+                                    </div>
+                                </main>
+                            </div>
+                            <AdminBottomNavBar activeView={activeView} setActiveView={handleViewChange} userRole={USER_ROLES.ADMIN} />
+                            <SyncStatusIndicator />
+                            <GlobalNotification />
+                            <Chatbot />
+                        </div>
+                    </PlanFeaturesProvider>
+                </TenantProvider>
+            );
+        }
+        
         return <PortalLogin onStudentLoginSuccess={() => window.location.reload()} />;
     }
 
@@ -157,7 +222,7 @@ const Dashboard = () => {
                                 </Suspense>
                             </div>
                         </main>
-                        <AdminBottomNavBar activeView={activeView} setActiveView={handleViewChange} />
+                        <AdminBottomNavBar activeView={activeView} setActiveView={handleViewChange} userRole={role} />
                     </div>
                 </div>
                 <SyncStatusIndicator />

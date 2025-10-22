@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useAI } from '../hooks/useAI';
-import SparklesIcon from './icons/SparklesIcon';
-import SpinnerIcon from './icons/SpinnerIcon';
+import { useAI } from './hooks/useAI';
+import SparklesIcon from './components/icons/SparklesIcon';
+import SpinnerIcon from './components/icons/SpinnerIcon';
 
 interface AIAnnouncementGeneratorProps {
     onUseMessage: (message: string) => void;

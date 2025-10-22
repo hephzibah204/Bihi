@@ -3,6 +3,15 @@
 // General & User Types
 export type UserRole = 'Admin' | 'Teacher' | 'Student' | 'Parent' | 'Super Admin' | 'Bursar';
 
+// Feature Control Types
+export interface ControllableFeature {
+  key: string;
+  name: string;
+  description: string;
+  applicableRoles: string[];
+  category: string;
+}
+
 export type DashboardView = 
   | 'dashboard' | 'students' | 'student-profile' | 'subjects' | 'results' 
   | 'report-cards' | 'comprehensive-entry' | 'promotions' | 'attendance' | 'settings'
@@ -32,8 +41,12 @@ export interface Student {
   dob?: string;
   gender?: 'Male' | 'Female';
   photo?: string;
+  address?: string;
   parentId?: string;
+  parentName?: string;
   parentEmail?: string;
+  parentPhone?: string;
+  siblings?: string[];
   status?: 'active' | 'graduated' | 'alumni';
   graduationYear?: number;
   faceDescriptor?: number[];
@@ -253,6 +266,13 @@ export interface SchoolSettings {
     psychomotorSkills: ReportCardSkill[];
   };
   features?: Record<string, boolean>;
+  roleBasedFeatures?: {
+    admin?: Record<string, boolean>;
+    teacher?: Record<string, boolean>;
+    student?: Record<string, boolean>;
+    parent?: Record<string, boolean>;
+    bursar?: Record<string, boolean>;
+  };
   schoolStructure?: {
       levels: ClassLevel[];
       sections: ClassSection[];
@@ -263,10 +283,83 @@ export interface SchoolSettings {
       categories: Record<string, number>;
   };
   integrations?: {
+    // Payment Gateways
     paystack_public_key?: string;
     paystack_secret_key?: string; // Stored securely, not sent to client
+    flutterwave_public_key?: string;
+    flutterwave_secret_key?: string; // Stored securely, not sent to client
+    flutterwave_encryption_key?: string; // Stored securely, not sent to client
+
+    // Manual Bank Payments
+    manual_bank_name?: string;
+    manual_bank_account_name?: string;
+    manual_bank_account_number?: string;
+    manual_payment_instructions?: string;
+    
+    // AI Services
+    gemini_api_key?: string; // Stored securely, overrides sitewide key if set
+    openai_api_key?: string; // Stored securely, not sent to client
+    
+    // WhatsApp Business
+    whatsapp_business_token?: string; // Stored securely, not sent to client
+    whatsapp_phone_number_id?: string;
+    whatsapp_webhook_verify_token?: string; // Stored securely, not sent to client
+    
+    // Nigerian SMS Gateways
+    sms_provider?: 'termii' | 'smartsmssolutions' | 'bulk-sms-nigeria' | 'nigeriabulksms' | 'custom';
     sms_api_key?: string; // Stored securely, not sent to client
     sms_sender_id?: string;
+    sms_api_url?: string; // For custom SMS providers
+    
+    // Termii SMS Gateway
+    termii_api_key?: string; // Stored securely, not sent to client
+    termii_sender_id?: string;
+    
+    // Smart SMS Solutions
+    smartsms_username?: string;
+    smartsms_password?: string; // Stored securely, not sent to client
+    smartsms_sender?: string;
+    
+    // Bulk SMS Nigeria
+    bulksms_username?: string;
+    bulksms_password?: string; // Stored securely, not sent to client
+    bulksms_api_token?: string; // Optional token-based API
+    bulksms_sender?: string;
+    
+    // Nigeria Bulk SMS
+    nigeriabulksms_username?: string;
+    nigeriabulksms_password?: string; // Stored securely, not sent to client
+    nigeriabulksms_sender?: string;
+    
+    // Email Services
+    sendgrid_api_key?: string; // Stored securely, not sent to client
+    mailgun_api_key?: string; // Stored securely, not sent to client
+    mailgun_domain?: string;
+    
+    // Cloud Storage
+    cloudinary_cloud_name?: string;
+    cloudinary_api_key?: string;
+    cloudinary_api_secret?: string; // Stored securely, not sent to client
+    
+    // Analytics
+    google_analytics_id?: string;
+    mixpanel_token?: string;
+    
+    // Push Notifications
+    firebase_server_key?: string; // Stored securely, not sent to client
+    onesignal_app_id?: string;
+    onesignal_api_key?: string; // Stored securely, not sent to client
+    
+    // Social Media
+    facebook_app_id?: string;
+    facebook_app_secret?: string; // Stored securely, not sent to client
+    twitter_api_key?: string; // Stored securely, not sent to client
+    twitter_api_secret?: string; // Stored securely, not sent to client
+    
+    // Other Useful APIs
+    google_maps_api_key?: string; // Stored securely, not sent to client
+    recaptcha_site_key?: string;
+    recaptcha_secret_key?: string; // Stored securely, not sent to client
   }
 }
 
@@ -292,6 +385,8 @@ export interface MessageTemplate {
     name: string;
     content: string;
     type: 'sms' | 'email';
+    // Optional subject line for email templates
+    subject?: string;
 }
 
 export interface ScheduledReminder {
@@ -300,6 +395,18 @@ export interface ScheduledReminder {
     type: 'overdue_fees';
     templateId: string;
     days_after_due: number;
+    enabled: boolean;
+}
+
+// Scheduled email/newsletter campaigns with a specific send date/time
+export interface ScheduledCampaign {
+    id: string;
+    name: string;
+    templateId: string;
+    channel: 'email';
+    target: 'all' | 'class';
+    className?: string;
+    sendAt: string; // ISO datetime
     enabled: boolean;
 }
 

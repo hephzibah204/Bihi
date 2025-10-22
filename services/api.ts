@@ -1,8 +1,29 @@
-// services/api.ts
+﻿// services/api.ts
 import { supabase } from './supabaseClient';
 import { DEMO_TENANT_ID, CORE_DEMO_DATA } from '../utils/demoData';
-// FIX: Add missing type imports
-import { Student, Subject, SchoolSettings, Score, Teacher, Parent, Invoice, FeeStructure, BehavioralLogEntry, Remark, Assignment, AssignmentScore, Payslip, PayrollRun, CommunicationLog, MessageTemplate, ScheduledReminder, Conversation, Message, SharedLessonPlan, Event, AbsenceReport, ActivityLog, Tenant, Plan, Page, PlatformUser, AttendanceRecord, Payment, Expense, Income, UserRole } from '../types';
+import { withRetry } from '../utils/retry';
+import { parseSupabaseError, DatabaseError, NotFoundError } from '../utils/errors';
+import { 
+  validateInput, 
+  studentSchema, 
+  teacherSchema, 
+  parentSchema, 
+  messageSchema, 
+  communicationSchema,
+  paginationSchema,
+  sanitizeHtml 
+} from '../utils/validation';
+import { rateLimiters, createRateLimitMiddleware, fetchWithRateLimit, ClientRateLimiter } from '../utils/rateLimiter';
+// Import organized types
+import type {
+  Student, Teacher, Parent, PlatformUser, UserRole,
+  Subject, Score, Remark, BehavioralLogEntry, AttendanceRecord, Assignment, AssignmentScore, SharedLessonPlan, AbsenceReport,
+  Invoice, Payment, Expense, Income, FeeStructure, Payslip, PayrollRun,
+  SchoolSettings,
+  Tenant, Plan, ActivityLog,
+  CommunicationLog, MessageTemplate, ScheduledReminder, ScheduledCampaign, Conversation, Message,
+  Page, Event
+} from '../types';
 import { USER_ROLES } from '../utils/constants';
 import { DEFAULT_LANDING_PAGE_CONTENT, DEFAULT_MENU_ITEMS } from '../utils/landingPageContent';
 import { getSubdomain } from '../utils/subdomain';
@@ -12,7 +33,19 @@ import { getSubdomain } from '../utils/subdomain';
 type PlatformSettings = Record<string, any>;
 
 const CLOUDFLARE_URL = "/api/platform-settings";
-const SUPABASE_FALLBACK_URL = "https://shzwolantavauszuxwlp.supabase.co/functions/v1/platform-settings";
+
+// Get fallback URL from environment variables
+const getSupabaseFallbackUrl = () => {
+  const baseUrl = typeof window !== 'undefined' 
+    ? window.process?.env?.VITE_SUPABASE_URL || import.meta.env?.VITE_SUPABASE_URL
+    : process.env.VITE_SUPABASE_URL;
+    
+  if (!baseUrl) {
+    throw new Error('VITE_SUPABASE_URL environment variable is not configured');
+  }
+  
+  return `${baseUrl}/functions/v1/platform-settings`;
+};
 
 /**
  * Fetch with a timeout wrapper.
@@ -81,50 +114,69 @@ export const getTenantId = (): string | null => {
 };
 
 // --- Data Access Layer ---
-const isDemo = () => getTenantId() === DEMO_TENANT_ID;
+const isDemo = () => {
+    const tenantId = getTenantId();
+    const flag = typeof window !== 'undefined' && (
+        sessionStorage.getItem('isDemoMode') === 'true' ||
+        localStorage.getItem('isDemoMode') === 'true'
+    );
+    return tenantId === DEMO_TENANT_ID || flag;
+};
 
 const get = async <T>(table: string, options: { filter?: string, select?: string } = {}): Promise<T[]> => {
     if (isDemo()) {
         return (CORE_DEMO_DATA[table] || []) as any;
     }
     if (!supabase) return [];
-    let query = supabase.from(table).select(options.select || '*');
-    if (options.filter) {
-        // This is a simplification; a real app might need more complex filtering
-        const [field, value] = options.filter.split('=');
-        query = query.eq(field, value);
-    }
-    const { data, error } = await query;
-    if (error) throw error;
-    return data as T[];
+    
+    return withRetry(async () => {
+        let query = supabase.from(table).select(options.select || '*');
+        if (options.filter) {
+            // This is a simplification; a real app might need more complex filtering
+            const [field, value] = options.filter.split('=');
+            query = query.eq(field, value);
+        }
+        const { data, error } = await query;
+        if (error) throw error;
+        return data as T[];
+    });
 };
 
 const upsert = async (table: string, record: any) => {
     if (isDemo()) return record;
     if (!supabase) return null;
-    const { data, error } = await supabase.from(table).upsert(record).select();
-    if (error) throw error;
-    return data[0];
+    
+    return withRetry(async () => {
+        const { data, error } = await supabase.from(table).upsert(record).select();
+        if (error) throw error;
+        return data[0];
+    });
 };
 
 const batchUpsert = async (table: string, records: any[]) => {
     if (isDemo()) return records;
     if (!supabase) return null;
-    const { data, error } = await supabase.from(table).upsert(records).select();
-    if (error) throw error;
-    return data;
+    
+    return withRetry(async () => {
+        const { data, error } = await supabase.from(table).upsert(records).select();
+        if (error) throw error;
+        return data;
+    });
 }
 
 const del = async (table: string, id: string) => {
     if (isDemo()) return { id };
     if (!supabase) return null;
-    const { error } = await supabase.from(table).delete().eq('id', id);
-    if (error) throw error;
-    return { id };
+    
+    return withRetry(async () => {
+        const { error } = await supabase.from(table).delete().eq('id', id);
+        if (error) throw error;
+        return { id };
+    });
 };
 
 // --- Students ---
-export const apiGetStudents = async (options: { classFilter?: string, studentIds?: string[] } = {}): Promise<Student[]> => {
+export const apiGetStudents = async (options: { classFilter?: string, studentIds?: string[], limit?: number, offset?: number } = {}): Promise<Student[]> => {
     if (isDemo()) {
         let students = CORE_DEMO_DATA.students;
         if (options.classFilter) {
@@ -134,21 +186,37 @@ export const apiGetStudents = async (options: { classFilter?: string, studentIds
             const idSet = new Set(options.studentIds);
             students = students.filter(s => idSet.has(s.id));
         }
+        const limit = options.limit ?? undefined;
+        const offset = options.offset ?? 0;
+        if (limit !== undefined) {
+            students = students.slice(offset, offset + limit);
+        }
         return students;
     }
     if (!supabase) return [];
-    let query = supabase.from('students').select('*');
-    if(options.classFilter) query = query.eq('class', options.classFilter);
-    if(options.studentIds) query = query.in('id', options.studentIds);
-    const { data, error } = await query;
-    if (error) throw error;
-    return data;
+    return withRetry(async () => {
+        let query = supabase.from('students').select('*');
+        if (options.classFilter) query = query.eq('class', options.classFilter);
+        if (options.studentIds) query = query.in('id', options.studentIds);
+        const limit = options.limit ?? undefined;
+        const offset = options.offset ?? 0;
+        if (limit !== undefined) {
+            query = query.range(offset, offset + limit - 1);
+        }
+        const { data, error } = await query;
+        if (error) throw error;
+        return data || [];
+    });
 };
+
 export const apiUpsertStudent = (student: Partial<Student>) => {
-    const actionType = student.id ? 'STUDENT_UPDATE' : 'STUDENT_ADD';
-    const description = student.id ? `Updated details for ${student.name}` : `Added new student ${student.name}`;
+    // Validate and sanitize input
+    const validatedStudent = validateInput(studentSchema.partial(), student);
+    
+    const actionType = validatedStudent.id ? 'STUDENT_UPDATE' : 'STUDENT_ADD';
+    const description = validatedStudent.id ? `Updated details for ${validatedStudent.firstName} ${validatedStudent.lastName}` : `Added new student ${validatedStudent.firstName} ${validatedStudent.lastName}`;
     apiLogActivity(actionType, description);
-    return upsert('students', student);
+    return upsert('students', validatedStudent);
 };
 export const apiDeleteStudent = (studentId: string) => {
     apiLogActivity('STUDENT_DELETE', `Deleted student with ID ${studentId}`);
@@ -189,8 +257,30 @@ export const apiGetPublicStudentResult = async (schoolId: string, admissionNo: s
 };
 
 // --- Parents ---
-export const apiGetParents = () => get<Parent>('parents');
-export const apiUpsertParent = (parent: Partial<Parent>) => upsert('parents', parent);
+export const apiGetParents = async (options: { limit?: number, offset?: number } = {}): Promise<Parent[]> => {
+    if (isDemo()) {
+        let parents = CORE_DEMO_DATA.parents || [];
+        const limit = options.limit ?? undefined;
+        const offset = options.offset ?? 0;
+        if (limit !== undefined) parents = parents.slice(offset, offset + limit);
+        return parents;
+    }
+    if (!supabase) return [];
+    return withRetry(async () => {
+        let query = supabase.from('parents').select('*');
+        const limit = options.limit ?? undefined;
+        const offset = options.offset ?? 0;
+        if (limit !== undefined) query = query.range(offset, offset + limit - 1);
+        const { data, error } = await query;
+        if (error) throw error;
+        return data || [];
+    });
+};
+export const apiUpsertParent = (parent: Partial<Parent>) => {
+    // Validate and sanitize input
+    const validatedParent = validateInput(parentSchema.partial(), parent);
+    return upsert('parents', validatedParent);
+};
 export const apiDeleteParent = (parentId: string) => del('parents', parentId);
 export const apiInviteParent = async (studentId: string) => {
     if (isDemo()) {
@@ -199,16 +289,11 @@ export const apiInviteParent = async (studentId: string) => {
     }
     if (!supabase) throw new Error("Auth client not available.");
     const { data: { session } } = await supabase.auth.getSession();
-    const response = await fetch('/api/invite-parent', {
+    const result = await fetchWithExponentialBackoff<any>('/api/invite-parent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
         body: JSON.stringify({ studentId })
     });
-    if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.details || err.error || 'Failed to send invitation.');
-    }
-    const result = await response.json();
     window.dispatchEvent(new CustomEvent('show-global-success', { detail: { message: result.message } }));
     return result;
 };
@@ -222,12 +307,33 @@ export const apiApproveParentUpdate = async (parentId) => {
 export const apiRejectParentUpdate = (parentId) => apiUpsertParent({ id: parentId, pendingChanges: null });
 
 // --- Teachers ---
-export const apiGetTeachers = () => get<Teacher>('teachers');
+export const apiGetTeachers = async (options: { limit?: number, offset?: number } = {}): Promise<Teacher[]> => {
+    if (isDemo()) {
+        let teachers = CORE_DEMO_DATA.teachers || [];
+        const limit = options.limit ?? undefined;
+        const offset = options.offset ?? 0;
+        if (limit !== undefined) teachers = teachers.slice(offset, offset + limit);
+        return teachers;
+    }
+    if (!supabase) return [];
+    return withRetry(async () => {
+        let query = supabase.from('teachers').select('*');
+        const limit = options.limit ?? undefined;
+        const offset = options.offset ?? 0;
+        if (limit !== undefined) query = query.range(offset, offset + limit - 1);
+        const { data, error } = await query;
+        if (error) throw error;
+        return data || [];
+    });
+};
 export const apiUpsertTeacher = (teacher: Partial<Teacher>) => {
-    const actionType = teacher.id ? 'TEACHER_UPDATE' : 'TEACHER_ADD';
-    const description = teacher.id ? `Updated details for ${teacher.name}` : `Added new staff ${teacher.name}`;
+    // Validate and sanitize input
+    const validatedTeacher = validateInput(teacherSchema.partial(), teacher);
+    
+    const actionType = validatedTeacher.id ? 'TEACHER_UPDATE' : 'TEACHER_ADD';
+    const description = validatedTeacher.id ? `Updated details for ${validatedTeacher.firstName} ${validatedTeacher.lastName}` : `Added new staff ${validatedTeacher.firstName} ${validatedTeacher.lastName}`;
     apiLogActivity(actionType, description);
-    return upsert('teachers', teacher);
+    return upsert('teachers', validatedTeacher);
 };
 export const apiDeleteTeacher = (teacherId: string) => {
     apiLogActivity('TEACHER_DELETE', `Deleted teacher with ID ${teacherId}`);
@@ -240,7 +346,7 @@ export const apiSaveSubjects = (subjects: Subject[]) => {
     apiLogActivity('SUBJECT_UPDATE', `Updated ${subjects.length} subjects.`);
     return batchUpsert('subjects', subjects);
 };
-export const apiGetScores = (options: {studentIds?: string[]} = {}) => {
+export const apiGetScores = async (options: {studentIds?: string[]} = {}) => {
     if (isDemo()) {
         if (options.studentIds) {
             const idSet = new Set(options.studentIds);
@@ -248,14 +354,19 @@ export const apiGetScores = (options: {studentIds?: string[]} = {}) => {
         }
         return CORE_DEMO_DATA.scores;
     }
-    return apiGetStudents(options).then(students => {
-        if (!supabase) return [];
-        const studentIds = students.map(s => s.id);
-        return supabase.from('scores').select('*').in('studentId', studentIds).then(res => {
-            if (res.error) throw res.error;
-            return res.data;
-        });
-    });
+    
+    if (!supabase) return [];
+    
+    // Fixed: Direct query instead of N+1 pattern
+    let query = supabase.from('scores').select('*');
+    
+    if (options.studentIds && options.studentIds.length > 0) {
+        query = query.in('studentId', options.studentIds);
+    }
+    
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
 };
 export const apiUpsertScore = (score: Partial<Score>) => {
      apiLogActivity('SCORE_UPDATE', `Updated score for student ${score.studentId} in subject ${score.subjectId}`);
@@ -317,30 +428,30 @@ export const apiUseScratchCard = async (pin: string, schoolId: string) => {
       return { success: true };
     }
     
-    const response = await fetch('/api/use-scratch-card', {
+    const result = await fetchWithExponentialBackoff<any>('/api/use-scratch-card', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pin, schoolId })
     });
-
-    if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'Failed to validate PIN.');
-    }
-    
-    return response.json();
+    return result;
 };
 export const apiGetPaymentMethods = () => get<{data: any[]}>('payment_methods').then(res => res[0]?.data || []);
 export const apiSavePaymentMethods = (methods: any) => upsert('payment_methods', { id: 1, data: methods });
 
 // --- Settings & Config ---
 export const apiGetSchoolSettings = (tenant_id = getTenantId()) => {
-    if (tenant_id === DEMO_TENANT_ID) return Promise.resolve(CORE_DEMO_DATA.settings);
+    // Ensure demo mode uses local demo settings regardless of subdomain
+    if (isDemo()) return Promise.resolve(CORE_DEMO_DATA.settings);
     if (!supabase) return Promise.resolve(null);
-    return supabase.from('settings').select('*').eq('tenant_id', tenant_id).single().then(res => {
-        if(res.error && res.error.code !== 'PGRST116') throw res.error; // PGRST116 = no rows found
-        return res.data;
-    });
+    return supabase
+        .from('settings')
+        .select('*')
+        .eq('tenant_id', tenant_id)
+        .single()
+        .then(res => {
+            if (res.error && res.error.code !== 'PGRST116') throw res.error; // PGRST116 = no rows found
+            return res.data;
+        });
 };
 export const apiSaveSchoolSettings = (settings: Partial<SchoolSettings>, tenant_id = getTenantId()) => {
     window.dispatchEvent(new CustomEvent('show-global-success', { detail: { message: 'Settings saved successfully!' } }));
@@ -364,25 +475,37 @@ export const apiSendMessage = async ({ channel, content, recipients, type = 'ann
     recipients: string[] | 'all',
     type?: 'announcement' | 'reminder' | 'direct'
 }) => {
+    // Validate and sanitize communication input
+    const validatedComm = validateInput(communicationSchema.partial(), {
+        channel,
+        content,
+        recipients: recipients === 'all' ? ['all'] : recipients,
+        type
+    });
+    
+    // Sanitize content to prevent XSS
+    const sanitizedContent = sanitizeHtml(validatedComm.content);
+    
     if (isDemo()) {
-        await apiUpsertCommunicationLog({ type, channel, content, recipients, sentAt: new Date().toISOString() });
-        window.dispatchEvent(new CustomEvent('show-global-success', { detail: { message: `Message sent to ${recipients.length} recipients (simulated).` } }));
+        await apiUpsertCommunicationLog({ type, channel, content: sanitizedContent, recipients, sentAt: new Date().toISOString() });
+        window.dispatchEvent(new CustomEvent('show-global-success', { detail: { message: `Message sent to recipients.` } }));
         return { success: true };
     }
 
     const { data: { session } } = await supabase.auth.getSession();
-    const response = await fetch('/api/send-communication', {
+
+    const rateLimiter = ClientRateLimiter.getInstance();
+    if (!rateLimiter.canMakeRequest('/api/send-communication', 'POST', 20)) {
+        const waitTime = rateLimiter.waitTime('/api/send-communication', 'POST');
+        throw new Error(`Rate limit exceeded. Please wait ${Math.ceil(waitTime / 1000)} seconds.`);
+    }
+
+    const result = await fetchWithExponentialBackoff<any>('/api/send-communication', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
-        body: JSON.stringify({ channel, content, recipients, type })
+        body: JSON.stringify({ channel, content: sanitizedContent, recipients, type })
     });
-    
-    if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.details || err.error || 'Failed to send message.');
-    }
-    
-    return response.json();
+    return result;
 };
 
 export const apiSendAlumniEmail = async (recipients: string[], subject: string, body: string) => {
@@ -402,6 +525,11 @@ export const apiDeleteMessageTemplate = (templateId: string) => del('message_tem
 export const apiGetScheduledReminders = () => get<ScheduledReminder>('scheduled_reminders');
 export const apiUpsertScheduledReminder = (reminder: Partial<ScheduledReminder>) => upsert('scheduled_reminders', reminder);
 export const apiDeleteScheduledReminder = (reminderId: string) => del('scheduled_reminders', reminderId);
+
+// Scheduled Campaigns (Newsletters)
+export const apiGetScheduledCampaigns = () => get<ScheduledCampaign>('scheduled_campaigns');
+export const apiUpsertScheduledCampaign = (campaign: Partial<ScheduledCampaign>) => upsert('scheduled_campaigns', campaign);
+export const apiDeleteScheduledCampaign = (campaignId: string) => del('scheduled_campaigns', campaignId);
 
 export const apiGetConversationSummaries = async (userId: string, userRole: UserRole): Promise<Conversation[]> => {
     if (isDemo()) return [];
@@ -492,8 +620,23 @@ export const apiSendDirectMessage = async (message: Message): Promise<Message> =
     if (isDemo()) return message;
     if (!supabase) throw new Error("Database client not available.");
     
+    // Validate and sanitize message content
+    const validatedMessage = validateInput(messageSchema.partial(), {
+        content: message.content,
+        recipientId: message.recipientId
+    });
+    
+    // Sanitize HTML content to prevent XSS
+    const sanitizedContent = sanitizeHtml(validatedMessage.content);
+    
     const tenant_id = getTenantId();
     if (!tenant_id) throw new Error("Tenant not identified.");
+
+    const dmRateLimiter = ClientRateLimiter.getInstance();
+    if (!dmRateLimiter.canMakeRequest('supabase:messages', 'INSERT', 50)) {
+        const waitTime = dmRateLimiter.waitTime('supabase:messages', 'INSERT');
+        throw new Error(`Rate limit exceeded for direct messages. Please wait ${Math.ceil(waitTime / 1000)} seconds.`);
+    }
 
     const { data: newMessage, error: insertError } = await supabase
         .from('messages')
@@ -502,7 +645,7 @@ export const apiSendDirectMessage = async (message: Message): Promise<Message> =
             conversation_id: message.conversationId,
             sender_id: message.senderId,
             recipient_id: message.recipientId,
-            content: message.content,
+            content: sanitizedContent,
             timestamp: message.timestamp,
         })
         .select()
@@ -553,6 +696,12 @@ export const apiStartConversation = async (senderId: string, recipientId: string
         return { id: existingConvos[0].id };
     }
 
+    const convoRateLimiter = ClientRateLimiter.getInstance();
+    if (!convoRateLimiter.canMakeRequest('supabase:conversations', 'INSERT', 20)) {
+        const waitTime = convoRateLimiter.waitTime('supabase:conversations', 'INSERT');
+        throw new Error(`Rate limit exceeded for starting conversations. Please wait ${Math.ceil(waitTime / 1000)} seconds.`);
+    }
+
     const { data: newConvo, error: createError } = await supabase
         .from('conversations')
         .insert({
@@ -573,8 +722,7 @@ export const getCurrentUser = async (): Promise<any> => {
         const parsedUser = JSON.parse(activeUserSession);
         // For parent role, we need the parent's actual ID, not the child's ID.
         if (parsedUser.role === USER_ROLES.PARENT) {
-            const allStudents = await apiGetStudents();
-            const student = allStudents.find(s => s.id === parsedUser.userId);
+            const [student] = await apiGetStudents({ studentIds: [parsedUser.userId], limit: 1 });
             if (student && student.parentId) {
                 const allParents = await apiGetParents();
                 const parent = allParents.find(p => p.id === student.parentId);
@@ -599,7 +747,10 @@ export const getCurrentUser = async (): Promise<any> => {
 };
 
 export const apiGetMessagableUsers = async (currentUser) => {
-    const [teachers, parents] = await Promise.all([apiGetTeachers(), apiGetParents()]);
+    const [teachers, parents] = await Promise.all([
+        apiGetTeachers({ limit: 500 }),
+        apiGetParents({ limit: 500 })
+    ]);
     return [...teachers, ...parents].filter(u => u.id !== currentUser.id);
 };
 
@@ -659,18 +810,18 @@ const fetchFromNetworkAndCache = async (): Promise<PlatformSettings> => {
     try {
         data = await fetchWithTimeout<PlatformSettings>(CLOUDFLARE_URL, { headers }, 4000);
     } catch (err: any) {
-        console.warn("⚠️ Cloudflare failed:", err.message);
+        console.warn("âš ï¸ Cloudflare failed:", err.message);
     }
 
     // Fallback: Supabase Edge Function with retry logic
     if (!data) {
         try {
             data = await fetchWithExponentialBackoff<PlatformSettings>(
-                SUPABASE_FALLBACK_URL, 
+                getSupabaseFallbackUrl(), 
                 { headers }
             );
         } catch (err: any) {
-            console.error("❌ Supabase fallback failed after all retries:", err.message);
+            console.error("âŒ Supabase fallback failed after all retries:", err.message);
             throw new Error("Both primary and fallback sources failed.");
         }
     }
@@ -742,12 +893,25 @@ export const apiGetPlatformSettings = async () => {
     try {
         return await fetchFromNetworkAndCache();
     } catch (err) {
-        console.error("❌ All fetch attempts failed, falling back to default content:", err.message);
-        return { 
+        console.error("âŒ All fetch attempts failed, falling back to default content:", err.message);
+        // Ensure we always return a valid object with all required properties
+        const defaultSettings = { 
             landingPageContent: DEFAULT_LANDING_PAGE_CONTENT, 
             menus: { header: DEFAULT_MENU_ITEMS },
             pages: [], articles: [], plans: []
         };
+        
+        // Store default settings in cache to prevent repeated failed requests
+        try {
+            localStorage.setItem(PLATFORM_SETTINGS_CACHE_KEY, JSON.stringify({
+                timestamp: Date.now(),
+                data: defaultSettings
+            }));
+        } catch (cacheErr) {
+            console.warn("Failed to cache default settings:", cacheErr);
+        }
+        
+        return defaultSettings;
     }
 };
 
@@ -760,18 +924,12 @@ export const apiUpdateTenantSubscription = async (planId: string, cycle: 'monthl
     }
     
     const { data: { session } } = await supabase.auth.getSession();
-    const response = await fetch('/api/update-tenant-subscription', {
+    const result = await fetchWithExponentialBackoff<any>('/api/update-tenant-subscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
         body: JSON.stringify({ planId, cycle })
     });
-    
-    if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.details || err.error || 'Failed to update subscription.');
-    }
-    
-    return response.json();
+    return result;
 };
 
 export const apiUpdateTenant = async (tenant: Partial<Tenant>) => {
@@ -800,3 +958,6 @@ export const apiGetPlatformUsers = () => get<{data: any}>('platform_settings').t
 export const apiSavePlatformUsers = (users) => apiGetPlatformSettings().then(s => apiSavePlatformSettings({...s, platform_users: users}));
 export const apiGetKbArticles = () => get<{data: any}>('platform_settings').then(d => d[0]?.data?.kb_articles || []);
 export const apiSaveKbArticles = (articles) => apiGetPlatformSettings().then(s => apiSavePlatformSettings({...s, kb_articles: articles}));
+
+// Alias for backward compatibility
+export const apiGetStudentScores = apiGetScores;

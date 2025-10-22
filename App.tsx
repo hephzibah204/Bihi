@@ -1,7 +1,9 @@
-import React, { lazy, Suspense, PropsWithChildren } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { lazy, Suspense, PropsWithChildren, useEffect } from 'react';
+import { Routes, Route, useParams, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import GlobalSuccessNotification from './components/GlobalSuccessNotification';
+import ConnectionStatusBar from './components/ConnectionStatusBar';
+import { getConnectionManager } from './utils/connectionManager';
 
 // Lazy load components
 const Dashboard = lazy(() => import('./components/Dashboard'));
@@ -16,32 +18,74 @@ const FullPageLoader = () => (
     <div className="flex items-center justify-center h-screen">Loading...</div>
 );
 
-const AppRouter = () => {
-    const { loading, isValidTenant, subdomain, platformSettings } = useAuth();
-
+// Component to handle path-based tenant routing
+const TenantRouter = () => {
+    const { tenantSlug } = useParams();
+    const { loading, isValidTenant, subdomain } = useAuth();
+    
+    // Redirect to force tenant detection via path
+    if (tenantSlug && !subdomain) {
+        // This will trigger subdomain detection in the parent component
+        return <Navigate to={window.location.pathname} replace />;
+    }
+    
     if (loading) {
         return <FullPageLoader />;
     }
-
+    
     if (!isValidTenant) {
         return (
             <div className="flex flex-col items-center justify-center h-screen text-center">
                 <h1 className="text-2xl font-bold">Portal Not Found</h1>
-                <p className="mt-2 text-gray-600">The school portal at this address does not exist.</p>
+                <p className="mt-2 text-gray-600">The school portal "{tenantSlug}" does not exist.</p>
                 <a href="/" className="mt-4 btn btn-primary">Go to Main Site</a>
             </div>
         );
     }
     
-    if (subdomain === 'admin') {
-        return <Suspense fallback={<FullPageLoader />}><SuperAdminDashboard /></Suspense>;
+    if (tenantSlug === 'admin') {
+        return <SuperAdminDashboard />;
     }
     
-    if (subdomain) {
+    return <Dashboard />;
+};
+
+const AppRouter = () => {
+    const { loading, isValidTenant, subdomain, platformSettings } = useAuth();
+    
+    // Check for demo mode first - this takes precedence over other routing
+    const isDemoMode = typeof window !== 'undefined' && 
+        (sessionStorage.getItem('isDemoMode') === 'true' || 
+         localStorage.getItem('isDemoMode') === 'true');
+         
+    if (isDemoMode) {
         return <Suspense fallback={<FullPageLoader />}><Dashboard /></Suspense>;
     }
 
-    // Root site router
+    if (loading) {
+        return <FullPageLoader />;
+    }
+
+    // Handle tenant-specific routing (subdomain-based)
+    if (subdomain) {
+        if (!isValidTenant) {
+            return (
+                <div className="flex flex-col items-center justify-center h-screen text-center">
+                    <h1 className="text-2xl font-bold">Portal Not Found</h1>
+                <p className="mt-2 text-gray-600">The school portal &ldquo;{subdomain}&rdquo; does not exist.</p>
+                    <a href="/" className="mt-4 btn btn-primary">Go to Main Site</a>
+                </div>
+            );
+        }
+        
+        if (subdomain === 'admin') {
+            return <Suspense fallback={<FullPageLoader />}><SuperAdminDashboard /></Suspense>;
+        }
+        
+        return <Suspense fallback={<FullPageLoader />}><Dashboard /></Suspense>;
+    }
+
+    // Root site router with support for path-based tenant routing
     return (
         <Suspense fallback={<FullPageLoader />}>
             <Routes>
@@ -51,6 +95,8 @@ const AppRouter = () => {
                 <Route path="/signin" element={<CentralLoginPage />} />
                 <Route path="/results" element={<PublicResultViewer />} />
                 <Route path="/controlhub" element={<SuperAdminDashboard />} />
+                {/* Path-based tenant routing */}
+                <Route path="/:tenantSlug/*" element={<TenantRouter />} />
             </Routes>
         </Suspense>
     );
@@ -58,10 +104,37 @@ const AppRouter = () => {
 
 
 const App = () => {
-    const AppWrapper = ({ children }: PropsWithChildren<{}>) => (
+    // Initialize connection manager when app starts
+    useEffect(() => {
+        const connectionManager = getConnectionManager();
+        // Connection manager starts monitoring automatically in constructor
+        
+        return () => {
+            // Cleanup on unmount
+            connectionManager.stopMonitoring();
+        };
+    }, []);
+
+    const AppWrapper = ({ children }: PropsWithChildren) => (
         <AuthProvider>
-            {children}
-            <GlobalSuccessNotification />
+            <div className="min-h-screen bg-gray-50">
+                {/* Connection Status Bar - Fixed at top */}
+                <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <ConnectionStatusBar 
+                            className="py-2" 
+                            showDetails={true} 
+                        />
+                    </div>
+                </div>
+                
+                {/* Main content with top padding to account for fixed status bar */}
+                <div className="pt-16">
+                    {children}
+                </div>
+                
+                <GlobalSuccessNotification />
+            </div>
         </AuthProvider>
     );
     

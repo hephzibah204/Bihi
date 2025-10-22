@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Student } from '../types';
-import { apiGetStudents, apiUpsertStudent, apiDeleteStudent, apiInviteParent } from '../services/api';
+import { apiGetStudents, apiUpsertStudent, apiDeleteStudent, apiInviteParent, apiGetFeeStructures } from '../services/api';
+import { supabase } from '../services/supabaseClient';
 import Modal from './Modal';
 import PlusIcon from './icons/PlusIcon';
 import EditIcon from './icons/EditIcon';
@@ -175,31 +176,238 @@ const Students = ({ onViewProfile }: { onViewProfile: (studentId: string) => voi
     );
 };
 
-// ... (StudentFormModal remains the same as previous correct versions)
+// Enhanced StudentFormModal with comprehensive fields
 const StudentFormModal = ({ student, onSave, onClose, classNames, onInviteParent }) => {
-    const [formData, setFormData] = useState({ name: '', admissionNo: '', class: classNames[0] || '', parentEmail: '', ...student });
+    const [formData, setFormData] = useState({ 
+        name: '', 
+        admissionNo: '', 
+        class: classNames[0] || '', 
+        dob: '',
+        gender: '',
+        address: '',
+        parentName: '',
+        parentEmail: '', 
+        parentPhone: '',
+        siblings: [],
+        photo: '',
+        ...student 
+    });
+    const [profileImage, setProfileImage] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string>('');
+    const [feeStructures, setFeeStructures] = useState([]);
+    const [selectedFeeStructure, setSelectedFeeStructure] = useState(null);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    useEffect(() => {
+        // Load fee structures when component mounts
+        const loadFeeStructures = async () => {
+            try {
+                const structures = await apiGetFeeStructures();
+                setFeeStructures(structures);
+            } catch (error) {
+                console.error('Error loading fee structures:', error);
+            }
+        };
+        loadFeeStructures();
+    }, []);
+
+    useEffect(() => {
+        // Auto-select fee structure when class changes
+        if (formData.class && feeStructures.length > 0) {
+            const matchingStructure = feeStructures.find(structure => 
+                structure.applicableClasses.includes(formData.class)
+            );
+            setSelectedFeeStructure(matchingStructure);
+        }
+    }, [formData.class, feeStructures]);
+
+    useEffect(() => {
+        // Set image preview if student has existing photo
+        if (student?.photo) {
+            setImagePreview(student.photo);
+        }
+    }, [student]);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setProfileImage(file);
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                setImagePreview(e.target?.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleSiblingsChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const siblings = e.target.value.split('\n').filter(s => s.trim() !== '');
+        setFormData({ ...formData, siblings });
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        onSave(formData);
+        
+        let photoUrl = formData.photo;
+        
+        // Upload profile image if a new one was selected
+        if (profileImage) {
+            try {
+                const tenantId = localStorage.getItem('tenantId');
+                if (!tenantId) throw new Error("Could not determine tenant ID for file upload.");
+                
+                const fileExt = profileImage.name.split('.').pop();
+                const fileName = `${Date.now()}.${fileExt}`;
+                const filePath = `${tenantId}/student-photos/${fileName}`;
+                
+                const { error: uploadError } = await supabase.storage
+                    .from('uploads')
+                    .upload(filePath, profileImage);
+                
+                if (uploadError) throw uploadError;
+                
+                const { data } = supabase.storage.from('uploads').getPublicUrl(filePath);
+                photoUrl = data.publicUrl;
+            } catch (error) {
+                console.error('Error uploading image:', error);
+                alert('Error uploading profile picture. Please try again.');
+                return;
+            }
+        }
+        
+        const studentData = {
+            ...formData,
+            photo: photoUrl,
+            feeStructureId: selectedFeeStructure?.id
+        };
+        
+        onSave(studentData);
     };
 
     return (
         <Modal isOpen={true} onClose={onClose} title={student ? 'Edit Student' : 'Add Student'}>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                <div><label className="label">Full Name</label><input name="name" value={formData.name} onChange={handleChange} className="input-field" required /></div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div><label className="label">Admission No.</label><input name="admissionNo" value={formData.admissionNo} onChange={handleChange} className="input-field" required /></div>
-                    <div><label className="label">Class</label><select name="class" value={formData.class} onChange={handleChange} className="input-field" required><option value="">-- Select Class --</option>{classNames.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+            <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+                {/* Profile Picture Section */}
+                <div className="text-center">
+                    <div className="mb-4">
+                        {imagePreview ? (
+                            <img src={imagePreview} alt="Profile Preview" className="w-24 h-24 rounded-full mx-auto object-cover border-4 border-gray-200" />
+                        ) : (
+                            <div className="w-24 h-24 rounded-full mx-auto bg-gray-200 flex items-center justify-center">
+                                <span className="text-gray-500 text-sm">No Photo</span>
+                            </div>
+                        )}
+                    </div>
+                    <label className="btn btn-secondary cursor-pointer">
+                        Upload Profile Picture
+                        <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                    </label>
                 </div>
-                <div><label className="label">Parent's Email</label><input type="email" name="parentEmail" value={formData.parentEmail} onChange={handleChange} className="input-field" /></div>
-                <div className="flex justify-between items-center pt-2">
-                     <button type="button" onClick={() => onInviteParent(formData.id)} className="btn btn-secondary" disabled={!formData.id || !formData.parentEmail}>Invite Parent</button>
-                    <button type="submit" className="btn btn-primary">Save Student</button>
+
+                {/* Basic Information */}
+                <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Basic Information</h3>
+                    <div>
+                        <label className="label">Full Name *</label>
+                        <input name="name" value={formData.name} onChange={handleChange} className="input-field" required />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="label">Admission No. *</label>
+                            <input name="admissionNo" value={formData.admissionNo} onChange={handleChange} className="input-field" required />
+                        </div>
+                        <div>
+                            <label className="label">Date of Birth</label>
+                            <input type="date" name="dob" value={formData.dob} onChange={handleChange} className="input-field" />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="label">Gender</label>
+                            <select name="gender" value={formData.gender} onChange={handleChange} className="input-field">
+                                <option value="">-- Select Gender --</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="label">Class *</label>
+                            <select name="class" value={formData.class} onChange={handleChange} className="input-field" required>
+                                <option value="">-- Select Class --</option>
+                                {classNames.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label className="label">Address</label>
+                        <textarea name="address" value={formData.address} onChange={handleChange} className="input-field" rows={3} placeholder="Enter student's home address"></textarea>
+                    </div>
+                </div>
+
+                {/* Parent Information */}
+                <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Parent/Guardian Information</h3>
+                    <div>
+                        <label className="label">Parent/Guardian Name</label>
+                        <input name="parentName" value={formData.parentName} onChange={handleChange} className="input-field" placeholder="Enter parent or guardian's full name" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="label">Parent's Email</label>
+                            <input type="email" name="parentEmail" value={formData.parentEmail} onChange={handleChange} className="input-field" placeholder="parent@example.com" />
+                        </div>
+                        <div>
+                            <label className="label">Parent's Phone Number</label>
+                            <input type="tel" name="parentPhone" value={formData.parentPhone} onChange={handleChange} className="input-field" placeholder="+234 xxx xxx xxxx" />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Additional Information */}
+                <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Additional Information</h3>
+                    <div>
+                        <label className="label">Siblings (one per line)</label>
+                        <textarea 
+                            value={formData.siblings?.join('\n') || ''} 
+                            onChange={handleSiblingsChange} 
+                            className="input-field" 
+                            rows={3} 
+                            placeholder="Enter sibling names, one per line"
+                        ></textarea>
+                    </div>
+                </div>
+
+                {/* Fee Structure Information */}
+                {selectedFeeStructure && (
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Fee Structure</h3>
+                        <div className="bg-green-50 p-4 rounded-lg">
+                            <p className="text-sm text-green-800">
+                                <strong>Selected Fee Structure:</strong> {selectedFeeStructure.name}
+                            </p>
+                            <p className="text-sm text-green-700">
+                                <strong>Total Amount:</strong> ₦{selectedFeeStructure.totalAmount?.toLocaleString()}
+                            </p>
+                            <p className="text-sm text-green-700">
+                                <strong>Session:</strong> {selectedFeeStructure.session} - {selectedFeeStructure.term}
+                            </p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex justify-between items-center pt-4 border-t">
+                    <button type="button" onClick={() => onInviteParent(formData.id)} className="btn btn-secondary" disabled={!formData.id || !formData.parentEmail}>
+                        Invite Parent
+                    </button>
+                    <div className="space-x-3">
+                        <button type="button" onClick={onClose} className="btn btn-outline">Cancel</button>
+                        <button type="submit" className="btn btn-primary">Save Student</button>
+                    </div>
                 </div>
             </form>
         </Modal>

@@ -85,7 +85,7 @@ const MessageTemplates = () => {
 };
 
 const TemplateFormModal = ({ template, onSave, onClose }) => {
-    const [formData, setFormData] = useState({ name: '', content: '', type: 'sms' as 'sms' | 'email', ...template });
+    const [formData, setFormData] = useState({ name: '', content: '', type: 'sms' as 'sms' | 'email', subject: template?.subject || '' , ...template });
     const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     const handleSubmit = (e) => { e.preventDefault(); onSave(formData); };
 
@@ -93,6 +93,9 @@ const TemplateFormModal = ({ template, onSave, onClose }) => {
         <Modal isOpen={true} onClose={onClose} title={template ? 'Edit Template' : 'New Template'}>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
                 <div><label className="label">Template Name</label><input name="name" value={formData.name} onChange={handleChange} className="input-field" required /></div>
+                {formData.type === 'email' && (
+                    <div><label className="label">Email Subject</label><input name="subject" value={formData.subject} onChange={handleChange} className="input-field" placeholder="e.g., Weekly Newsletter" required /></div>
+                )}
                 <div><label className="label">Content</label><textarea name="content" value={formData.content} onChange={handleChange} className="input-field" rows={5} required></textarea></div>
                 <div><label className="label">Type</label><select name="type" value={formData.type} onChange={handleChange} className="input-field"><option value="sms">SMS</option><option value="email">Email</option></select></div>
                 <div className="flex justify-end pt-2"><button type="submit" className="btn btn-primary">Save Template</button></div>

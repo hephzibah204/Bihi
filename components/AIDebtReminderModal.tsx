@@ -53,7 +53,7 @@ const AIDebtReminderModal: React.FC<AIDebtReminderModalProps> = ({ isOpen, onClo
                 content: generatedMessage,
                 recipients: [student.parentEmail]
             });
-            alert("Reminder sent successfully!");
+            window.dispatchEvent(new CustomEvent('show-global-success', { detail: { message: 'Reminder sent successfully!' } }));
             onClose();
         } catch (error) {
             alert(`Failed to send message: ${error.message}`);

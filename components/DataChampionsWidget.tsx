@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { apiGetTeachers, apiGetStudents, apiGetSubjects, apiGetScores, apiGetTimetableData, apiGetSchoolSettings } from '../services/api';
 import { Teacher, Student, Subject, Score, SchoolSettings } from '../types';
 import TrophyIcon from './icons/TrophyIcon';
-import SkeletonLoader from './skeletons/SkeletonLoader';
+import SkeletonLoader from './SkeletonLoader';
 
 interface RankedTeacher {
     teacher: Teacher;

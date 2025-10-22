@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo, PropsWithChildren } from 'react';
 import { apiGetStudents, apiGetSubjects, apiSendMessage, apiGetCommunicationLogs, apiGetMessageTemplates } from '../services/api';
 import { Student, Subject, CommunicationLog, MessageTemplate } from '../types';
-import AIAnnouncementGenerator from './AIAnnouncementGenerator';
+import AIAnnouncementGenerator from '../AIAnnouncementGenerator';
 import MessageTemplates from './MessageTemplates';
 import AutomatedReminders from './AutomatedReminders';
+import ScheduledCampaigns from './ScheduledCampaigns';
 import CommunicationHistory from './CommunicationHistory';
 import DirectMessages from './DirectMessages';
 import SetupPromptModal from './SetupPromptModal';
@@ -41,6 +42,7 @@ const CommunicationsDashboard = ({ setActiveView }) => {
             case 'ai-generator': return <AIAnnouncementGenerator onUseMessage={handleUseMessage} />;
             case 'templates': return <MessageTemplates />;
             case 'reminders': return <AutomatedReminders />;
+            case 'campaigns': return <ScheduledCampaigns />;
             case 'history': return <CommunicationHistory />;
             case 'dms': return <DirectMessages />;
             default: return <ComposeAnnouncement setSetupModalInfo={setSetupModalInfo} sharedMessage={sharedMessage} setSharedMessage={setSharedMessage} />;
@@ -54,6 +56,7 @@ const CommunicationsDashboard = ({ setActiveView }) => {
                 <TabButton view="ai-generator">AI Generator</TabButton>
                 <TabButton view="templates">Templates</TabButton>
                 <TabButton view="reminders">Automated Reminders</TabButton>
+                <TabButton view="campaigns">Scheduled Campaigns</TabButton>
                 <TabButton view="history">Sent History</TabButton>
                 <TabButton view="dms">Direct Messages</TabButton>
             </div>

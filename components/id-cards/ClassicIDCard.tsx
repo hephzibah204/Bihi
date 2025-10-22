@@ -4,7 +4,7 @@ import { useQRCodeGenerator } from '../../hooks/useQRCodeGenerator';
 
 const ClassicIDCard = ({ student, schoolSettings }) => {
     const defaultLogo = "https://i.imgur.com/gKEBi1f.png";
-    const qrCodeUrl = useQRCodeGenerator(student.admissionNo);
+    const { qrCodeUrl } = useQRCodeGenerator(student.admissionNo);
 
     return (
         <div className="w-64 h-96 bg-white rounded-lg shadow-lg flex flex-col items-center p-4 font-sans border-2 border-blue-800">

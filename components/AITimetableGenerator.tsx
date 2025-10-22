@@ -3,6 +3,7 @@ import Modal from './Modal';
 import { useAI } from '../hooks/useAI';
 import SpinnerIcon from './icons/SpinnerIcon';
 import BrainCircuitIcon from './icons/BrainCircuitIcon';
+import { FallbackTimetableGenerator, generateBasicTimetableTemplate } from '../services/fallbackTimetableService';
 
 const AITimetableGenerator = ({ isOpen, onClose, onApply, subjects, teachers, classes, timeSlots, days }) => {
     const { generateResponse, status } = useAI();
@@ -40,8 +41,13 @@ const AITimetableGenerator = ({ isOpen, onClose, onApply, subjects, teachers, cl
         try {
             const response = await generateResponse({ prompt });
 
-            if (status === 'fallback') {
-                setError(response);
+            // If the response is not JSON-like, use fallback timetable generator
+            const looksJson = typeof response === 'string' && /^[\[{]/.test(response.trim());
+            if (!looksJson) {
+                console.log('AI response not JSON, using fallback timetable generator');
+                const fallbackTimetable = generateFallbackTimetable();
+                setGeneratedTimetable(fallbackTimetable);
+                setError('Using offline timetable generator. AI service unavailable.');
                 setIsLoading(false);
                 return;
             }
@@ -51,10 +57,36 @@ const AITimetableGenerator = ({ isOpen, onClose, onApply, subjects, teachers, cl
             setGeneratedTimetable(parsedTimetable);
         } catch (e) {
             console.error("AI Timetable Generation Error:", e);
-            setError(`Failed to generate timetable. ${e.message}`);
+            
+            // Use fallback timetable generator on error
+            try {
+                console.log('Using fallback timetable generator due to error');
+                const fallbackTimetable = generateFallbackTimetable();
+                setGeneratedTimetable(fallbackTimetable);
+                setError('AI service failed. Generated timetable using offline algorithm.');
+            } catch (fallbackError) {
+                setError(`Failed to generate timetable: ${e.message}`);
+            }
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const generateFallbackTimetable = () => {
+        // Use rule-based generator if we have data
+        if (subjects.length > 0 && teachers.length > 0 && classes.length > 0) {
+            const generator = new FallbackTimetableGenerator(
+                teachers,
+                subjects,
+                classes,
+                days,
+                timeSlots
+            );
+            return generator.generate();
+        }
+        
+        // Use basic template if no data available
+        return generateBasicTimetableTemplate(classes, days, timeSlots);
     };
 
     return (

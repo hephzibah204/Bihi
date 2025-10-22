@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import FinanceFilterBar from './FinanceFilterBar';
 import ClipboardListIcon from './icons/ClipboardListIcon';
 import CheckBadgeIcon from './icons/CheckBadgeIcon';
 import ShieldExclamationIcon from './icons/ShieldExclamationIcon';
@@ -9,6 +10,13 @@ import ChatBubbleLeftRightIcon from './icons/ChatBubbleLeftRightIcon';
 
 const ParentHome = ({ setActiveView, demoUserId }: { setActiveView: (view: ParentView) => void, demoUserId: string }) => {
     const [studentName, setStudentName] = useState('');
+    const [selectedSession, setSelectedSession] = useState('');
+    const [selectedTerm, setSelectedTerm] = useState('');
+    const [scopeLabel, setScopeLabel] = useState('');
+
+    // Mock data for sessions and terms
+    const sessions = ['2023/2024', '2024/2025'];
+    const terms = ['Term 1', 'Term 2', 'Term 3'];
 
     useEffect(() => {
         const fetchStudentName = async () => {
@@ -31,9 +39,22 @@ const ParentHome = ({ setActiveView, demoUserId }: { setActiveView: (view: Paren
     ];
 
     return (
-        <div>
-            <h1 className="text-2xl font-semibold text-gray-700">Welcome!</h1>
-            <p className="mt-2 text-gray-600">You are viewing the portal for <strong>{studentName || 'your child'}</strong>.</p>
+        <div className="p-6">
+            <h1 className="text-2xl font-bold mb-6">Welcome{studentName ? `, ${studentName}'s Parent` : ''}</h1>
+            
+            {/* Scope Filter */}
+            <div className="mt-4">
+                <FinanceFilterBar
+                  sessions={sessions}
+                  terms={terms}
+                  valueSession={selectedSession}
+                  valueTerm={selectedTerm}
+                  onChange={(s,t) => { setSelectedSession(s); setSelectedTerm(t); setScopeLabel([s,t].filter(Boolean).join(' • ')); }}
+                />
+                {scopeLabel && (
+                  <div className="mt-2 text-xs text-gray-500">Scope: {scopeLabel}</div>
+                )}
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
                 {quickLinks.map(link => (
                     <button 
@@ -54,3 +75,4 @@ const ParentHome = ({ setActiveView, demoUserId }: { setActiveView: (view: Paren
 };
 
 export default ParentHome;
+

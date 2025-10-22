@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { apiGetConversationSummaries, apiGetMessages, apiSendDirectMessage, getCurrentUser, apiGetMessagableUsers, apiStartConversation } from '../services/api';
 import { Conversation, Message, Teacher, UserRole } from '../types';
 import SpinnerIcon from './icons/SpinnerIcon';
-import SkeletonLoader from './skeletons/SkeletonLoader';
+import SkeletonLoader from './SkeletonLoader';
 import Modal from './Modal';
 import PlusIcon from './icons/PlusIcon';
 import { USER_ROLES } from '../utils/constants';

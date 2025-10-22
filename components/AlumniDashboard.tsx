@@ -7,7 +7,7 @@ import SearchIcon from './icons/SearchIcon';
 import { Student } from '../types';
 import Modal from './Modal';
 import EnvelopeIcon from './icons/EnvelopeIcon';
-import SkeletonLoader from './skeletons/SkeletonLoader';
+import SkeletonLoader from './SkeletonLoader';
 import SpinnerIcon from './icons/SpinnerIcon';
 
 const PAGE_SIZE = 30;

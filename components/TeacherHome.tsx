@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import FinanceFilterBar from './FinanceFilterBar';
 // types
 import { TeacherView, Teacher, Student, Subject, Assignment, AssignmentScore } from '../types';
 // services
@@ -35,105 +36,116 @@ const Badge: React.FC<BadgeProps> = ({ icon, title, text }) => (
 
 
 const TeacherHome = ({ setActiveView }: { setActiveView: (view: TeacherView) => void }) => {
-    const [loading, setLoading] = useState(true);
-    const [scheduleForToday, setScheduleForToday] = useState([]);
-    const [actionItems, setActionItems] = useState([]);
+    const [sessions, setSessions] = useState<string[]>([]);
+    const [terms, setTerms] = useState<string[]>(['First Term','Second Term','Third Term']);
+    const [selectedSession, setSelectedSession] = useState<string>('');
+    const [selectedTerm, setSelectedTerm] = useState<string>('');
+    const [scopeLabel, setScopeLabel] = useState<string>('');
+    const [loading, setLoading] = useState<boolean>(true);
+    const [scheduleForToday, setScheduleForToday] = useState<any[]>([]);
     const [stats, setStats] = useState({ studentCount: 0, classCount: 0 });
-    const [teacherName, setTeacherName] = useState('');
+    const [actionItems, setActionItems] = useState<any[]>([]);
+
+    useEffect(() => {
+        const initFilters = async () => {
+            try {
+                const [settings, scores] = await Promise.all([
+                    apiGetSchoolSettings(),
+                    apiGetScores(),
+                ]);
+                const currentTerm = (settings as any)?.currentTerm || settings?.term || 'First Term';
+                const currentSession = (settings as any)?.currentSession || settings?.session || '';
+                setSelectedTerm(currentTerm);
+                setSelectedSession(currentSession);
+                const uniqueSessions = Array.from(new Set((scores || []).map(s => s.session).filter(Boolean)));
+                const sessionsList = [currentSession, ...uniqueSessions.filter(s => s !== currentSession)];
+                setSessions(sessionsList.length > 0 ? sessionsList : [currentSession].filter(Boolean));
+                setScopeLabel([currentSession, currentTerm].filter(Boolean).join(' • '));
+            } catch (e) {
+                console.error('Failed to init teacher filters', e);
+            }
+        };
+        initFilters();
+    }, []);
 
     useEffect(() => {
         const fetchDashboardData = async () => {
-            if (!supabase) {
-                setLoading(false);
-                return;
-            }
+            try {
+                const [allSubjects, timetable, me, allStudents, allAssignments, allAssignmentScores] = await Promise.all([
+                    apiGetSubjects(),
+                    apiGetTimetableData(),
+                    supabase?.auth.getUser().then(u => u.data.user),
+                    apiGetStudents(),
+                    apiGetAssignments(),
+                    apiGetAssignmentScores()
+                ]);
 
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                setLoading(false);
-                return;
-            }
-
-            const [
-                teachers,
-                allStudents,
-                allSubjects,
-                timetable,
-                allAssignments,
-                allAssignmentScores,
-            ]: [Teacher[], Student[], Subject[], any, Assignment[], AssignmentScore[]] = await Promise.all([
-                apiGetTeachers(),
-                apiGetStudents(),
-                apiGetSubjects(),
-                apiGetTimetableData(),
-                apiGetAssignments(),
-                apiGetAssignmentScores(),
-            ]);
-
-            const me = teachers.find(t => t.email.toLowerCase() === user.email.toLowerCase());
-            if (!me) {
-                setLoading(false);
-                return;
-            }
-            setTeacherName(me.name.split(' ')[0]);
-
-            // --- Process Data ---
-            const subjectMap = new Map(allSubjects.map(s => [s.id, s.name]));
-            const today = new Date().toLocaleString('en-US', { weekday: 'long' }); // e.g., "Monday"
-            
-            const myClasses = new Set<string>();
-            if (me.classTeacherOf) {
-                myClasses.add(me.classTeacherOf);
-            }
-
-            // Schedule for today
-            const todaySchedule = [];
-            Object.keys(timetable).forEach(className => {
-                if (timetable[className][today]) {
-                    Object.keys(timetable[className][today]).forEach(timeSlot => {
-                        const slot = timetable[className][today][timeSlot];
-                        if (slot.teacherId === me.id) {
-                            todaySchedule.push({
-                                time: timeSlot,
-                                subject: subjectMap.get(slot.subjectId) || 'Unknown',
-                                className: className,
-                            });
-                            myClasses.add(className);
-                        }
-                    });
+                if (!me) {
+                    setLoading(false);
+                    return;
                 }
-            });
-            todaySchedule.sort((a, b) => a.time.localeCompare(b.time));
-            setScheduleForToday(todaySchedule);
 
-            const myStudents = allStudents.filter(s => myClasses.has(s.class));
-            setStats({ studentCount: myStudents.length, classCount: myClasses.size });
+                // --- Process Data ---
+                const subjectMap = new Map(allSubjects.map((s: any) => [s.id, s.name]));
+                const today = new Date().toLocaleString('en-US', { weekday: 'long' }); // e.g., "Monday"
+                
+                const myClasses = new Set<string>();
+                if ((me as any).classTeacherOf) {
+                    myClasses.add((me as any).classTeacherOf);
+                }
 
-            // Action Items (Assignments to grade)
-            const now = new Date();
-            const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+                // Schedule for today
+                const todaySchedule: any[] = [];
+                Object.keys(timetable || {}).forEach(className => {
+                    if (timetable[className][today]) {
+                        Object.keys(timetable[className][today]).forEach(timeSlot => {
+                            const slot = timetable[className][today][timeSlot];
+                            if (slot.teacherId === me.id) {
+                                todaySchedule.push({
+                                    time: timeSlot,
+                                    subject: subjectMap.get(slot.subjectId) || 'Unknown',
+                                    className: className,
+                                });
+                                myClasses.add(className);
+                            }
+                        });
+                    }
+                });
+                todaySchedule.sort((a, b) => a.time.localeCompare(b.time));
+                setScheduleForToday(todaySchedule);
 
-            const assignmentsForMyClasses = allAssignments.filter(a => myClasses.has(a.class));
-            
-            const relevantAssignments = assignmentsForMyClasses.filter(a => {
-                const dueDate = new Date(a.dueDate);
-                return dueDate < now && dueDate > twoWeeksAgo; // Due in the last 14 days
-            });
+                const myStudents = allStudents.filter((s: any) => myClasses.has(s.class));
+                setStats({ studentCount: myStudents.length, classCount: myClasses.size });
 
-            const actionItemsData = relevantAssignments.map(assignment => {
-                const studentsInClass = allStudents.filter(s => s.class === assignment.class).length;
-                const scoresSubmitted = allAssignmentScores.filter(s => s.assignmentId === assignment.id).length;
-                return {
-                    ...assignment,
-                    studentsInClass,
-                    scoresSubmitted,
-                    subjectName: subjectMap.get(assignment.subjectId) || 'Unknown'
-                };
-            }).filter(item => item.scoresSubmitted < item.studentsInClass); // Only show if not fully graded
-            
-            setActionItems(actionItemsData.slice(0, 3)); // Show top 3
+                // Action Items (Assignments to grade)
+                const now = new Date();
+                const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
-            setLoading(false);
+                const assignmentsForMyClasses = allAssignments.filter((a: any) => myClasses.has(a.class));
+                
+                const relevantAssignments = assignmentsForMyClasses.filter((a: any) => {
+                    const dueDate = new Date(a.dueDate);
+                    return dueDate < now && dueDate > twoWeeksAgo; // Due in the last 14 days
+                });
+
+                const actionItemsData = relevantAssignments.map((assignment: any) => {
+                    const studentsInClass = allStudents.filter((s: any) => s.class === assignment.class).length;
+                    const scoresSubmitted = allAssignmentScores.filter((s: any) => s.assignmentId === assignment.id).length;
+                    return {
+                        ...assignment,
+                        studentsInClass,
+                        scoresSubmitted,
+                        subjectName: subjectMap.get(assignment.subjectId) || 'Unknown'
+                    };
+                }).filter((item: any) => item.scoresSubmitted < item.studentsInClass); // Only show if not fully graded
+                
+                setActionItems(actionItemsData.slice(0, 3)); // Show top 3
+
+                setLoading(false);
+            } catch (error) {
+                console.error('Failed to fetch dashboard data', error);
+                setLoading(false);
+            }
         };
 
         fetchDashboardData();
@@ -155,9 +167,20 @@ const TeacherHome = ({ setActiveView }: { setActiveView: (view: TeacherView) => 
     }
 
     return (
-        <div>
-            <h1 className="text-2xl font-semibold text-gray-700">Welcome, {teacherName}!</h1>
-            <p className="mt-1 text-gray-600">Here's what's happening today.</p>
+        <div className="p-6">
+            {/* Scope Filter */}
+            <div className="mt-4">
+                <FinanceFilterBar
+                  sessions={sessions}
+                  terms={terms}
+                  valueSession={selectedSession}
+                  valueTerm={selectedTerm}
+                  onChange={(s,t) => { setSelectedSession(s); setSelectedTerm(t); setScopeLabel([s,t].filter(Boolean).join(' • ')); }}
+                />
+                {scopeLabel && (
+                  <div className="mt-2 text-xs text-gray-500">Scope: {scopeLabel}</div>
+                )}
+            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
                 {/* Main content area */}

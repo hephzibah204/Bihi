@@ -11,6 +11,18 @@ import SparklesIcon from './icons/SparklesIcon';
 import { ADMIN_VIEWS } from '../utils/constants';
 import PlanSelector from './PlanSelector';
 import DataChampionsWidget from './DataChampionsWidget';
+import AttendanceSnapshotWidget from './AttendanceSnapshotWidget';
+import FinancialVitalsWidget from './FinancialVitalsWidget';
+import IncomeExpenseTrendChart from './IncomeExpenseTrendChart';
+import ExpenseCategoryBreakdown from './ExpenseCategoryBreakdown';
+import TopDebtorsByClassAlt from './TopDebtorsByClassAlt';
+import HighPriorityDebtorsWidget from './HighPriorityDebtorsWidget';
+import FinancialQAWidget from './FinancialQAWidget';
+import ClassPerformanceRanking from './ClassPerformanceRanking';
+import SubjectHotColdChart from './SubjectHotColdChart';
+import SchoolVitals from './SchoolVitals';
+import AnalystQAWidget from './AnalystQAWidget';
+import EarlyIntervention from './EarlyIntervention';
 
 const DashboardHome = ({ setActiveView }: { setActiveView: (view: DashboardView) => void }) => {
     const { isSubscribed, planName, isLoading } = usePlanFeatures();
@@ -43,7 +55,36 @@ const DashboardHome = ({ setActiveView }: { setActiveView: (view: DashboardView)
                 <div className="card mt-6 p-6 text-center">Loading...</div>
             ) : isSubscribed ? (
                 <>
+                    <SchoolVitals />
                     <DashboardInsights />
+                    {/* Prominent AI Early Intervention card */}
+                    <div className="mt-6">
+                        <EarlyIntervention />
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <AttendanceSnapshotWidget />
+                        <FinancialVitalsWidget />
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <IncomeExpenseTrendChart />
+                        <ExpenseCategoryBreakdown />
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <TopDebtorsByClassAlt />
+                        <HighPriorityDebtorsWidget />
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <ClassPerformanceRanking onDrillDown={setActiveView} />
+                        <SubjectHotColdChart onDrillDown={setActiveView} />
+                    </div>
+                    {/* AI Analyst Q&A */}
+                    <div className="mt-6">
+                        <AnalystQAWidget />
+                    </div>
+                    {/* Financial Q&A */}
+                    <div className="mt-6">
+                        <FinancialQAWidget />
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
                         {quickLinks.map(link => (
                             <button 

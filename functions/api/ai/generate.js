@@ -36,6 +36,7 @@ function handleCors(request) {
 async function handlePost(request, env) {
      try {
         let isAuthenticated = false;
+        let userContext = null;
         const authHeader = request.headers.get('Authorization');
         const isDemoMode = request.headers.get('X-Demo-Mode') === 'true';
 
@@ -52,6 +53,7 @@ async function handlePost(request, env) {
             });
             if (authResponse.ok) {
                 isAuthenticated = true;
+                userContext = await authResponse.json();
             }
         }
 
@@ -60,10 +62,36 @@ async function handlePost(request, env) {
         }
 
         const body = await request.json();
-        const { prompt } = body;
+        const { prompt, tenantId } = body;
         if (!prompt) return new Response(JSON.stringify({ error: "Prompt is required." }), { status: 400 });
 
-        const apiKey = env.API_KEY;
+        // Resolve API key with school-specific override support
+        let apiKey = env.API_KEY; // Default sitewide key
+        
+        // If we have a tenant ID and user context, check for school-specific Gemini API key
+        if (tenantId && userContext && !isDemoMode) {
+            try {
+                const { SUPABASE_URL, SUPABASE_ANON_KEY } = env;
+                const schoolSettingsResponse = await fetch(`${SUPABASE_URL}/rest/v1/settings?tenant_id=eq.${tenantId}&select=integrations`, {
+                    headers: { 
+                        'Authorization': `Bearer ${authHeader.split(' ')[1]}`, 
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (schoolSettingsResponse.ok) {
+                    const schoolSettings = await schoolSettingsResponse.json();
+                    if (schoolSettings && schoolSettings.length > 0 && schoolSettings[0].integrations?.gemini_api_key) {
+                        apiKey = schoolSettings[0].integrations.gemini_api_key;
+                        console.log('Using school-specific Gemini API key for tenant:', tenantId);
+                    }
+                }
+            } catch (error) {
+                console.warn('Failed to fetch school-specific API key, falling back to sitewide key:', error.message);
+            }
+        }
+        
         if (!apiKey) return new Response(JSON.stringify({ error: "API_KEY is missing on server." }), { status: 500 });
 
         const aiRes = await fetch(

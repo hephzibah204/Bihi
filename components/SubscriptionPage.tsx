@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import SpinnerIcon from './icons/SpinnerIcon';
 import Logo from './icons/Logo';
-import { getPortalUrl } from '../utils/subdomain';
+import { getPortalUrl, isProductionDomain, getDomainConfiguration } from '../utils/subdomain';
 
 const SubscriptionPage = () => {
     const [step, setStep] = useState(1);
@@ -42,11 +42,22 @@ const SubscriptionPage = () => {
                 body: JSON.stringify({ ...formData, emailRedirectTo: portalUrl })
             });
 
-            const data = await response.json();
-
+            // Check if response is OK before trying to parse JSON
             if (!response.ok) {
-                throw new Error(data.details || data.error || 'An unknown error occurred.');
+                // Try to get error details from response, but handle empty responses gracefully
+                let errorDetails = 'Registration failed';
+                try {
+                    const errorData = await response.json();
+                    errorDetails = errorData.details || errorData.error || `HTTP ${response.status}: ${response.statusText}`;
+                } catch (jsonError) {
+                    // If JSON parsing fails, use status text
+                    errorDetails = `HTTP ${response.status}: ${response.statusText || 'No response body'}`;
+                }
+                throw new Error(errorDetails);
             }
+
+            // Only parse JSON if response is successful
+            const data = await response.json();
             
             // Clear any lingering demo session data to ensure the new portal is clean.
             sessionStorage.removeItem('isDemoMode');
@@ -65,7 +76,8 @@ const SubscriptionPage = () => {
     };
 
     const { protocol, hostname, port } = window.location;
-    const isProdDomain = hostname === 'reportsheet.com.ng' || hostname === 'www.reportsheet.com.ng';
+    const isProdDomain = isProductionDomain();
+    const domainConfig = getDomainConfiguration();
     const displayPort = port ? `:${port}` : '';
 
     return (
@@ -88,11 +100,11 @@ const SubscriptionPage = () => {
                                 <div>
                                     <label className="label">Portal Address</label>
                                     <div className="flex items-center">
-                                        {isProdDomain ? (
+                                        {isProdDomain && domainConfig.useSubdomains ? (
                                             <>
                                                 <span className="px-3 py-2.5 bg-gray-100 border border-r-0 rounded-l-md text-sm text-gray-500">{`${protocol}//`}</span>
                                                 <input type="text" name="subdomain" value={formData.subdomain} onChange={handleChange} className="input-field rounded-none" placeholder="brightstar" required />
-                                                <span className="px-3 py-2.5 bg-gray-100 border border-l-0 rounded-r-md text-sm text-gray-500">{`.reportsheet.com.ng${displayPort}`}</span>
+                                                <span className="px-3 py-2.5 bg-gray-100 border border-l-0 rounded-r-md text-sm text-gray-500">{`.${domainConfig.rootDomains.find(d => hostname === d || hostname === `www.${d}`) || domainConfig.rootDomains[0]}${displayPort}`}</span>
                                             </>
                                         ) : (
                                             <>

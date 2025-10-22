@@ -75,8 +75,28 @@ async function handlePost(request, env) {
         const settingsData = await settingsRes.json();
         const integrations = settingsData[0]?.integrations;
 
-        if (channel === 'sms' && (!integrations?.sms_api_key || !integrations?.sms_sender_id)) {
-            return new Response(JSON.stringify({ error: 'SMS Gateway is not configured for this school.' }), { status: 400 });
+        if (channel === 'sms') {
+            const provider = integrations?.sms_provider || 'termii';
+            const hasTermii = integrations?.termii_api_key && integrations?.termii_sender_id;
+            const hasCustom = integrations?.sms_api_url && integrations?.sms_api_key && integrations?.sms_sender_id;
+            if (provider === 'termii' && !hasTermii) {
+                return new Response(JSON.stringify({ error: 'Termii SMS is not configured for this school.' }), { status: 400 });
+            }
+            if (provider === 'custom' && !hasCustom) {
+                return new Response(JSON.stringify({ error: 'Custom SMS provider is not configured for this school.' }), { status: 400 });
+            }
+            if (provider === 'smartsmssolutions') {
+                const ok = integrations?.smartsms_username && integrations?.smartsms_password && integrations?.smartsms_sender;
+                if (!ok) return new Response(JSON.stringify({ error: 'Smart SMS Solutions is not fully configured.' }), { status: 400 });
+            }
+            if (provider === 'bulk-sms-nigeria') {
+                const ok = integrations?.bulksms_api_token && integrations?.bulksms_sender;
+                if (!ok) return new Response(JSON.stringify({ error: 'Bulk SMS Nigeria requires API token and sender ID.' }), { status: 400 });
+            }
+            if (provider === 'nigeriabulksms') {
+                const ok = integrations?.nigeriabulksms_username && integrations?.nigeriabulksms_password && integrations?.nigeriabulksms_sender;
+                if (!ok) return new Response(JSON.stringify({ error: 'Nigeria Bulk SMS is not fully configured.' }), { status: 400 });
+            }
         }
         
         // Step 2: Log the communication
@@ -87,10 +107,141 @@ async function handlePost(request, env) {
         };
         await fetch(`${SUPABASE_URL}/rest/v1/communication_logs`, { method: 'POST', headers: adminHeaders, body: JSON.stringify(logPayload) });
 
-        // Step 3: Simulate sending via a 3rd party service using tenant's keys
-        console.log(`[${tenant_id}] SERVER-SIDE SIMULATION: Sending ${channel} to ${recipients.length} recipients using Sender ID: ${integrations?.sms_sender_id}.`);
-        
-        return new Response(JSON.stringify({ success: true, message: `${channel.charAt(0).toUpperCase() + channel.slice(1)} sent successfully (simulated).` }), { status: 200 });
+                // Step 3: Perform real sending via provider APIs using tenant\'s keys
+        const recipientsArray = Array.isArray(recipients) ? recipients : [recipients];
+
+        if (channel === 'sms') {
+            const provider = integrations?.sms_provider || 'termii';
+            if (provider === 'termii') {
+                const payload = {
+                    api_key: integrations.termii_api_key,
+                    to: recipientsArray.join(','),
+                    from: integrations.termii_sender_id,
+                    sms: content,
+                    type: 'plain',
+                    channel: 'generic',
+                };
+                const termiiRes = await fetch('https://api.ng.termii.com/api/sms/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                const termiiBody = await termiiRes.text();
+                if (!termiiRes.ok) {
+                    return new Response(JSON.stringify({ error: 'SMS provider error', details: termiiBody }), { status: 502 });
+                }
+            } else if (provider === 'custom') {
+                const customRes = await fetch(integrations.sms_api_url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${integrations.sms_api_key}`,
+                    },
+                    body: JSON.stringify({
+                        from: integrations.sms_sender_id,
+                        to: recipientsArray,
+                        message: content,
+                    }),
+                });
+                const customBody = await customRes.text();
+                if (!customRes.ok) {
+                    return new Response(JSON.stringify({ error: 'SMS provider error', details: customBody }), { status: 502 });
+                }
+            } else if (provider === 'smartsmssolutions') {
+                const params = new URLSearchParams({
+                    username: integrations.smartsms_username,
+                    password: integrations.smartsms_password,
+                    sender: integrations.smartsms_sender,
+                    recipient: recipientsArray.join(','),
+                    message: content,
+                });
+                const smsRes = await fetch(`https://api.smartsmssolutions.com/smsapi.php?${params.toString()}`, { method: 'GET' });
+                const smsBody = await smsRes.text();
+                if (!smsRes.ok || /error|failed/i.test(smsBody)) {
+                    return new Response(JSON.stringify({ error: 'SMS provider error', details: smsBody }), { status: 502 });
+                }
+            } else if (provider === 'bulk-sms-nigeria') {
+                const payload = {
+                    api_token: integrations.bulksms_api_token,
+                    from: integrations.bulksms_sender,
+                    to: recipientsArray.join(','),
+                    body: content,
+                    dnd: 2,
+                };
+                const bsnRes = await fetch('https://www.bulksmsnigeria.com/api/v1/sms/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                const bsnText = await bsnRes.text();
+                if (!bsnRes.ok || /error|failed/i.test(bsnText)) {
+                    return new Response(JSON.stringify({ error: 'SMS provider error', details: bsnText }), { status: 502 });
+                }
+            } else if (provider === 'nigeriabulksms') {
+                const params = new URLSearchParams({
+                    username: integrations.nigeriabulksms_username,
+                    password: integrations.nigeriabulksms_password,
+                    sender: integrations.nigeriabulksms_sender,
+                    message: content,
+                    numbers: recipientsArray.join(','),
+                });
+                const nbsRes = await fetch(`https://nigeriabulksms.com/smsapi.php?${params.toString()}`, { method: 'GET' });
+                const nbsBody = await nbsRes.text();
+                if (!nbsRes.ok || /error|failed/i.test(nbsBody)) {
+                    return new Response(JSON.stringify({ error: 'SMS provider error', details: nbsBody }), { status: 502 });
+                }
+            } else {
+                return new Response(JSON.stringify({ error: `SMS provider '${provider}' not implemented.` }), { status: 400 });
+            }
+        } else if (channel === 'email') {
+            const subject = type === 'reminder' ? 'Reminder' : (type === 'direct' ? 'Message' : 'Announcement');
+            if (integrations?.sendgrid_api_key) {
+                const payload = {
+                    personalizations: [
+                        { to: recipientsArray.map((email) => ({ email })) }
+                    ],
+                    from: {
+                        email: integrations.sendgrid_from_email || 'no-reply@example.com',
+                        name: integrations.sendgrid_from_name || 'School',
+                    },
+                    subject,
+                    content: [ { type: 'text/plain', value: content } ],
+                };
+                const sgRes = await fetch('https://api.sendgrid.com/v3/mail/send', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${integrations.sendgrid_api_key}`,
+                    },
+                    body: JSON.stringify(payload),
+                });
+                const sgBody = await sgRes.text();
+                if (!sgRes.ok) {
+                    return new Response(JSON.stringify({ error: 'Email provider error', details: sgBody }), { status: 502 });
+                }
+            } else if (integrations?.mailgun_api_key && integrations?.mailgun_domain) {
+                const params = new URLSearchParams();
+                params.append('from', integrations.mailgun_from_email || 'no-reply@example.com');
+                params.append('to', recipientsArray.join(','));
+                params.append('subject', subject);
+                params.append('text', content);
+
+                const authHeader = 'Basic ' + btoa('api:' + integrations.mailgun_api_key);
+                const mgRes = await fetch(`https://api.mailgun.net/v3/${integrations.mailgun_domain}/messages`, {
+                    method: 'POST',
+                    headers: { 'Authorization': authHeader },
+                    body: params,
+                });
+                const mgBody = await mgRes.text();
+                if (!mgRes.ok) {
+                    return new Response(JSON.stringify({ error: 'Email provider error', details: mgBody }), { status: 502 });
+                }
+            } else {
+                return new Response(JSON.stringify({ error: 'Email provider is not configured for this school.' }), { status: 400 });
+            }
+        }
+
+        return new Response(JSON.stringify({ success: true, message: `${channel.charAt(0).toUpperCase() + channel.slice(1)} sent successfully.` }), { status: 200 });
 
     } catch (err) {
         return new Response(JSON.stringify({ error: "Internal Server Error", details: err.message }), { status: 500 });
@@ -114,3 +265,7 @@ export async function onRequest(context) {
     Object.entries(corsHeaders).forEach(([key, value]) => response.headers.set(key, value));
     return response;
 }
+
+
+
+

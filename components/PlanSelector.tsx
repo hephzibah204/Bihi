@@ -45,13 +45,37 @@ const PlanSelector: React.FC<PlanSelectorProps> = ({ isSubscribed, planName }) =
         fetchInitialData();
     }, []);
 
-    const handleSubscribe = (plan: Plan) => {
+    const ensurePaystackScript = async () => {
+        if (typeof window !== 'undefined' && window.PaystackPop) return;
+        await new Promise<void>((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://js.paystack.co/v1/inline.js';
+            script.async = true;
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error('Failed to load Paystack script'));
+            document.head.appendChild(script);
+        });
+    };
+
+    const handleSubscribe = async (plan: Plan) => {
         const paystackKey = schoolSettings?.paystackPublicKey;
+        try {
+            await ensurePaystackScript();
+        } catch (e: any) {
+            alert(`Unable to initialize payment: ${e.message || 'Unknown error'}`);
+            return;
+        }
+
         if (!window.PaystackPop || !paystackKey || !userEmail) {
             alert("Payment service is not configured. Please contact support.");
             return;
         }
-        
+
+        // In non-HTTPS environments (except localhost), the Paystack popup can fail.
+        if (window.location.protocol !== 'https:' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname)) {
+            console.warn('Paystack popup may fail over non-HTTPS. Use HTTPS or localhost for testing.');
+        }
+
         let priceValue;
         switch (billingCycle) {
             case 'monthly':

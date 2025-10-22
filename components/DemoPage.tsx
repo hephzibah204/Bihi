@@ -9,13 +9,16 @@ const DemoPage = () => {
     const navigate = useNavigate();
 
     const handleSelectProfile = (profile) => {
+        // Set demo mode with additional user role information
         sessionStorage.setItem('isDemoMode', 'true');
+        localStorage.setItem('isDemoMode', 'true');
         
         const sessionData = { 
             role: profile.role, 
             userId: profile.id, // For student/parent, this is the student's ID
         };
         sessionStorage.setItem('activeUser', JSON.stringify(sessionData));
+        localStorage.setItem('demoUserRole', profile.role);
 
         // For Admin/Bursar/Teacher, we don't set an activeUser session,
         // as the Dashboard will simulate the Supabase auth state.
@@ -28,9 +31,8 @@ const DemoPage = () => {
             searchParams.set('view', 'bursary');
         }
 
-        // Navigate to the root path. The App component will detect demo mode via
-        // sessionStorage and render the Dashboard, which will then use the search param.
-        navigate({ pathname: '/', search: searchParams.toString() });
+        // Force reload to ensure all components recognize demo mode
+        window.location.href = `/?${searchParams.toString()}`;
     };
 
     return <DemoSchoolLandingPage onSelectProfile={handleSelectProfile} />;

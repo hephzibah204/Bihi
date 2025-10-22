@@ -1,0 +1,82 @@
+// Academic and Curriculum Types
+
+export interface Subject {
+  id: string;
+  name: string;
+  classes: string[];
+}
+
+export interface Score {
+  studentId: string;
+  subjectId: string;
+  session: string;
+  term: string;
+  ca1?: number;
+  ca2?: number;
+  exam?: number;
+  comment?: string;
+}
+
+export interface Remark {
+  studentId: string;
+  session: string;
+  term: string;
+  generalComment?: string;
+  affectiveRatings?: Record<string, number>;
+  psychomotorRatings?: Record<string, number>;
+}
+
+export interface BehavioralLogEntry {
+  id: string;
+  studentId: string;
+  date: string;
+  remark: string;
+  type: 'positive' | 'negative' | 'neutral';
+}
+
+export interface AttendanceRecord {
+  date: string;
+  class: string;
+  statuses: Record<string, 'present' | 'absent' | 'late'>;
+}
+
+export interface Assignment {
+  id: string;
+  class: string;
+  title: string;
+  description: string;
+  subjectId: string;
+  dueDate: string;
+  maxScore: number;
+  type?: string;
+}
+
+export interface AssignmentScore {
+  id: string;
+  assignmentId: string;
+  studentId: string;
+  score: number;
+  comment?: string;
+}
+
+export interface SharedLessonPlan {
+  id: string;
+  topic: string;
+  subjectId: string;
+  class: string;
+  content: string;
+  sharedByTeacherId: string;
+  sharedByTeacherName: string;
+  createdAt: string;
+  upvotes: number;
+}
+
+export interface AbsenceReport {
+  id: string;
+  studentId: string;
+  reportedByParentId: string;
+  date: string;
+  reason: 'Sickness' | 'Family Emergency' | 'Other';
+  details?: string;
+  status: 'Pending' | 'Acknowledged';
+}

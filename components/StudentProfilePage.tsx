@@ -82,7 +82,7 @@ const StudentProfilePage = ({ studentId, setActiveView }) => {
     const [loading, setLoading] = useState(true);
     const chartRef = useRef<HTMLCanvasElement>(null);
     const chartInstanceRef = useRef(null);
-    const qrCodeUrl = useQRCodeGenerator(student?.admissionNo || '');
+    const { qrCodeUrl } = useQRCodeGenerator(student?.admissionNo || '');
 
     useEffect(() => {
         if (!studentId) {

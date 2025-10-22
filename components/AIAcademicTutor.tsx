@@ -8,6 +8,8 @@ import SparklesIcon from './icons/SparklesIcon';
 import UserCircleIcon from './icons/UserCircleIcon';
 import { USER_ROLES } from '../utils/constants';
 import { useAuth } from '../contexts/AuthContext';
+import { getVoiceSessionService } from '../services/voiceSessionService';
+import { getConversationService } from '../services/conversationService';
 
 const PracticeQuiz = lazy(() => import('./PracticeQuiz'));
 const LearningPathways = lazy(() => import('./LearningPathways'));
@@ -151,6 +153,9 @@ const AIAcademicTutor = ({ demoUserId }) => {
     const [errorMessage, setErrorMessage] = useState('');
     const [transcripts, setTranscripts] = useState([]);
     const [isSpeaking, setIsSpeaking] = useState(false);
+    const [voiceSessionId, setVoiceSessionId] = useState<string | null>(null);
+    const [conversationId, setConversationId] = useState<string | null>(null);
+    const sessionStartTimeRef = useRef<number>(0);
     
     const aiRef = useRef(null);
     const inputAudioContextRef = useRef(null);
@@ -161,7 +166,25 @@ const AIAcademicTutor = ({ demoUserId }) => {
     const audioSourcesRef = useRef(new Set());
     const streamRef = useRef(null);
 
-    const cleanup = () => {
+    const cleanup = async () => {
+        // Save voice session before cleanup
+        if (voiceSessionId && transcripts.length > 0) {
+            try {
+                const duration = Math.floor((Date.now() - sessionStartTimeRef.current) / 1000);
+                const voiceService = getVoiceSessionService();
+                await voiceService.endSession(voiceSessionId, transcripts, duration);
+                
+                // Optionally sync to conversation
+                if (conversationId) {
+                    await voiceService.syncToConversation(voiceSessionId);
+                }
+                
+                console.log('Voice session saved:', voiceSessionId);
+            } catch (error) {
+                console.error('Failed to save voice session:', error);
+            }
+        }
+        
         if (sessionPromise) {
             sessionPromise.then(session => session.close()).catch(console.error);
             setSessionPromise(null);
@@ -182,18 +205,29 @@ const AIAcademicTutor = ({ demoUserId }) => {
 
         setStatus('idle');
         setIsSpeaking(false);
+        setVoiceSessionId(null);
     };
 
     useEffect(() => {
-        const initialize = () => {
+        const initialize = async () => {
             setStatus('initializing');
             setErrorMessage('');
             try {
-                // Per coding guidelines, the API key must be sourced directly from the environment.
-                if (!process.env.API_KEY) {
-                    throw new Error('AI API key is not configured in the environment.');
+                const isDemo = sessionStorage.getItem('isDemoMode') === 'true';
+                if (!session && !isDemo) throw new Error("User not authenticated.");
+                
+                const headers: HeadersInit = {};
+                if (isDemo) headers['X-Demo-Mode'] = 'true';
+                else if (session) headers['Authorization'] = `Bearer ${session.access_token}`;
+
+                const response = await fetch('/api/ai/client-key', { headers });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to fetch AI configuration.');
                 }
-                aiRef.current = new GoogleGenAI({ apiKey: process.env.API_KEY });
+                const { key } = await response.json();
+                if (!key) throw new Error('Server did not provide an API key.');
+                aiRef.current = new GoogleGenAI({ apiKey: key });
                 setStatus('idle');
             } catch (e) {
                 setErrorMessage(`AI Tutor is unavailable: ${e.message}`);
@@ -201,13 +235,45 @@ const AIAcademicTutor = ({ demoUserId }) => {
             }
         };
         initialize();
-        return () => cleanup();
-    }, []);
+        return () => cleanup(); // Full cleanup on component unmount
+    }, [session]);
 
     const startSession = async () => {
         if (status !== 'idle' || !aiRef.current) return;
         setStatus('connecting');
         setTranscripts([]);
+        sessionStartTimeRef.current = Date.now();
+        
+        // Create voice session and conversation
+        try {
+            const isDemo = sessionStorage.getItem('isDemoMode') === 'true';
+            const userId = isDemo ? (demoUserId || 'demo-user') : session?.user?.id;
+            
+            if (userId) {
+                // Create conversation first
+                const conversationService = getConversationService();
+                const { conversation } = await conversationService.createConversation({
+                    userId,
+                    title: 'Voice Tutor Session',
+                    type: 'voice_tutor'
+                });
+                setConversationId(conversation.id);
+                
+                // Create voice session
+                const voiceService = getVoiceSessionService();
+                const voiceSession = await voiceService.createSession({
+                    userId,
+                    conversationId: conversation.id,
+                    sessionType: 'gemini_live'
+                });
+                setVoiceSessionId(voiceSession.id);
+                console.log('Voice session started:', voiceSession.id);
+            }
+        } catch (error) {
+            console.error('Failed to create voice session:', error);
+            // Continue anyway - don't block user
+        }
+        
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             streamRef.current = stream;

@@ -5,7 +5,7 @@ import { formatDate } from '../utils/dateHelpers';
 import Modal from './Modal';
 import SpinnerIcon from './icons/SpinnerIcon';
 import TableSkeleton from './skeletons/TableSkeleton';
-import BulkFinancialsPrintView from './BulkFinancialsPrintView';
+import BulkFinancialsPrintView from './BulkFinancialsPrintView2';
 import { useTenant } from '../contexts/TenantContext';
 import PrinterIcon from './icons/PrinterIcon';
 import AnimatedCheckbox from './AnimatedCheckbox';

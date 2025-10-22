@@ -64,15 +64,39 @@ const NavLink: React.FC<NavLinkProps> = ({ icon, label, view, activeView, setAct
     </button>
 );
 
-const NavGroup: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-    <div>
-        <h3 className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">{title}</h3>
-        <div className="mt-2 space-y-1">{children}</div>
-    </div>
-);
+interface NavGroupProps {
+    title: string;
+    items: Array<{
+        view: DashboardView;
+        label: string;
+        icon: React.ReactNode;
+    }>;
+    activeView: DashboardView;
+    setActiveView: (view: DashboardView) => void;
+    hasFeature: (feature: string) => boolean;
+}
+
+const NavGroup: React.FC<NavGroupProps> = ({ title, items, activeView, setActiveView, hasFeature }) => {
+    return (
+        <div>
+            <h3 className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">{title}</h3>
+            <div className="mt-2 space-y-1">
+                {items.map((link, index) => (
+                    <NavLink 
+                        key={`${title}-${link.view}-${index}`}
+                        {...link}
+                        activeView={activeView}
+                        setActiveView={setActiveView}
+                        disabled={!hasFeature(link.view)}
+                    />
+                ))}
+            </div>
+        </div>
+    );
+};
 
 
-const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView }: SidebarProps) => {
+const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView, userRole }: SidebarProps) => {
     const { hasFeature } = usePlanFeatures();
 
     const navLinks = [
@@ -159,24 +183,25 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView }: S
                     </button>
                 </div>
                 <nav className="flex-1 p-4 space-y-6 overflow-y-auto h-[calc(100vh-4rem)]">
-                   {navLinks.map(group => {
-                       const isGroupVisible = hasFeature(group.groupId) || group.groupId === 'main' || group.groupId === 'system';
-                       if (!isGroupVisible) return null;
-
-                       return (
-                           <NavGroup key={group.group} title={group.group}>
-                               {group.items.map(link => (
-                                   <NavLink 
-                                       key={link.view}
-                                       {...link}
-                                       activeView={activeView}
-                                       setActiveView={setActiveView}
-                                       disabled={!hasFeature(link.view)}
-                                    />
-                               ))}
-                           </NavGroup>
-                       );
-                   })}
+                   {navLinks
+                     .filter(group => {
+                        // Show only Finance (and optionally Main) for Bursar
+                        if (userRole === 'Bursar') {
+                            return group.groupId === 'finance' || group.groupId === 'main';
+                        }
+                        const isGroupVisible = hasFeature(group.groupId) || group.groupId === 'main' || group.groupId === 'system';
+                        return isGroupVisible;
+                     })
+                     .map(group => (
+                        <NavGroup 
+                            key={group.group} 
+                            title={group.group}
+                            items={group.items}
+                            activeView={activeView}
+                            setActiveView={setActiveView}
+                            hasFeature={hasFeature}
+                        />
+                     ))}
                 </nav>
             </aside>
         </>

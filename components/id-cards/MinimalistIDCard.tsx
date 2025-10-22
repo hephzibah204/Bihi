@@ -3,7 +3,7 @@ import React from 'react';
 import { useQRCodeGenerator } from '../../hooks/useQRCodeGenerator';
 
 const MinimalistIDCard = ({ student, schoolSettings }) => {
-    const qrCodeUrl = useQRCodeGenerator(student.admissionNo);
+    const { qrCodeUrl } = useQRCodeGenerator(student.admissionNo);
 
     return (
         <div className="w-64 h-96 bg-white rounded-lg shadow-lg flex flex-col justify-between p-6 font-sans">

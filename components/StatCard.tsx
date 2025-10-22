@@ -7,11 +7,12 @@ interface StatCardProps {
     value: string | number;
     icon: ReactNode;
     trend?: { value: string; direction: 'up' | 'down' } | null;
+    className?: string;
 }
 
-const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend }) => {
+const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend, className }) => {
     return (
-        <div className="card p-6">
+        <div className={`card p-6 ${className || ''}`}>
             <div className="flex items-center">
                 <div className="p-3 rounded-full bg-indigo-100 text-indigo-600">
                     {icon}

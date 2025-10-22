@@ -6,6 +6,8 @@ import PlusIcon from './icons/PlusIcon';
 import TrashIcon from './icons/TrashIcon';
 import FeatureControlSettings from './FeatureControlSettings';
 import IntegrationSettings from './IntegrationSettings';
+import ManualBankSettings from './ManualBankSettings';
+import { CONTROLLABLE_FEATURES } from '../utils/constants';
 
 const TabButton = ({ view, active, onClick, children }: PropsWithChildren<{ view: string, active: boolean, onClick: (view: string) => void }>) => (
     <button
@@ -204,7 +206,8 @@ const ClassSettings = ({ settings, onSettingsChange }) => {
 };
 
 
-const SchoolSettings = () => {
+// School Settings Component - Fixed duplicate declaration issue
+const SchoolSettingsComponent = () => {
     const [settings, setSettings] = useState<Partial<SchoolSettings> | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -212,7 +215,16 @@ const SchoolSettings = () => {
 
     useEffect(() => {
         apiGetSchoolSettings().then(data => {
-            setSettings(data || {});
+            const base = data || {};
+            const existingFeatures = base.features || {};
+            const normalizedFeatures = { ...existingFeatures } as Record<string, boolean>;
+            // Ensure all controllable features default to enabled when not yet configured
+            CONTROLLABLE_FEATURES.forEach(f => {
+                if (normalizedFeatures[f.key] === undefined) {
+                    normalizedFeatures[f.key] = true;
+                }
+            });
+            setSettings({ ...base, features: normalizedFeatures });
             setLoading(false);
         });
     }, []);
@@ -244,6 +256,7 @@ const SchoolSettings = () => {
             case 'report-card': return <ReportCardSettingsTab settings={settings!} onSettingsChange={handleSettingsChange} />;
             case 'features': return <FeatureControlSettings settings={settings!} onSettingsChange={handleSettingsChange} />;
             case 'integrations': return <IntegrationSettings settings={settings!} onSettingsChange={handleSettingsChange} />;
+            case 'payments': return <ManualBankSettings settings={settings!} onSettingsChange={handleSettingsChange} />;
             default: return null;
         }
     };
@@ -266,6 +279,7 @@ const SchoolSettings = () => {
                         <TabButton view="report-card" active={activeTab === 'report-card'} onClick={setActiveTab}>Report Card</TabButton>
                         <TabButton view="features" active={activeTab === 'features'} onClick={setActiveTab}>Features</TabButton>
                         <TabButton view="integrations" active={activeTab === 'integrations'} onClick={setActiveTab}>Integrations</TabButton>
+                        <TabButton view="payments" active={activeTab === 'payments'} onClick={setActiveTab}>Payments</TabButton>
                     </div>
                     <div className="mt-6">{renderTabContent()}</div>
                 </div>
@@ -274,4 +288,4 @@ const SchoolSettings = () => {
     );
 };
 
-export default SchoolSettings;
+export default SchoolSettingsComponent;

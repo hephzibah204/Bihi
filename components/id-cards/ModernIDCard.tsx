@@ -4,7 +4,7 @@ import { useQRCodeGenerator } from '../../hooks/useQRCodeGenerator';
 
 const ModernIDCard = ({ student, schoolSettings }) => {
     const defaultLogo = "https://i.imgur.com/gKEBi1f.png";
-    const qrCodeUrl = useQRCodeGenerator(student.admissionNo);
+    const { qrCodeUrl } = useQRCodeGenerator(student.admissionNo);
 
     return (
         <div className="w-64 h-96 bg-gray-900 text-white rounded-lg shadow-lg flex flex-col p-4 relative overflow-hidden font-sans">

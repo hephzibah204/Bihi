@@ -10,7 +10,19 @@ const ChatbotPanel = ({ isOpen, onClose, userRole, demoUserId, activeView }) => 
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [performanceContext, setPerformanceContext] = useState('');
-    const { generateResponseStream, status } = useAI();
+    const [notifications, setNotifications] = useState<{ id: string; type: string; title: string; message: string; }[]>([]);
+    
+    const handleNotification = (notification: { type: 'info' | 'warning' | 'error'; title: string; message: string }) => {
+        const id = `notification_${Date.now()}`;
+        setNotifications(prev => [...prev, { id, ...notification }]);
+        
+        // Auto-remove notification after 5 seconds
+        setTimeout(() => {
+            setNotifications(prev => prev.filter(n => n.id !== id));
+        }, 5000);
+    };
+    
+    const { generateResponseStream, status } = useAI(handleNotification);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -89,6 +101,23 @@ const ChatbotPanel = ({ isOpen, onClose, userRole, demoUserId, activeView }) => 
     
     return (
         <div className={`fixed bottom-24 right-4 w-80 md:w-96 h-96 md:h-[500px] bg-white rounded-lg shadow-xl flex flex-col transition-all duration-300 ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+            {/* Notification container */}
+            <div className="absolute -top-20 right-0 z-50 space-y-2">
+                {notifications.map(notification => (
+                    <div
+                        key={notification.id}
+                        className={`p-3 rounded-lg shadow-lg max-w-xs text-sm ${
+                            notification.type === 'error' ? 'bg-red-100 border border-red-300 text-red-800' :
+                            notification.type === 'warning' ? 'bg-yellow-100 border border-yellow-300 text-yellow-800' :
+                            'bg-blue-100 border border-blue-300 text-blue-800'
+                        }`}
+                    >
+                        <div className="font-semibold">{notification.title}</div>
+                        <div>{notification.message}</div>
+                    </div>
+                ))}
+            </div>
+            
             <header className="p-4 border-b flex justify-between items-center">
                 <h3 className="font-semibold">AI Assistant</h3>
                 <div className="text-xs text-gray-500 flex items-center">

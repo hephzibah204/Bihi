@@ -4,7 +4,7 @@ import UsersIcon from './icons/UsersIcon';
 import ClipboardListIcon from './icons/ClipboardListIcon';
 import DocumentArrowDownIcon from './icons/DocumentArrowDownIcon';
 import Cog6ToothIcon from './icons/Cog6ToothIcon';
-import { DashboardView } from '../types';
+import { DashboardView, UserRole } from '../types';
 import { ADMIN_VIEWS } from '../utils/constants';
 
 interface NavItemProps {
@@ -40,10 +40,11 @@ const NavItem: FC<NavItemProps> = ({ icon, label, view, isActive, onClick }) => 
 interface BottomNavBarProps {
     activeView: DashboardView;
     setActiveView: (view: DashboardView) => void;
+    userRole?: UserRole | null;
 }
 
-const AdminBottomNavBar: FC<BottomNavBarProps> = ({ activeView, setActiveView }) => {
-    const navItems: { view: DashboardView; label: string; icon: React.ReactNode }[] = [
+const AdminBottomNavBar: FC<BottomNavBarProps> = ({ activeView, setActiveView, userRole }) => {
+    let navItems: { view: DashboardView; label: string; icon: React.ReactNode }[] = [
         // Fix: Cast string constants to DashboardView
         { view: ADMIN_VIEWS.DASHBOARD as DashboardView, label: 'Home', icon: <HomeIcon className="h-6 w-6" /> },
         { view: ADMIN_VIEWS.STUDENTS as DashboardView, label: 'Students', icon: <UsersIcon className="h-6 w-6" /> },
@@ -51,6 +52,15 @@ const AdminBottomNavBar: FC<BottomNavBarProps> = ({ activeView, setActiveView })
         { view: ADMIN_VIEWS.ATTENDANCE as DashboardView, label: 'Attendance', icon: <ClipboardListIcon className="h-6 w-6" /> },
         { view: ADMIN_VIEWS.SETTINGS as DashboardView, label: 'Settings', icon: <Cog6ToothIcon className="h-6 w-6" /> },
     ];
+
+    // Finance-focused nav for Bursar
+    if (userRole === 'Bursar') {
+        navItems = [
+            { view: ADMIN_VIEWS.DASHBOARD as DashboardView, label: 'Home', icon: <HomeIcon className="h-6 w-6" /> },
+            { view: ADMIN_VIEWS.BURSARY as DashboardView, label: 'Bursary', icon: <ClipboardListIcon className="h-6 w-6" /> },
+            { view: ADMIN_VIEWS.SETTINGS as DashboardView, label: 'Settings', icon: <Cog6ToothIcon className="h-6 w-6" /> },
+        ];
+    }
 
     return (
         <nav className="bottom-nav md:hidden">

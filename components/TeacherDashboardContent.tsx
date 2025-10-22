@@ -4,7 +4,6 @@ import { TEACHER_VIEWS } from '../utils/constants';
 import SpinnerIcon from './icons/SpinnerIcon';
 
 // Lazy-loaded components for teacher dashboard
-const TeacherHome = lazy(() => import('./TeacherHome'));
 const Results = lazy(() => import('./Results'));
 const TeacherSchedule = lazy(() => import('./TeacherSchedule'));
 const AITools = lazy(() => import('./AITools'));
@@ -33,7 +32,8 @@ const TeacherDashboardContent: React.FC<TeacherDashboardContentProps> = ({ activ
             {(() => {
                 switch(activeView) {
                     case TEACHER_VIEWS.DASHBOARD:
-                        return <TeacherHome setActiveView={setActiveView} />;
+                        // Temporarily route to Schedule to avoid issues in TeacherHome
+                        return <TeacherSchedule />;
                     case TEACHER_VIEWS.MY_STUDENTS:
                         return <MyStudents />;
                     case TEACHER_VIEWS.ENTER_SCORES:
@@ -49,9 +49,9 @@ const TeacherDashboardContent: React.FC<TeacherDashboardContentProps> = ({ activ
                     case TEACHER_VIEWS.MY_PAYSLIPS:
                         return <MyPayslips />;
                     default:
-                        return <TeacherHome setActiveView={setActiveView} />;
-                }
-            })()}
+                        return <TeacherSchedule />;
+            }
+        })()}
         </Suspense>
     );
 };

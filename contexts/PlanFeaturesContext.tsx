@@ -29,7 +29,13 @@ export const PlanFeaturesProvider: React.FC<PropsWithChildren<{}>> = ({ children
     const [allPlans, setAllPlans] = useState<Plan[]>([]);
     const [activePlan, setActivePlan] = useState<Plan | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const isDemo = getTenantId() === DEMO_TENANT_ID;
+    // Treat both demo tenant and storage-based demo flag as demo mode
+    const storageDemoFlag = (typeof window !== 'undefined') && (
+        sessionStorage.getItem('isDemoMode') === 'true' ||
+        localStorage.getItem('isDemoMode') === 'true'
+    );
+    const tenantId = getTenantId();
+    const isDemo = (tenantId === DEMO_TENANT_ID) || storageDemoFlag;
 
     useEffect(() => {
         const fetchPlans = async () => {
@@ -87,7 +93,18 @@ export const PlanFeaturesProvider: React.FC<PropsWithChildren<{}>> = ({ children
     const isSubscribed = isDemo || !!activePlan;
 
     const hasFeature = (featureKey: string): boolean => {
-        if (isDemo) return true; // Grant all features in demo mode
+        // Double-check demo mode detection for feature access
+        const currentStorageDemo = (typeof window !== 'undefined') && (
+            sessionStorage.getItem('isDemoMode') === 'true' ||
+            localStorage.getItem('isDemoMode') === 'true'
+        );
+        const currentTenantId = getTenantId();
+        const currentIsDemo = (currentTenantId === DEMO_TENANT_ID) || currentStorageDemo;
+        
+        if (currentIsDemo) {
+            return true; // Grant all features in demo mode
+        }
+        
         if (!isSubscribed || !activePlan) return false;
         
         // The feature check is now against the dynamic features object of the plan.

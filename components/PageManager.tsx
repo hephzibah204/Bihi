@@ -96,7 +96,7 @@ const PageEditorModal = ({ page, allPages, onSave, onClose }) => {
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        let newPageData = { ...pageData, [name]: value };
+        const newPageData = { ...pageData, [name]: value };
         if (name === 'title' && !page) { // Auto-generate slug for new pages
             newPageData.slug = slugify(value);
         }

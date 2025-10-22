@@ -8,7 +8,7 @@ import SparklesIcon from './icons/SparklesIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
 import EditIcon from './icons/EditIcon';
 import TableSkeleton from './skeletons/TableSkeleton';
-import SkeletonLoader from './skeletons/SkeletonLoader';
+import SkeletonLoader from './SkeletonLoader';
 
 const Star: React.FC<{ filled: boolean, onClick: () => void }> = ({ filled, onClick }) => (
     <button type="button" onClick={onClick} className="focus:outline-none">
