@@ -15,7 +15,7 @@ const PluginManager = lazy(() => import('./SuperAdmin/PluginManager'));
 const ThemeManager = lazy(() => import('./SuperAdmin/ThemeManager'));
 const MediaLibrary = lazy(() => import('./SuperAdmin/MediaLibrary'));
 const EmailCenter = lazy(() => import('./SuperAdmin/EmailCenter'));
-const BackupManager = lazy(() => import('./SuperAdmin/BackupManager'));
+const BackupManager = lazy(() => import('./SuperAdmin/BackupSystem'));
 const AuditLogs = lazy(() => import('./SuperAdmin/AuditLogs'));
 const PerformanceOptimizer = lazy(() => import('./SuperAdmin/PerformanceOptimizer'));
 const APIManager = lazy(() => import('./SuperAdmin/APIManager'));

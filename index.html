@@ -111,6 +111,22 @@
                 transition: stroke-dashoffset 0.3s ease-in-out;
             }
 
+            .report-card-layout {
+                @apply relative flex flex-col gap-8 rounded-[32px] border border-indigo-100 bg-gradient-to-br from-white via-indigo-50 to-white shadow-2xl print:bg-white print:shadow-none print:border-gray-200;
+            }
+            .report-card-a4-size {
+                width: min(100%, 210mm);
+                min-height: 297mm;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            .no-print {
+                @apply print:hidden;
+            }
+            .printable-content {
+                @apply w-full print:shadow-none print:border-0;
+            }
+
             .countdown-timer { @apply flex items-center justify-center gap-2 text-center; }
             .countdown-timer .value { @apply font-bold text-2xl bg-white/20 px-2 py-1 rounded; }
             .countdown-timer .label { @apply text-xs mt-1; }
@@ -118,6 +134,27 @@
             /* Production Accessibility Enhancement */
             *:focus-visible {
                 @apply ring-2 ring-offset-2 ring-indigo-500;
+            }
+        }
+    </style>
+
+    <style>
+        @page {
+            margin: 12mm;
+        }
+        @media print {
+            body {
+                background: #ffffff !important;
+            }
+            .report-card-layout {
+                page-break-inside: avoid;
+            }
+            .report-card-layout table {
+                page-break-inside: auto;
+            }
+            .printable-content {
+                background: #ffffff !important;
+                box-shadow: none !important;
             }
         }
     </style>

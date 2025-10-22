@@ -67,7 +67,7 @@ export const summarizeAttendance = (studentId, attendanceRecords) => {
     if (!attendanceRecords || !Array.isArray(attendanceRecords)) {
         return { present, late, absent, total: 0 };
     }
-    
+
     attendanceRecords.forEach(record => {
         const status = record.statuses?.[studentId];
         if (status === 'present') present++;
@@ -77,3 +77,22 @@ export const summarizeAttendance = (studentId, attendanceRecords) => {
 
     return { present, late, absent, total: present + late + absent };
 };
+
+export const formatOrdinalPosition = (position) => {
+    if (position === undefined || position === null) {
+        return 'N/A';
+    }
+
+    if (typeof position !== 'number' || Number.isNaN(position)) {
+        return position || 'N/A';
+    }
+
+    const remainder10 = position % 10;
+    const remainder100 = position % 100;
+
+    if (remainder10 === 1 && remainder100 !== 11) return `${position}st`;
+    if (remainder10 === 2 && remainder100 !== 12) return `${position}nd`;
+    if (remainder10 === 3 && remainder100 !== 13) return `${position}rd`;
+    return `${position}th`;
+};
+

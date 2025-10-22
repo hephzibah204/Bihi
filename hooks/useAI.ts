@@ -26,6 +26,17 @@ export const useAI = (onNotification?: AINotificationCallback) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
+  const buildFallbackContext = useCallback((context?: string, type?: string) => {
+    if (typeof context === 'undefined' && typeof type === 'undefined') {
+      return undefined;
+    }
+
+    return {
+      ...(typeof context !== 'undefined' ? { rawContext: context } : {}),
+      ...(typeof type !== 'undefined' ? { requestType: type } : {})
+    };
+  }, []);
+
   const showNotification = useCallback((notification: {
     type: 'info' | 'warning' | 'error';
     title: string;
@@ -81,10 +92,13 @@ export const useAI = (onNotification?: AINotificationCallback) => {
           });
           
           // Fall through to fallback with reason
-          const fallbackResponse = generateFallbackResponse(prompt, context, type);
+          const fallbackResponse = generateFallbackResponse({
+            prompt,
+            context: buildFallbackContext(context, type)
+          });
           setIsLoading(false);
           setIsOnline(false);
-          
+
           return {
             content: fallbackResponse,
             isOnline: false,
@@ -106,10 +120,13 @@ export const useAI = (onNotification?: AINotificationCallback) => {
       }
       
       // Use fallback AI service
-      const fallbackResponse = generateFallbackResponse(prompt, context, type);
+      const fallbackResponse = generateFallbackResponse({
+        prompt,
+        context: buildFallbackContext(context, type)
+      });
       setIsLoading(false);
       setIsOnline(false);
-      
+
       return {
         content: fallbackResponse,
         isOnline: false,
@@ -140,7 +157,7 @@ export const useAI = (onNotification?: AINotificationCallback) => {
         }
       };
     }
-  }, [isOnline, showNotification]);
+  }, [isOnline, showNotification, buildFallbackContext]);
 
   const generateResponseStream = useCallback(async ({
     prompt,

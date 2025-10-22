@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { getConnectionManager, type ConnectionState, type HandshakeResult } from '../utils/connectionManager';
-import { Logger } from '../utils/logger';
+import { logger } from '../utils/logger';
 
 interface ConnectionStatusBarProps {
   className?: string;
@@ -27,7 +27,6 @@ export const ConnectionStatusBar: React.FC<ConnectionStatusBarProps> = ({
   const [connectionState, setConnectionState] = useState<ConnectionState | null>(null);
   const [restorationProgress, setRestorationProgress] = useState<RestorationProgress>({ inProgress: false });
   const [isExpanded, setIsExpanded] = useState(false);
-  const logger = Logger.getInstance();
 
   useEffect(() => {
     const connectionManager = getConnectionManager();
