@@ -22,10 +22,43 @@ const SecondaryReportCard = ({ student, students, scores, subjects, settings, te
     const maxCa2 = settings?.maxCa2 ?? 20;
     const maxExam = settings?.maxExam ?? 60;
 
+    // Settings-driven options (no hardcoding)
+    const subjectsTable = settings?.reportCardSettings?.subjectsTable || {};
+    const showCA1 = subjectsTable.showCA1 ?? true;
+    const showCA2 = subjectsTable.showCA2 ?? true;
+    const showExam = subjectsTable.showExam ?? true;
+    const showTotal = subjectsTable.showTotal ?? true;
+    const showGrade = subjectsTable.showGrade ?? true;
+    const zebra = subjectsTable.zebra ?? false;
+    const remarksWidth = subjectsTable.remarksWidth || undefined;
+
+    const termColors = settings?.reportCardSettings?.termColors || {};
+    const accentColor = /first/i.test(term)
+        ? termColors.first
+        : /second/i.test(term)
+        ? termColors.second
+        : /third/i.test(term)
+        ? termColors.third
+        : undefined;
+
+    const showPhoto = settings?.reportCardSettings?.showStudentPhoto ?? false;
+    const watermarkEnabled = settings?.reportCardSettings?.watermarkEnabled ?? false;
+    const watermarkOpacity = settings?.reportCardSettings?.watermarkOpacity ?? 0.08;
+
     return (
-        <div className="report-card-layout report-card-a4-size p-8">
-            <ReportCardHeader settings={settings} />
-            <div className="grid grid-cols-4 gap-4 my-4 text-sm">
+        <div className="report-card-layout report-card-a4-size p-8 relative">
+            {watermarkEnabled && settings.schoolLogo && (
+                <img
+                    src={settings.schoolLogo}
+                    alt="Watermark"
+                    className="absolute inset-0 m-auto pointer-events-none"
+                    style={{ opacity: watermarkOpacity, width: '70%', filter: 'grayscale(100%)', zIndex: 0 }}
+                />
+            )}
+            {accentColor && <div className="w-full h-1.5 rounded-full mb-4" style={{ backgroundColor: accentColor }} />}
+            <div style={{ position: 'relative', zIndex: 1 }}>
+                <ReportCardHeader settings={settings} />
+                <div className="grid grid-cols-4 gap-4 my-4 text-sm">
                 <span><strong>Name:</strong> {student.name}</span>
                 <span><strong>Class:</strong> {student.class}</span>
                 <span><strong>Session:</strong> {session}</span>

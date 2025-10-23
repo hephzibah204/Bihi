@@ -33,6 +33,32 @@ export interface SchoolSettings {
     sections: { id: string; title: string; enabled: boolean }[];
     affectiveSkills: ReportCardSkill[];
     psychomotorSkills: ReportCardSkill[];
+    // Added: Admin-configurable format and layout controls
+    templateVariant?: 'format1' | 'format2' | 'format3';
+    termColors?: { first?: string; second?: string; third?: string };
+    watermarkEnabled?: boolean;
+    watermarkOpacity?: number; // 0.0 - 1.0
+    showStudentPhoto?: boolean;
+    subjectsTable?: {
+      zebra?: boolean;
+      showCA1?: boolean;
+      showCA2?: boolean;
+      showExam?: boolean;
+      showTotal?: boolean;
+      showGrade?: boolean;
+      remarksWidth?: string; // e.g. '20%'
+    };
+    sidePanel?: {
+      showGradingScale?: boolean;
+      showAffectiveSkills?: boolean;
+      showPsychomotorSkills?: boolean;
+      showAttendance?: boolean;
+    };
+    summaryBar?: {
+      showTotal?: boolean;
+      showAverage?: boolean;
+      showPosition?: boolean;
+    };
   };
   features?: Record<string, boolean>;
   roleBasedFeatures?: {
