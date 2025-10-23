@@ -47,6 +47,29 @@ export default defineConfig(({ mode }) => {
         } : undefined
       };
     }
+
+    // Dev-only mock for /api/webviewClick when not using local API
+    if (isDevelopment && env.VITE_USE_LOCAL_API !== 'true') {
+      config.plugins.push({
+        name: 'mock-webviewClick',
+        configureServer(server) {
+          server.middlewares.use('/api/webviewClick', (req, res) => {
+            const method = req.method || 'GET';
+            if (method !== 'POST' && method !== 'GET') {
+              res.statusCode = 405;
+              res.end('Method Not Allowed');
+              return;
+            }
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ ok: true, route: '/api/webviewClick', ts: Date.now() }));
+            });
+          });
+        }
+      });
+    }
     
     return config;
 });

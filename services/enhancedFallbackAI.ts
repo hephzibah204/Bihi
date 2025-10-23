@@ -1297,53 +1297,40 @@ What specific financial aspect would you like to explore?`;
     }
 
     private static generateGeneralResponse(prompt: string, context: any): AIResponse {
-        const response = `**AI Assistant (Offline Mode)**
+        const normalizedPrompt = (prompt || '').trim();
+        const subject = (context?.subject || 'General').toLowerCase();
+        const classLevel = context?.class || 'SS2';
 
-I'm currently running in offline mode with limited capabilities compared to my full online functionality.
-
-**What I Can Do Offline:**
-✓ Generate basic lesson plans (WAEC/NECO aligned)
-✓ Create report card comments
-✓ Provide tutoring guidance for common subjects
-✓ Offer parent support advice
-✓ Basic financial analysis frameworks
-✓ Nigerian education system information
-
-**What I Need Internet For:**
-• Personalized, context-aware responses
-• Real-time data analysis
-• Advanced problem solving
-• Interactive learning experiences
-• Current information and updates
-• Comprehensive reporting
-
-**Nigerian Education Focus:**
-All my responses are tailored for:
-• WAEC/NECO curriculum
-• Nigerian teaching methodologies
-• Local educational context
-• Cultural relevance
-
-**Why Am I Offline?**
-Possible reasons:
-• No internet connection
-• API service unavailable
-• Quota/credit limitations
-• Network connectivity issues
-
-**Recommendation:**
-Please check your internet connection and try again for the full AI experience with intelligent, personalized responses.
-
-Is there something specific I can help you with in offline mode?`;
+        const response = `**Structured Response (Offline)**\n\n` +
+            `**Request Summary:** ${normalizedPrompt || 'General inquiry'}\n\n` +
+            `**Guided Approach:**\n` +
+            `• Clarify objectives and desired outcome\n` +
+            `• Break request into smaller, solvable parts\n` +
+            `• Apply step-by-step reasoning to reach conclusions\n\n` +
+            `**Suggested Plan (${subject}, ${classLevel}):**\n` +
+            `1. Identify key concepts involved in the request\n` +
+            `2. Provide concise explanations and relevant examples\n` +
+            `3. Outline steps or methodology to achieve the goal\n` +
+            `4. Recommend practice activities or follow-ups\n\n` +
+            `**Nigerian Education Alignment (WAEC/NECO):**\n` +
+            `• Use curriculum-relevant terminology and formats\n` +
+            `• Encourage exam-style practice and structured answers\n` +
+            `• Emphasize clarity, accuracy, and cultural context\n\n` +
+            `**Next Steps:**\n` +
+            `• If you need a lesson plan, specify the topic (e.g., "SS2 Biology: Cell Division")\n` +
+            `• For report comments, share strengths and improvement areas\n` +
+            `• For tutoring, state the concept and difficulty level\n` +
+            `• For parent support, describe the specific concern\n\n` +
+            `*Generated using enhanced offline templates. Connect to the internet for deeper personalization and real-time data analysis.*`;
         
         return {
             content: response,
-            confidence: 0.5,
-            templateUsed: 'general',
+            confidence: 0.65,
+            templateUsed: 'generalStructured',
             suggestions: [
-                'Check internet connection',
-                'Specify your request more clearly',
-                'Try connecting to full AI service'
+                'Specify the task type (lesson plan, tutoring, report comments)',
+                'Provide subject, class level, and topic if applicable',
+                'Ask for examples or step-by-step solutions for clarity'
             ]
         };
     }

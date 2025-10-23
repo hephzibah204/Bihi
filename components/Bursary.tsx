@@ -10,6 +10,7 @@ import PayrollDashboard from './PayrollDashboard';
 import BursaryVerifyPayments from './BursaryVerifyPayments';
 import BursaryIncome from './BursaryIncome';
 import AuditLog from './AuditLog';
+import QuickRecordPaymentModal from './QuickRecordPaymentModal';
 
 // Import icons
 import HomeIcon from './icons/HomeIcon';
@@ -34,18 +35,34 @@ interface NavigationItem {
 const Bursary = () => {
     const [activeView, setActiveView] = useState('dashboard');
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    // Hide native Bursar menu; rely on global sidebar
+    const showInternalMenu = false;
 
     useEffect(() => {
         try {
             const initialTab = localStorage.getItem('bursaryInitialTab');
             if (initialTab) {
                 setActiveView(initialTab);
-                localStorage.removeItem('bursaryInitialTab');
             }
         } catch (e) {
             // no-op
         }
     }, []);
+
+    // Poll localStorage for bursaryInitialTab changes to allow sidebar-driven navigation
+    useEffect(() => {
+        const interval = setInterval(() => {
+            try {
+                const tab = localStorage.getItem('bursaryInitialTab');
+                if (tab && tab !== activeView) {
+                    setActiveView(tab);
+                }
+            } catch (e) {
+                // no-op
+            }
+        }, 500);
+        return () => clearInterval(interval);
+    }, [activeView]);
 
     const navigationItems: NavigationItem[] = [
         {
@@ -135,8 +152,9 @@ const Bursary = () => {
 
     return (
         <div className="flex h-screen bg-gray-50">
-            {/* Sidebar */}
-            <div className={`${sidebarCollapsed ? 'w-16' : 'w-64'} bg-white shadow-lg transition-all duration-300 ease-in-out flex flex-col`}>
+            {/* Sidebar - hidden for Bursar native menu */}
+            {showInternalMenu && (
+                <div className={`${sidebarCollapsed ? 'w-16' : 'w-64'} bg-white shadow-lg transition-all duration-300 ease-in-out flex flex-col`}>
                 {/* Header */}
                 <div className="p-4 border-b border-gray-200">
                     <div className="flex items-center justify-between">
@@ -186,6 +204,7 @@ const Bursary = () => {
                     })}
                 </nav>
             </div>
+            )}
 
             {/* Main Content */}
             <div className="flex-1 flex flex-col overflow-hidden">

@@ -27,6 +27,14 @@ import LockIcon from './icons/LockIcon';
 import QuestionMarkCircleIcon from './icons/QuestionMarkCircleIcon';
 import DocumentCheckIcon from './icons/DocumentCheckIcon';
 import PencilIcon from './icons/PencilIcon';
+import BanknotesIcon from './icons/BanknotesIcon';
+import DocumentTextIcon from './icons/DocumentTextIcon';
+import ScaleIcon from './icons/ScaleIcon';
+import CheckIcon from './icons/CheckIcon';
+import ArrowTrendingDownIcon from './icons/ArrowTrendingDownIcon';
+import ArrowTrendingUpIcon from './icons/ArrowTrendingUpIcon';
+import HistoryIcon from './icons/HistoryIcon';
+import CreditCardIcon from './icons/CreditCardIcon';
 
 
 interface SidebarProps {
@@ -98,6 +106,56 @@ const NavGroup: React.FC<NavGroupProps> = ({ title, items, activeView, setActive
 
 const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView, userRole }: SidebarProps) => {
     const { hasFeature } = usePlanFeatures();
+
+    // Bursar: show dedicated sidebar with only Bursary tabs
+    if (userRole === 'Bursar') {
+        const bursarItems = [
+          { id: 'dashboard', label: 'Dashboard', icon: <HomeIcon className="h-5 w-5" /> },
+          { id: 'fees', label: 'Fee Setup', icon: <BanknotesIcon className="h-5 w-5" /> },
+          { id: 'invoices', label: 'Invoices', icon: <DocumentTextIcon className="h-5 w-5" /> },
+          { id: 'debt-management', label: 'Debt Management', icon: <ScaleIcon className="h-5 w-5" /> },
+          { id: 'verify', label: 'Verify Payments', icon: <CheckIcon className="h-5 w-5" /> },
+          { id: 'expenses', label: 'Expenses', icon: <ArrowTrendingDownIcon className="h-5 w-5" /> },
+          { id: 'income', label: 'Other Income', icon: <ArrowTrendingUpIcon className="h-5 w-5" /> },
+          { id: 'payroll', label: 'Payroll', icon: <UsersGroupIcon className="h-5 w-5" /> },
+          { id: 'reports', label: 'Reports', icon: <ChartBarIcon className="h-5 w-5" /> },
+          { id: 'audit', label: 'Audit Log', icon: <HistoryIcon className="h-5 w-5" /> },
+          { id: 'scratch-cards', label: 'Scratch Cards', icon: <CreditCardIcon className="h-5 w-5" /> },
+        ];
+        const onClickItem = (id: string) => {
+          try { localStorage.setItem('bursaryInitialTab', id); } catch (e) {}
+          setActiveView(ADMIN_VIEWS.BURSARY);
+        };
+        return (
+          <>
+            <div 
+                className={`fixed inset-0 z-20 bg-black bg-opacity-50 transition-opacity md:hidden ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                onClick={() => setSidebarOpen(false)}
+            ></div>
+            <aside 
+                className={`fixed inset-y-0 left-0 z-30 w-64 bg-white transform transition-transform duration-300 md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+            >
+                <div className="flex items-center justify-between h-16 px-4 border-b">
+                    <div className="flex items-center space-x-2">
+                        <Logo className="h-8 w-8" />
+                        <span className="text-xl font-bold">Bursar</span>
+                    </div>
+                    <button className="md:hidden icon-button" onClick={() => setSidebarOpen(false)} aria-label="Close sidebar">
+                        <XIcon className="h-6 w-6"/>
+                    </button>
+                </div>
+                <nav className="flex-1 p-4 space-y-1 overflow-y-auto h-[calc(100vh-4rem)]">
+                  {bursarItems.map(item => (
+                    <button key={item.id} onClick={() => onClickItem(item.id)} className="w-full flex items-center px-4 py-2.5 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors duration-200">
+                      {item.icon}
+                      <span className="ml-3">{item.label}</span>
+                    </button>
+                  ))}
+                </nav>
+            </aside>
+          </>
+        );
+    }
 
     const navLinks = [
         {
