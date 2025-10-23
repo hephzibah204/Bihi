@@ -35,6 +35,7 @@ interface NavigationItem {
 const Bursary = () => {
     const [activeView, setActiveView] = useState('dashboard');
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const [isQuickRecordOpen, setIsQuickRecordOpen] = useState(false);
     // Hide native Bursar menu; rely on global sidebar
     const showInternalMenu = false;
 
@@ -228,6 +229,13 @@ const Bursary = () => {
                                     day: 'numeric' 
                                 })}
                             </div>
+                            <button
+                                className="btn btn-primary"
+                                onClick={() => setIsQuickRecordOpen(true)}
+                                title="Record a payment for any student"
+                            >
+                                Record Payment
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -236,6 +244,14 @@ const Bursary = () => {
                 <div className="flex-1 overflow-auto p-6">
                     {renderContent()}
                 </div>
+                <QuickRecordPaymentModal
+                    isOpen={isQuickRecordOpen}
+                    onClose={() => setIsQuickRecordOpen(false)}
+                    onSuccess={() => {
+                        // If currently on invoices or verify, a refresh may be useful.
+                        // Keeping it simple: no explicit reload; pages listen to data from api services.
+                    }}
+                />
             </div>
         </div>
     );
