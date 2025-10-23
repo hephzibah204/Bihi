@@ -29,6 +29,12 @@ export const CORE_DEMO_DATA = {
         { id: 'subj_7', name: 'Chemistry', classes: ['SSS 1A', 'SSS 1B', 'SSS 2A', 'SSS 2B'] },
         { id: 'subj_8', name: 'Biology', classes: ['SSS 1A', 'SSS 1B', 'SSS 2A', 'SSS 2B'] },
         { id: 'subj_9', name: 'Civic Education', classes: ['JSS 1A', 'JSS 1B', 'JSS 2A', 'JSS 2B', 'SSS 1A', 'SSS 1B', 'SSS 2A', 'SSS 2B'] },
+        { id: 'subj_10', name: 'Social Studies', classes: ['JSS 1A', 'JSS 1B', 'JSS 2A', 'JSS 2B'] },
+        { id: 'subj_11', name: 'Basic Technology', classes: ['JSS 1A', 'JSS 1B'] },
+        { id: 'subj_12', name: 'Agricultural Science', classes: ['JSS 1A', 'JSS 1B'] },
+        { id: 'subj_13', name: 'Computer Studies', classes: ['JSS 1A', 'JSS 1B'] },
+        { id: 'subj_14', name: 'Home Economics', classes: ['JSS 1A', 'JSS 1B'] },
+        { id: 'subj_15', name: 'Christian Religious Studies', classes: ['JSS 1A', 'JSS 1B'] },
     ] as Subject[],
     scores: [
         // Adekunle Gold - excelling
@@ -181,3 +187,121 @@ CORE_DEMO_DATA.parents.push(...detailedDummyData.parents);
 CORE_DEMO_DATA.scores.push(...detailedDummyData.scores);
 CORE_DEMO_DATA.invoices.push(...detailedDummyData.invoices);
 CORE_DEMO_DATA.remarks.push(...detailedDummyData.remarks);
+
+// --- Explicit JSS 1A demo seeding ---
+const addJss1ADemoStudents = (count: number) => {
+  const subjectsForJss1A = CORE_DEMO_DATA.subjects.filter(s => s.classes.includes('JSS 1A'));
+  const settings = CORE_DEMO_DATA.settings;
+  const totalMax = settings.maxCa1 + settings.maxCa2 + settings.maxExam;
+
+  for (let i = 1; i <= count; i++) {
+    const gender = getRandom(['Male', 'Female']);
+    const firstName = gender === 'Male' ? getRandom(firstNamesMale) : getRandom(firstNamesFemale);
+    const lastName = getRandom(lastNames);
+    const name = `${firstName} ${lastName}`;
+
+    const studentId = `jss1a_stud_${i}`;
+    const parentId = `jss1a_parent_${i}`;
+
+    CORE_DEMO_DATA.students.push({
+      id: studentId,
+      name,
+      admissionNo: `JSS1A-${i.toString().padStart(3, '0')}`,
+      class: 'JSS 1A',
+      gender,
+      parentId,
+      parentEmail: `parent.jss1a${i}@example.com`,
+      status: 'active',
+      created_at: new Date().toISOString()
+    });
+
+    CORE_DEMO_DATA.parents.push({ id: parentId, name: `Mr. & Mrs. ${lastName}`, email: `parent.jss1a${i}@example.com` });
+
+    let totalScoreSum = 0;
+    let subjectCount = 0;
+
+    subjectsForJss1A.forEach(subject => {
+      const desiredTotal = getRandomInt(40, 95);
+      let ca1 = Math.round((desiredTotal / totalMax) * settings.maxCa1) + getRandomInt(-2, 2);
+      let ca2 = Math.round((desiredTotal / totalMax) * settings.maxCa2) + getRandomInt(-2, 2);
+      let exam = desiredTotal - ca1 - ca2;
+
+      ca1 = Math.max(0, Math.min(settings.maxCa1, ca1));
+      ca2 = Math.max(0, Math.min(settings.maxCa2, ca2));
+      exam = Math.max(0, Math.min(settings.maxExam, exam));
+
+      const total = ca1 + ca2 + exam;
+      totalScoreSum += total;
+      subjectCount++;
+
+      CORE_DEMO_DATA.scores.push({
+        studentId,
+        subjectId: subject.id,
+        session: settings.session,
+        term: settings.term,
+        ca1,
+        ca2,
+        exam
+      });
+    });
+
+    const avg = subjectCount > 0 ? Math.round(totalScoreSum / subjectCount) : 0;
+    let generalComment = '';
+    if (avg >= 75) generalComment = `${firstName} demonstrates excellent performance and leadership in class.`;
+    else if (avg >= 60) generalComment = `${firstName} has good understanding; continued effort will yield excellent results.`;
+    else if (avg >= 45) generalComment = `${firstName} is making steady progress; more practice recommended.`;
+    else generalComment = `${firstName} needs significant improvement; targeted support advised.`;
+
+    CORE_DEMO_DATA.remarks.push({ studentId, session: settings.session, term: settings.term, generalComment });
+  }
+};
+
+addJss1ADemoStudents(20);
+
+// Backfill missing scores for all JSS 1A students
+const backfillJss1AScores = () => {
+  const settings = CORE_DEMO_DATA.settings;
+  const session = settings.session;
+  const term = settings.term;
+  const subjectsForJss1A = CORE_DEMO_DATA.subjects.filter(s => s.classes.includes('JSS 1A'));
+  const totalMax = settings.maxCa1 + settings.maxCa2 + settings.maxExam;
+  const jss1AStudents = CORE_DEMO_DATA.students.filter(s => s.class === 'JSS 1A');
+
+  jss1AStudents.forEach(student => {
+    subjectsForJss1A.forEach(subject => {
+      const exists = CORE_DEMO_DATA.scores.some(sc =>
+        sc.studentId === student.id &&
+        sc.subjectId === subject.id &&
+        sc.session === session &&
+        sc.term === term
+      );
+      if (!exists) {
+        const desiredTotal = getRandomInt(35, 92);
+        let ca1 = Math.round((desiredTotal / totalMax) * settings.maxCa1) + getRandomInt(-2, 2);
+        let ca2 = Math.round((desiredTotal / totalMax) * settings.maxCa2) + getRandomInt(-2, 2);
+        let exam = desiredTotal - ca1 - ca2;
+        ca1 = Math.max(0, Math.min(settings.maxCa1, ca1));
+        ca2 = Math.max(0, Math.min(settings.maxCa2, ca2));
+        exam = Math.max(0, Math.min(settings.maxExam, exam));
+        CORE_DEMO_DATA.scores.push({ studentId: student.id, subjectId: subject.id, session, term, ca1, ca2, exam });
+      }
+    });
+
+    const hasRemark = CORE_DEMO_DATA.remarks.some(r => r.studentId === student.id && r.session === session && r.term === term);
+    if (!hasRemark) {
+      const totals = CORE_DEMO_DATA.scores
+        .filter(sc => sc.studentId === student.id && sc.session === session && sc.term === term)
+        .map(sc => (sc.ca1 || 0) + (sc.ca2 || 0) + (sc.exam || 0));
+      const avg = totals.length ? Math.round(totals.reduce((a, b) => a + b, 0) / totals.length) : 0;
+      const firstName = (student.name || '').split(' ')[0] || 'Student';
+      let generalComment = '';
+      if (avg >= 75) generalComment = `${firstName} demonstrates excellent performance and leadership in class.`;
+      else if (avg >= 60) generalComment = `${firstName} has good understanding; continued effort will yield excellent results.`;
+      else if (avg >= 45) generalComment = `${firstName} is making steady progress; more practice recommended.`;
+      else generalComment = `${firstName} needs significant improvement; targeted support advised.`;
+      CORE_DEMO_DATA.remarks.push({ studentId: student.id, session, term, generalComment });
+    }
+  });
+};
+
+backfillJss1AScores();
