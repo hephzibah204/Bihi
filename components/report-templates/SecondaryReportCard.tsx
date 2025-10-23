@@ -98,6 +98,7 @@ const SecondaryReportCard = ({ student, students, scores, subjects, settings, te
                 <ReportCardFooter principalName={settings.reportCardSettings.principalName} />
             </div>
         </div>
+        </div>
     );
 };
 
