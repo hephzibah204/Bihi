@@ -57,7 +57,7 @@ const BulkReportCardPrintView = ({ studentIds, allData, onClose, action }) => {
     const studentsToPrint = allData.allStudents.filter(s => studentIds.includes(s.id));
 
     const getTemplateForStudent = (student) => {
-        return getReportCardTemplate(student.class);
+        return getReportCardTemplate(student.class, allData.settings);
     }
 
     return (

@@ -43,7 +43,7 @@ const PublicResultViewer = () => {
     };
 
     if (resultData) {
-        const ReportCardComponent = getReportCardTemplate(resultData.student.class);
+        const ReportCardComponent = getReportCardTemplate(resultData.student.class, resultData.schoolSettings);
         return (
             <div className="min-h-screen bg-gray-100 p-4 md:p-8">
                 <div className="max-w-4xl mx-auto bg-white shadow-lg printable-content">

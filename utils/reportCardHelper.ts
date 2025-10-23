@@ -1,6 +1,9 @@
 import NurseryReportCard from '../components/report-templates/NurseryReportCard';
 import PrimaryReportCard from '../components/report-templates/PrimaryReportCard';
 import SecondaryReportCard from '../components/report-templates/SecondaryReportCard';
+import ModernReportCard from '../components/report-templates/ModernReportCard';
+import ClassicReportCard from '../components/report-templates/ClassicReportCard';
+import MinimalistReportCard from '../components/report-templates/MinimalistReportCard';
 
 // A helper function to calculate grade and remark based on score
 export const calculateGrade = (score, gradingSystem) => {
@@ -14,8 +17,14 @@ export const calculateGrade = (score, gradingSystem) => {
     return { grade: 'N/G', remark: 'Not Graded' };
 };
 
-export const getReportCardTemplate = (className: string) => {
-    if (!className) return PrimaryReportCard; // Default fallback
+export const getReportCardTemplate = (className: string, settings?: any) => {
+    if (!className) {
+        const choice = settings?.reportCardSettings?.primaryTemplate || 'primary_default';
+        if (choice === 'modern') return ModernReportCard;
+        if (choice === 'classic') return ClassicReportCard;
+        if (choice === 'minimalist') return MinimalistReportCard;
+        return PrimaryReportCard; // Default fallback
+    }
     const lowerClassName = className.toLowerCase();
     
     if (lowerClassName.includes('nursery') || lowerClassName.includes('playgroup') || lowerClassName.includes('kg')) {
@@ -24,7 +33,11 @@ export const getReportCardTemplate = (className: string) => {
     if (lowerClassName.includes('jss') || lowerClassName.includes('sss')) {
         return SecondaryReportCard;
     }
-    // Default to Primary for 'Primary', 'Basic', or anything else
+    // Primary-level selection driven by settings
+    const choice = settings?.reportCardSettings?.primaryTemplate || 'primary_default';
+    if (choice === 'modern') return ModernReportCard;
+    if (choice === 'classic') return ClassicReportCard;
+    if (choice === 'minimalist') return MinimalistReportCard;
     return PrimaryReportCard;
 };
 

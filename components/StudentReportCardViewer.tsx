@@ -60,7 +60,7 @@ const StudentReportCardViewer = ({ demoUserId }) => {
         return <div className="card p-6 text-center text-gray-500">No report card available for the current term.</div>;
     }
 
-    const ReportCardComponent = getReportCardTemplate(reportData.student.class);
+    const ReportCardComponent = getReportCardTemplate(reportData.student.class, reportData.settings);
 
     return (
         <div className="flex flex-col items-center">

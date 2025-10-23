@@ -35,6 +35,7 @@ export interface SchoolSettings {
     psychomotorSkills: ReportCardSkill[];
     // Added: Admin-configurable format and layout controls
     templateVariant?: 'format1' | 'format2' | 'format3';
+    primaryTemplate?: 'primary_default' | 'modern' | 'classic' | 'minimalist';
     termColors?: { first?: string; second?: string; third?: string };
     watermarkEnabled?: boolean;
     watermarkOpacity?: number; // 0.0 - 1.0

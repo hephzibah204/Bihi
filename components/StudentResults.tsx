@@ -142,7 +142,7 @@ const StudentResults = ({ demoUserId }) => {
     }
 
     const ReportCardComponent = selectedTermData && student
-      ? getReportCardTemplate(student.class)
+      ? getReportCardTemplate(student.class, allData?.settings)
       : null;
 
     return (

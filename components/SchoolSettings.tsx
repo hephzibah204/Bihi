@@ -93,6 +93,19 @@ const ReportCardSettingsTab = ({ settings, onSettingsChange }) => {
         <div className="space-y-4">
             <div><label className="label">Principal's Name</label><input type="text" value={reportCardSettings.principalName || ''} onChange={e => onSettingsChange({ reportCardSettings: { ...reportCardSettings, principalName: e.target.value } })} className="input-field" /></div>
             <div><label className="label">School Motto</label><input type="text" value={reportCardSettings.schoolMotto || ''} onChange={e => onSettingsChange({ reportCardSettings: { ...reportCardSettings, schoolMotto: e.target.value } })} className="input-field" /></div>
+            <div>
+              <label className="label">Primary Report Card Template</label>
+              <select
+                className="input-field"
+                value={reportCardSettings.primaryTemplate || 'primary_default'}
+                onChange={e => onSettingsChange({ reportCardSettings: { ...reportCardSettings, primaryTemplate: e.target.value } })}
+              >
+                <option value="primary_default">Default (Primary)</option>
+                <option value="modern">Modern</option>
+                <option value="classic">Classic</option>
+                <option value="minimalist">Minimalist</option>
+              </select>
+            </div>
             
             <div className="grid grid-cols-2 gap-6">
                 <div>
