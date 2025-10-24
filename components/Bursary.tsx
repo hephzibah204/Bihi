@@ -24,6 +24,8 @@ import UserGroupIcon from './icons/UserGroupIcon';
 import ChartBarIcon from './icons/ChartBarIcon';
 import HistoryIcon from './icons/HistoryIcon';
 import CreditCardIcon from './icons/CreditCardIcon';
+import PrinterIcon from './icons/PrinterIcon';
+import BursaryPrintCenter from './BursaryPrintCenter';
 
 interface NavigationItem {
     id: string;
@@ -144,6 +146,12 @@ const Bursary = () => {
             label: 'Scratch Cards',
             icon: CreditCardIcon,
             description: 'Payment cards'
+        },
+        {
+            id: 'print-center',
+            label: 'Print Center',
+            icon: PrinterIcon,
+            description: 'Bulk print receipts, invoices, reminders'
         }
     ];
 
@@ -160,6 +168,7 @@ const Bursary = () => {
             case 'reports': return <BursaryReports />;
             case 'audit': return <AuditLog />;
             case 'scratch-cards': return <BursaryScratchCards />;
+            case 'print-center': return <BursaryPrintCenter />;
             default: return <BursaryDashboard />;
         }
     };

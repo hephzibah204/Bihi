@@ -35,6 +35,7 @@ import ArrowTrendingDownIcon from './icons/ArrowTrendingDownIcon';
 import ArrowTrendingUpIcon from './icons/ArrowTrendingUpIcon';
 import HistoryIcon from './icons/HistoryIcon';
 import CreditCardIcon from './icons/CreditCardIcon';
+import PrinterIcon from './icons/PrinterIcon';
 
 
 interface SidebarProps {
@@ -121,6 +122,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView, use
           { id: 'reports', label: 'Reports', icon: <ChartBarIcon className="h-5 w-5" /> },
           { id: 'audit', label: 'Audit Log', icon: <HistoryIcon className="h-5 w-5" /> },
           { id: 'scratch-cards', label: 'Scratch Cards', icon: <CreditCardIcon className="h-5 w-5" /> },
+          { id: 'print-center', label: 'Print Center', icon: <PrinterIcon className="h-5 w-5" /> },
         ];
         const onClickItem = (id: string) => {
           try { localStorage.setItem('bursaryInitialTab', id); } catch (e) {}
