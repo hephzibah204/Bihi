@@ -47,17 +47,24 @@ interface SidebarProps {
 }
 
 interface NavLinkProps {
-  icon: React.ReactNode;
-  label: string;
-  view: DashboardView;
-  activeView: DashboardView;
-  setActiveView: (view: DashboardView) => void;
-  disabled?: boolean;
+    icon: React.ReactNode;
+    label: string;
+    view: DashboardView;
+    activeView: DashboardView;
+    setActiveView: (view: DashboardView) => void;
+    disabled?: boolean;
+    onClick?: () => void;
 }
 
-const NavLink: React.FC<NavLinkProps> = ({ icon, label, view, activeView, setActiveView, disabled }) => (
+const NavLink: React.FC<NavLinkProps> = ({ icon, label, view, activeView, setActiveView, disabled, onClick }) => (
     <button
-        onClick={() => !disabled && setActiveView(view)}
+        onClick={() => {
+            if (disabled) {
+                return;
+            }
+            onClick?.();
+            setActiveView(view);
+        }}
         className={`w-full flex items-center px-4 py-2.5 rounded-lg transition-colors duration-200 ${
             activeView === view
                 ? 'bg-indigo-600 text-white'
@@ -79,6 +86,7 @@ interface NavGroupProps {
         view: DashboardView;
         label: string;
         icon: React.ReactNode;
+        onClick?: () => void;
     }>;
     activeView: DashboardView;
     setActiveView: (view: DashboardView) => void;
@@ -91,7 +99,7 @@ const NavGroup: React.FC<NavGroupProps> = ({ title, items, activeView, setActive
             <h3 className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">{title}</h3>
             <div className="mt-2 space-y-1">
                 {items.map((link, index) => (
-                    <NavLink 
+                    <NavLink
                         key={`${title}-${link.view}-${index}`}
                         {...link}
                         activeView={activeView}
@@ -201,7 +209,30 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView, use
             group: 'Finance',
             groupId: 'finance',
             items: [
-                { view: ADMIN_VIEWS.BURSARY, label: 'Bursary', icon: <WalletIcon className="h-5 w-5" /> },
+                {
+                    view: ADMIN_VIEWS.BURSARY,
+                    label: 'Bursary',
+                    icon: <WalletIcon className="h-5 w-5" />,
+                    onClick: () => {
+                        try {
+                            localStorage.removeItem('bursaryInitialTab');
+                        } catch (e) {
+                            // no-op
+                        }
+                    }
+                },
+                {
+                    view: ADMIN_VIEWS.BURSARY,
+                    label: 'Print Center',
+                    icon: <PrinterIcon className="h-5 w-5" />,
+                    onClick: () => {
+                        try {
+                            localStorage.setItem('bursaryInitialTab', 'print-center');
+                        } catch (e) {
+                            // no-op
+                        }
+                    }
+                },
             ]
         },
         {

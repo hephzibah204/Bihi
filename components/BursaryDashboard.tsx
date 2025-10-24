@@ -9,7 +9,7 @@ import CheckIcon from './icons/CheckIcon';
 import ScaleIcon from './icons/ScaleIcon';
 import UserGroupIcon from './icons/UserGroupIcon';
 import ChartBarIcon from './icons/ChartBarIcon';
-import PlusIcon from './icons/PlusIcon';
+import PrinterIcon from './icons/PrinterIcon';
 import StatCardSkeleton from './skeletons/StatCardSkeleton';
 
 interface QuickAction {
@@ -21,7 +21,11 @@ interface QuickAction {
     action: () => void;
 }
 
-const BursaryDashboard = () => {
+interface BursaryDashboardProps {
+    onNavigate?: (view: string) => void;
+}
+
+const BursaryDashboard: React.FC<BursaryDashboardProps> = ({ onNavigate }) => {
     const [stats, setStats] = useState({ 
         totalRevenue: 0, 
         totalOutstanding: 0, 
@@ -33,6 +37,15 @@ const BursaryDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'overview' | 'actions' | 'alerts'>('overview');
 
+    const navigateTo = (viewId: string) => {
+        try {
+            localStorage.setItem('bursaryInitialTab', viewId);
+        } catch (e) {
+            // no-op
+        }
+        onNavigate?.(viewId);
+    };
+
     const quickActions: QuickAction[] = [
         {
             id: 'create-invoice',
@@ -40,7 +53,7 @@ const BursaryDashboard = () => {
             description: 'Generate new student invoice',
             icon: DocumentTextIcon,
             color: 'bg-blue-500 hover:bg-blue-600',
-            action: () => console.log('Create invoice')
+            action: () => navigateTo('invoices')
         },
         {
             id: 'verify-payment',
@@ -48,7 +61,7 @@ const BursaryDashboard = () => {
             description: 'Review pending payments',
             icon: CheckIcon,
             color: 'bg-green-500 hover:bg-green-600',
-            action: () => console.log('Verify payment')
+            action: () => navigateTo('verify')
         },
         {
             id: 'debt-collection',
@@ -56,7 +69,7 @@ const BursaryDashboard = () => {
             description: 'Manage outstanding debts',
             icon: ScaleIcon,
             color: 'bg-orange-500 hover:bg-orange-600',
-            action: () => console.log('Debt collection')
+            action: () => navigateTo('debt-management')
         },
         {
             id: 'generate-report',
@@ -64,8 +77,16 @@ const BursaryDashboard = () => {
             description: 'Create financial reports',
             icon: ChartBarIcon,
             color: 'bg-purple-500 hover:bg-purple-600',
-            action: () => console.log('Generate report')
-        }
+            action: () => navigateTo('reports')
+        },
+        {
+            id: 'print-center',
+            title: 'Print Center',
+            description: 'Bulk print invoices & receipts',
+            icon: PrinterIcon,
+            color: 'bg-indigo-500 hover:bg-indigo-600',
+            action: () => navigateTo('print-center')
+        },
     ];
 
     useEffect(() => {

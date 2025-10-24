@@ -157,7 +157,7 @@ const Bursary = () => {
 
     const renderContent = () => {
         switch (activeView) {
-            case 'dashboard': return <BursaryDashboard />;
+            case 'dashboard': return <BursaryDashboard onNavigate={setActiveView} />;
             case 'fees': return <BursaryFees />;
             case 'invoices': return <BursaryInvoice />;
             case 'debt-management': return <BursaryDebtManagement />;
@@ -169,7 +169,7 @@ const Bursary = () => {
             case 'audit': return <AuditLog />;
             case 'scratch-cards': return <BursaryScratchCards />;
             case 'print-center': return <BursaryPrintCenter />;
-            default: return <BursaryDashboard />;
+            default: return <BursaryDashboard onNavigate={setActiveView} />;
         }
     };
 
