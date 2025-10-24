@@ -69,9 +69,9 @@ const AdminBottomNavBar: FC<BottomNavBarProps> = ({ activeView, setActiveView, u
         <nav className="bottom-nav md:hidden">
             {/* The `bottom-nav` class from index.html is already display:flex.
                 The NavItem components are now direct flex children and use flex-1 to distribute space correctly. */}
-            {navItems.map((item) => (
+            {navItems.map((item, index) => (
                 <NavItem 
-                    key={item.view}
+                    key={`bottom-${item.view}-${index}`}
                     icon={item.icon}
                     label={item.label}
                     view={item.view}
@@ -81,7 +81,8 @@ const AdminBottomNavBar: FC<BottomNavBarProps> = ({ activeView, setActiveView, u
                             if (item.label === 'Fee Setup') {
                                 localStorage.setItem('bursaryInitialTab', 'fees');
                             } else if (item.label === 'Record Payment') {
-                                localStorage.setItem('bursaryInitialTab', 'verify');
+                                localStorage.setItem('openQuickRecordPayment', 'true');
+                                localStorage.setItem('bursaryInitialTab', 'dashboard');
                             } else {
                                 localStorage.removeItem('bursaryInitialTab');
                             }
