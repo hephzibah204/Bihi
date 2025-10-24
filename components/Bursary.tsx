@@ -50,6 +50,19 @@ const Bursary = () => {
         }
     }, []);
 
+    // When navigated from bottom nav, open the quick record modal
+    useEffect(() => {
+        try {
+            const flag = localStorage.getItem('openQuickRecordPayment');
+            if (flag === 'true') {
+                setIsQuickRecordOpen(true);
+                localStorage.removeItem('openQuickRecordPayment');
+            }
+        } catch (e) {
+            // no-op
+        }
+    }, []);
+
     // Poll localStorage for bursaryInitialTab changes to allow sidebar-driven navigation
     useEffect(() => {
         const interval = setInterval(() => {
