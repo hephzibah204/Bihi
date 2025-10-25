@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAI } from '../hooks/useAI';
+import { generateResponse as aiGenerateResponse } from '../services/geminiAIService';
 import { apiGetStudents, apiGetScores, apiGetSubjects } from '../services/api';
 import { Student, Score, Subject } from '../types';
 import ShieldExclamationIcon from './icons/ShieldExclamationIcon';
@@ -95,8 +96,8 @@ const EarlyIntervention = () => {
                 6.  Schema for each object: { "id": "string", "name": "string", "class": "string", "risk_level": "High" | "Medium", "justification": "string", "suggested_action": "string" }
             `;
             
-            const result = await generateResponse({ prompt });
-            const jsonString = result.match(/\{[\s\S]*\}/)?.[0] || '{}';
+            const result = await aiGenerateResponse(prompt);
+            const jsonString = String(result).match(/\{[\s\S]*\}/)?.[0] || '{}';
             const jsonResponse = JSON.parse(jsonString);
             
             if (jsonResponse.at_risk_students && Array.isArray(jsonResponse.at_risk_students)) {
@@ -108,7 +109,8 @@ const EarlyIntervention = () => {
             }
 
         } catch (err) {
-            setError(`AI Analysis Error: ${err.message}`);
+            const msg = (err as any)?.message || String(err);
+            setError(`AI Analysis Error: ${msg}`);
         } finally {
             setIsLoading(false);
         }

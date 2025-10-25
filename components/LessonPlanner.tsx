@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAI } from '../hooks/useAI';
+import { generateResponse as aiGenerateResponse } from '../services/geminiAIService';
 import { apiGetSubjects, apiGetTeachers } from '../services/api';
 import { Subject, Teacher } from '../types';
 import SparklesIcon from './icons/SparklesIcon';
@@ -115,10 +116,11 @@ const LessonPlanner = () => {
                 - If "Output Type" is "combined":
                   Generate both the Lesson Plan and the Lesson Note as two distinct sections within the same document, starting with the Lesson Plan.
             `;
-            const result = await generateResponse({ prompt });
-            setGeneratedPlan(result);
+            const result = await aiGenerateResponse(prompt);
+            setGeneratedPlan(String(result));
         } catch (err) {
-            setError(`Failed to generate lesson plan: ${err.message}`);
+            const msg = (err as any)?.message || String(err);
+            setError(`Failed to generate lesson plan: ${msg}`);
         } finally {
             setIsLoading(false);
         }

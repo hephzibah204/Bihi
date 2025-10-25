@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAI } from '../hooks/useAI';
+import { generateResponse as aiGenerateResponse } from '../services/geminiAIService';
 // FIX: Corrected import path for api services.
 import { apiGetStudents, apiGetSubjects } from '../services/api';
 // FIX: Corrected import path for types.
@@ -93,10 +94,11 @@ const LearningPathways: React.FC<LearningPathwaysProps> = ({ studentId, userRole
                 Make the language accessible and motivating for a secondary school student.
             `;
 
-            const result = await generateResponse({ prompt });
-            setGeneratedPathway(result);
+            const result = await aiGenerateResponse(prompt);
+            setGeneratedPathway(String(result));
         } catch (err) {
-            setError(`Failed to generate learning pathway: ${err.message}`);
+            const msg = (err as any)?.message || String(err);
+            setError(`Failed to generate learning pathway: ${msg}`);
         } finally {
             setIsLoading(false);
         }

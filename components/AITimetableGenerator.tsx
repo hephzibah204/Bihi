@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Modal from './Modal';
 import { useAI } from '../hooks/useAI';
+import { generateResponse as aiGenerateResponse } from '../services/geminiAIService';
 import SpinnerIcon from './icons/SpinnerIcon';
 import BrainCircuitIcon from './icons/BrainCircuitIcon';
 import { FallbackTimetableGenerator, generateBasicTimetableTemplate } from '../services/fallbackTimetableService';
@@ -39,10 +40,10 @@ const AITimetableGenerator = ({ isOpen, onClose, onApply, subjects, teachers, cl
         `;
 
         try {
-            const response = await generateResponse({ prompt });
+            const response = await aiGenerateResponse(prompt);
 
             // If the response is not JSON-like, use fallback timetable generator
-            const looksJson = typeof response === 'string' && /^[\[{]/.test(response.trim());
+            const looksJson = typeof response === 'string' && /^[\[{]/.test(String(response).trim());
             if (!looksJson) {
                 console.log('AI response not JSON, using fallback timetable generator');
                 const fallbackTimetable = generateFallbackTimetable();
@@ -52,7 +53,7 @@ const AITimetableGenerator = ({ isOpen, onClose, onApply, subjects, teachers, cl
                 return;
             }
 
-            const cleanedResponse = response.replace(/```json/g, '').replace(/```/g, '').trim();
+            const cleanedResponse = String(response).replace(/```json/g, '').replace(/```/g, '').trim();
             const parsedTimetable = JSON.parse(cleanedResponse);
             setGeneratedTimetable(parsedTimetable);
         } catch (e) {
@@ -65,7 +66,8 @@ const AITimetableGenerator = ({ isOpen, onClose, onApply, subjects, teachers, cl
                 setGeneratedTimetable(fallbackTimetable);
                 setError('AI service failed. Generated timetable using offline algorithm.');
             } catch (fallbackError) {
-                setError(`Failed to generate timetable: ${e.message}`);
+                const msg = (e as any)?.message || String(e);
+                setError(`Failed to generate timetable: ${msg}`);
             }
         } finally {
             setIsLoading(false);

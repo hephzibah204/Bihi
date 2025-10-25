@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAI } from '../hooks/useAI';
+import { generateResponse as aiGenerateResponse } from '../services/geminiAIService';
 // FIX: Corrected import path for api services.
 import { apiGetSubjects, apiGetStudents } from '../services/api';
 // FIX: Corrected import path for types.
@@ -119,15 +120,15 @@ const PracticeQuiz = ({ userRole, studentId, initialTopic = '' }: { userRole?: s
         `;
 
         try {
-            const response = await generateResponse({ prompt });
+            const response = await aiGenerateResponse(prompt);
 
             if (status === 'fallback') {
-                setError(response); // Show the fallback message as an error/info
+                setError(String(response)); // Show the fallback message as an error/info
                 setIsLoading(false);
                 return;
             }
 
-            const jsonString = response.match(/\{[\s\S]*\}/)?.[0] || '{}';
+            const jsonString = String(response).match(/\{[\s\S]*\}/)?.[0] || '{}';
             const jsonResponse = JSON.parse(jsonString);
             
             if (jsonResponse.quiz && Array.isArray(jsonResponse.quiz) && jsonResponse.quiz.length > 0) {
@@ -137,7 +138,8 @@ const PracticeQuiz = ({ userRole, studentId, initialTopic = '' }: { userRole?: s
             }
         } catch (err) {
             console.error("Failed to generate or parse quiz:", err);
-            setError(`An error occurred while generating the quiz. Please try again. Details: ${err.message}`);
+            const msg = (err as any)?.message || String(err);
+            setError(`An error occurred while generating the quiz. Please try again. Details: ${msg}`);
         } finally {
             setIsLoading(false);
         }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { apiGetInvoices, apiGetPayments, apiGetStudents } from '../services/api';
 import { useAI } from '../hooks/useAI';
+import { generateResponse as aiGenerateResponse } from '../services/geminiAIService';
 import { Invoice, Payment, Student } from '../types';
 import { formatDate } from '../utils/dateHelpers';
 import BrainCircuitIcon from './icons/BrainCircuitIcon';
@@ -115,8 +116,8 @@ const BursaryDebtManagement = () => {
                 The JSON schema for each object must be: { "studentId": "string", "riskProfile": "string (one of 'Low', 'Medium', 'High')", "justification": "string" }
             `;
 
-            const response = await generateResponse({ prompt });
-            const jsonString = response.match(/\{[\s\S]*\}/)?.[0] || '{}';
+            const response = await aiGenerateResponse(prompt);
+            const jsonString = String(response).match(/\{[\s\S]*\}/)?.[0] || '{}';
             const jsonResponse = JSON.parse(jsonString);
             
             if (jsonResponse.risk_profiles && Array.isArray(jsonResponse.risk_profiles)) {
@@ -130,7 +131,8 @@ const BursaryDebtManagement = () => {
             }
 
         } catch (err) {
-            setError(`AI Analysis Error: ${err.message}`);
+            const msg = (err as any)?.message || String(err);
+            setError(`AI Analysis Error: ${msg}`);
         } finally {
             setIsAnalyzing(false);
         }

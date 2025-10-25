@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import SparklesIcon from './icons/SparklesIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
 import { useAI } from '../hooks/useAI';
+import { generateResponse as aiGenerateResponse } from '../services/geminiAIService';
 
 const CommentGenerator = () => {
     const [studentInfo, setStudentInfo] = useState('');
@@ -16,11 +17,12 @@ const CommentGenerator = () => {
         
         try {
             const prompt = `Generate a constructive and encouraging report card comment (2-3 sentences) for a student based on the following performance summary: "${studentInfo}". Use HTML tags like <strong> for emphasis where appropriate.`;
-            const comment = await generateResponse({ prompt, context: { userRole: 'Teacher' } });
-            setGeneratedComment(comment);
+            const comment = await aiGenerateResponse(prompt);
+            setGeneratedComment(String(comment));
         } catch (error) {
             console.error("Failed to generate comment:", error);
-            setGeneratedComment(`<p>Sorry, an error occurred: ${error.message}</p>`);
+            const msg = (error as any)?.message || String(error);
+            setGeneratedComment(`<p>Sorry, an error occurred: ${msg}</p>`);
         } finally {
             setIsLoading(false);
         }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { apiGetStudents, apiGetScores, apiGetSubjects } from '../services/api';
 import { useAI } from '../hooks/useAI';
+import { generateResponse as aiGenerateResponse } from '../services/geminiAIService';
 import { Student, Score, Subject } from '../types';
 import GraduationCapIcon from './icons/GraduationCapIcon';
 import SparklesIcon from './icons/SparklesIcon';
@@ -83,11 +84,12 @@ const SubjectRecommender: React.FC<SubjectRecommenderProps> = ({ studentId, user
                 Format the response as an HTML unordered list (<ul>). Each item (<li>) should contain a <strong> tag for the subject name, followed by the justification.
             `;
 
-            const result = await generateResponse({ prompt });
-            setRecommendations(result);
+            const result = await aiGenerateResponse(prompt);
+            setRecommendations(String(result));
 
         } catch (err) {
-            setError(`Failed to generate recommendations: ${err.message}`);
+            const msg = (err as any)?.message || String(err);
+            setError(`Failed to generate recommendations: ${msg}`);
         } finally {
             setIsLoading(false);
         }

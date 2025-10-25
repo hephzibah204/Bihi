@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAI } from '../hooks/useAI';
+import { generateResponse as aiGenerateResponse } from '../services/geminiAIService';
 import { apiGetInvoices, apiGetPayments, apiGetExpenses, apiGetPayrollRuns, apiGetIncome } from '../services/api';
 import SparklesIcon from './icons/SparklesIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
@@ -64,8 +65,8 @@ const FinancialQAWidget: React.FC = () => {
         "${query}"
       `;
 
-      const res = await generateResponse({ prompt });
-      setAnswer(res);
+      const res = await aiGenerateResponse(prompt);
+      setAnswer(String(res));
     } catch (e: any) {
       setError(`AI Error: ${e.message}`);
     } finally {

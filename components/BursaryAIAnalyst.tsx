@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAI } from '../hooks/useAI';
+import { generateResponse as aiGenerateResponse } from '../services/geminiAIService';
 import { apiGetInvoices, apiGetPayments, apiGetExpenses, apiGetPayrollRuns } from '../services/api';
 import SparklesIcon from './icons/SparklesIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
@@ -59,10 +60,11 @@ const BursaryAIAnalyst = () => {
                 **Your Analysis:**
             `;
             
-            const result = await generateResponse({ prompt });
-            setAnalysisResult(result);
+            const result = await aiGenerateResponse(prompt);
+            setAnalysisResult(String(result));
         } catch (err) {
-            setError(`AI Analysis Error: ${err.message}`);
+            const msg = (err as any)?.message || String(err);
+            setError(`AI Analysis Error: ${msg}`);
         } finally {
             setIsAnalyzing(false);
         }
