@@ -3,6 +3,7 @@ import SparklesIcon from './icons/SparklesIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
 import { useAI } from '../hooks/useAI';
 import { generateResponse as aiGenerateResponse } from '../services/geminiAIService';
+import { normalizeAIText } from '../utils/aiNormalize';
 
 const CommentGenerator = () => {
     const [studentInfo, setStudentInfo] = useState('');
@@ -18,7 +19,7 @@ const CommentGenerator = () => {
         try {
             const prompt = `Generate a constructive and encouraging report card comment (2-3 sentences) for a student based on the following performance summary: "${studentInfo}". Use HTML tags like <strong> for emphasis where appropriate.`;
             const comment = await aiGenerateResponse(prompt);
-            setGeneratedComment(String(comment));
+            setGeneratedComment(normalizeAIText(comment));
         } catch (error) {
             console.error("Failed to generate comment:", error);
             const msg = (error as any)?.message || String(error);
@@ -45,6 +46,8 @@ const CommentGenerator = () => {
                 </div>
                 <div className="mt-4">
                     <textarea
+                        id="comment-info"
+                        aria-label="Student performance summary"
                         className="input-field"
                         rows={3}
                         value={studentInfo}

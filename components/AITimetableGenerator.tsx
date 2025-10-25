@@ -5,6 +5,7 @@ import { generateResponse as aiGenerateResponse } from '../services/geminiAIServ
 import SpinnerIcon from './icons/SpinnerIcon';
 import BrainCircuitIcon from './icons/BrainCircuitIcon';
 import { FallbackTimetableGenerator, generateBasicTimetableTemplate } from '../services/fallbackTimetableService';
+import { normalizeAIText } from '../utils/aiNormalize';
 
 const AITimetableGenerator = ({ isOpen, onClose, onApply, subjects, teachers, classes, timeSlots, days }) => {
     const { generateResponse, status } = useAI();
@@ -40,10 +41,11 @@ const AITimetableGenerator = ({ isOpen, onClose, onApply, subjects, teachers, cl
         `;
 
         try {
-            const response = await aiGenerateResponse(prompt);
+            const raw = await aiGenerateResponse(prompt);
+            const response = normalizeAIText(raw);
 
             // If the response is not JSON-like, use fallback timetable generator
-            const looksJson = typeof response === 'string' && /^(?:\s*\{|\s*\[)/.test(String(response));
+            const looksJson = /^(?:\s*\{|\s*\[)/.test(response);
             if (!looksJson) {
                 console.log('AI response not JSON, using fallback timetable generator');
                 const fallbackTimetable = generateFallbackTimetable();
@@ -53,8 +55,7 @@ const AITimetableGenerator = ({ isOpen, onClose, onApply, subjects, teachers, cl
                 return;
             }
 
-            const cleanedResponse = String(response).replace(/```json/g, '').replace(/```/g, '').trim();
-            const parsedTimetable = JSON.parse(cleanedResponse);
+            const parsedTimetable = JSON.parse(response);
             setGeneratedTimetable(parsedTimetable);
         } catch (e) {
             console.error("AI Timetable Generation Error:", e);

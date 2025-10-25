@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAI } from '../hooks/useAI';
 import { generateResponse as aiGenerateResponse } from '../services/geminiAIService';
+import { normalizeAIText } from '../utils/aiNormalize';
 // FIX: Corrected import path for api services.
 import { apiGetStudents, apiGetSubjects } from '../services/api';
 // FIX: Corrected import path for types.
@@ -95,7 +96,7 @@ const LearningPathways: React.FC<LearningPathwaysProps> = ({ studentId, userRole
             `;
 
             const result = await aiGenerateResponse(prompt);
-            setGeneratedPathway(String(result));
+            setGeneratedPathway(normalizeAIText(result));
         } catch (err) {
             const msg = (err as any)?.message || String(err);
             setError(`Failed to generate learning pathway: ${msg}`);

@@ -2,6 +2,7 @@
 // Service for persisting voice tutoring sessions to database
 
 import { getSupabase } from './supabaseClient';
+import { logger } from '../utils/logger';
 
 export interface VoiceTranscript {
     sender: 'user' | 'ai';
@@ -70,7 +71,7 @@ export class VoiceSessionService {
             if (error) throw error;
             return data;
         } catch (error) {
-            console.error('Failed to create voice session:', error);
+            logger.error('Failed to create voice session', { error: error as any });
             throw new Error('Could not create voice session');
         }
     }
@@ -108,7 +109,7 @@ export class VoiceSessionService {
             if (error) throw error;
             return data;
         } catch (error) {
-            console.error('Failed to update voice session:', error);
+            logger.error('Failed to update voice session', { error: error as any });
             throw new Error('Could not update voice session');
         }
     }
@@ -146,7 +147,7 @@ export class VoiceSessionService {
 
             return data;
         } catch (error) {
-            console.error('Failed to get voice session:', error);
+            logger.error('Failed to get voice session', { error: error as any });
             throw new Error('Could not retrieve voice session');
         }
     }
@@ -177,7 +178,7 @@ export class VoiceSessionService {
             if (error) throw error;
             return data || [];
         } catch (error) {
-            console.error('Failed to list voice sessions:', error);
+            logger.error('Failed to list voice sessions', { error: error as any });
             throw new Error('Could not list voice sessions');
         }
     }
@@ -196,7 +197,7 @@ export class VoiceSessionService {
             if (error) throw error;
             return data || [];
         } catch (error) {
-            console.error('Failed to get sessions for conversation:', error);
+            logger.error('Failed to get sessions for conversation', { error: error as any });
             throw new Error('Could not retrieve conversation sessions');
         }
     }

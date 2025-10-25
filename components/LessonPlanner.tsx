@@ -11,6 +11,7 @@ import ArrowDownTrayIcon from './icons/ArrowDownTrayIcon';
 import { useTenant } from '../contexts/TenantContext';
 import { generateClassNames } from '../utils/classManager';
 import { supabase } from '../services/supabaseClient';
+import { normalizeAIText } from '../utils/aiNormalize';
 
 const LessonPlanner = () => {
     const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -117,7 +118,7 @@ const LessonPlanner = () => {
                   Generate both the Lesson Plan and the Lesson Note as two distinct sections within the same document, starting with the Lesson Plan.
             `;
             const result = await aiGenerateResponse(prompt);
-            setGeneratedPlan(String(result));
+            setGeneratedPlan(normalizeAIText(result));
         } catch (err) {
             const msg = (err as any)?.message || String(err);
             setError(`Failed to generate lesson plan: ${msg}`);

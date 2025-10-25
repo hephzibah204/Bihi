@@ -301,7 +301,7 @@ Administered at end of Primary 6 for transition to secondary school.
     searchEngine.bulkIndex(commonTemplates);
     
     const finalStats = searchEngine.getStats();
-    console.log(`✓ Semantic cache initialized with ${finalStats.documentCount} templates`);
+    // logger.info(`Semantic cache initialized with ${finalStats.documentCount} templates`);
 }
 
 /**
@@ -335,7 +335,7 @@ export function getCacheStats() {
 export function clearSemanticCache() {
     const searchEngine = getSemanticSearchEngine();
     searchEngine.clear();
-    console.log('Semantic cache cleared');
+    // logger.info('Semantic cache cleared');
 }
 
 /**
@@ -352,7 +352,7 @@ export function exportSemanticCache() {
 export function importSemanticCache(data: any) {
     const searchEngine = getSemanticSearchEngine();
     searchEngine.import(data);
-    console.log('Semantic cache imported successfully');
+    // logger.info('Semantic cache imported successfully');
 }
 
 /**

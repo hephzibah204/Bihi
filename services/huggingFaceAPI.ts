@@ -1,6 +1,8 @@
 // services/huggingFaceAPI.ts
 // Integration with Hugging Face Inference API for dynamic content generation
 
+import { logger } from '../utils/logger';
+
 export interface HuggingFaceConfig {
     apiKey?: string;
     model: string;
@@ -69,7 +71,7 @@ export class HuggingFaceClient {
             try {
                 localStorage.setItem('huggingface_api_key', apiKey);
             } catch (error) {
-                console.error('Failed to save API key:', error);
+                logger.error('Failed to save API key', { error: error as any });
             }
         }
     }
@@ -174,11 +176,11 @@ export class HuggingFaceClient {
             };
             
         } catch (error) {
-            console.error('Hugging Face API error:', error);
+            logger.error('Hugging Face API error', { error: error as any });
             
             // Retry with exponential backoff
             if (retries > 0 && error instanceof Error && error.message.includes('503')) {
-                console.log(`Model loading, retrying in 2s... (${retries} retries left)`);
+                logger.info(`Model loading, retrying in 2s... (${retries} retries left)`);
                 await new Promise(resolve => setTimeout(resolve, 2000));
                 return this.generate(prompt, config, retries - 1);
             }
@@ -296,7 +298,7 @@ export async function generateLessonPlanWithHF(
             RECOMMENDED_MODELS.educational
         );
     } catch (error) {
-        console.error('Failed to generate lesson plan with HF:', error);
+        logger.error('Failed to generate lesson plan with HF', { error: error as any });
         throw error;
     }
 }
@@ -325,7 +327,7 @@ export async function generateCommentWithHF(
             RECOMMENDED_MODELS.educational
         );
     } catch (error) {
-        console.error('Failed to generate comment with HF:', error);
+        logger.error('Failed to generate comment with HF', { error: error as any });
         throw error;
     }
 }
@@ -353,7 +355,7 @@ export async function generateTutoringResponseWithHF(
             RECOMMENDED_MODELS.educational
         );
     } catch (error) {
-        console.error('Failed to generate tutoring response with HF:', error);
+        logger.error('Failed to generate tutoring response with HF', { error: error as any });
         throw error;
     }
 }
@@ -371,7 +373,7 @@ export async function testHuggingFaceAPIKey(apiKey: string): Promise<boolean> {
         );
         return true;
     } catch (error) {
-        console.error('API key test failed:', error);
+        logger.error('HF API key test failed', { error: error as any });
         return false;
     }
 }
