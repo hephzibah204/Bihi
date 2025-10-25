@@ -47,7 +47,7 @@ export interface Student {
   parentEmail?: string;
   parentPhone?: string;
   siblings?: string[];
-  status?: 'active' | 'graduated' | 'alumni';
+  status?: 'active' | 'graduated' | 'alumni' | 'inactive' | 'transferred';
   graduationYear?: number;
   faceDescriptor?: number[];
   created_at?: string;
@@ -76,6 +76,7 @@ export interface Parent {
 export interface Subject {
   id: string;
   name: string;
+  title?: string;
   classes: string[];
 }
 
@@ -95,8 +96,18 @@ export interface Remark {
     session: string;
     term: string;
     generalComment?: string;
+    // Ratings by skill id (1-5)
     affectiveRatings?: Record<string, number>;
     psychomotorRatings?: Record<string, number>;
+    cognitiveRatings?: Record<string, number>;
+    // Per-student toggles to include sections in the report
+    useAffective?: boolean;
+    usePsychomotor?: boolean;
+    useCognitive?: boolean;
+    // Per-student custom skills (in addition to defaults from settings)
+    customAffectiveSkills?: ReportCardSkill[];
+    customPsychomotorSkills?: ReportCardSkill[];
+    customCognitiveSkills?: ReportCardSkill[];
 }
 
 export interface BehavioralLogEntry {
@@ -142,6 +153,8 @@ export interface Invoice {
   issueDate: string;
   dueDate: string;
   totalAmount: number;
+  amount?: number;
+  balanceRemaining?: number;
   amountPaid: number;
   status: 'paid' | 'partially-paid' | 'unpaid' | 'overdue' | 'pending-verification';
   items: { description: string; amount: number }[];
@@ -153,6 +166,7 @@ export interface Payment {
     studentId: string;
     amount: number;
     paymentDate: string;
+    createdAt?: string;
     method: 'Cash' | 'Bank Transfer' | 'Card';
     reference?: string;
     status: 'pending' | 'verified' | 'failed';
@@ -264,6 +278,7 @@ export interface SchoolSettings {
     sections: { id: string; title: string; enabled: boolean }[];
     affectiveSkills: ReportCardSkill[];
     psychomotorSkills: ReportCardSkill[];
+    cognitiveSkills?: ReportCardSkill[];
   };
   features?: Record<string, boolean>;
   roleBasedFeatures?: {
@@ -333,6 +348,7 @@ export interface SchoolSettings {
     
     // Email Services
     sendgrid_api_key?: string; // Stored securely, not sent to client
+    sendgrid_from_email?: string;
     mailgun_api_key?: string; // Stored securely, not sent to client
     mailgun_domain?: string;
     

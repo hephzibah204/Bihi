@@ -1,0 +1,62 @@
+/* Report card responsive and print styles */
+
+/* Base container for report pages */
+.report-card-page,
+.report-card-layout {
+  width: 100%;
+  max-width: 210mm; /* A4 width */
+  margin-left: auto;
+  margin-right: auto;
+  background: #fff;
+}
+
+/* Ensure long words don't overflow */
+.report-card-layout,
+.report-card-page {
+  overflow-wrap: anywhere;
+}
+
+/* Make tables fit on small screens */
+.report-card-layout table,
+.report-card-page table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+/* Mobile adjustments */
+@media screen and (max-width: 640px) {
+  .report-card-layout,
+  .report-card-page {
+    padding: 1rem !important;
+    font-size: 0.92rem; /* slightly smaller text on mobile */
+  }
+
+  .report-card-layout table th,
+  .report-card-layout table td,
+  .report-card-page table th,
+  .report-card-page table td {
+    padding: 0.35rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print { display: none !important; }
+
+  html, body { height: auto; }
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  @page { size: A4; margin: 12mm; }
+
+  .report-card-layout,
+  .report-card-page {
+    box-shadow: none !important;
+    max-width: initial;
+    width: 210mm; /* exact A4 for print */
+    margin: 0 auto;
+  }
+
+  .printable-content { page-break-inside: avoid; }
+  .page-break { page-break-after: always; }
+}

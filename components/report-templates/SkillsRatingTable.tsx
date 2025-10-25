@@ -11,7 +11,7 @@ const SkillsRatingTable: React.FC<SkillsRatingTableProps> = ({ title, skills, ra
     if (!skills || skills.length === 0) return null;
 
     return (
-        <div className="w-1/2 p-2">
+        <div className="w-full p-2">
             <table className="w-full text-xs">
                 <thead>
                     <tr className="bg-gray-100">

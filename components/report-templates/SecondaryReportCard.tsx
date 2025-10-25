@@ -2,6 +2,7 @@ import React from 'react';
 import { calculateGrade, calculateOverallPerformance } from '../../utils/reportCardHelper';
 import ReportCardHeader from './ReportCardHeader';
 import ReportCardFooter from './ReportCardFooter';
+import SkillsRatingTable from './SkillsRatingTable';
 
 const SecondaryReportCard = ({ student, students, scores, subjects, settings, term, session, remarks, attendance }) => {
     if (!student || !settings) return null;
@@ -16,7 +17,8 @@ const SecondaryReportCard = ({ student, students, scores, subjects, settings, te
     });
 
     const performance = calculateOverallPerformance(student.id, student.class, students, scores, subjects, term, session);
-    const generalRemark = (remarks || []).find(r => r.studentId === student.id && r.term === term && r.session === session)?.generalComment;
+    const studentRemark = (remarks || []).find(r => r.studentId === student.id && r.term === term && r.session === session);
+    const generalRemark = studentRemark?.generalComment;
 
     const maxCa1 = settings?.maxCa1 ?? 20;
     const maxCa2 = settings?.maxCa2 ?? 20;
@@ -90,6 +92,33 @@ const SecondaryReportCard = ({ student, students, scores, subjects, settings, te
                     ))}
                 </tbody>
             </table>
+            {/* Skills Section */}
+            <div className="mt-6">
+                <h3 className="font-bold text-md mb-2">Skills</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    { (studentRemark?.useAffective ?? true) && (
+                        <SkillsRatingTable
+                            title="Affective Skills"
+                            skills={[...(settings.reportCardSettings?.affectiveSkills || []), ...((studentRemark?.customAffectiveSkills) || [])]}
+                            ratings={studentRemark?.affectiveRatings || {}}
+                        />
+                    )}
+                    { (studentRemark?.usePsychomotor ?? true) && (
+                        <SkillsRatingTable
+                            title="Psychomotor Skills"
+                            skills={[...(settings.reportCardSettings?.psychomotorSkills || []), ...((studentRemark?.customPsychomotorSkills) || [])]}
+                            ratings={studentRemark?.psychomotorRatings || {}}
+                        />
+                    )}
+                    { (studentRemark?.useCognitive ?? true) && (settings.reportCardSettings?.cognitiveSkills || (studentRemark?.customCognitiveSkills && studentRemark.customCognitiveSkills.length)) && (
+                        <SkillsRatingTable
+                            title="Cognitive Skills"
+                            skills={[...(settings.reportCardSettings?.cognitiveSkills || []), ...((studentRemark?.customCognitiveSkills) || [])]}
+                            ratings={studentRemark?.cognitiveRatings || {}}
+                        />
+                    )}
+                </div>
+            </div>
              <div className="mt-6">
                 <h3 className="font-bold text-md mb-2">General Comment</h3>
                 <div className="text-sm p-2 border rounded-md min-h-[40px] prose-content" dangerouslySetInnerHTML={{ __html: generalRemark || '' }} />

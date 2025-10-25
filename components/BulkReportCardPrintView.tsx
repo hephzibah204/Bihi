@@ -8,6 +8,7 @@ import ClassicReportCard from './report-templates/ClassicReportCard';
 import ModernReportCard from './report-templates/ModernReportCard';
 import MinimalistReportCard from './report-templates/MinimalistReportCard';
 import SpinnerIcon from './icons/SpinnerIcon';
+import '../styles/report-card.css';
 
 const BulkReportCardPrintView = ({ studentIds, allData, onClose, action }) => {
     const [isProcessing, setIsProcessing] = useState(false);
@@ -90,7 +91,7 @@ const BulkReportCardPrintView = ({ studentIds, allData, onClose, action }) => {
                 {studentsToPrint.map((student) => {
                     const ReportCardComponent = getTemplateForStudent(student);
                     return (
-                        <div key={student.id} className="page-break my-4 mx-auto bg-white" style={{ width: '210mm' }}>
+                        <div key={student.id} className="page-break my-4 mx-auto bg-white report-card-page">
                              {ReportCardComponent && <ReportCardComponent 
                                 student={student}
                                 students={allData.allStudents}

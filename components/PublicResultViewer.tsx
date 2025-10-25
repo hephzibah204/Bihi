@@ -6,6 +6,7 @@ import { getReportCardTemplate } from '../utils/reportCardHelper';
 import PrinterIcon from './icons/PrinterIcon';
 import ArrowDownTrayIcon from './icons/ArrowDownTrayIcon';
 import { downloadElementAsPdf } from '../utils/pdfUtils';
+import '../styles/report-card.css';
 
 
 const PublicResultViewer = () => {
@@ -49,7 +50,7 @@ const PublicResultViewer = () => {
         return (
             <div className="min-h-screen bg-gray-100 p-4 md:p-8">
                 <div className="max-w-4xl mx-auto bg-white shadow-lg printable-content">
-                    <div className="p-4" id="report-card-public">
+                    <div className="p-4 report-card-page" id="report-card-public">
                         <ReportCardComponent 
                             student={resultData.student}
                             students={resultData.students}

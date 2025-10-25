@@ -5,6 +5,7 @@ import { getReportCardTemplate } from '../utils/reportCardHelper';
 import PrinterIcon from './icons/PrinterIcon';
 import ArrowDownTrayIcon from './icons/ArrowDownTrayIcon';
 import { downloadElementAsPdf } from '../utils/pdfUtils';
+import '../styles/report-card.css';
 
 const StudentReportCardViewer = ({ demoUserId }) => {
     const [reportData, setReportData] = useState(null);
@@ -80,7 +81,7 @@ const StudentReportCardViewer = ({ demoUserId }) => {
                     Print Report Card
                 </button>
             </div>
-            <div className="printable-content bg-white shadow-lg">
+            <div className="printable-content bg-white shadow-lg report-card-page">
                 <ReportCardComponent {...reportData} />
             </div>
         </div>

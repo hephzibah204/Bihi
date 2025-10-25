@@ -13,10 +13,11 @@ import { getHuggingFaceClient } from './huggingFaceAPI';
 // Now uses the new enhanced AI system with 500+ templates and Nigerian curriculum support
 // Plus semantic search for finding cached responses
 // Plus optional Hugging Face API for dynamic content generation
-export const generateFallbackResponse = (prompt: string, context?: any, type?: string): string => {
+export const generateFallbackResponse = (prompt: any, context?: any, type?: string): string => {
     try {
+        const p = typeof prompt === 'string' ? prompt : (prompt?.prompt ?? prompt?.text ?? String(prompt ?? ''));
         // Step 1: Try semantic search for cached responses
-        const semanticMatches = searchSemanticCache(prompt, context);
+        const semanticMatches = searchSemanticCache(p, context);
         if (semanticMatches.length > 0 && semanticMatches[0].similarity > 0.7) {
             console.log(`✓ Semantic match found: ${semanticMatches[0].similarity.toFixed(3)} similarity`);
             return semanticMatches[0].response;
@@ -27,10 +28,10 @@ export const generateFallbackResponse = (prompt: string, context?: any, type?: s
         
         // Step 3: Use the enhanced fallback AI system with 500+ templates
         // This provides much better responses with Nigerian curriculum alignment
-        const enhancedResponse = generateEnhancedFallbackResponse(prompt, context);
+        const enhancedResponse = generateEnhancedFallbackResponse(p, context);
         
         // Step 4: Cache this response for future semantic search
-        cacheResponse(prompt, enhancedResponse, context);
+        cacheResponse(p, enhancedResponse, context);
         
         return enhancedResponse;
         

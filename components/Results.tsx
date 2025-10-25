@@ -7,6 +7,7 @@ import ArrowUpTrayIcon from './icons/ArrowUpTrayIcon';
 import BulkScoreImportModal from './BulkScoreImportModal';
 import SparklesIcon from './icons/SparklesIcon';
 import { useAI } from '../hooks/useAI';
+import { generateResponse as aiGenerateResponse } from '../services/geminiAIService';
 import { useTenant } from '../contexts/TenantContext';
 import { generateClassNames } from '../utils/classManager';
 // FIX: Added missing import for SpinnerIcon.
@@ -134,7 +135,7 @@ const Results = () => {
 - Performance: Scored ${total}/100.
 Comment on their strength or a key area for improvement based on this score.`;
                 
-                const comment = await generateResponse({ prompt });
+                const comment = await aiGenerateResponse(prompt);
                 
                 const scoreData = {
                     ...score,
@@ -142,7 +143,7 @@ Comment on their strength or a key area for improvement based on this score.`;
                     subjectId: selectedSubjectId,
                     session: settings.session,
                     term: settings.term,
-                    comment: comment.trim(),
+                    comment: String(comment).trim(),
                 };
                 scoresToUpdate.push(scoreData);
             }

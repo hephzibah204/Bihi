@@ -1,4 +1,35 @@
 // services/geminiAIService.ts
+// Unified AI entrypoints used across the app; tolerant of varied call shapes
+import { analyzeWithFallback } from '../utils/aiAdapter';
+import { generateEnhancedFallbackResponse } from './enhancedFallbackAI';
+
+export function normalizePrompt(input: any): string {
+  if (typeof input === 'string') return input;
+  if (input && typeof input === 'object') {
+    return (
+      input.prompt ?? input.text ?? input.content ?? input.message ?? JSON.stringify(input)
+    );
+  }
+  return String(input ?? '');
+}
+
+export async function generateResponse(prompt: any, options?: any): Promise<string> {
+  const p = normalizePrompt(prompt);
+  try {
+    const res = await analyzeWithFallback(p, options);
+    return (res?.text ?? '').toString();
+  } catch {
+    // final sync fallback
+    return generateEnhancedFallbackResponse(p, options);
+  }
+}
+
+// Convenience wrappers (legacy names used around the app)
+export const generateReport = generateResponse;
+export const generateAnnouncement = generateResponse;
+export const generateLessonPlan = generateResponse;
+
+// services/geminiAIService.ts
 // Gemini-first AI service with graceful fallback and user notifications
 
 import { generateFallbackResponse } from './fallbackAiService';

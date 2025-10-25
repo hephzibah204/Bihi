@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Modal from './Modal';
 import { useAI } from '../hooks/useAI';
+import { generateResponse as aiGenerateResponse } from '../services/geminiAIService';
 import SpinnerIcon from './icons/SpinnerIcon';
 import SparklesIcon from './icons/SparklesIcon';
 import { Invoice, Student } from '../types';
@@ -32,10 +33,11 @@ const AIDebtReminderModal: React.FC<AIDebtReminderModalProps> = ({ isOpen, onClo
                 - Tone: ${tone}
                 - Message should be concise and suitable for SMS or email.
             `;
-            const result = await generateResponse({ prompt });
-            setGeneratedMessage(result);
+            const result = await aiGenerateResponse(prompt);
+            setGeneratedMessage(String(result));
         } catch (error) {
-            setGeneratedMessage(`Error: ${error.message}`);
+            const msg = (error as any)?.message || String(error);
+            setGeneratedMessage(`Error: ${msg}`);
         } finally {
             setIsLoading(false);
         }

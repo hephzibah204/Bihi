@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, PropsWithChildren } from 'react';
 // Fix: Add missing imports
 import { apiGetStudents, apiGetScores, apiGetAttendance, apiGetSchoolSettings, apiGetSubjects, apiGetTeachers, apiGetTimetableData } from '../services/api';
 import { useAI } from '../hooks/useAI';
+import { generateResponse as aiGenerateResponse } from '../services/geminiAIService';
 import { Score, Student, Subject } from '../types';
 import SparklesIcon from './icons/SparklesIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
@@ -193,8 +194,8 @@ const AdminAnalyticsDashboard = () => {
                 **YOUR ANALYSIS:**
             `;
             
-            const result = await generateResponse({ prompt, context: { userRole: USER_ROLES.ADMIN } });
-            setAiAnalysisResult(result);
+            const result = await aiGenerateResponse(prompt);
+            setAiAnalysisResult(String(result));
     
         } catch (error) {
             setAnalysisError(`AI Analysis Error: ${error.message}`);

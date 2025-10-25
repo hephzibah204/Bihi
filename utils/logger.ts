@@ -1,6 +1,7 @@
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 interface LogContext {
+  [key: string]: any; // allow arbitrary meta to avoid type friction across app
   scope?: string;
   userId?: string;
   tenantId?: string;
@@ -19,7 +20,7 @@ interface LogEntry {
   };
 }
 
-class Logger {
+export class Logger {
   private static instance: Logger;
   private queue: LogEntry[] = [];
   private flushInterval: number = 15_000; // 15s batch send

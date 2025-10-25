@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAI } from './hooks/useAI';
 import SparklesIcon from './components/icons/SparklesIcon';
 import SpinnerIcon from './components/icons/SpinnerIcon';
+import { generateResponse as aiGenerateResponse } from './services/geminiAIService';
 
 interface AIAnnouncementGeneratorProps {
     onUseMessage: (message: string) => void;
@@ -34,10 +35,11 @@ const AIAnnouncementGenerator: React.FC<AIAnnouncementGeneratorProps> = ({ onUse
 
                 The message should be well-structured and easy to understand.
             `;
-            const result = await generateResponse({ prompt });
-            setGeneratedMessage(result);
+            const result = await aiGenerateResponse(prompt);
+            setGeneratedMessage(String(result));
         } catch (err) {
-            setError(`Failed to generate announcement: ${err.message}`);
+            const msg = (err as any)?.message || String(err);
+            setError(`Failed to generate announcement: ${msg}`);
         } finally {
             setIsLoading(false);
         }

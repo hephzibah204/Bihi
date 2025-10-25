@@ -42,12 +42,41 @@ const EditableSkillsRating = ({ title, skills, ratings, onRatingChange }: { titl
     );
 };
 
+const EditableSkillsList = ({ title, customSkills, onAdd, onEdit, onRemove }: {
+    title: string,
+    customSkills: ReportCardSkill[],
+    onAdd: (label: string) => void,
+    onEdit: (id: string, label: string) => void,
+    onRemove: (id: string) => void,
+}) => {
+    const [newLabel, setNewLabel] = useState('');
+    return (
+        <div className="mt-3">
+            <h5 className="font-medium text-gray-600 text-sm">{title} (custom)</h5>
+            <div className="flex gap-2 mt-2">
+                <input className="input-field text-sm flex-1" placeholder="Add new skill label" value={newLabel} onChange={e => setNewLabel(e.target.value)} />
+                <button type="button" className="btn btn-secondary text-sm" onClick={() => { if (newLabel.trim()) { onAdd(newLabel.trim()); setNewLabel(''); } }}>Add</button>
+            </div>
+            <div className="space-y-2 mt-2">
+                {customSkills?.map(skill => (
+                    <div key={skill.id} className="flex items-center gap-2">
+                        <input className="input-field text-sm flex-1" value={skill.label} onChange={e => onEdit(skill.id, e.target.value)} />
+                        <button type="button" className="btn btn-outline text-xs" onClick={() => onRemove(skill.id)}>Remove</button>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
 
 const StudentReportCardEditorModal = ({ student, allData, onClose, onDataUpdate }) => {
     const { subjects, scores, remarks, settings, behavioralRecords } = allData;
     const [currentScores, setCurrentScores] = useState({});
     const [currentRemark, setCurrentRemark] = useState<Partial<Remark>>({});
     const [generating, setGenerating] = useState({ subjectComment: null, generalComment: false });
+
+    const makeId = () => `skill_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
 
     useEffect(() => {
         const studentScoresForTerm = scores.filter(s => s.studentId === student.id && s.session === settings.session && s.term === settings.term);
@@ -187,23 +216,64 @@ Synthesize this information into a 2-3 sentence comment about their overall prog
                 {/* Skills & Comments Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div className="card p-4 space-y-4">
+                        <div className="flex items-center gap-4">
+                            <label className="flex items-center gap-2 text-sm">
+                                <input type="checkbox" checked={currentRemark.useAffective ?? true} onChange={e => handleRemarkDataChange('useAffective', e.target.checked)} /> Use Affective
+                            </label>
+                            <label className="flex items-center gap-2 text-sm">
+                                <input type="checkbox" checked={currentRemark.usePsychomotor ?? true} onChange={e => handleRemarkDataChange('usePsychomotor', e.target.checked)} /> Use Psychomotor
+                            </label>
+                            <label className="flex items-center gap-2 text-sm">
+                                <input type="checkbox" checked={currentRemark.useCognitive ?? true} onChange={e => handleRemarkDataChange('useCognitive', e.target.checked)} /> Use Cognitive
+                            </label>
+                        </div>
                         <EditableSkillsRating 
                             title="Affective Skills"
-                            skills={settings.reportCardSettings.affectiveSkills}
+                            skills={[...settings.reportCardSettings.affectiveSkills, ...(currentRemark.customAffectiveSkills || [])]}
                             ratings={currentRemark.affectiveRatings || {}}
                             onRatingChange={(skillId, rating) => {
                                 const newRatings = {...(currentRemark.affectiveRatings || {}), [skillId]: rating};
                                 handleRemarkDataChange('affectiveRatings', newRatings);
                             }}
                         />
-                         <EditableSkillsRating 
+                        <EditableSkillsList
+                            title="Affective"
+                            customSkills={currentRemark.customAffectiveSkills || []}
+                            onAdd={(label) => handleRemarkDataChange('customAffectiveSkills', [ ...(currentRemark.customAffectiveSkills || []), { id: makeId(), label } ])}
+                            onEdit={(id, label) => handleRemarkDataChange('customAffectiveSkills', (currentRemark.customAffectiveSkills || []).map(s => s.id === id ? { ...s, label } : s))}
+                            onRemove={(id) => handleRemarkDataChange('customAffectiveSkills', (currentRemark.customAffectiveSkills || []).filter(s => s.id !== id))}
+                        />
+                        <EditableSkillsRating 
                             title="Psychomotor Skills"
-                            skills={settings.reportCardSettings.psychomotorSkills}
+                            skills={[...settings.reportCardSettings.psychomotorSkills, ...(currentRemark.customPsychomotorSkills || [])]}
                             ratings={currentRemark.psychomotorRatings || {}}
                             onRatingChange={(skillId, rating) => {
                                 const newRatings = {...(currentRemark.psychomotorRatings || {}), [skillId]: rating};
                                 handleRemarkDataChange('psychomotorRatings', newRatings);
                             }}
+                        />
+                        <EditableSkillsList
+                            title="Psychomotor"
+                            customSkills={currentRemark.customPsychomotorSkills || []}
+                            onAdd={(label) => handleRemarkDataChange('customPsychomotorSkills', [ ...(currentRemark.customPsychomotorSkills || []), { id: makeId(), label } ])}
+                            onEdit={(id, label) => handleRemarkDataChange('customPsychomotorSkills', (currentRemark.customPsychomotorSkills || []).map(s => s.id === id ? { ...s, label } : s))}
+                            onRemove={(id) => handleRemarkDataChange('customPsychomotorSkills', (currentRemark.customPsychomotorSkills || []).filter(s => s.id !== id))}
+                        />
+                        <EditableSkillsRating 
+                            title="Cognitive Skills"
+                            skills={[...(settings.reportCardSettings.cognitiveSkills || []), ...(currentRemark.customCognitiveSkills || [])]}
+                            ratings={currentRemark.cognitiveRatings || {}}
+                            onRatingChange={(skillId, rating) => {
+                                const newRatings = {...(currentRemark.cognitiveRatings || {}), [skillId]: rating};
+                                handleRemarkDataChange('cognitiveRatings', newRatings);
+                            }}
+                        />
+                        <EditableSkillsList
+                            title="Cognitive"
+                            customSkills={currentRemark.customCognitiveSkills || []}
+                            onAdd={(label) => handleRemarkDataChange('customCognitiveSkills', [ ...(currentRemark.customCognitiveSkills || []), { id: makeId(), label } ])}
+                            onEdit={(id, label) => handleRemarkDataChange('customCognitiveSkills', (currentRemark.customCognitiveSkills || []).map(s => s.id === id ? { ...s, label } : s))}
+                            onRemove={(id) => handleRemarkDataChange('customCognitiveSkills', (currentRemark.customCognitiveSkills || []).filter(s => s.id !== id))}
                         />
                     </div>
                      <div className="card p-4 flex flex-col">

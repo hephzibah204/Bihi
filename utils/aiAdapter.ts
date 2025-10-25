@@ -5,6 +5,7 @@
   - Designed to be called server-side or via an API route
 */
 
+
 export type Provider = 'gemini' | 'huggingface' | 'offline';
 
 export interface AnalysisOptions {
@@ -87,15 +88,16 @@ async function tryGemini(prompt: string, options?: AnalysisOptions): Promise<str
   const apiKey = getAnyEnv(['GOOGLE_API_KEY', 'VITE_GOOGLE_API_KEY']);
   if (!apiKey) throw new Error('Missing GOOGLE_API_KEY');
 
-  let GoogleGenerativeAI: any;
-  try {
-    ({ GoogleGenerativeAI } = await import('@google/generative-ai'));
-  } catch (e) {
-    throw new Error('Gemini SDK unavailable');
-  }
-
   const modelName = options?.model || 'gemini-1.5-flash';
-  const genAI = new GoogleGenerativeAI(apiKey);
+
+  let mod: any = null;
+  try { mod = await import('@google/genai'); } catch {}
+  if (!mod) { try { mod = await import('@google/generative-ai'); } catch {}
+  }
+  const Ctor = mod?.GoogleGenerativeAI || mod?.GoogleAI || mod?.default?.GoogleGenerativeAI || mod?.default?.GoogleAI;
+  if (!Ctor) throw new Error('Gemini SDK unavailable');
+
+  const genAI = new Ctor(apiKey);
   const model = genAI.getGenerativeModel({ model: modelName });
 
   const result = await model.generateContent(prompt);

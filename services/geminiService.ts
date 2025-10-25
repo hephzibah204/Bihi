@@ -1,3 +1,7 @@
+// services/geminiService.ts
+// Back-compat shim that re-exports tolerant AI functions
+export { generateResponse, generateReport, generateAnnouncement, generateLessonPlan, normalizePrompt } from './geminiAIService';
+
 import { supabase } from './supabaseClient';
 import { getTenantId } from './api';
 import { getAIResponseCache } from './aiResponseCache';

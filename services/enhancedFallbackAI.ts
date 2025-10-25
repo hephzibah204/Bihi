@@ -1337,7 +1337,8 @@ What specific financial aspect would you like to explore?`;
 }
 
 // Export main function
-export const generateEnhancedFallbackResponse = (prompt: string, context?: any): string => {
-    const response = EnhancedFallbackAI.generateResponse({ prompt, context });
+export const generateEnhancedFallbackResponse = (prompt: any, context?: any): string => {
+    const p = typeof prompt === 'string' ? prompt : (prompt?.prompt ?? prompt?.text ?? String(prompt ?? ''));
+    const response = EnhancedFallbackAI.generateResponse({ prompt: p, context });
     return response.content;
 };

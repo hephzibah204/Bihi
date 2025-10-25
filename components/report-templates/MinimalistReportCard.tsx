@@ -1,6 +1,7 @@
 import React from 'react';
 import { calculateGrade, calculateOverallPerformance, summarizeAttendance } from '../../utils/reportCardHelper';
 import ReportCardFooter from './ReportCardFooter';
+import SkillsRatingTable from './SkillsRatingTable';
 
 const MinimalistReportCard = ({ student, students, scores, subjects, settings, term, session, remarks, attendance }) => {
     if (!student || !settings) return null;
@@ -15,7 +16,8 @@ const MinimalistReportCard = ({ student, students, scores, subjects, settings, t
     });
 
     const performance = calculateOverallPerformance(student.id, student.class, students, scores, subjects, term, session);
-    const generalRemark = (remarks || []).find(r => r.studentId === student.id && r.term === term && r.session === session)?.generalComment;
+    const studentRemark = (remarks || []).find(r => r.studentId === student.id && r.term === term && r.session === session);
+    const generalRemark = studentRemark?.generalComment;
     const comments = results.filter(r => r.comment);
 
     return (
@@ -77,6 +79,34 @@ const MinimalistReportCard = ({ student, students, scores, subjects, settings, t
                         <p key={c.subjectName}><strong className="text-gray-800">{c.subjectName}:</strong> <span dangerouslySetInnerHTML={{ __html: c.comment }} /></p>
                     ))}
                  </div>
+            </section>
+
+            {/* Skills Section */}
+            <section className="mt-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Skills</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    { (studentRemark?.useAffective ?? true) && (
+                        <SkillsRatingTable
+                            title="Affective Skills"
+                            skills={[...(settings.reportCardSettings?.affectiveSkills || []), ...((studentRemark?.customAffectiveSkills) || [])]}
+                            ratings={studentRemark?.affectiveRatings || {}}
+                        />
+                    )}
+                    { (studentRemark?.usePsychomotor ?? true) && (
+                        <SkillsRatingTable
+                            title="Psychomotor Skills"
+                            skills={[...(settings.reportCardSettings?.psychomotorSkills || []), ...((studentRemark?.customPsychomotorSkills) || [])]}
+                            ratings={studentRemark?.psychomotorRatings || {}}
+                        />
+                    )}
+                    { (studentRemark?.useCognitive ?? true) && (settings.reportCardSettings?.cognitiveSkills || (studentRemark?.customCognitiveSkills && studentRemark.customCognitiveSkills.length)) && (
+                        <SkillsRatingTable
+                            title="Cognitive Skills"
+                            skills={[...(settings.reportCardSettings?.cognitiveSkills || []), ...((studentRemark?.customCognitiveSkills) || [])]}
+                            ratings={studentRemark?.cognitiveRatings || {}}
+                        />
+                    )}
+                </div>
             </section>
 
             <div className="mt-auto">

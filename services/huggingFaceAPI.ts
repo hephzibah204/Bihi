@@ -233,6 +233,12 @@ export class HuggingFaceClient {
             remainingRequests: Math.max(0, this.maxRequestsPerMinute - this.requestCount)
         };
     }
+  // Back-compat alias used in a few components
+  public async generateText(prompt: any, config?: HuggingFaceConfig): Promise<string> {
+    const p = typeof prompt === 'string' ? prompt : (prompt?.prompt ?? prompt?.text ?? JSON.stringify(prompt));
+    const resp = await this.generate(p, config);
+    return resp.text;
+  }
 }
 
 // Singleton instance
