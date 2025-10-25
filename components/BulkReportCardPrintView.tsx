@@ -38,7 +38,10 @@ const BulkReportCardPrintView = ({ studentIds, allData, onClose, action }) => {
             pdf.addImage(imgData, 'PNG', 0, 0, A4_WIDTH, A4_HEIGHT, undefined, 'FAST');
         }
         
-        pdf.save('report-cards.pdf');
+        // Determine filename: if all selected students share one class, use that; otherwise generic
+        const uniqueClasses = Array.from(new Set(studentsToPrint.map(s => s.class))).filter(Boolean);
+        const baseName = uniqueClasses.length === 1 ? uniqueClasses[0] : 'report-cards';
+        pdf.save(baseName + '.pdf');
         setIsProcessing(false);
         onClose();
     };

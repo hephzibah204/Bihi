@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { apiGetScores, apiGetSubjects, apiGetStudents, apiGetSchoolSettings, apiGetAttendance, apiGetRemarks } from '../services/api';
 import { getReportCardTemplate } from '../utils/reportCardHelper';
 import PrinterIcon from './icons/PrinterIcon';
+import ArrowDownTrayIcon from './icons/ArrowDownTrayIcon';
+import { downloadElementAsPdf } from '../utils/pdfUtils';
 
 const StudentReportCardViewer = ({ demoUserId }) => {
     const [reportData, setReportData] = useState(null);
@@ -64,7 +66,15 @@ const StudentReportCardViewer = ({ demoUserId }) => {
 
     return (
         <div className="flex flex-col items-center">
-            <div className="no-print mb-6 w-full max-w-4xl flex justify-end">
+            <div className="no-print mb-6 w-full max-w-4xl flex justify-end gap-2">
+                <button
+                    onClick={() => downloadElementAsPdf('.printable-content', reportData?.student?.name || 'report-card')}
+                    className="btn btn-secondary"
+                    title="Download as PDF"
+                >
+                    <ArrowDownTrayIcon className="w-5 h-5 mr-2" />
+                    Download PDF
+                </button>
                 <button onClick={() => window.print()} className="btn btn-primary">
                     <PrinterIcon className="w-5 h-5 mr-2" />
                     Print Report Card

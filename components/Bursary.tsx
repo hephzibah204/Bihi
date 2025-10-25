@@ -38,8 +38,8 @@ const Bursary = () => {
     const [activeView, setActiveView] = useState('dashboard');
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [isQuickRecordOpen, setIsQuickRecordOpen] = useState(false);
-    // Hide native Bursar menu; rely on global sidebar
-    const showInternalMenu = false;
+    // Show native Bursar menu inside Bursary so sub-pages (e.g., Print Center) are directly accessible
+    const showInternalMenu = true;
 
     useEffect(() => {
         try {

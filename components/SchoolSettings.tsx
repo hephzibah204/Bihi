@@ -143,9 +143,20 @@ const ClassSettings = ({ settings, onSettingsChange }) => {
     };
 
     const handleSectionChange = (index, value) => {
-        const newSections = [...structure.sections];
+        const newSections = [...(structure.sections || [])];
         newSections[index].name = value;
         onSettingsChange({ schoolStructure: { ...structure, sections: newSections } });
+    };
+
+    const addSection = () => {
+        const newSection: ClassSection = { id: `sec_${Date.now()}`, name: '' };
+        const next = [...(structure.sections || []), newSection];
+        onSettingsChange({ schoolStructure: { ...structure, sections: next } });
+    };
+
+    const removeSection = (index: number) => {
+        const next = (structure.sections || []).filter((_, i) => i !== index);
+        onSettingsChange({ schoolStructure: { ...structure, sections: next } });
     };
 
     const addLevel = () => {
@@ -202,17 +213,18 @@ const ClassSettings = ({ settings, onSettingsChange }) => {
                 </div>
                  <button onClick={addLevel} className="btn btn-secondary mt-4"><PlusIcon className="w-4 h-4 mr-2"/> Add Level</button>
             </div>
-             <div>
+            <div>
                 <h4 className="font-semibold">Class Sections / Arms</h4>
                 <p className="text-xs text-gray-500 mb-2">e.g., A, B, Gold, Blue</p>
                 <div className="space-y-2">
-                    {structure.sections.map((section, index) => (
+                    {(structure.sections || []).map((section, index) => (
                         <div key={section.id} className="flex items-center gap-2">
                             <input type="text" value={section.name} onChange={e => handleSectionChange(index, e.target.value)} className="input-field" placeholder="Section Name"/>
+                            <button onClick={() => removeSection(index)} className="icon-button text-red-500" title="Remove section"><TrashIcon className="w-4 h-4"/></button>
                         </div>
                     ))}
                 </div>
-                {/* A simplified section manager for now. You can add remove buttons if needed. */}
+                <button onClick={addSection} className="btn btn-secondary mt-3"><PlusIcon className="w-4 h-4 mr-2"/> Add Section</button>
             </div>
         </div>
     );

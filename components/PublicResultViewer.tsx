@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { apiGetPublicStudentResult, apiUseScratchCard } from '../services/api';
 import { getReportCardTemplate } from '../utils/reportCardHelper';
 import PrinterIcon from './icons/PrinterIcon';
+import ArrowDownTrayIcon from './icons/ArrowDownTrayIcon';
+import { downloadElementAsPdf } from '../utils/pdfUtils';
 
 
 const PublicResultViewer = () => {
@@ -62,11 +64,18 @@ const PublicResultViewer = () => {
                     </div>
                 </div>
                  <div className="text-center my-6 no-print max-w-4xl mx-auto">
-                     <button onClick={handlePrint} className="btn btn-primary mr-4">
+                     <button
+                        onClick={() => downloadElementAsPdf('#report-card-public', resultData?.student?.name || 'report-card')}
+                        className="btn btn-secondary mr-4"
+                    >
+                        <ArrowDownTrayIcon className="w-5 h-5 mr-2" />
+                        Download PDF
+                    </button>
+                    <button onClick={handlePrint} className="btn btn-primary mr-4">
                         <PrinterIcon className="w-5 h-5 mr-2" />
                         Print Report
                     </button>
-                    <button onClick={() => setResultData(null)} className="btn btn-secondary">Check Another Result</button>
+                    <button onClick={() => setResultData(null)} className="btn btn-outline">Check Another Result</button>
                 </div>
             </div>
         );
