@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useAI } from '../hooks/useAI';
+import { generateResponse } from '../services/geminiAIService';
 import { apiGetStudents, apiGetScores, apiGetSubjects, apiGetSchoolSettings, apiGetTeachers, apiGetTimetableData } from '../services/api';
 import SparklesIcon from './icons/SparklesIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
 
 const AnalystQAWidget: React.FC = () => {
-  const { generateResponse, status } = useAI();
+  const status: 'gemini' | 'offline' = 'gemini';
   const [query, setQuery] = useState('');
   const [answer, setAnswer] = useState('');
   const [error, setError] = useState('');
@@ -56,7 +56,7 @@ const AnalystQAWidget: React.FC = () => {
   }, []);
 
   const handleAsk = async () => {
-    if (!query.trim()) return;
+    if (!String(query).trim()) return;
     setIsAnalyzing(true);
     setError('');
     setAnswer('');
@@ -76,7 +76,7 @@ const AnalystQAWidget: React.FC = () => {
         "${query}"
       `;
 
-      const res = await generateResponse({ prompt });
+      const res = await generateResponse(prompt);
       setAnswer(res);
     } catch (e: any) {
       setError(`AI Error: ${e.message}`);
