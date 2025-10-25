@@ -132,7 +132,7 @@ const ClassPerformanceRanking: React.FC<{ onDrillDown?: (view: DashboardView) =>
                 onClick={() => {
                   try {
                     localStorage.setItem('results_preselect_class', item.className);
-                  } catch {}
+                  } catch { /* noop */ }
                   if (onDrillDown) onDrillDown(ADMIN_VIEWS.RESULTS as DashboardView);
                 }}
               >

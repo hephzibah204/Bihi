@@ -1,7 +1,7 @@
 // services/voiceSessionService.ts
 // Service for persisting voice tutoring sessions to database
 
-import { createClient } from '@supabase/supabase-js';
+import { getSupabase } from './supabaseClient';
 
 export interface VoiceTranscript {
     sender: 'user' | 'ai';
@@ -41,17 +41,10 @@ export interface UpdateVoiceSessionParams {
 }
 
 export class VoiceSessionService {
-    private supabase: ReturnType<typeof createClient>;
+    private supabase: any;
 
-    constructor(supabaseUrl?: string, supabaseKey?: string) {
-        const url = supabaseUrl || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-        const key = supabaseKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-        
-        if (!url || !key) {
-            throw new Error('Supabase credentials not provided');
-        }
-
-        this.supabase = createClient(url, key);
+    constructor() {
+        this.supabase = getSupabase();
     }
 
     /**
@@ -327,10 +320,7 @@ export function getVoiceSessionService(): VoiceSessionService {
     return voiceSessionServiceInstance;
 }
 
-export function initVoiceSessionService(
-    supabaseUrl: string,
-    supabaseKey: string
-): VoiceSessionService {
-    voiceSessionServiceInstance = new VoiceSessionService(supabaseUrl, supabaseKey);
+export function initVoiceSessionService(): VoiceSessionService {
+    voiceSessionServiceInstance = new VoiceSessionService();
     return voiceSessionServiceInstance;
 }

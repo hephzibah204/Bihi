@@ -21,7 +21,7 @@ import UsersGroupIcon from './icons/UsersGroupIcon';
 import Cog6ToothIcon from './icons/Cog6ToothIcon';
 import BriefcaseIcon from './icons/BriefcaseIcon';
 import IdentificationIcon from './icons/IdentificationIcon';
-import { ADMIN_VIEWS } from '../utils/constants';
+import { ADMIN_VIEWS, USER_ROLES } from '../utils/constants';
 import { usePlanFeatures } from '../contexts/PlanFeaturesContext';
 import LockIcon from './icons/LockIcon';
 import QuestionMarkCircleIcon from './icons/QuestionMarkCircleIcon';
@@ -109,7 +109,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView, use
     const { hasFeature } = usePlanFeatures();
 
     // Bursar: show dedicated sidebar with only Bursary tabs
-    if (userRole === 'Bursar') {
+    if (userRole === USER_ROLES.BURSAR) {
         const bursarItems = [
           { id: 'dashboard', label: 'Dashboard', icon: <HomeIcon className="h-5 w-5" /> },
           { id: 'fees', label: 'Fee Setup', icon: <BanknotesIcon className="h-5 w-5" /> },
@@ -125,7 +125,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView, use
           { id: 'print-center', label: 'Print Center', icon: <PrinterIcon className="h-5 w-5" /> },
         ];
         const onClickItem = (id: string) => {
-          try { localStorage.setItem('bursaryInitialTab', id); } catch (e) {}
+          try { localStorage.setItem('bursaryInitialTab', id); } catch (e) { /* noop */ }
           setActiveView(ADMIN_VIEWS.BURSARY);
         };
         return (
@@ -246,7 +246,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView, use
                    {navLinks
                      .filter(group => {
                         // Show only Finance (and optionally Main) for Bursar
-                        if (userRole === 'Bursar') {
+                        if (userRole === USER_ROLES.BURSAR) {
                             return group.groupId === 'finance' || group.groupId === 'main';
                         }
                         const isGroupVisible = hasFeature(group.groupId) || group.groupId === 'main' || group.groupId === 'system';

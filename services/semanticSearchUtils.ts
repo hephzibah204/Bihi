@@ -368,7 +368,7 @@ export function scoreResponseQuality(response: string): number {
     
     // Structure scoring
     const hasHeaders = /#{1,6}|^\*\*.*\*\*$/m.test(response);
-    const hasBullets = /^[•\-\*]\s/m.test(response);
+    const hasBullets = /^[-•*]\s/m.test(response);
     const hasNumbering = /^\d+\.\s/m.test(response);
     
     if (hasHeaders) score += 0.1;

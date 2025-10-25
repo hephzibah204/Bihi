@@ -44,7 +44,6 @@ export class Logger {
     // In dev, echo to console immediately
     if (process.env.NODE_ENV === 'development') {
       const prefix = `[${entry.level.toUpperCase()}]`;
-      // eslint-disable-next-line no-console
       console[entry.level === 'debug' ? 'log' : entry.level](prefix, entry.message, entry.context || {}, entry.error || '');
     }
   }
@@ -56,7 +55,6 @@ export class Logger {
       // Replace with your log ingestion endpoint
       // fetch('/api/logs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     } catch (e) {
-      // eslint-disable-next-line no-console
       console.warn('Failed to flush logs:', e);
     }
   }

@@ -77,9 +77,10 @@ const ChatbotPanel = ({ isOpen, onClose, userRole, demoUserId, activeView }) => 
         setMessages(prev => [...prev, { id: aiMessageId, sender: 'ai', text: '' }]);
 
         try {
+            const contextString = JSON.stringify(context);
             await generateResponseStream({
                 prompt: input,
-                context,
+                context: contextString,
                 onChunk: (chunk) => {
                     setMessages(prev => prev.map(msg => 
                         msg.id === aiMessageId 

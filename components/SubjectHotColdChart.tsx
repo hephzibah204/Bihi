@@ -131,7 +131,7 @@ const SubjectHotColdChart: React.FC<{ onDrillDown?: (view: DashboardView) => voi
                 onClick={() => {
                   try {
                     localStorage.setItem('results_preselect_subject_id', item.subjectId);
-                  } catch {}
+                  } catch { /* noop */ }
                   if (onDrillDown) onDrillDown(ADMIN_VIEWS.RESULTS as DashboardView);
                 }}
               >

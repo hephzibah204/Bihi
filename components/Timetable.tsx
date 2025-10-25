@@ -24,9 +24,9 @@ const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const TIME_SLOTS = ['8:00 - 9:00', '9:00 - 10:00', '10:00 - 11:00', '11:00 - 12:00', '1:00 - 2:00'];
 
 
-const MasterTimetableView = ({ timetable, subjects, teachers }) => {
-    const subjectMap = useMemo(() => new Map(subjects.map(s => [s.id, s.name])), [subjects]);
-    const teacherMap = useMemo(() => new Map(teachers.map(t => [t.id, t.name])), [teachers]);
+const MasterTimetableView: React.FC<{ timetable: TimetableData; subjects: Subject[]; teachers: Teacher[] }> = ({ timetable, subjects, teachers }) => {
+    const subjectMap = useMemo<Map<string, string>>(() => new Map<string, string>(subjects.map((s: Subject) => [s.id, s.name])), [subjects]);
+    const teacherMap = useMemo<Map<string, string>>(() => new Map<string, string>(teachers.map((t: Teacher) => [t.id, t.name])), [teachers]);
 
     const { periodsBySlot, clashes } = useMemo(() => {
         interface PeriodInfo {

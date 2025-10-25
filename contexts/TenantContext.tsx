@@ -17,7 +17,7 @@ const TenantContext = createContext<TenantContextType>({
 
 export const useTenant = () => useContext(TenantContext);
 
-export const TenantProvider: React.FC<PropsWithChildren<{}>> = ({ children }) => {
+export const TenantProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
     const [settings, setSettings] = useState<SchoolSettings | null>(null);
     const [loading, setLoading] = useState(true);
 

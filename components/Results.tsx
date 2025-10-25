@@ -65,7 +65,7 @@ const Results = () => {
                 setSelectedClass(preClass);
                 localStorage.removeItem('results_preselect_class');
             }
-        } catch {}
+        } catch { /* noop */ }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [classNames.length]);
 
@@ -88,7 +88,7 @@ const Results = () => {
                 setSelectedSubjectId(preSubjectId);
                 localStorage.removeItem('results_preselect_subject_id');
             }
-        } catch {}
+        } catch { /* noop */ }
     }, [filteredSubjects]);
 
     const studentsInClass = useMemo(() => {

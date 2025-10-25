@@ -66,7 +66,7 @@ export function extractAIText(response: unknown): string {
       const t = maybeTextFn.call(resp.response ?? resp);
       if (typeof t === 'string') return t;
     }
-  } catch {}
+  } catch { /* noop */ }
 
   // HuggingFace text-generation: [{ generated_text: '...' }]
   try {
@@ -78,7 +78,7 @@ export function extractAIText(response: unknown): string {
     // Some HF tasks return objects
     const obj = response as any;
     if (typeof obj?.generated_text === 'string') return obj.generated_text;
-  } catch {}
+  } catch { /* noop */ }
 
   // Fallback: stringify response
   return ensureString(response);
@@ -91,9 +91,7 @@ async function tryGemini(prompt: string, options?: AnalysisOptions): Promise<str
   const modelName = options?.model || 'gemini-1.5-flash';
 
   let mod: any = null;
-  try { mod = await import('@google/genai'); } catch {}
-  if (!mod) { try { mod = await import('@google/generative-ai'); } catch {}
-  }
+  try { mod = await import('@google/genai'); } catch { /* noop */ }
   const Ctor = mod?.GoogleGenerativeAI || mod?.GoogleAI || mod?.default?.GoogleGenerativeAI || mod?.default?.GoogleAI;
   if (!Ctor) throw new Error('Gemini SDK unavailable');
 

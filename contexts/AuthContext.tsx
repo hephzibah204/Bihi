@@ -1,5 +1,5 @@
 ﻿import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '../services/supabaseClient';
+import { supabase, initSupabase } from '../services/supabaseClient';
 import { getSubdomain } from '../utils/subdomain';
 import { apiGetTenants, apiGetPlatformSettings, apiGetTeachers, apiGetStudents, apiGetSchoolSettings } from '../services/api';
 import { DEMO_TENANT_ID, CORE_DEMO_DATA } from '../utils/demoData';
@@ -36,6 +36,7 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
     useEffect(() => {
         const initializeAuth = async () => {
             setLoading(true);
+            await initSupabase();
             const sd = getSubdomain();
             setSubdomain(sd);
 
@@ -157,7 +158,7 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
             sessionStorage.removeItem('isDemoMode');
             localStorage.removeItem('isDemoMode');
             localStorage.removeItem('demoUserRole');
-        } catch {}
+        } catch { /* noop */ }
 
         // Sign out real sessions if present
         await supabase.auth.signOut();

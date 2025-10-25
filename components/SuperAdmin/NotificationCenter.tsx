@@ -53,8 +53,7 @@ const NotificationCenter: React.FC = () => {
       await apiUpsertMessageTemplate({
         name: templateName,
         subject: templateSubject,
-        content: templateBody,
-        updatedAt: new Date().toISOString()
+        content: templateBody
       });
       const t = await apiGetMessageTemplates().catch(() => []);
       setTemplates(t || []);
@@ -71,7 +70,7 @@ const NotificationCenter: React.FC = () => {
     setTemplates(t || []);
   };
 
-  const useTemplate = (tpl: any) => {
+  const applyTemplate = (tpl: any) => {
     setView('broadcast');
     setContent(`${tpl.subject}\n\n${tpl.content}`);
   };
@@ -134,7 +133,7 @@ const NotificationCenter: React.FC = () => {
                     <div className="text-sm text-slate-600">{tpl.subject}</div>
                   </div>
                   <div className="flex gap-2">
-                    <button className="btn btn-secondary" onClick={()=>useTemplate(tpl)}>Use</button>
+                    <button className="btn btn-secondary" onClick={()=>applyTemplate(tpl)}>Use</button>
                     <button className="btn btn-danger" onClick={()=>deleteTemplate(tpl.id)}>Delete</button>
                   </div>
                 </div>

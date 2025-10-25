@@ -82,7 +82,7 @@ export const AIServiceTester: React.FC = () => {
 
       updateTestResult('HuggingFace', {
         status: 'success',
-        response: response.generated_text || response.toString(),
+        response,
         responseTime
       });
 

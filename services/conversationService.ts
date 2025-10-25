@@ -1,7 +1,7 @@
 // services/conversationService.ts
 // Conversation and message management for AI chat history
 
-import { createClient } from '@supabase/supabase-js';
+import { getSupabase } from './supabaseClient';
 
 // ============================================================================
 // Types
@@ -64,17 +64,10 @@ export interface ConversationListOptions {
 // ============================================================================
 
 export class ConversationService {
-    private supabase: ReturnType<typeof createClient>;
+    private supabase: any;
 
-    constructor(supabaseUrl?: string, supabaseKey?: string) {
-        const url = supabaseUrl || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-        const key = supabaseKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-        
-        if (!url || !key) {
-            throw new Error('Supabase credentials not provided');
-        }
-
-        this.supabase = createClient(url, key);
+    constructor() {
+        this.supabase = getSupabase();
     }
 
     // ========================================================================
@@ -460,7 +453,7 @@ export function getConversationService(): ConversationService {
     return conversationServiceInstance;
 }
 
-export function initConversationService(supabaseUrl: string, supabaseKey: string): ConversationService {
-    conversationServiceInstance = new ConversationService(supabaseUrl, supabaseKey);
+export function initConversationService(): ConversationService {
+    conversationServiceInstance = new ConversationService();
     return conversationServiceInstance;
 }

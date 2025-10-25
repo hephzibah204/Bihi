@@ -8,7 +8,8 @@ interface AnimatedCheckboxProps {
 
 const AnimatedCheckbox: React.FC<AnimatedCheckboxProps> = ({ checked, onChange, id }) => {
     // A hidden input for accessibility and form functionality.
-    const internalId = id || useId();
+    const generatedId = useId();
+    const internalId = id ?? generatedId;
 
     // The wrapper div is important for consistent sizing and alignment
     return (

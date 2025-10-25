@@ -9,15 +9,6 @@ interface ModalProps {
 }
 
 const Modal: FC<PropsWithChildren<ModalProps>> = ({ isOpen, onClose, title, children, size = 'md' }) => {
-  if (!isOpen) return null;
-
-  const sizeClasses = {
-    sm: 'max-w-sm',
-    md: 'max-w-md',
-    lg: 'max-w-3xl',
-    full: 'max-w-6xl',
-  };
-
   // Handle escape key
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -31,6 +22,16 @@ const Modal: FC<PropsWithChildren<ModalProps>> = ({ isOpen, onClose, title, chil
       return () => document.removeEventListener('keydown', handleEscape);
     }
   }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  const sizeClasses = {
+    sm: 'max-w-sm',
+    md: 'max-w-md',
+    lg: 'max-w-3xl',
+    full: 'max-w-6xl',
+  };
+
 
   return (
     <div 

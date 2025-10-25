@@ -42,7 +42,7 @@ export const AIUsageDashboard: React.FC = () => {
 
   // Calculate percentages
   const getPercentage = (provider: AIProvider) => {
-    if (totalRequests === 0) return 0;
+    if (totalRequests === 0) return '0';
     return ((stats.providerDistribution[provider] / totalRequests) * 100).toFixed(1);
   };
 

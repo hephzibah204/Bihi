@@ -46,7 +46,7 @@ const AIPerformanceMonitor = () => {
         ? cachedResponses 
         : cachedResponses.filter(r => r.metadata.promptType === selectedType);
 
-    const cacheHitRate = stats ? (stats.cacheHits / (stats.cacheHits + stats.cacheMisses) * 100).toFixed(1) : 0;
+    const cacheHitRate = stats ? (stats.cacheHits / (stats.cacheHits + stats.cacheMisses) * 100).toFixed(1) : '0';
 
     return (
         <div className="space-y-6">

@@ -165,7 +165,7 @@ const Dashboard = () => {
 
                             <SyncStatusIndicator />
                             <GlobalNotification />
-                            <Chatbot />
+                            <Chatbot userRole={(localStorage.getItem('demoUserRole') === USER_ROLES.BURSAR ? USER_ROLES.BURSAR : USER_ROLES.ADMIN) as string} activeView={activeView} />
                         </div>
                     </PlanFeaturesProvider>
                 </TenantProvider>

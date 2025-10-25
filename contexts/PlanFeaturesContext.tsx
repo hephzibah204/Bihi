@@ -24,7 +24,7 @@ const PlanFeaturesContext = createContext<PlanFeaturesContextType>({
 export const usePlanFeatures = () => useContext(PlanFeaturesContext);
 
 // FIX: Changed props type from { children: ReactNode } to React.FC<PropsWithChildren<{}>> to fix type errors.
-export const PlanFeaturesProvider: React.FC<PropsWithChildren<{}>> = ({ children }) => {
+export const PlanFeaturesProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
     const { settings: tenantSettings, loading: tenantLoading } = useTenant() as any;
     const [allPlans, setAllPlans] = useState<Plan[]>([]);
     const [activePlan, setActivePlan] = useState<Plan | null>(null);

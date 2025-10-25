@@ -43,7 +43,7 @@ const AITimetableGenerator = ({ isOpen, onClose, onApply, subjects, teachers, cl
             const response = await aiGenerateResponse(prompt);
 
             // If the response is not JSON-like, use fallback timetable generator
-            const looksJson = typeof response === 'string' && /^[\[{]/.test(String(response).trim());
+            const looksJson = typeof response === 'string' && /^(?:\s*\{|\s*\[)/.test(String(response));
             if (!looksJson) {
                 console.log('AI response not JSON, using fallback timetable generator');
                 const fallbackTimetable = generateFallbackTimetable();

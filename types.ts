@@ -230,6 +230,9 @@ export interface Tenant {
     subscriptionStatus?: 'trial' | 'active' | 'expired' | 'unsubscribed';
     trialEndDate?: string;
     subscriptionExpiryDate?: string;
+    // Optional metrics populated in admin analytics contexts
+    userCount?: number;
+    monthlyRevenue?: number;
 }
 
 export interface Plan {
@@ -349,8 +352,10 @@ export interface SchoolSettings {
     // Email Services
     sendgrid_api_key?: string; // Stored securely, not sent to client
     sendgrid_from_email?: string;
+    sendgrid_from_name?: string;
     mailgun_api_key?: string; // Stored securely, not sent to client
     mailgun_domain?: string;
+    mailgun_from_email?: string;
     
     // Cloud Storage
     cloudinary_cloud_name?: string;

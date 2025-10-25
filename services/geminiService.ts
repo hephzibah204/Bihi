@@ -82,6 +82,7 @@ export const callGeminiApi = async (prompt: string | { prompt: string }, context
         let buffer = '';
         let fullText = '';
 
+        // eslint-disable-next-line no-constant-condition
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
@@ -201,6 +202,7 @@ export const callGeminiApiStream = async (prompt: string | { prompt: string }, o
     const decoder = new TextDecoder();
     let buffer = '';
 
+    // eslint-disable-next-line no-constant-condition
     while (true) {
         const { done, value } = await reader.read();
         if (done) break;

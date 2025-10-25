@@ -66,7 +66,11 @@ const TopDebtorsByClassAlt: React.FC = () => {
         <span className="text-sm text-gray-500 dark:text-gray-400">{label}</span>
       </div>
       {loading ? (
-        <SkeletonLoader lines={5} />
+        <div className="space-y-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <SkeletonLoader key={i} className="h-6 w-full" />
+          ))}
+        </div>
       ) : rows.length === 0 ? (
         <p className="text-sm text-gray-600 dark:text-gray-300">No outstanding invoices for the selected period.</p>
       ) : (

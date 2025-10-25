@@ -6,13 +6,6 @@ import { getSupabaseEnv, getKeyType } from '../utils/env';
 import { withRetry } from '../utils/retry';
 
 declare global {
-  interface ImportMeta {
-    readonly env: {
-      readonly VITE_SUPABASE_PUBLISHABLE_KEY?: string;
-      readonly VITE_SUPABASE_ANON_KEY?: string;
-      readonly VITE_SUPABASE_URL?: string;
-    };
-  }
   interface Window {
     supabase?: any;
     process?: {
@@ -142,7 +135,7 @@ function setupDemoAuthShim() {
         try {
           const real = originalGetUser ? await originalGetUser() : { data: { user: null }, error: null };
           if (real?.data?.user) return real;
-        } catch {}
+        } catch { /* noop */ }
         return { data: { user: { id: 'auth_teacher_demo', email: 'teacher@demo.com' } }, error: null } as any;
       };
     }
@@ -251,5 +244,8 @@ export function getConnectionStatus() {
     monitoring: isMonitoring
   };
 }
+
+// Auto-initialize in background on module load to reduce null usage windows
+void (async () => { try { await initSupabase(); } catch { /* noop */ } })();
 
 export { supabase };

@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, lazy, Suspense, PropsWithChildren } from 'react';
-import { GoogleGenAI, LiveServerMessage, Modality, Blob, FunctionDeclaration, Type } from '@google/genai';
+import { GoogleGenAI, Modality, FunctionDeclaration, Type } from '@google/genai';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import StopIcon from './icons/StopIcon';
 import HeadsetIcon from './icons/HeadsetIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
+import { logger } from '../utils/logger';
 import SparklesIcon from './icons/SparklesIcon';
 import UserCircleIcon from './icons/UserCircleIcon';
 import { USER_ROLES } from '../utils/constants';
@@ -179,9 +180,9 @@ const AIAcademicTutor = ({ demoUserId }) => {
                     await voiceService.syncToConversation(voiceSessionId);
                 }
                 
-                console.log('Voice session saved:', voiceSessionId);
+                logger.info('Voice session saved', { voiceSessionId });
             } catch (error) {
-                console.error('Failed to save voice session:', error);
+                logger.error('Failed to save voice session', { error: error as any });
             }
         }
         
@@ -235,8 +236,13 @@ const AIAcademicTutor = ({ demoUserId }) => {
             }
         };
         initialize();
-        return () => cleanup(); // Full cleanup on component unmount
+        return () => { cleanupRef.current && cleanupRef.current(); }; // Full cleanup on component unmount
     }, [session]);
+
+    const cleanupRef = useRef<() => void>(() => {});
+    useEffect(() => {
+        cleanupRef.current = () => { void cleanup(); };
+    }, [cleanup]);
 
     const startSession = async () => {
         if (status !== 'idle' || !aiRef.current) return;
@@ -252,7 +258,7 @@ const AIAcademicTutor = ({ demoUserId }) => {
             if (userId) {
                 // Create conversation first
                 const conversationService = getConversationService();
-                const { conversation } = await conversationService.createConversation({
+                const conversation = await conversationService.createConversation({
                     userId,
                     title: 'Voice Tutor Session',
                     type: 'voice_tutor'
@@ -270,7 +276,7 @@ const AIAcademicTutor = ({ demoUserId }) => {
                 console.log('Voice session started:', voiceSession.id);
             }
         } catch (error) {
-            console.error('Failed to create voice session:', error);
+            logger.error('Failed to create voice session', { error: error as any });
             // Continue anyway - don't block user
         }
         
@@ -296,8 +302,8 @@ const AIAcademicTutor = ({ demoUserId }) => {
                         scriptProcessorRef.current.connect(inputAudioContextRef.current.destination);
                     },
                     onmessage: async (message) => handleServerMessage(message, promise),
-                    onerror: (e) => { console.error('Session error:', e); setStatus('error'); setErrorMessage('Connection error.'); cleanup(); },
-                    onclose: (e) => { console.log('Session closed'); cleanup(); },
+                    onerror: (e) => { logger.error('Session error', { error: e as any }); setStatus('error'); setErrorMessage('Connection error.'); cleanup(); },
+                    onclose: (e) => { logger.info('Session closed'); cleanup(); },
                 },
                 config: {
                     responseModalities: [Modality.AUDIO],

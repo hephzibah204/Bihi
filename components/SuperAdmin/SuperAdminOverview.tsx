@@ -255,9 +255,11 @@ const SuperAdminOverview = () => {
                 ]);
 
                 // Calculate stats from real data
-                const activeTenants = tenants.filter(t => t.subscriptionStatus === 'active').length;
-                const totalUsers = tenants.reduce((sum, t) => sum + (t.userCount || 0), 0);
-                const totalRevenue = tenants.reduce((sum, t) => sum + (t.monthlyRevenue || 0), 0);
+                const activeTenants = (tenants as any[]).filter((t: any) => t.subscriptionStatus === 'active').length;
+                const usersList = (tenants as any[]).map((t: any) => Number(t.userCount || 0));
+                const totalUsers = usersList.reduce((sum: number, n: number) => sum + n, 0);
+                const revenueList = (tenants as any[]).map((t: any) => Number(t.monthlyRevenue || 0));
+                const totalRevenue = revenueList.reduce((sum: number, n: number) => sum + n, 0);
 
                 setStats({
                     totalTenants: tenants.length,

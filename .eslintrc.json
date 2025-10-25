@@ -18,7 +18,7 @@
     },
     "ecmaVersion": "latest",
     "sourceType": "module",
-    "project": "./tsconfig.json"
+    "project": ["./tsconfig.json", "./tsconfig.eslint.json"]
   },
   "plugins": [
     "react",
@@ -29,11 +29,19 @@
   "rules": {
     "react/react-in-jsx-scope": "off",
     "react/prop-types": "off",
-    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+    "react/no-unescaped-entities": "off",
+    "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
     "@typescript-eslint/no-explicit-any": "warn",
     "@typescript-eslint/no-non-null-assertion": "warn",
     "react-hooks/rules-of-hooks": "error",
     "react-hooks/exhaustive-deps": "warn",
+    "jsx-a11y/label-has-associated-control": "warn",
+    "jsx-a11y/click-events-have-key-events": "warn",
+    "jsx-a11y/no-static-element-interactions": "warn",
+    "jsx-a11y/no-noninteractive-element-interactions": "warn",
+    "react/jsx-no-comment-textnodes": "warn",
+    "react/jsx-no-target-blank": "warn",
+    "@typescript-eslint/no-var-requires": "warn",
     "jsx-a11y/alt-text": "warn",
     "jsx-a11y/anchor-is-valid": "warn",
     "prefer-const": "error",

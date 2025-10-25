@@ -39,7 +39,7 @@ const StudentDashboardContent = ({ activeView, setActiveView, demoUserId }: Stud
         case STUDENT_VIEWS.NOTIFICATIONS:
             return <NotificationViewer demoUserId={demoUserId} />;
         case STUDENT_VIEWS.AI_TUTOR:
-            return <AIAcademicTutor />;
+            return <AIAcademicTutor demoUserId={demoUserId} />;
         case STUDENT_VIEWS.AI_TOOLS:
             return (
                 <div className="space-y-8">

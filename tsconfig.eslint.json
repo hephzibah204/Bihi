@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "vite.config.ts",
+    "vitest.config.ts",
+    "tests/**/*.ts",
+    "tests/**/*.tsx",
+    "utils/queryBuilder.ts",
+    "utils/migrations.ts",
+    "utils/rls.ts",
+    "services/conversationService.ts",
+    "services/voiceSessionService.ts"
+  ],
+  "exclude": []
+}

@@ -3,7 +3,7 @@ import { apiGetStudents, apiGetStudentScores, apiGetSubjects } from '../services
 import { useQRCodeGenerator } from '../hooks/useQRCodeGenerator';
 import { useAI } from '../hooks/useAI';
 import Modal from './Modal';
-import ReportCard from './ReportCard';
+import StudentReportCardViewer from './StudentReportCardViewer';
 
 const StudentProfile = ({ demoUserId }) => {
     const [student, setStudent] = useState(null);
@@ -84,8 +84,8 @@ Please provide:
 
 Keep the analysis professional and actionable for educators.`;
 
-            const analysis = await generateResponse(prompt);
-            setAiAnalysis(analysis);
+            const { content } = await generateResponse(prompt);
+            setAiAnalysis(content);
             setShowAIAnalysis(true);
         } catch (error) {
             console.error('Error generating AI analysis:', error);
@@ -327,7 +327,7 @@ Keep the analysis professional and actionable for educators.`;
 
             {/* Report Card Modal */}
             {showReportModal && (
-                <Modal onClose={() => setShowReportModal(false)}>
+                <Modal isOpen={showReportModal} onClose={() => setShowReportModal(false)} title="Report Card">
                     <div className="max-w-4xl mx-auto">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-lg font-semibold">Report Card</h3>
@@ -341,11 +341,7 @@ Keep the analysis professional and actionable for educators.`;
                             </div>
                         </div>
                         <div className="print:shadow-none">
-                            <ReportCard 
-                                student={student} 
-                                scores={scores}
-                                subjects={subjects}
-                            />
+                            <StudentReportCardViewer demoUserId={student?.id} />
                         </div>
                     </div>
                 </Modal>
@@ -353,7 +349,7 @@ Keep the analysis professional and actionable for educators.`;
 
             {/* AI Analysis Modal */}
             {showAIAnalysis && (
-                <Modal onClose={() => setShowAIAnalysis(false)}>
+                <Modal isOpen={showAIAnalysis} onClose={() => setShowAIAnalysis(false)} title="🤖 AI Student Analysis">
                     <div className="max-w-2xl mx-auto">
                         <h3 className="text-lg font-semibold mb-4">🤖 AI Student Analysis</h3>
                         <div className="bg-gray-50 p-4 rounded-lg max-h-96 overflow-y-auto">

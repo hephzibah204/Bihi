@@ -13,7 +13,7 @@ export interface UseAIRouterOptions {
 
 export interface UseAIRouterReturn {
   generate: (prompt: string, metadata?: any) => Promise<AIRouterResponse>;
-  generateStream: (prompt: string, metadata?: any, onChunk: (chunk: string) => void) => Promise<void>;
+  generateStream: (prompt: string, onChunk: (chunk: string) => void, metadata?: any) => Promise<void>;
   isLoading: boolean;
   lastResponse: AIRouterResponse | null;
   settings: AISettings;
@@ -74,11 +74,11 @@ export const useAIRouter = (options: UseAIRouterOptions = {}): UseAIRouterReturn
   /**
    * Generate streaming response (simulated for now)
    */
-  const generateStream = useCallback(
+const generateStream = useCallback(
     async (
       prompt: string,
-      metadata?: any,
-      onChunk: (chunk: string) => void
+      onChunk: (chunk: string) => void,
+      metadata?: any
     ): Promise<void> => {
       setIsLoading(true);
 

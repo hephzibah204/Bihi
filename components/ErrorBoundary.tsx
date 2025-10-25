@@ -1,4 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { logger } from '../utils/logger';
 
 interface ErrorBoundaryProps {
   children?: ReactNode;
@@ -60,7 +61,6 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
 
     // Prefer central logger
     try {
-      const { logger } = require('../utils/logger');
       logger.captureError(error, 'ErrorBoundary captured error', {
         scope: 'ErrorBoundary',
         tags: { retryCount: this.state.retryCount },
