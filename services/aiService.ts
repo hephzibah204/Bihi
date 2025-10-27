@@ -28,7 +28,7 @@ interface AIResponse {
 class AIService {
   private config: AIServiceConfig;
   private status: AIServiceStatus;
-  private healthCheckInterval: NodeJS.Timeout | null = null;
+  private healthCheckInterval: ReturnType<typeof setInterval> | null = null;
   private logger: typeof logger;
   private isMonitoring = false;
   private fallbackResponses: Map<string, string> = new Map();

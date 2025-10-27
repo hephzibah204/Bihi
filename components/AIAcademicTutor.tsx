@@ -187,7 +187,9 @@ const AIAcademicTutor = ({ demoUserId }) => {
         }
         
         if (sessionPromise) {
-            sessionPromise.then(session => session.close()).catch(console.error);
+            sessionPromise
+              .then(session => session.close())
+              .catch((e: any) => logger.captureError(e, 'Failed to close voice session'));
             setSessionPromise(null);
         }
         if (streamRef.current) {
@@ -196,8 +198,8 @@ const AIAcademicTutor = ({ demoUserId }) => {
         }
         if (scriptProcessorRef.current) scriptProcessorRef.current.disconnect();
         if (mediaStreamSourceRef.current) mediaStreamSourceRef.current.disconnect();
-        if (inputAudioContextRef.current && inputAudioContextRef.current.state !== 'closed') inputAudioContextRef.current.close().catch(console.error);
-        if (outputAudioContextRef.current && outputAudioContextRef.current.state !== 'closed') outputAudioContextRef.current.close().catch(console.error);
+        if (inputAudioContextRef.current && inputAudioContextRef.current.state !== 'closed') inputAudioContextRef.current.close().catch((e: any) => logger.captureError(e, 'Failed to close input audio context'));
+        if (outputAudioContextRef.current && outputAudioContextRef.current.state !== 'closed') outputAudioContextRef.current.close().catch((e: any) => logger.captureError(e, 'Failed to close output audio context'));
         
         scriptProcessorRef.current = null;
         mediaStreamSourceRef.current = null;
@@ -273,7 +275,7 @@ const AIAcademicTutor = ({ demoUserId }) => {
                     sessionType: 'gemini_live'
                 });
                 setVoiceSessionId(voiceSession.id);
-                console.log('Voice session started:', voiceSession.id);
+                logger.info('Voice session started', { voiceSessionId: voiceSession.id });
             }
         } catch (error) {
             logger.error('Failed to create voice session', { error: error as any });
@@ -343,7 +345,7 @@ const AIAcademicTutor = ({ demoUserId }) => {
         
         if (message.toolCall) {
             for (const fc of message.toolCall.functionCalls) {
-              console.debug('Function call received:', fc);
+              logger.debug('Function call received', { fc });
               sessionPromise.then((session) => {
                 session.sendToolResponse({
                   functionResponses: { id: fc.id, name: fc.name, response: { result: 'ok, switching view' } }

@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { callGeminiApi } from '../services/geminiService';
 import { generateFallbackResponse } from '../services/fallbackAiService';
+import { logger } from '../utils/logger';
 
 export interface AIResponse {
   content: string;
@@ -54,7 +55,7 @@ export const useAI = (onNotification?: AINotificationCallback) => {
             isOnline: true
           };
         } catch (error) {
-          console.warn('Gemini API failed, falling back to local AI:', error);
+          logger.captureError(error as any, 'Gemini API failed, falling back to local AI');
           
           // Determine fallback reason
           let fallbackReason = 'API service unavailable';
@@ -214,7 +215,7 @@ export const useAI = (onNotification?: AINotificationCallback) => {
         message: 'Failed to generate response. Please try again.'
       });
       
-      console.error('AI Streaming Error:', error);
+      logger.captureError(error as any, 'AI Streaming Error');
     }
   }, [generateResponse, showNotification, isOnline]);
 

@@ -4,6 +4,7 @@ import SpinnerIcon from './icons/SpinnerIcon';
 import { useAI } from '../hooks/useAI';
 import { generateResponse as aiGenerateResponse } from '../services/geminiAIService';
 import { normalizeAIText } from '../utils/aiNormalize';
+import { logger } from '../utils/logger';
 
 const CommentGenerator = () => {
     const [studentInfo, setStudentInfo] = useState('');
@@ -21,7 +22,7 @@ const CommentGenerator = () => {
             const comment = await aiGenerateResponse(prompt);
             setGeneratedComment(normalizeAIText(comment));
         } catch (error) {
-            console.error("Failed to generate comment:", error);
+            logger.captureError(error as any, 'Failed to generate comment');
             const msg = (error as any)?.message || String(error);
             setGeneratedComment(`<p>Sorry, an error occurred: ${msg}</p>`);
         } finally {

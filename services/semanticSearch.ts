@@ -1,6 +1,8 @@
 // services/semanticSearch.ts
 // Lightweight semantic search using simple embeddings and cosine similarity
 
+import { logger } from '../utils/logger';
+
 interface Vector {
     values: number[];
     magnitude: number;
@@ -316,7 +318,7 @@ export class SemanticSearchEngine {
             const data = this.export();
             localStorage.setItem('semantic_search_index', JSON.stringify(data));
         } catch (error) {
-            console.error('Failed to save semantic search index:', error);
+            logger.captureError(error as any, 'Failed to save semantic search index');
         }
     }
 
@@ -333,7 +335,7 @@ export class SemanticSearchEngine {
                 this.import(data);
             }
         } catch (error) {
-            console.error('Failed to load semantic search index:', error);
+            logger.captureError(error as any, 'Failed to load semantic search index');
         }
     }
 }

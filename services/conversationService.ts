@@ -2,6 +2,7 @@
 // Conversation and message management for AI chat history
 
 import { getSupabase } from './supabaseClient';
+import { logger } from '../utils/logger';
 
 // ============================================================================
 // Types
@@ -93,7 +94,7 @@ export class ConversationService {
             if (error) throw error;
             return data;
         } catch (error) {
-            console.error('Failed to create conversation:', error);
+            logger.captureError(error as any, 'Failed to create conversation');
             throw new Error('Could not create conversation');
         }
     }
@@ -116,7 +117,7 @@ export class ConversationService {
 
             return data;
         } catch (error) {
-            console.error('Failed to get conversation:', error);
+            logger.captureError(error as any, 'Failed to get conversation');
             throw new Error('Could not retrieve conversation');
         }
     }
@@ -139,7 +140,7 @@ export class ConversationService {
             if (error) throw error;
             return data || [];
         } catch (error) {
-            console.error('Failed to list conversations:', error);
+            logger.captureError(error as any, 'Failed to list conversations');
             throw new Error('Could not list conversations');
         }
     }
@@ -162,7 +163,7 @@ export class ConversationService {
             if (error) throw error;
             return data;
         } catch (error) {
-            console.error('Failed to update conversation:', error);
+            logger.captureError(error as any, 'Failed to update conversation');
             throw new Error('Could not update conversation');
         }
     }
@@ -179,7 +180,7 @@ export class ConversationService {
 
             if (error) throw error;
         } catch (error) {
-            console.error('Failed to delete conversation:', error);
+            logger.captureError(error as any, 'Failed to delete conversation');
             throw new Error('Could not delete conversation');
         }
     }
@@ -209,7 +210,7 @@ export class ConversationService {
             if (error) throw error;
             return data;
         } catch (error) {
-            console.error('Failed to add message:', error);
+            logger.captureError(error as any, 'Failed to add message');
             throw new Error('Could not add message');
         }
     }
@@ -227,7 +228,7 @@ export class ConversationService {
             if (error) throw error;
             return data || [];
         } catch (error) {
-            console.error('Failed to get messages:', error);
+            logger.captureError(error as any, 'Failed to get messages');
             throw new Error('Could not retrieve messages');
         }
     }
@@ -252,7 +253,7 @@ export class ConversationService {
             // Reverse to get chronological order
             return (data || []).reverse();
         } catch (error) {
-            console.error('Failed to get recent messages:', error);
+            logger.captureError(error as any, 'Failed to get recent messages');
             throw new Error('Could not retrieve recent messages');
         }
     }
@@ -269,7 +270,7 @@ export class ConversationService {
 
             if (error) throw error;
         } catch (error) {
-            console.error('Failed to delete message:', error);
+            logger.captureError(error as any, 'Failed to delete message');
             throw new Error('Could not delete message');
         }
     }
@@ -300,7 +301,7 @@ export class ConversationService {
 
             return { conversation, message };
         } catch (error) {
-            console.error('Failed to start conversation:', error);
+            logger.captureError(error as any, 'Failed to start conversation');
             throw new Error('Could not start conversation');
         }
     }
@@ -321,7 +322,7 @@ export class ConversationService {
 
             return { conversation, messages };
         } catch (error) {
-            console.error('Failed to get conversation with messages:', error);
+            logger.captureError(error as any, 'Failed to get conversation with messages');
             throw new Error('Could not retrieve conversation data');
         }
     }
@@ -389,7 +390,7 @@ export class ConversationService {
                 message_count: conv.message_count?.[0]?.count || 0
             }));
         } catch (error) {
-            console.error('Failed to search conversations:', error);
+            logger.captureError(error as any, 'Failed to search conversations');
             throw new Error('Could not search conversations');
         }
     }
@@ -434,7 +435,7 @@ export class ConversationService {
                 conversationsByType
             };
         } catch (error) {
-            console.error('Failed to get user stats:', error);
+            logger.captureError(error as any, 'Failed to get user stats');
             throw new Error('Could not retrieve user statistics');
         }
     }

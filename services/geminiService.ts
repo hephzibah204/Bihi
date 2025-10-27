@@ -5,6 +5,7 @@ export { generateResponse, generateReport, generateAnnouncement, generateLessonP
 import { supabase } from './supabaseClient';
 import { getTenantId } from './api';
 import { getAIResponseCache } from './aiResponseCache';
+import { logger } from '../utils/logger';
 
 /**
  * Generates text content by sending a prompt to a secure, server-side proxy
@@ -22,7 +23,7 @@ export const callGeminiApi = async (prompt: string | { prompt: string }, context
   const cached = cache.getCachedResponse(actualPrompt, context);
   
   if (cached && cached.source === 'gemini') {
-    console.log('✅ Returning cached Gemini response (Cache hit)');
+    logger.info('Returning cached Gemini response (cache hit)');
     return cached.response;
   }
   
@@ -99,7 +100,7 @@ export const callGeminiApi = async (prompt: string | { prompt: string }, context
                         if (textChunk) fullText += textChunk;
                     } catch (e) {
                         // If parsing fails, ignore this chunk and continue
-                        console.warn('SSE chunk parse error:', e);
+                        logger.captureError(e as any, 'SSE chunk parse error');
                     }
                 }
             }
@@ -108,7 +109,7 @@ export const callGeminiApi = async (prompt: string | { prompt: string }, context
         // Cache the successful Gemini response
         if (fullText) {
             cache.cacheResponse(actualPrompt, fullText, 'gemini', context);
-            console.log('📦 Cached Gemini response for future use');
+            logger.info('Cached Gemini response for future use');
         }
         
         return fullText;
@@ -123,7 +124,7 @@ export const callGeminiApi = async (prompt: string | { prompt: string }, context
         // Cache the successful Gemini response
         if (text) {
             cache.cacheResponse(actualPrompt, text, 'gemini', context);
-            console.log('📦 Cached Gemini response for future use');
+            logger.info('Cached Gemini response for future use');
         }
         
         return text;
@@ -139,9 +140,9 @@ export const callGeminiApi = async (prompt: string | { prompt: string }, context
     }
     
   } catch (error) {
-    console.error("Error calling the AI proxy service:", error);
+    logger.captureError(error as any, 'Error calling the AI proxy service');
     // Rethrow a more user-friendly and specific error for the useAI hook to catch.
-    if (error.message.includes('Failed to fetch')) {
+    if ((error as any).message?.includes('Failed to fetch')) {
         throw new Error('Network connection failed. Could not reach AI service.');
     }
     throw new Error(`The AI service is currently unavailable. ${error.message}`);
@@ -223,15 +224,15 @@ export const callGeminiApiStream = async (prompt: string | { prompt: string }, o
                         onChunk(textChunk);
                     }
                 } catch (e) {
-                    console.error("Error parsing streaming JSON chunk:", e, jsonString);
+                    logger.captureError(e as any, 'Error parsing streaming JSON chunk');
                 }
             }
         }
     }
 
   } catch (error) {
-    console.error("Error calling the AI proxy service (stream):", error);
-    if (error.message.includes('Failed to fetch')) {
+    logger.captureError(error as any, 'Error calling the AI proxy service (stream)');
+    if ((error as any).message?.includes('Failed to fetch')) {
         throw new Error('Network connection failed. Could not reach AI service.');
     }
     throw new Error(`The AI service is currently unavailable. ${error.message}`);

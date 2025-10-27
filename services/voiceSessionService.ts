@@ -214,7 +214,7 @@ export class VoiceSessionService {
 
             if (error) throw error;
         } catch (error) {
-            console.error('Failed to delete voice session:', error);
+            logger.captureError(error as any, 'Failed to delete voice session');
             throw new Error('Could not delete voice session');
         }
     }
@@ -256,7 +256,7 @@ export class VoiceSessionService {
 
             return stats;
         } catch (error) {
-            console.error('Failed to get user stats:', error);
+            logger.captureError(error as any, 'Failed to get user stats');
             throw new Error('Could not retrieve user statistics');
         }
     }
@@ -305,7 +305,7 @@ export class VoiceSessionService {
 
             return true;
         } catch (error) {
-            console.error('Failed to sync to conversation:', error);
+            logger.captureError(error as any, 'Failed to sync to conversation');
             return false;
         }
     }

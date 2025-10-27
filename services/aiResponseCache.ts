@@ -1,6 +1,8 @@
 // services/aiResponseCache.ts
 // Intelligent caching system for AI responses to improve fallback quality
 
+import { logger } from '../utils/logger';
+
 interface CachedResponse {
     id: string;
     prompt: string;
@@ -357,7 +359,7 @@ class AIResponseCache {
 
             localStorage.setItem('ai_response_cache', JSON.stringify(cacheData));
         } catch (error) {
-            console.error('Failed to save cache to storage:', error);
+            logger.captureError(error as any, 'Failed to save cache to storage');
         }
     }
 
@@ -391,7 +393,7 @@ class AIResponseCache {
 
             this.stats.totalCached = this.cache.size;
         } catch (error) {
-            console.error('Failed to load cache from storage:', error);
+            logger.captureError(error as any, 'Failed to load cache from storage');
         }
     }
 

@@ -6,6 +6,7 @@ import SpinnerIcon from './icons/SpinnerIcon';
 import BrainCircuitIcon from './icons/BrainCircuitIcon';
 import { FallbackTimetableGenerator, generateBasicTimetableTemplate } from '../services/fallbackTimetableService';
 import { normalizeAIText } from '../utils/aiNormalize';
+import { logger } from '../utils/logger';
 
 const AITimetableGenerator = ({ isOpen, onClose, onApply, subjects, teachers, classes, timeSlots, days }) => {
     const { generateResponse, status } = useAI();
@@ -47,7 +48,7 @@ const AITimetableGenerator = ({ isOpen, onClose, onApply, subjects, teachers, cl
             // If the response is not JSON-like, use fallback timetable generator
             const looksJson = /^(?:\s*\{|\s*\[)/.test(response);
             if (!looksJson) {
-                console.log('AI response not JSON, using fallback timetable generator');
+                logger.warn('AI response not JSON, using fallback timetable generator');
                 const fallbackTimetable = generateFallbackTimetable();
                 setGeneratedTimetable(fallbackTimetable);
                 setError('Using offline timetable generator. AI service unavailable.');
@@ -58,11 +59,11 @@ const AITimetableGenerator = ({ isOpen, onClose, onApply, subjects, teachers, cl
             const parsedTimetable = JSON.parse(response);
             setGeneratedTimetable(parsedTimetable);
         } catch (e) {
-            console.error("AI Timetable Generation Error:", e);
+            logger.captureError(e as any, 'AI Timetable Generation Error');
             
             // Use fallback timetable generator on error
             try {
-                console.log('Using fallback timetable generator due to error');
+                logger.info('Using fallback timetable generator due to error');
                 const fallbackTimetable = generateFallbackTimetable();
                 setGeneratedTimetable(fallbackTimetable);
                 setError('AI service failed. Generated timetable using offline algorithm.');

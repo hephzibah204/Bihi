@@ -8,6 +8,7 @@ import { getSubdomain } from './utils/subdomain';
 import { DEMO_TENANT_ID } from './utils/demoData';
 import { getAIService } from './services/aiService';
 import { initializeSemanticCache } from './services/semanticSearchUtils';
+import { logger } from './utils/logger';
 
 const main = async () => {
     // Initialize Supabase before rendering the app. This ensures the `supabase`
@@ -17,17 +18,17 @@ const main = async () => {
     // Initialize semantic cache for offline AI fallback
     try {
       initializeSemanticCache();
-      console.log('✓ Semantic cache initialized for offline AI fallback');
+      logger.info('Semantic cache initialized for offline AI fallback');
     } catch (e) {
-      console.warn('Semantic cache init failed:', e);
+      logger.warn('Semantic cache init failed', { error: e as any });
     }
 
     // Initialize AI service early to enable connection monitoring
     try {
       const aiService = getAIService();
-      console.log('AI service initialized:', aiService.getStatus());
+      logger.info('AI service initialized', { status: aiService.getStatus?.() });
     } catch (e) {
-      console.warn('AI service init failed:', e);
+      logger.warn('AI service init failed', { error: e as any });
     }
 
     // Ensure demo-mode flag is consistently available for services relying on sessionStorage.
@@ -40,7 +41,7 @@ const main = async () => {
         sessionStorage.setItem('isDemoMode', 'true');
       }
     } catch (e) {
-      console.warn('Demo-mode init failed:', e);
+      logger.warn('Demo-mode init failed', { error: e as any });
     }
 
     const container = document.getElementById('root');
@@ -56,7 +57,7 @@ const main = async () => {
         </StrictMode>
       );
     } else {
-        console.error("Root element not found");
+        logger.error('Root element not found');
     }
 };
 

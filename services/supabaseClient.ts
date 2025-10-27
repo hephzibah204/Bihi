@@ -4,6 +4,7 @@
 
 import { getSupabaseEnv, getKeyType } from '../utils/env';
 import { withRetry } from '../utils/retry';
+import { logger } from '../utils/logger';
 
 declare global {
   interface Window {
@@ -30,15 +31,15 @@ export async function initSupabase() {
   // 1️⃣ Prefer CDN client (AI Studio / Cloudflare) if available
   if (window.supabase && typeof window.supabase.createClient === "function") {
     createClient = window.supabase.createClient;
-    console.info("[Supabase] Using CDN client.");
+    logger.info('[Supabase] Using CDN client.');
   } else {
     // 2️⃣ Use npm package as primary fallback
     try {
       const { createClient: npmCreateClient } = await import("@supabase/supabase-js");
       createClient = npmCreateClient;
-      console.info("[Supabase] Using npm package client.");
+      logger.info('[Supabase] Using npm package client.');
     } catch (err) {
-      console.error("[Supabase] Failed to load Supabase library:", err);
+      logger.error('[Supabase] Failed to load Supabase library', { error: err as any });
     }
   }
 
@@ -55,8 +56,8 @@ export async function initSupabase() {
 
     // Environment validated successfully
   } catch (error: any) {
-    console.error(error.message);
-    console.error("[Supabase] Running in offline mode due to configuration error.");
+    logger.error('[Supabase] Config error', { message: error.message });
+    logger.error('[Supabase] Running in offline mode due to configuration error.');
     
     // 3️⃣ Offline fallback
     supabase = createOfflineClient();
@@ -65,7 +66,7 @@ export async function initSupabase() {
 
   // 4️⃣ Check if client library is available
   if (!createClient) {
-    console.error("[Supabase] Client library not available. Running in offline mode.");
+    logger.error('[Supabase] Client library not available. Running in offline mode.');
     supabase = createOfflineClient();
     return supabase;
   }
@@ -98,7 +99,7 @@ export async function initSupabase() {
   });
   
   supabase._offline = false;
-  console.info(`[Supabase] Client initialized successfully using ${keySource} key.`);
+  logger.info(`[Supabase] Client initialized successfully using ${keySource} key.`);
 
   // 6️⃣ Demo auth shim: provide a fake teacher user when in demo mode
   setupDemoAuthShim();
@@ -140,7 +141,7 @@ function setupDemoAuthShim() {
       };
     }
   } catch (e) {
-    console.warn('[Supabase] Demo auth shim failed:', e);
+    logger.warn('[Supabase] Demo auth shim failed');
   }
 }
 
@@ -181,13 +182,13 @@ export function startConnectionMonitoring() {
   if (isMonitoring || !supabase || supabase._offline) return;
   
   isMonitoring = true;
-  console.info('[Supabase] Connection health monitoring started');
+  logger.info('[Supabase] Connection health monitoring started');
   
   connectionHealthInterval = setInterval(async () => {
     const isOnline = await isSupabaseOnline();
     
     if (!isOnline && !supabase._offline) {
-      console.warn('[Supabase] Connection lost, attempting reconnection...');
+      logger.warn('[Supabase] Connection lost, attempting reconnection...');
       await reconnectSupabase();
     }
   }, 30000); // Check every 30 seconds
@@ -201,7 +202,7 @@ export function stopConnectionMonitoring() {
     clearInterval(connectionHealthInterval);
     connectionHealthInterval = null;
     isMonitoring = false;
-    console.info('[Supabase] Connection health monitoring stopped');
+    logger.info('[Supabase] Connection health monitoring stopped');
   }
 }
 
@@ -217,7 +218,7 @@ async function reconnectSupabase() {
     // Verify connection
     const isOnline = await isSupabaseOnline();
     if (isOnline) {
-      console.info('[Supabase] ✅ Reconnection successful');
+      logger.info('[Supabase] ✅ Reconnection successful');
       // Dispatch event for UI to react
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('supabase-reconnected'));
@@ -226,7 +227,7 @@ async function reconnectSupabase() {
       throw new Error('Connection test failed after reconnection');
     }
   } catch (error) {
-    console.error('[Supabase] ❌ Reconnection failed:', error);
+    logger.error('[Supabase] ❌ Reconnection failed', { error: error as any });
     // Dispatch event for UI to show offline state
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('supabase-connection-lost'));

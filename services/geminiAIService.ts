@@ -2,6 +2,7 @@
 // Unified AI entrypoints used across the app; tolerant of varied call shapes
 import { analyzeWithFallback } from '../utils/aiAdapter';
 import { generateEnhancedFallbackResponse } from './enhancedFallbackAI';
+import { logger } from '../utils/logger';
 
 export function normalizePrompt(input: any): string {
   if (typeof input === 'string') return input;
@@ -105,7 +106,7 @@ export class GeminiAIService {
             const { getConversationService } = await import('./conversationService');
             this.conversationService = getConversationService();
         } catch (error) {
-            console.warn('Conversation service not available:', error);
+            logger.captureError(error, 'Conversation service not available');
         }
     }
 
@@ -140,7 +141,7 @@ export class GeminiAIService {
             try {
                 localStorage.setItem('gemini_api_key', apiKey);
             } catch (error) {
-                console.error('Failed to save Gemini API key:', error);
+                logger.captureError(error as any, 'Failed to save Gemini API key');
             }
         }
     }
@@ -162,11 +163,11 @@ export class GeminiAIService {
         // STEP 1: Try Gemini API (if configured)
         if (this.hasGeminiKey()) {
             try {
-                console.log('🔵 Attempting Gemini API...');
+                logger.info('Attempting Gemini API...');
                 const geminiContent = await this.callGemini(request);
                 
                 const responseTime = Date.now() - startTime;
-                console.log(`✅ Gemini successful (${responseTime}ms)`);
+                logger.info(`Gemini successful (${responseTime}ms)`);
 
                 // Update status
                 this.status.geminiAvailable = true;
@@ -207,8 +208,8 @@ export class GeminiAIService {
                     }
                 };
             } catch (error: any) {
-                console.warn('⚠️ Gemini failed, switching to fallback...');
-                console.error('Error details:', error.message);
+                logger.warn('Gemini failed, switching to fallback');
+                logger.error('Gemini error', { error: error as any });
 
                 // Update status
                 this.status.geminiAvailable = false;
@@ -220,7 +221,7 @@ export class GeminiAIService {
             }
         } else {
             // No Gemini key configured, use fallback directly
-            console.log('ℹ️ Gemini not configured, using fallback system');
+            logger.info('Gemini not configured, using fallback system');
             return this.useFallback(request, 'Gemini API key not configured');
         }
     }
@@ -326,8 +327,8 @@ export class GeminiAIService {
                     role: msg.role,
                     content: msg.content
                 }));
-            } catch (error) {
-                console.warn('Failed to load conversation history:', error);
+        } catch (error) {
+                logger.captureError(error, 'Failed to load conversation history');
             }
         }
 
@@ -394,7 +395,7 @@ export class GeminiAIService {
      * Use fallback AI system (semantic cache → HF → templates)
      */
     private useFallback(request: AIRequest, reason: string): AIResponse {
-        console.log('🔄 Activating fallback AI system...');
+        logger.info('Activating fallback AI system...');
         
         try {
             const startTime = Date.now();
@@ -410,7 +411,7 @@ export class GeminiAIService {
             // Detect which fallback layer was used
             const source = this.detectFallbackSource(fallbackContent);
             
-            console.log(`✅ Fallback successful using ${source} (${responseTime}ms)`);
+            logger.info(`Fallback successful using ${source} (${responseTime}ms)`);
 
             return {
                 content: fallbackContent,
@@ -423,7 +424,7 @@ export class GeminiAIService {
                 }
             };
         } catch (error: any) {
-            console.error('❌ Fallback system also failed:', error);
+            logger.captureError(error, 'Fallback system also failed');
             
             // Last resort - error message
             return {
