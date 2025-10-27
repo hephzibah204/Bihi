@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { usePlatformPermission } from '../../utils/usePlatformPermission';
 
 interface PaymentGateway {
     id: string;
@@ -71,6 +72,7 @@ const PaymentGatewayConfig = () => {
     const [loading, setLoading] = useState<boolean>(true);
 
     const [selectedGateway, setSelectedGateway] = useState<string | null>(null);
+    const { can } = usePlatformPermission();
     const [showApiKeys, setShowApiKeys] = useState<{ [key: string]: boolean }>({});
 
     useEffect(() => {
@@ -186,12 +188,15 @@ const PaymentGatewayConfig = () => {
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
+                            if (!can('manage_payments')) return;
                             toggleGateway(gateway.id);
                         }}
+                        disabled={!can('manage_payments')}
                         className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                            !can('manage_payments') ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : (
                             gateway.enabled
                                 ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                                : 'bg-green-100 text-green-700 hover:bg-green-200'
+                                : 'bg-green-100 text-green-700 hover:bg-green-200')
                         }`}
                     >
                         {gateway.enabled ? 'Disable' : 'Enable'}
@@ -211,7 +216,7 @@ const PaymentGatewayConfig = () => {
                                         Public Key
                                     </label>
                                     <div className="relative">
-                                        <input
+                                        <input disabled={!can('manage_payments')}
                                             type={showApiKeys[`${gateway.id}_publicKey`] ? 'text' : 'password'}
                                             value={gateway.config.publicKey || ''}
                                             onChange={(e) => updateGatewayConfig(gateway.id, 'publicKey', e.target.value)}
@@ -219,8 +224,9 @@ const PaymentGatewayConfig = () => {
                                             className="w-full px-3 py-2 pr-10 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         />
                                         <button
+                                            disabled={!can('manage_payments')}
                                             onClick={() => toggleApiKeyVisibility(gateway.id, 'publicKey')}
-                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                            className={`absolute right-2 top-1/2 -translate-y-1/2 ${!can('manage_payments') ? 'text-slate-300 cursor-not-allowed' : 'text-slate-400 hover:text-slate-600'}`}
                                         >
                                             {showApiKeys[`${gateway.id}_publicKey`] ? '👁️' : '🙈'}
                                         </button>
@@ -232,7 +238,7 @@ const PaymentGatewayConfig = () => {
                                         Secret Key
                                     </label>
                                     <div className="relative">
-                                        <input
+                                        <input disabled={!can('manage_payments')}
                                             type={showApiKeys[`${gateway.id}_secretKey`] ? 'text' : 'password'}
                                             value={gateway.config.secretKey || ''}
                                             onChange={(e) => updateGatewayConfig(gateway.id, 'secretKey', e.target.value)}
@@ -240,8 +246,9 @@ const PaymentGatewayConfig = () => {
                                             className="w-full px-3 py-2 pr-10 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         />
                                         <button
+                                            disabled={!can('manage_payments')}
                                             onClick={() => toggleApiKeyVisibility(gateway.id, 'secretKey')}
-                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                            className={`absolute right-2 top-1/2 -translate-y-1/2 ${!can('manage_payments') ? 'text-slate-300 cursor-not-allowed' : 'text-slate-400 hover:text-slate-600'}`}
                                         >
                                             {showApiKeys[`${gateway.id}_secretKey`] ? '👁️' : '🙈'}
                                         </button>
@@ -256,7 +263,7 @@ const PaymentGatewayConfig = () => {
                                     <label className="block text-sm font-medium text-slate-700 mb-2">
                                         Merchant ID
                                     </label>
-                                    <input
+                                    <input disabled={!can('manage_payments')}
                                         type="text"
                                         value={gateway.config.merchantId || ''}
                                         onChange={(e) => updateGatewayConfig(gateway.id, 'merchantId', e.target.value)}
@@ -270,7 +277,7 @@ const PaymentGatewayConfig = () => {
                                         Client Secret
                                     </label>
                                     <div className="relative">
-                                        <input
+                                        <input disabled={!can('manage_payments')}
                                             type={showApiKeys[`${gateway.id}_secretKey`] ? 'text' : 'password'}
                                             value={gateway.config.secretKey || ''}
                                             onChange={(e) => updateGatewayConfig(gateway.id, 'secretKey', e.target.value)}
@@ -278,8 +285,9 @@ const PaymentGatewayConfig = () => {
                                             className="w-full px-3 py-2 pr-10 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         />
                                         <button
+                                            disabled={!can('manage_payments')}
                                             onClick={() => toggleApiKeyVisibility(gateway.id, 'secretKey')}
-                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                            className={`absolute right-2 top-1/2 -translate-y-1/2 ${!can('manage_payments') ? 'text-slate-300 cursor-not-allowed' : 'text-slate-400 hover:text-slate-600'}`}
                                         >
                                             {showApiKeys[`${gateway.id}_secretKey`] ? '👁️' : '🙈'}
                                         </button>
@@ -293,7 +301,7 @@ const PaymentGatewayConfig = () => {
                                 Webhook URL
                             </label>
                             <div className="flex space-x-2">
-                                <input
+                                <input disabled={!can('manage_payments')}
                                     type="text"
                                     value={gateway.config.webhookUrl || ''}
                                     onChange={(e) => updateGatewayConfig(gateway.id, 'webhookUrl', e.target.value)}
@@ -301,7 +309,9 @@ const PaymentGatewayConfig = () => {
                                     className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
                                 <button
+                                    disabled={!can('manage_payments')}
                                     onClick={() => {
+                                        if (!can('manage_payments')) return;
                                         navigator.clipboard.writeText(gateway.config.webhookUrl || '');
                                         alert('Webhook URL copied!');
                                     }}
@@ -313,7 +323,7 @@ const PaymentGatewayConfig = () => {
                         </div>
 
                         <div className="flex items-center space-x-2">
-                            <input
+                            <input disabled={!can('manage_integrations')}
                                 type="checkbox"
                                 id={`testmode-${gateway.id}`}
                                 checked={gateway.config.testMode}
@@ -328,13 +338,15 @@ const PaymentGatewayConfig = () => {
                         <div className="flex space-x-3 pt-4 border-t border-slate-200">
                             <button
                                 onClick={() => saveConfiguration(gateway.id)}
-                                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                disabled={!can('manage_payments')}
+                                className={`flex-1 px-4 py-2 rounded-lg transition-colors ${!can('manage_payments') ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
                             >
                                 Save Configuration
                             </button>
                             <button
                                 onClick={() => testConnection(gateway.id)}
-                                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                disabled={!can('manage_integrations')}
+                                className={`flex-1 px-4 py-2 rounded-lg transition-colors ${!can('manage_integrations') ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700'}`}
                             >
                                 Test Connection
                             </button>
@@ -423,7 +435,7 @@ const PaymentGatewayConfig = () => {
                         </select>
                     </div>
                 </div>
-                <button onClick={saveTransactionSettings} className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                <button onClick={saveTransactionSettings} disabled={!can('manage_payments')} className={`mt-4 px-6 py-2 rounded-lg transition-colors ${!can('manage_payments') ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
                     Save Settings
                 </button>
             </div>
