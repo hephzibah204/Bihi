@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../../services/supabaseClient';
 
 interface Backup {
     id: string;
@@ -12,35 +13,30 @@ interface Backup {
 
 const BackupSystem = () => {
     const [activeTab, setActiveTab] = useState<'backups' | 'schedule' | 'storage' | 'restore'>('backups');
-    const [backups] = useState<Backup[]>([
-        {
-            id: '1',
-            name: 'Full_Backup_2024_01_20',
-            size: '2.4 GB',
-            date: '2024-01-20 03:00 AM',
-            type: 'full',
-            status: 'completed',
-            storage: 'aws'
-        },
-        {
-            id: '2',
-            name: 'Database_Backup_2024_01_19',
-            size: '450 MB',
-            date: '2024-01-19 03:00 AM',
-            type: 'database',
-            status: 'completed',
-            storage: 'local'
-        },
-        {
-            id: '3',
-            name: 'Files_Backup_2024_01_18',
-            size: '1.8 GB',
-            date: '2024-01-18 03:00 AM',
-            type: 'files',
-            status: 'completed',
-            storage: 'google'
+    const [backups, setBackups] = useState<any[]>([]);
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const getAuthHeaders = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        return token ? { 'Authorization': `Bearer ${token}` } : {};
+    };
+
+    const loadBackups = async () => {
+        try {
+            setError(null);
+            const auth = await getAuthHeaders();
+            const res = await fetch('/api/backups', { headers: { 'Content-Type': 'application/json', ...auth } });
+            if (!res.ok) throw new Error(await res.text());
+            const data = await res.json();
+            setBackups(data || []);
+        } catch (e: any) {
+            setError(e?.message || 'Failed to load backups');
         }
-    ]);
+    };
+
+    useEffect(() => { void loadBackups(); }, []);
 
     const [storageConfig, setStorageConfig] = useState({
         aws: { enabled: false, bucket: '', accessKey: '', secretKey: '', region: 'us-east-1' },
@@ -75,8 +71,22 @@ const BackupSystem = () => {
                     <h3 className="text-lg font-semibold text-slate-900">Available Backups</h3>
                     <p className="text-sm text-slate-500">View and manage your backup history</p>
                 </div>
-                <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                    🔄 Create Backup Now
+                <button
+                    onClick={async () => {
+                        try {
+                            setBusy(true); setError(null);
+                            const auth = await getAuthHeaders();
+                            const res = await fetch('/api/backups', { method: 'POST', headers: { 'Content-Type': 'application/json', ...auth } });
+                            if (!res.ok) throw new Error(await res.text());
+                            await loadBackups();
+                        } catch (e: any) {
+                            setError(e?.message || 'Backup failed');
+                        } finally { setBusy(false); }
+                    }}
+                    disabled={busy}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                >
+                    {busy ? 'Creating...' : '🔄 Create Backup Now'}
                 </button>
             </div>
 
@@ -111,25 +121,73 @@ const BackupSystem = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {backups.map(backup => (
-                            <tr key={backup.id} className="border-t border-slate-100 hover:bg-slate-50">
-                                <td className="py-3 px-4">
-                                    <div className="font-medium text-slate-900">{backup.name}</div>
-                                    <div className="text-xs text-slate-500">{backup.storage.toUpperCase()}</div>
-                                </td>
-                                <td className="py-3 px-4">{getTypeBadge(backup.type)}</td>
-                                <td className="py-3 px-4 text-sm text-slate-600">{backup.size}</td>
-                                <td className="py-3 px-4 text-sm text-slate-600">{backup.date}</td>
-                                <td className="py-3 px-4">{getStatusBadge(backup.status)}</td>
-                                <td className="py-3 px-4">
-                                    <div className="flex space-x-2">
-                                        <button className="text-blue-600 hover:text-blue-700 text-sm">Download</button>
-                                        <button className="text-green-600 hover:text-green-700 text-sm">Restore</button>
-                                        <button className="text-red-600 hover:text-red-700 text-sm">Delete</button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
+                        {backups.map((b: any) => {
+                            const size = b.size_bytes ? `${(b.size_bytes / (1024*1024)).toFixed(2)} MB` : '—';
+                            const date = b.created_at ? new Date(b.created_at).toLocaleString() : '—';
+                            return (
+                                <tr key={b.id} className="border-t border-slate-100 hover:bg-slate-50">
+                                    <td className="py-3 px-4">
+                                        <div className="font-medium text-slate-900">Backup {b.id.slice(0,8)}</div>
+                                        <div className="text-xs text-slate-500">STORAGE</div>
+                                    </td>
+                                    <td className="py-3 px-4">{getTypeBadge(b.type || 'database')}</td>
+                                    <td className="py-3 px-4 text-sm text-slate-600">{size}</td>
+                                    <td className="py-3 px-4 text-sm text-slate-600">{date}</td>
+                                    <td className="py-3 px-4">{getStatusBadge(b.status || 'completed')}</td>
+                                    <td className="py-3 px-4">
+                                        <div className="flex space-x-2">
+                                            <button
+                                                onClick={async () => {
+                                                    try {
+                                                        setBusy(true); setError(null);
+                                                        const auth = await getAuthHeaders();
+                                                        const res = await fetch(`/api/backups/${b.id}`, { headers: { ...auth } });
+                                                        if (!res.ok) throw new Error(await res.text());
+                                                        const blob = await res.blob();
+                                                        const url = URL.createObjectURL(blob);
+                                                        const a = document.createElement('a');
+                                                        a.href = url; a.download = `backup-${b.id}.zip`;
+                                                        document.body.appendChild(a); a.click(); a.remove();
+                                                        URL.revokeObjectURL(url);
+                                                    } catch (e: any) {
+                                                        setError(e?.message || 'Download failed');
+                                                    } finally { setBusy(false); }
+                                                }}
+                                                className="text-blue-600 hover:text-blue-700 text-sm">Download</button>
+                                            <button
+                                                onClick={async () => {
+                                                    const ok = window.confirm('Warning: Restoring will overwrite data. Type OK to proceed.');
+                                                    if (!ok) return;
+                                                    try {
+                                                        setBusy(true); setError(null);
+                                                        const auth = await getAuthHeaders();
+                                                        const res = await fetch('/api/restore', { method: 'POST', headers: { 'Content-Type': 'application/json', ...auth }, body: JSON.stringify({ backupId: b.id }) });
+                                                        if (!res.ok) throw new Error(await res.text());
+                                                        alert('Restore completed');
+                                                    } catch (e: any) {
+                                                        setError(e?.message || 'Restore failed');
+                                                    } finally { setBusy(false); }
+                                                }}
+                                                className="text-green-600 hover:text-green-700 text-sm">Restore</button>
+                                            <button
+                                                onClick={async () => {
+                                                    if (!window.confirm('Delete this backup?')) return;
+                                                    try {
+                                                        setBusy(true); setError(null);
+                                                        const auth = await getAuthHeaders();
+                                                        const res = await fetch(`/api/backups/${b.id}`, { method: 'DELETE', headers: { ...auth } });
+                                                        if (!res.ok) throw new Error(await res.text());
+                                                        await loadBackups();
+                                                    } catch (e: any) {
+                                                        setError(e?.message || 'Delete failed');
+                                                    } finally { setBusy(false); }
+                                                }}
+                                                className="text-red-600 hover:text-red-700 text-sm">Delete</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>
@@ -427,6 +485,9 @@ const BackupSystem = () => {
             </div>
 
             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                {error && (
+                    <div className="mb-4 p-3 rounded bg-red-50 border border-red-200 text-red-700 text-sm">{String(error)}</div>
+                )}
                 <div className="flex space-x-4 border-b border-slate-200 mb-6">
                     {[
                         { id: 'backups', label: 'Backups', icon: '💾' },

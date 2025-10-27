@@ -1,6 +1,8 @@
 // User and Authentication Types
 
-export type UserRole = 'Admin' | 'Teacher' | 'Student' | 'Parent' | 'Super Admin' | 'Bursar';
+export type UserRole =
+  | 'Admin' | 'Teacher' | 'Student' | 'Parent' | 'Super Admin' | 'Bursar'
+  | 'Editor' | 'Author' | 'Content Manager' | 'Moderator' | 'Support';
 
 export interface Student {
   id: string;

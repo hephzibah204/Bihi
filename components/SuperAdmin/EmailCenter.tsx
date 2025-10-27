@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { apiSendMessage } from '../../services/api';
 
 interface SMTPConfig {
     host: string;
@@ -62,14 +63,15 @@ const EmailCenter = () => {
     const handleTestEmail = async () => {
         setIsTesting(true);
         setTestResult(null);
-
-        // Simulate test email
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // Random success/failure for demo
-        const success = Math.random() > 0.3;
-        setTestResult(success ? 'success' : 'error');
-        setIsTesting(false);
+        try {
+            if (!testEmail) throw new Error('Enter a test email');
+            await apiSendMessage({ channel: 'email', content: 'This is a test email from ReportSheet SuperAdmin Email Center.', recipients: [testEmail], type: 'direct' });
+            setTestResult('success');
+        } catch (e) {
+            setTestResult('error');
+        } finally {
+            setIsTesting(false);
+        }
     };
 
     const SMTPConfigPanel = () => (

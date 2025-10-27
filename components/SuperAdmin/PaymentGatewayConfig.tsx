@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 interface PaymentGateway {
     id: string;
@@ -66,8 +66,52 @@ const PaymentGatewayConfig = () => {
         }
     ]);
 
+    const [currency, setCurrency] = useState<string>('NGN');
+    const [feeBearer, setFeeBearer] = useState<'customer' | 'merchant' | 'split'>('customer');
+    const [loading, setLoading] = useState<boolean>(true);
+
     const [selectedGateway, setSelectedGateway] = useState<string | null>(null);
     const [showApiKeys, setShowApiKeys] = useState<{ [key: string]: boolean }>({});
+
+    useEffect(() => {
+        let mounted = true;
+        (async () => {
+            try {
+                const { apiGetPlatformSettings } = await import('../../services/api');
+                const current = await apiGetPlatformSettings().catch(() => ({} as any));
+                const pg = (current as any)?.payment_gateways || {};
+                const next = gateways.map(g => {
+                    const cfg = pg[g.id] || {};
+                    return {
+                        ...g,
+                        enabled: typeof cfg.enabled === 'boolean' ? cfg.enabled : g.enabled,
+                        config: {
+                            ...g.config,
+                            publicKey: cfg.publicKey ?? g.config.publicKey,
+                            secretKey: cfg.secretKey ?? g.config.secretKey,
+                            merchantId: cfg.merchantId ?? g.config.merchantId,
+                            webhookUrl: cfg.webhookUrl ?? g.config.webhookUrl,
+                            testMode: typeof cfg.testMode === 'boolean' ? cfg.testMode : g.config.testMode,
+                        }
+                    } as PaymentGateway;
+                });
+                if (mounted) setGateways(next);
+
+                const ps = (current as any)?.payment_settings || {};
+                if (mounted) {
+                    if (ps.currency) setCurrency(ps.currency);
+                    if (ps.feeBearer) setFeeBearer(ps.feeBearer);
+                }
+            } catch (e) {
+                // Show error toast but continue with defaults
+                window.dispatchEvent(new CustomEvent('show-global-error', { detail: { message: 'Failed to load payment settings' } }));
+            } finally {
+                if (mounted) setLoading(false);
+            }
+        })();
+        return () => { mounted = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const toggleGateway = (id: string) => {
         setGateways(gateways.map(g => 
@@ -81,19 +125,28 @@ const PaymentGatewayConfig = () => {
         ));
     };
 
-    const saveConfiguration = (id: string) => {
+    const saveConfiguration = async (id: string) => {
         const gateway = gateways.find(g => g.id === id);
-        if (gateway) {
-            localStorage.setItem(`payment_gateway_${id}`, JSON.stringify(gateway));
-            alert(`${gateway.name} configuration saved successfully!`);
+        if (!gateway) return;
+        try {
+            // Persist into platform settings under payment_gateways
+            const { apiGetPlatformSettings, apiSavePlatformSettings } = await import('../../services/api');
+            const current = await apiGetPlatformSettings().catch(() => ({} as any));
+            const payment_gateways = { ...(current?.payment_gateways || {}) };
+            payment_gateways[gateway.id] = { enabled: gateway.enabled, ...gateway.config };
+            await apiSavePlatformSettings({ ...(current || {}), payment_gateways });
+            window.dispatchEvent(new CustomEvent('show-global-success', { detail: { message: `${gateway.name} configuration saved.` } }));
+        } catch (e) {
+            window.dispatchEvent(new CustomEvent('show-global-error', { detail: { message: 'Failed to save configuration' } }));
         }
     };
 
     const testConnection = async (id: string) => {
-        alert(`Testing connection to ${gateways.find(g => g.id === id)?.name}...`);
+        const name = gateways.find(g => g.id === id)?.name || 'Gateway';
+        window.dispatchEvent(new CustomEvent('show-global-info', { detail: { message: `Testing ${name} connection...` } }));
         // Simulate API test
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        alert('Connection test successful!');
+        await new Promise(resolve => setTimeout(resolve, 1200));
+        window.dispatchEvent(new CustomEvent('show-global-success', { detail: { message: `${name} connection OK` } }));
     };
 
     const toggleApiKeyVisibility = (gatewayId: string, field: string) => {
@@ -294,6 +347,24 @@ const PaymentGatewayConfig = () => {
 
     const enabledCount = gateways.filter(g => g.enabled).length;
 
+    const saveTransactionSettings = async () => {
+        try {
+            const { apiGetPlatformSettings, apiSavePlatformSettings } = await import('../../services/api');
+            const current = await apiGetPlatformSettings().catch(() => ({} as any));
+            const payment_settings = { ...(current?.payment_settings || {}), currency, feeBearer };
+            await apiSavePlatformSettings({ ...(current || {}), payment_settings });
+            window.dispatchEvent(new CustomEvent('show-global-success', { detail: { message: 'Transaction settings saved.' } }));
+        } catch (e) {
+            window.dispatchEvent(new CustomEvent('show-global-error', { detail: { message: 'Failed to save transaction settings' } }));
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="bg-white border border-slate-200 rounded-xl p-6">Loading payment settings...</div>
+        );
+    }
+
     return (
         <div className="space-y-6">
             <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white p-6 rounded-xl">
@@ -333,7 +404,7 @@ const PaymentGatewayConfig = () => {
                         <label className="block text-sm font-medium text-slate-700 mb-2">
                             Default Currency
                         </label>
-                        <select className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <select value={currency} onChange={(e) => setCurrency(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                             <option value="NGN">NGN - Nigerian Naira</option>
                             <option value="USD">USD - US Dollar</option>
                             <option value="GHS">GHS - Ghanaian Cedi</option>
@@ -345,14 +416,14 @@ const PaymentGatewayConfig = () => {
                         <label className="block text-sm font-medium text-slate-700 mb-2">
                             Transaction Fee Bearer
                         </label>
-                        <select className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <select value={feeBearer} onChange={(e) => setFeeBearer(e.target.value as any)} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                             <option value="customer">Customer pays fees</option>
                             <option value="merchant">School absorbs fees</option>
                             <option value="split">Split 50/50</option>
                         </select>
                     </div>
                 </div>
-                <button className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                <button onClick={saveTransactionSettings} className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                     Save Settings
                 </button>
             </div>

@@ -35,7 +35,7 @@ export const BackupManager = createPlaceholderComponent('BackupManager', 'Backup
 export const AuditLogs = createPlaceholderComponent('AuditLogs', 'Audit Logs', 'Track all system activities and changes', '📋', 'from-orange-600 to-red-600');
 export const PerformanceOptimizer = createPlaceholderComponent('PerformanceOptimizer', 'Performance Optimizer', 'Optimize system performance and speed', '⚡', 'from-yellow-500 to-orange-500');
 export const APIManager = createPlaceholderComponent('APIManager', 'API Manager', 'Manage API endpoints and integrations', '🔌', 'from-teal-600 to-green-600');
-export const NotificationCenter = createPlaceholderComponent('NotificationCenter', 'Notification Center', 'Configure system-wide notifications', '🔔', 'from-purple-600 to-pink-600');
+export const NotificationCenter = () => import('./NotificationCenter');
 export const LicenseManager = createPlaceholderComponent('LicenseManager', 'License Manager', 'Manage software licenses and subscriptions', '📝', 'from-blue-700 to-indigo-700');
 export const AdvancedAnalytics = createPlaceholderComponent('AdvancedAnalytics', 'Advanced Analytics', 'Deep insights and business intelligence', '📈', 'from-emerald-600 to-teal-600');
 export const SystemTools = createPlaceholderComponent('SystemTools', 'System Tools', 'Advanced system utilities and maintenance', '🛠️', 'from-slate-700 to-gray-700');

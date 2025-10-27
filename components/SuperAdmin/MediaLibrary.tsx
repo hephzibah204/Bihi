@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { supabase } from '../../services/supabaseClient';
 
 interface MediaFile {
     id: string;
@@ -34,49 +35,54 @@ const MediaLibrary = () => {
     const [uploadProgress, setUploadProgress] = useState(0);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Mock data
-    useEffect(() => {
-        const mockFiles: MediaFile[] = [
-            {
-                id: '1',
-                name: 'school-logo.png',
-                url: 'https://via.placeholder.com/300x200',
-                type: 'image',
-                size: 245000,
-                uploadedAt: new Date(Date.now() - 86400000),
-                uploadedBy: 'Admin',
-                folder: 'images',
-                tags: ['logo', 'branding']
-            },
-            {
-                id: '2',
-                name: 'student-handbook.pdf',
-                url: '',
-                type: 'document',
-                size: 1024000,
-                uploadedAt: new Date(Date.now() - 172800000),
-                uploadedBy: 'Admin',
-                folder: 'documents'
-            },
-            {
-                id: '3',
-                name: 'welcome-video.mp4',
-                url: '',
-                type: 'video',
-                size: 5240000,
-                uploadedAt: new Date(Date.now() - 259200000),
-                uploadedBy: 'Admin',
-                folder: 'videos'
-            }
-        ];
-        setFiles(mockFiles);
+    const PATH_PREFIX = 'media/platform';
 
-        // Update folder counts
-        setFolders(prev => prev.map(folder => ({
-            ...folder,
-            itemCount: folder.id === 'all' ? mockFiles.length :
-                       mockFiles.filter(f => f.folder === folder.id).length
-        })));
+    const listMedia = async (): Promise<MediaFile[]> => {
+        const { data, error } = await supabase.storage.from('school-assets').list(PATH_PREFIX, { limit: 200 });
+        if (error) throw error;
+        const items: MediaFile[] = [];
+        for (const obj of data || []) {
+            const ext = (obj.name.split('.').pop() || '').toLowerCase();
+            let type: MediaFile['type'] = 'other';
+            if (['png','jpg','jpeg','gif','webp','svg'].includes(ext)) type = 'image';
+            else if (['mp4','mov','webm','ogg'].includes(ext)) type = 'video';
+            else if (['pdf','doc','docx','xls','xlsx'].includes(ext)) type = 'document';
+            // Try a signed URL for preview
+            let url = '';
+            try {
+                const { data: signed } = await supabase.storage.from('school-assets').createSignedUrl(`${PATH_PREFIX}/${obj.name}`, 3600);
+                url = signed?.signedUrl || '';
+            } catch (e) {
+                console.warn('Failed to create signed URL for preview', e);
+            }
+            items.push({
+                id: `${PATH_PREFIX}/${obj.name}`,
+                name: obj.name,
+                url,
+                type,
+                size: obj.metadata?.size || 0,
+                uploadedAt: new Date((obj as any).created_at || Date.now()),
+                uploadedBy: 'System',
+                folder: type === 'image' ? 'images' : type === 'document' ? 'documents' : type === 'video' ? 'videos' : 'all'
+            });
+        }
+        return items;
+    };
+
+    const refreshList = async () => {
+        try {
+            const items = await listMedia();
+            setFiles(items);
+            setFolders(prev => prev.map(folder => ({ ...folder, itemCount: folder.id === 'all' ? items.length : items.filter(f => f.folder === folder.id).length })));
+        } catch (e) {
+            console.warn('Failed to load media list', e);
+            window.dispatchEvent(new CustomEvent('show-global-error', { detail: { message: 'Failed to load media items' } }));
+        }
+    };
+
+    // Load from Supabase Storage (bucket: school-assets, path: media/platform)
+    useEffect(() => {
+        void refreshList();
     }, []);
 
     const handleFileSelect = () => {
@@ -90,42 +96,40 @@ const MediaLibrary = () => {
         setIsUploading(true);
         setUploadProgress(0);
 
-        // Simulate upload
         for (let i = 0; i < uploadedFiles.length; i++) {
             const file = uploadedFiles[i];
-            
-            // Simulate progress
-            await new Promise(resolve => setTimeout(resolve, 500));
+            const cleanName = file.name.replace(/[^a-zA-Z0-9_.-]/g, '_');
+            const objectPath = `${PATH_PREFIX}/${Date.now()}_${i}_${cleanName}`;
+            const { error } = await supabase.storage.from('school-assets').upload(objectPath, file, { upsert: true });
+            if (error) {
+                console.warn('Upload failed for', objectPath, error);
+                continue;
+            }
             setUploadProgress(((i + 1) / uploadedFiles.length) * 100);
-
-            // Determine file type
-            let type: MediaFile['type'] = 'other';
-            if (file.type.startsWith('image/')) type = 'image';
-            else if (file.type.startsWith('video/')) type = 'video';
-            else if (file.type.includes('pdf') || file.type.includes('document')) type = 'document';
-
-            const newFile: MediaFile = {
-                id: Date.now().toString() + i,
-                name: file.name,
-                url: URL.createObjectURL(file),
-                type,
-                size: file.size,
-                uploadedAt: new Date(),
-                uploadedBy: 'Admin',
-                folder: type === 'image' ? 'images' : type === 'document' ? 'documents' : type === 'video' ? 'videos' : 'all'
-            };
-
-            setFiles(prev => [newFile, ...prev]);
         }
+
+        // Refresh list
+        await refreshList();
 
         setIsUploading(false);
         setUploadProgress(0);
+        window.dispatchEvent(new CustomEvent('show-global-success', { detail: { message: 'Upload complete' } }));
     };
 
-    const handleDeleteSelected = () => {
-        if (window.confirm(`Delete ${selectedFiles.length} file(s)?`)) {
+    const handleDeleteSelected = async () => {
+        if (selectedFiles.length === 0) return;
+        if (!window.confirm(`Delete ${selectedFiles.length} file(s)?`)) return;
+        try {
+            const paths = selectedFiles.map(id => id);
+            const { error } = await supabase.storage.from('school-assets').remove(paths);
+            if (error) throw error;
             setFiles(prev => prev.filter(f => !selectedFiles.includes(f.id)));
             setSelectedFiles([]);
+            setFolders(prev => prev.map(folder => ({ ...folder, itemCount: folder.id === 'all' ? files.length - paths.length : prev.find(f => f.id === folder.id)?.itemCount || 0 })));
+            window.dispatchEvent(new CustomEvent('show-global-success', { detail: { message: 'Files deleted' } }));
+        } catch (e) {
+            console.warn('Delete failed', e);
+            window.dispatchEvent(new CustomEvent('show-global-error', { detail: { message: 'Failed to delete files' } }));
         }
     };
 
@@ -335,10 +339,39 @@ const MediaLibrary = () => {
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center space-x-2">
-                                                    <button className="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded">
+                                                    <button
+                                                        className="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded"
+                                                        onClick={async (e) => {
+                                                            e.stopPropagation();
+                                                            try {
+                                                                const { data: signed, error } = await supabase.storage.from('school-assets').createSignedUrl(file.id, 3600);
+                                                                if (error) throw error;
+                                                                const url = signed?.signedUrl || file.url;
+                                                                if (url) window.open(url, '_blank', 'noopener');
+                                                            } catch (err) {
+                                                                console.warn('Open failed', err);
+                                                                window.dispatchEvent(new CustomEvent('show-global-error', { detail: { message: 'Failed to open file' } }));
+                                                            }
+                                                        }}
+                                                    >
                                                         View
                                                     </button>
-                                                    <button className="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded">
+                                                    <button
+                                                        className="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded"
+                                                        onClick={async (e) => {
+                                                            e.stopPropagation();
+                                                            try {
+                                                                const { error } = await supabase.storage.from('school-assets').remove([file.id]);
+                                                                if (error) throw error;
+                                                                setFiles(prev => prev.filter(f => f.id !== file.id));
+                                                                setSelectedFiles(prev => prev.filter(id => id !== file.id));
+                                                                window.dispatchEvent(new CustomEvent('show-global-success', { detail: { message: 'File deleted' } }));
+                                                            } catch (err) {
+                                                                console.warn('Delete failed', err);
+                                                                window.dispatchEvent(new CustomEvent('show-global-error', { detail: { message: 'Failed to delete file' } }));
+                                                            }
+                                                        }}
+                                                    >
                                                         Delete
                                                     </button>
                                                 </div>

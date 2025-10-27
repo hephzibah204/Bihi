@@ -9,12 +9,12 @@ const CheckCircleIcon = ({ className }: { className: string }) => (
 );
 
 const GlobalSuccessNotification = () => {
-    const [notification, setNotification] = useState<{ message: string } | null>(null);
+    const [notification, setNotification] = useState<{ title?: string, message: string, actionText?: string, actionUrl?: string } | null>(null);
 
     useEffect(() => {
         const handleShowSuccess = (e: Event) => {
             const customEvent = e as CustomEvent;
-            setNotification({ message: customEvent.detail.message });
+            setNotification({ title: customEvent.detail.title, message: customEvent.detail.message, actionText: customEvent.detail.actionText, actionUrl: customEvent.detail.actionUrl });
             const timer = setTimeout(() => setNotification(null), 4000); // Auto-dismiss after 4 seconds
             return () => clearTimeout(timer);
         };
@@ -31,7 +31,13 @@ const GlobalSuccessNotification = () => {
     return (
         <div className={`fixed top-20 right-4 md:top-4 z-[100] p-4 rounded-lg shadow-lg bg-green-500 text-white max-w-sm flex items-start`}>
             <CheckCircleIcon className="w-6 h-6 mr-3 flex-shrink-0" />
-            <p className="flex-1">{notification.message}</p>
+            <div className="flex-1">
+              {notification.title && (<div className="font-semibold">{notification.title}</div>)}
+              <p>{notification.message}</p>
+              {notification.actionUrl && (
+                <a href={notification.actionUrl} className="underline mt-2 inline-block" onClick={() => setNotification(null)}>{notification.actionText || 'Open'}</a>
+              )}
+            </div>
             <button onClick={() => setNotification(null)} className="ml-4 -mr-2 -mt-2 p-2">
                 <XIcon className="w-5 h-5" />
             </button>

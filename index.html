@@ -6,14 +6,40 @@
     <title>ReportSheet | AI-Powered School Management System</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%234f46e5;' /%3E%3Cstop offset='100%25' style='stop-color:%238b5cf6;' /%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23grad)' d='M20,5 Q10,5 10,15 L10,85 Q10,95 20,95 L80,95 Q90,95 90,85 L90,35 L65,5 Z' /%3E%3Cpath fill='%23fff' opacity='0.3' d='M65,5 L65,35 L90,35 Z' /%3E%3Ctext x='50' y='62' font-family='Inter, sans-serif' font-size='40' font-weight='800' fill='white' text-anchor='middle' dy='.3em'%3ERS%3C/text%3E%3C/svg%3E">
     
+    <!-- Tailwind Config for CDN (define before Tailwind script) -->
+    <script>
+      window.tailwind = window.tailwind || {};
+      window.tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: 'var(--brand-color-primary)',
+              secondary: 'var(--brand-color-secondary)',
+              accent: 'var(--brand-color-accent)'
+            },
+            fontFamily: {
+              brand: 'var(--brand-font-family)'
+            }
+          }
+        }
+      };
+    </script>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style type="text/tailwindcss">
         @layer base {
             :root {
-                --brand-color-primary: #4f46e5; /* indigo-600 */
-                --brand-color-secondary: #8b5cf6; /* violet-500 */
-            }
+                --brand-color-primary: #4f46e5; /* default indigo-600 */
+                --brand-color-secondary: #8b5cf6; /* default violet-500 */
+                --brand-color-accent: #10b981; /* default emerald-500 */
+                --brand-font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Ubuntu, Cantarell, 'Noto Sans', sans-serif;
+              }
+              body { font-family: var(--brand-font-family); }
+              /* Dark mode hook */
+              body[data-theme='dark'] {
+                background-color: #0b1220;
+                color: #e5e7eb;
+              }
         }
         @layer components {
             .input-field {
@@ -23,10 +49,16 @@
                 @apply inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
             }
             .btn-primary {
-                @apply text-white bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500;
+                @apply text-white hover:brightness-95 focus:ring-indigo-500;
+                background-color: var(--brand-color-primary);
             }
             .btn-secondary {
-                @apply text-gray-700 bg-gray-200 hover:bg-gray-300 focus:ring-indigo-500;
+                @apply text-white hover:brightness-95 focus:ring-indigo-500;
+                background-color: var(--brand-color-secondary);
+            }
+            .btn-accent {
+                @apply text-white hover:brightness-95 focus:ring-indigo-500;
+                background-color: var(--brand-color-accent);
             }
             .card {
                 @apply bg-white rounded-lg shadow;
@@ -57,7 +89,7 @@
             }
             .prose-content h1, .prose-content h2, .prose-content h3 { @apply font-bold; }
             .prose-content p { @apply my-4; }
-            .prose-content a { @apply text-indigo-600 hover:underline; }
+                .prose-content a { color: var(--brand-color-primary); }
             .prose-content ul { @apply list-disc pl-5 my-4; }
             .prose-content ol { @apply list-decimal pl-5 my-4; }
             .prose-content blockquote { @apply border-l-4 border-gray-300 pl-4 italic my-4; }

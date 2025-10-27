@@ -1,8 +1,11 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, lazy, Suspense, useMemo } from 'react';
 import { supabase } from '../services/supabaseClient';
 import SuperAdminLoginPage from './SuperAdminLoginPage';
 import { ADMIN_VIEWS } from '../utils/constants';
 import ConnectionStatusBar from './ConnectionStatusBar';
+import { apiGetPlatformSettings } from '../services/api';
+import { hasPlatformPermission } from '../utils/permissions';
+import type { PermissionKey } from '../types';
 
 // Lazy load components
 const SuperAdminOverview = lazy(() => import('./SuperAdmin/SuperAdminOverview'));
@@ -24,9 +27,11 @@ const NotificationCenter = lazy(() => import('./SuperAdmin/NotificationCenter'))
 const LicenseManager = lazy(() => import('./SuperAdmin/LicenseManager'));
 const AdvancedAnalytics = lazy(() => import('./SuperAdmin/AdvancedAnalytics'));
 const SystemTools = lazy(() => import('./SuperAdmin/SystemTools'));
+const Reports = lazy(() => import('./SuperAdmin/Reports'));
+const AdminProfile = lazy(() => import('./SuperAdmin/AdminProfile'));
 
 // Enhanced SuperAdmin Sidebar with WordPress-like navigation
-const SuperAdminSidebar = ({ activeView, setActiveView, isSidebarCollapsed, setSidebarCollapsed }) => {
+const SuperAdminSidebar = ({ activeView, setActiveView, isSidebarCollapsed, setSidebarCollapsed, can }) => {
     const [expandedSections, setExpandedSections] = useState({
         dashboard: true,
         platform: false,
@@ -53,7 +58,8 @@ const SuperAdminSidebar = ({ activeView, setActiveView, isSidebarCollapsed, setS
                 { view: 'overview', label: 'Overview', icon: '🏠' },
                 { view: 'analytics', label: 'Advanced Analytics', icon: '📈' },
                 { view: 'performance', label: 'Performance', icon: '⚡' },
-                { view: 'notifications', label: 'Notifications', icon: '🔔', badge: '5' }
+                { view: 'notifications', label: 'Notifications', icon: '🔔', badge: '5' },
+                { view: 'reports', label: 'Reports', icon: '📊' }
             ]
         },
         {
@@ -158,27 +164,58 @@ const SuperAdminSidebar = ({ activeView, setActiveView, isSidebarCollapsed, setS
 
                         {(!isSidebarCollapsed && expandedSections[section.id]) && (
                             <div className="ml-4 mt-1 space-y-1">
-                                {section.items.map(item => (
-                                    <button
-                                        key={item.view}
-                                        onClick={() => setActiveView(item.view)}
-                                        className={`w-full flex items-center justify-between p-2 rounded text-sm transition-colors ${
-                                            activeView === item.view 
-                                                ? 'bg-blue-600 text-white' 
-                                                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                                        }`}
-                                    >
-                                        <div className="flex items-center space-x-2">
-                                            <span>{item.icon}</span>
-                                            <span>{item.label}</span>
-                                        </div>
-                                        {item.badge && (
-                                            <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-                                                {item.badge}
-                                            </span>
-                                        )}
-                                    </button>
-                                ))}
+                                {section.items
+                                    .filter(item => {
+                                        // Map view to permission and filter
+                                        const req: Record<string, PermissionKey | null> = {
+                                            overview: null,
+                                            analytics: 'view_reports',
+                                            performance: 'view_reports',
+                                            notifications: 'send_broadcasts',
+                                            reports: 'view_reports',
+                                            tenants: 'manage_tenants',
+                                            users: 'manage_users',
+                                            licenses: 'manage_payments',
+                                            'platform-settings': 'manage_platform_settings',
+                                            database: 'manage_integrations',
+                                            monitoring: 'manage_security',
+                                            backups: 'manage_security',
+                                            'api-manager': 'manage_integrations',
+                                            security: 'manage_security',
+                                            'audit-logs': 'manage_security',
+                                            'access-control': 'manage_users',
+                                            themes: 'manage_content',
+                                            media: 'manage_content',
+                                            branding: 'manage_content',
+                                            plugins: 'manage_plugins',
+                                            'system-tools': 'manage_security',
+                                            'email-center': 'send_broadcasts',
+                                            'import-export': 'manage_integrations',
+                                        } as any;
+                                        const key = req[item.view] as PermissionKey | null | undefined;
+                                        return !key || can(key);
+                                    })
+                                    .map(item => (
+                                        <button
+                                            key={item.view}
+                                            onClick={() => setActiveView(item.view)}
+                                            className={`w-full flex items-center justify-between p-2 rounded text-sm transition-colors ${
+                                                activeView === item.view 
+                                                    ? 'bg-blue-600 text-white' 
+                                                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                            }`}
+                                        >
+                                            <div className="flex items-center space-x-2">
+                                                <span>{item.icon}</span>
+                                                <span>{item.label}</span>
+                                            </div>
+                                            {item.badge && (
+                                                <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                                                    {item.badge}
+                                                </span>
+                                            )}
+                                        </button>
+                                    ))}
                             </div>
                         )}
                     </div>
@@ -199,7 +236,7 @@ const SuperAdminSidebar = ({ activeView, setActiveView, isSidebarCollapsed, setS
 };
 
 // Enhanced Header with WordPress-like admin bar
-const SuperAdminHeader = ({ activeView, onLogout }) => {
+const SuperAdminHeader = ({ activeView, onLogout, onQuickAction, can, roleLabel }) => {
     const [quickActions, setQuickActions] = useState(false);
     const [userMenu, setUserMenu] = useState(false);
     
@@ -233,7 +270,7 @@ const SuperAdminHeader = ({ activeView, onLogout }) => {
                         {viewTitles[activeView] || 'Dashboard'}
                     </h1>
                     <div className="text-sm text-slate-500">
-                        Super Administrator
+                        {roleLabel}
                     </div>
                 </div>
             </div>
@@ -256,21 +293,41 @@ const SuperAdminHeader = ({ activeView, onLogout }) => {
                                 <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide px-2 py-1">
                                     Quick Actions
                                 </div>
-                                <button className="w-full text-left px-2 py-2 rounded hover:bg-slate-100 text-sm">
-                                    🏫 Add New Tenant
-                                </button>
-                                <button className="w-full text-left px-2 py-2 rounded hover:bg-slate-100 text-sm">
-                                    👤 Create User
-                                </button>
-                                <button className="w-full text-left px-2 py-2 rounded hover:bg-slate-100 text-sm">
-                                    💾 Backup System
-                                </button>
-                                <button className="w-full text-left px-2 py-2 rounded hover:bg-slate-100 text-sm">
-                                    📧 Send Broadcast
-                                </button>
-                                <button className="w-full text-left px-2 py-2 rounded hover:bg-slate-100 text-sm">
-                                    🔍 System Check
-                                </button>
+                                {can('manage_tenants') && (
+                                  <button
+                                    onClick={() => { onQuickAction?.('add-tenant'); setQuickActions(false); }}
+                                    className="w-full text-left px-2 py-2 rounded hover:bg-slate-100 text-sm">
+                                      🏫 Add New Tenant
+                                  </button>
+                                )}
+                                {can('manage_users') && (
+                                  <button
+                                    onClick={() => { onQuickAction?.('create-user'); setQuickActions(false); }}
+                                    className="w-full text-left px-2 py-2 rounded hover:bg-slate-100 text-sm">
+                                      👤 Create User
+                                  </button>
+                                )}
+                                {can('manage_security') && (
+                                  <button
+                                    onClick={() => { onQuickAction?.('backup'); setQuickActions(false); }}
+                                    className="w-full text-left px-2 py-2 rounded hover:bg-slate-100 text-sm">
+                                      💾 Backup System
+                                  </button>
+                                )}
+                                {can('send_broadcasts') && (
+                                  <button
+                                    onClick={() => { onQuickAction?.('broadcast'); setQuickActions(false); }}
+                                    className="w-full text-left px-2 py-2 rounded hover:bg-slate-100 text-sm">
+                                      📧 Send Broadcast
+                                  </button>
+                                )}
+                                {can('manage_security') && (
+                                  <button
+                                    onClick={() => { onQuickAction?.('security-check'); setQuickActions(false); }}
+                                    className="w-full text-left px-2 py-2 rounded hover:bg-slate-100 text-sm">
+                                      🔍 System Check
+                                  </button>
+                                )}
                             </div>
                         </div>
                     )}
@@ -303,10 +360,16 @@ const SuperAdminHeader = ({ activeView, onLogout }) => {
                                     <div className="text-sm font-semibold">Super Administrator</div>
                                     <div className="text-xs text-slate-500">admin@platform.com</div>
                                 </div>
-                                <button className="w-full text-left px-2 py-2 rounded hover:bg-slate-100 text-sm mt-1">
+                                <button 
+                                    onClick={() => { setActiveView('admin-profile'); setUserMenu(false); }}
+                                    className="w-full text-left px-2 py-2 rounded hover:bg-slate-100 text-sm mt-1"
+                                >
                                     👤 Profile Settings
                                 </button>
-                                <button className="w-full text-left px-2 py-2 rounded hover:bg-slate-100 text-sm">
+                                <button 
+                                    onClick={() => { setActiveView('security'); setUserMenu(false); }}
+                                    className="w-full text-left px-2 py-2 rounded hover:bg-slate-100 text-sm"
+                                >
                                     🔐 Security Settings
                                 </button>
                                 <button className="w-full text-left px-2 py-2 rounded hover:bg-slate-100 text-sm">
@@ -345,6 +408,9 @@ const SuperAdminDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [activeView, setActiveView] = useState('overview');
     const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+    const [role, setRole] = useState<string>('Super Admin');
+    const [platformSettings, setPlatformSettings] = useState<any>(null);
 
     useEffect(() => {
         if (!supabase) {
@@ -352,8 +418,22 @@ const SuperAdminDashboard = () => {
             return;
         }
         
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        supabase.auth.getSession().then(async ({ data: { session } }) => {
             setSession(session);
+            if (session) {
+                try {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    const roleName = user?.user_metadata?.platform_role || user?.user_metadata?.role || 'Super Admin';
+                    setRole(roleName);
+                    setIsSuperAdmin(roleName === 'Super Admin');
+                } catch {
+                    setIsSuperAdmin(false);
+                }
+            }
+            try {
+                const settings = await apiGetPlatformSettings();
+                setPlatformSettings(settings);
+            } catch {}
             setLoading(false);
         });
 
@@ -384,6 +464,54 @@ const SuperAdminDashboard = () => {
     if (!session) {
         return <SuperAdminLoginPage />;
     }
+    if (session && !isSuperAdmin) {
+        return (
+            <div className="flex items-center justify-center h-screen bg-slate-100">
+                <div className="bg-white p-8 rounded-lg shadow border border-slate-200 text-center max-w-md">
+                    <div className="text-5xl mb-4">🚫</div>
+                    <h2 className="text-xl font-semibold text-slate-900 mb-2">Access Denied</h2>
+                    <p className="text-slate-600">Super Admin role is required to access ControlHub.</p>
+                </div>
+            </div>
+        );
+    }
+
+    const can = (key: PermissionKey) => isSuperAdmin || hasPlatformPermission(platformSettings, role, key);
+
+    const viewRequiredPermission = (view: string): PermissionKey | null => {
+        const map: Record<string, PermissionKey | null> = {
+            overview: null,
+            analytics: 'view_reports',
+            performance: 'view_reports',
+            notifications: 'send_broadcasts',
+            reports: 'view_reports',
+            tenants: 'manage_tenants',
+            users: 'manage_users',
+            licenses: 'manage_payments',
+            'platform-settings': 'manage_platform_settings',
+            database: 'manage_integrations',
+            monitoring: 'manage_security',
+            backups: 'manage_security',
+            'api-manager': 'manage_integrations',
+            security: 'manage_security',
+            'audit-logs': 'manage_security',
+            'access-control': 'manage_users',
+            themes: 'manage_content',
+            media: 'manage_content',
+            branding: 'manage_content',
+            plugins: 'manage_plugins',
+            'system-tools': 'manage_security',
+            'email-center': 'send_broadcasts',
+            'import-export': 'manage_integrations',
+        };
+        return (map as any)[view] ?? null;
+    };
+
+    const guardedSetActiveView = (view: string) => {
+        const key = viewRequiredPermission(view);
+        if (!key || can(key)) setActiveView(view);
+        else window.dispatchEvent(new CustomEvent('show-global-error', { detail: { message: 'You do not have permission to access this section.' } }));
+    };
 
     const renderContent = () => {
         switch (activeView) {
@@ -406,6 +534,8 @@ const SuperAdminDashboard = () => {
             case 'notifications': return <NotificationCenter />;
             case 'licenses': return <LicenseManager />;
             case 'system-tools': return <SystemTools />;
+            case 'reports': return <Reports />;
+            case 'admin-profile': return <AdminProfile />;
             default: return <SuperAdminOverview />;
         }
     };
@@ -414,9 +544,10 @@ const SuperAdminDashboard = () => {
         <div className="flex h-screen bg-slate-100">
             <SuperAdminSidebar 
                 activeView={activeView} 
-                setActiveView={setActiveView}
+                setActiveView={guardedSetActiveView}
                 isSidebarCollapsed={isSidebarCollapsed}
                 setSidebarCollapsed={setSidebarCollapsed}
+                can={can}
             />
             
             <div className="flex-1 flex flex-col min-w-0">
@@ -430,7 +561,34 @@ const SuperAdminDashboard = () => {
                     </div>
                 </div>
                 
-                <SuperAdminHeader activeView={activeView} onLogout={handleLogout} />
+                <SuperAdminHeader activeView={activeView} onLogout={handleLogout} can={can} roleLabel={isSuperAdmin ? 'Super Administrator' : role} onQuickAction={async (action) => {
+                    switch(action){
+                        case 'add-tenant':
+                            setActiveView('tenants');
+                            window.dispatchEvent(new Event('open-add-tenant'));
+                            break;
+                        case 'create-user':
+                            setActiveView('tenants');
+                            break;
+                        case 'backup': {
+                            try {
+                                const { data: { session } } = await supabase.auth.getSession();
+                                const res = await fetch('/api/backups', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) } });
+                                if (!res.ok) throw new Error(await res.text());
+                                window.dispatchEvent(new CustomEvent('show-global-success', { detail: { message: 'Backup created successfully' } }));
+                            } catch (e) {
+                                window.dispatchEvent(new CustomEvent('show-global-error', { detail: { message: 'Failed to create backup' } }));
+                            }
+                            break; }
+                        case 'broadcast':
+                            setActiveView('notifications');
+                            break;
+                        case 'security-check':
+                            setActiveView('security');
+                            window.dispatchEvent(new Event('run-security-scan'));
+                            break;
+                    }
+                }} />
                 
                 <main className="flex-1 p-6 overflow-y-auto">
                     <Suspense fallback={<ContentLoader />}>

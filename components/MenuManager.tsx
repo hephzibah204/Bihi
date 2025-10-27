@@ -5,6 +5,8 @@ import Modal from './Modal';
 import PlusIcon from './icons/PlusIcon';
 import EditIcon from './icons/EditIcon';
 import TrashIcon from './icons/TrashIcon';
+import ArrowTrendingUpIcon from './icons/ArrowTrendingUpIcon';
+import ArrowTrendingDownIcon from './icons/ArrowTrendingDownIcon';
 
 const MenuManager = () => {
     const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -12,24 +14,40 @@ const MenuManager = () => {
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         fetchData();
     }, []);
 
     const fetchData = async () => {
-        setLoading(true);
-        const settings = await apiGetPlatformSettings();
-        setMenuItems(settings.menus?.header || []);
-        setPages(settings.pages || []);
-        setLoading(false);
+        try {
+            setLoading(true);
+            setError(null);
+            const settings = await apiGetPlatformSettings();
+            setMenuItems(settings.menus?.header || []);
+            setPages(settings.pages || []);
+        } catch (e: any) {
+            const msg = e?.message || 'Failed to load menu settings';
+            setError(msg);
+            window.dispatchEvent(new CustomEvent('show-global-error', { detail: { message: msg } }));
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleSave = async (updatedItems: MenuItem[]) => {
-        const settings = await apiGetPlatformSettings();
-        const updatedMenus = { ...settings.menus, header: updatedItems };
-        await apiSavePlatformSettings({ ...settings, menus: updatedMenus });
-        setMenuItems(updatedItems);
+        try {
+            const settings = await apiGetPlatformSettings();
+            const updatedMenus = { ...settings.menus, header: updatedItems };
+            await apiSavePlatformSettings({ ...settings, menus: updatedMenus });
+            setMenuItems(updatedItems);
+            window.dispatchEvent(new CustomEvent('show-global-success', { detail: { message: 'Menus saved' } }));
+        } catch (e: any) {
+            const msg = e?.message || 'Failed to save menus';
+            setError(msg);
+            window.dispatchEvent(new CustomEvent('show-global-error', { detail: { message: msg } }));
+        }
     };
 
     const handleOpenModal = (item: MenuItem | null = null) => {
@@ -43,6 +61,18 @@ const MenuManager = () => {
         await handleSave(updatedItems);
     };
 
+    const moveItem = (id: string, direction: 'up' | 'down') => {
+        const idx = menuItems.findIndex(i => i.id === id);
+        if (idx < 0) return;
+        const newItems = [...menuItems];
+        const swapWith = direction === 'up' ? idx - 1 : idx + 1;
+        if (swapWith < 0 || swapWith >= newItems.length) return;
+        const tmp = newItems[swapWith];
+        newItems[swapWith] = newItems[idx];
+        newItems[idx] = tmp;
+        setMenuItems(newItems);
+    };
+
     if (loading) return <p>Loading menus...</p>;
 
     return (
@@ -52,6 +82,7 @@ const MenuManager = () => {
                     <h2 className="text-xl font-semibold">Header Menu Manager</h2>
                     <button onClick={() => handleOpenModal()} className="btn btn-primary"><PlusIcon className="w-5 h-5 mr-2" /> Add Menu Item</button>
                 </div>
+                {error && <div className="mt-4 px-4 py-2 rounded bg-red-50 text-red-700 border border-red-200">{error}</div>}
                 <div className="table-container mt-4">
                     <table className="table">
                         <thead><tr><th className="th">Label</th><th className="th">URL / Path</th><th className="th text-right">Actions</th></tr></thead>
@@ -63,6 +94,8 @@ const MenuManager = () => {
                                     <td className="td text-right space-x-1">
                                         <button onClick={() => handleOpenModal(item)} className="icon-button" title="Edit"><EditIcon className="w-5 h-5"/></button>
                                         <button onClick={() => handleDelete(item.id)} className="icon-button text-red-500" title="Delete"><TrashIcon className="w-5 h-5"/></button>
+                                        <button onClick={() => moveItem(item.id, 'up')} className="icon-button" title="Move Up"><ArrowTrendingUpIcon className="w-5 h-5"/></button>
+                                        <button onClick={() => moveItem(item.id, 'down')} className="icon-button" title="Move Down"><ArrowTrendingDownIcon className="w-5 h-5"/></button>
                                     </td>
                                 </tr>
                             ))}
@@ -78,6 +111,7 @@ const MenuManager = () => {
 
 const MenuItemEditorModal = ({ item, allItems, pages, onSave, onClose }) => {
     const [itemData, setItemData] = useState(item || { label: '', url: '' });
+    const [validationError, setValidationError] = useState<string | null>(null);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -89,6 +123,13 @@ const MenuItemEditorModal = ({ item, allItems, pages, onSave, onClose }) => {
     };
 
     const handleSubmit = () => {
+        setValidationError(null);
+        const labelOk = !!itemData.label && itemData.label.trim().length > 0;
+        const urlOk = !!itemData.url && /^(\/|https?:\/\/|#|\?view=)/.test(itemData.url.trim());
+        if (!labelOk || !urlOk) {
+            setValidationError('Provide a label and a valid URL (starts with "/", "http", "#" or "?view=")');
+            return;
+        }
         let updatedItems;
         if (item) {
             updatedItems = allItems.map(i => i.id === item.id ? { ...itemData, id: i.id } : i);
@@ -123,6 +164,7 @@ const MenuItemEditorModal = ({ item, allItems, pages, onSave, onClose }) => {
                          </optgroup>
                     </select>
                     <input name="url" value={itemData.url} onChange={handleChange} className="input-field" placeholder="Or enter a custom URL (e.g., https://...)" />
+                    {validationError && <div className="text-red-600 text-xs mt-2">{validationError}</div>}
                 </div>
                 <div className="flex justify-end pt-2"><button onClick={handleSubmit} className="btn btn-primary">Save Item</button></div>
             </div>

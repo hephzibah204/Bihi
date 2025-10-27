@@ -16,22 +16,38 @@ const PageManager = () => {
     const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
     const [editingPage, setEditingPage] = useState<Page | null>(null);
     const [pageToDelete, setPageToDelete] = useState<Page | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         fetchPages();
     }, []);
 
     const fetchPages = async () => {
-        setLoading(true);
-        const settings = await apiGetPlatformSettings();
-        setPages(settings.pages || []);
-        setLoading(false);
+        try {
+            setLoading(true);
+            setError(null);
+            const settings = await apiGetPlatformSettings();
+            setPages(settings.pages || []);
+        } catch (e: any) {
+            const msg = e?.message || 'Failed to load pages';
+            setError(msg);
+            window.dispatchEvent(new CustomEvent('show-global-error', { detail: { message: msg } }));
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleSave = async (updatedPages: Page[]) => {
-        const settings = await apiGetPlatformSettings();
-        await apiSavePlatformSettings({ ...settings, pages: updatedPages });
-        setPages(updatedPages);
+        try {
+            const settings = await apiGetPlatformSettings();
+            await apiSavePlatformSettings({ ...settings, pages: updatedPages });
+            setPages(updatedPages);
+            window.dispatchEvent(new CustomEvent('show-global-success', { detail: { message: 'Pages saved' } }));
+        } catch (e: any) {
+            const msg = e?.message || 'Failed to save pages';
+            setError(msg);
+            window.dispatchEvent(new CustomEvent('show-global-error', { detail: { message: msg } }));
+        }
     };
 
     const handleOpenModal = (page: Page | null = null) => {
@@ -60,6 +76,7 @@ const PageManager = () => {
                     <h2 className="text-xl font-semibold">Page Manager</h2>
                     <button onClick={() => handleOpenModal()} className="btn btn-primary"><PlusIcon className="w-5 h-5 mr-2" /> New Page</button>
                 </div>
+                {error && <div className="mt-4 px-4 py-2 rounded bg-red-50 text-red-700 border border-red-200">{error}</div>}
                 <div className="table-container mt-4">
                     <table className="table">
                         <thead><tr><th className="th">Title</th><th className="th">Slug</th><th className="th">Status</th><th className="th">Last Updated</th><th className="th text-right">Actions</th></tr></thead>
@@ -89,6 +106,7 @@ const PageManager = () => {
 
 const PageEditorModal = ({ page, allPages, onSave, onClose }) => {
     const [pageData, setPageData] = useState<Partial<Page>>(page || { title: '', slug: '', content: '', status: 'draft', metaTitle: '', metaDescription: '' });
+    const [validationError, setValidationError] = useState<string | null>(null);
 
     const slugify = (text: string) => {
         return '/' + text.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
@@ -108,6 +126,16 @@ const PageEditorModal = ({ page, allPages, onSave, onClose }) => {
     };
 
     const handleSubmit = () => {
+        setValidationError(null);
+        // Basic validation: title required, slug must start with '/'
+        const titleOk = !!pageData.title && pageData.title.trim().length > 0;
+        const slugOk = !!pageData.slug && /^\//.test(pageData.slug.trim());
+        const uniqueSlug = !allPages.some(p => p.slug === pageData.slug && (!page || p.id !== page.id));
+        if (!titleOk || !slugOk || !uniqueSlug) {
+            const msg = !titleOk ? 'Title is required' : !slugOk ? 'Slug must start with "/"' : 'Slug must be unique';
+            setValidationError(msg);
+            return;
+        }
         let updatedPages;
         const pagePayload: Page = {
             ...pageData,
@@ -138,6 +166,7 @@ const PageEditorModal = ({ page, allPages, onSave, onClose }) => {
                     <div><label className="label">Meta Title (for search engines)</label><input name="metaTitle" value={pageData.metaTitle} onChange={handleChange} className="input-field" placeholder="e.g., About Brightstar Academy | ReportSheet" /></div>
                     <div><label className="label">Meta Description</label><textarea name="metaDescription" value={pageData.metaDescription} onChange={handleChange} className="input-field" rows={2} placeholder="A brief summary for search engines."></textarea></div>
                 </div>
+                {validationError && <div className="text-red-600 text-xs">{validationError}</div>}
                 <div className="flex justify-end pt-2"><button onClick={handleSubmit} className="btn btn-primary">Save Page</button></div>
             </div>
         </Modal>

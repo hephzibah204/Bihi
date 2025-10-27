@@ -1,7 +1,9 @@
 // This file defines shared TypeScript types and interfaces for the application.
 
 // General & User Types
-export type UserRole = 'Admin' | 'Teacher' | 'Student' | 'Parent' | 'Super Admin' | 'Bursar';
+export type UserRole =
+  | 'Admin' | 'Teacher' | 'Student' | 'Parent' | 'Super Admin' | 'Bursar'
+  | 'Editor' | 'Author' | 'Content Manager' | 'Moderator' | 'Support';
 
 // Feature Control Types
 export interface ControllableFeature {
@@ -391,6 +393,22 @@ export interface PlatformUser {
     role: string;
     lastLogin: string;
 }
+
+// Platform permissions
+export type PermissionKey =
+  | 'manage_tenants'
+  | 'manage_users'
+  | 'manage_platform_settings'
+  | 'manage_payments'
+  | 'manage_integrations'
+  | 'manage_security'
+  | 'manage_plugins'
+  | 'manage_content'
+  | 'publish_content'
+  | 'send_broadcasts'
+  | 'view_reports';
+
+export type RolePermissions = Partial<Record<UserRole, Partial<Record<PermissionKey, boolean>>>>;
 
 // Communication Types
 export interface CommunicationLog {

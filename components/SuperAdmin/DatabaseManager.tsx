@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { supabase } from '../../services/supabaseClient';
 
 const DatabaseManager = () => {
     const [activeTab, setActiveTab] = useState('overview');
@@ -58,13 +59,52 @@ const DatabaseManager = () => {
                             />
                         </div>
                         <div className="flex space-x-2">
-                            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            <button
+                                onClick={async ()=>{
+                                    try {
+                                        const { data: { session } } = await supabase.auth.getSession();
+                                        const res = await fetch('/api/db-query', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json', ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) },
+                                            body: JSON.stringify({ sql: queryInput })
+                                        });
+                                        if (!res.ok) throw new Error(await res.text());
+                                        const data = await res.json();
+                                        setQueryResult(data?.rows || []);
+                                    } catch (e: any) {
+                                        setQueryResult([{ error: e?.message || 'Query failed' }]);
+                                    }
+                                }}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                                 Execute Query
                             </button>
-                            <button className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700">
+                            <button disabled className="px-4 py-2 bg-slate-300 text-white rounded-lg" title="Coming soon">
                                 Explain Query
                             </button>
                         </div>
+
+                        {Array.isArray(queryResult) && queryResult.length > 0 && (
+                            <div className="mt-4 overflow-auto border rounded">
+                                <table className="min-w-full text-sm">
+                                    <thead className="bg-slate-50">
+                                        <tr>
+                                            {Object.keys(queryResult[0]).map((k) => (
+                                                <th key={k} className="text-left py-2 px-3 font-medium text-slate-700 whitespace-nowrap">{k}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {queryResult.map((row: any, idx: number) => (
+                                            <tr key={idx} className="border-t">
+                                                {Object.keys(queryResult[0]).map((k) => (
+                                                    <td key={k} className="py-2 px-3 whitespace-nowrap text-slate-800">{String(row[k])}</td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
                     </div>
                 )}
 

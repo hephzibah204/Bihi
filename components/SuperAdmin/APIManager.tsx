@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import Modal from '../Modal';
+import { supabase } from '../../services/supabaseClient';
 
 interface APIKey {
     id: string;
     name: string;
-    key: string;
+    key?: string; // full key only returned on creation
+    key_preview?: string; // masked preview for listing
     environment: 'production' | 'development';
     permissions: string[];
     rateLimit: number;
@@ -66,12 +69,40 @@ const APIManager = () => {
 
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showKeyValue, setShowKeyValue] = useState<string | null>(null);
+    const [newKey, setNewKey] = useState({ name: '', environment: 'development', rateLimit: 1000 });
+    const [busy, setBusy] = useState(false);
+    const [showCreateWebhook, setShowCreateWebhook] = useState(false);
+    const [newHook, setNewHook] = useState<{url: string; events: string}>({ url: '', events: '' });
 
-    const revokeKey = (id: string) => {
-        setApiKeys(apiKeys.map(key =>
-            key.id === id ? { ...key, status: 'revoked' } : key
-        ));
-        alert('API Key revoked successfully');
+    const authHeaders = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
+    };
+
+    const loadKeys = async () => {
+        try {
+            const headers = await authHeaders();
+            const res = await fetch('/api/api-keys', { headers });
+            if (res.ok) setApiKeys(await res.json());
+        } catch {}
+    };
+    const loadWebhooks = async () => {
+        try {
+            const headers = await authHeaders();
+            const res = await fetch('/api/webhooks', { headers });
+            if (res.ok) setWebhooks(await res.json());
+        } catch {}
+    };
+
+    useEffect(() => { void loadKeys(); void loadWebhooks(); }, []);
+
+    const revokeKey = async (id: string) => {
+        try {
+            const headers = await authHeaders();
+            await fetch(`/api/api-keys/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify({ status: 'revoked' }) });
+            await loadKeys();
+            alert('API Key revoked successfully');
+        } catch { alert('Failed to revoke key'); }
     };
 
     const copyToClipboard = (text: string) => {
@@ -93,6 +124,48 @@ const APIManager = () => {
                     + Create New Key
                 </button>
             </div>
+            <Modal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} title="Create API Key">
+                <div className="p-6 space-y-3">
+                    <div>
+                        <label className="label">Name</label>
+                        <input className="input-field" value={newKey.name} onChange={e=>setNewKey({...newKey, name: e.target.value})} />
+                    </div>
+                    <div>
+                        <label className="label">Environment</label>
+                        <select className="input-field" value={newKey.environment} onChange={e=>setNewKey({...newKey, environment: e.target.value})}>
+                            <option value="development">Development</option>
+                            <option value="production">Production</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="label">Rate Limit (per hour)</label>
+                        <input type="number" className="input-field" value={newKey.rateLimit} onChange={e=>setNewKey({...newKey, rateLimit: Number(e.target.value)})} />
+                    </div>
+                    <div className="flex justify-end gap-2 pt-2">
+                        <button className="btn btn-secondary" onClick={()=>setShowCreateModal(false)}>Cancel</button>
+                        <button
+                            className="btn btn-primary"
+                            disabled={busy || !newKey.name}
+                            onClick={async ()=>{
+                                try {
+                                    setBusy(true);
+                                    const headers = await authHeaders();
+                                    const res = await fetch('/api/api-keys', { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(newKey) });
+                                    if (!res.ok) throw new Error(await res.text());
+                                    const created = await res.json();
+                                    setShowCreateModal(false);
+                                    await loadKeys();
+                                    alert(`Key created: ${created.key}`);
+                                } catch {
+                                    alert('Failed to create key');
+                                } finally { setBusy(false); }
+                            }}
+                        >
+                            {busy ? 'Creating...' : 'Create'}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <div className="flex items-start space-x-3">
@@ -133,17 +206,19 @@ const APIManager = () => {
                                 </div>
                                 <div className="flex items-center space-x-2 mb-3">
                                     <code className="text-sm bg-slate-100 px-3 py-1 rounded font-mono">
-                                        {showKeyValue === apiKey.id ? apiKey.key : '••••••••••••••••••••'}
+                                        {apiKey.key_preview || '••••••••••••••••••••'}
                                     </code>
                                     <button
-                                        onClick={() => setShowKeyValue(showKeyValue === apiKey.id ? null : apiKey.id)}
-                                        className="text-slate-500 hover:text-slate-700"
+                                        disabled
+                                        title="Full key is shown only once on creation"
+                                        className="text-slate-300 cursor-not-allowed"
                                     >
-                                        {showKeyValue === apiKey.id ? '🙈' : '👁️'}
+                                        👁️
                                     </button>
                                     <button
-                                        onClick={() => copyToClipboard(apiKey.key)}
-                                        className="text-slate-500 hover:text-slate-700"
+                                        disabled
+                                        title="Copy disabled (full key not stored)"
+                                        className="text-slate-300 cursor-not-allowed"
                                     >
                                         📋
                                     </button>
@@ -200,27 +275,40 @@ const APIManager = () => {
                     <h3 className="text-lg font-semibold text-slate-900">Webhooks</h3>
                     <p className="text-sm text-slate-500">Configure webhook endpoints for real-time events</p>
                 </div>
-                <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors" onClick={()=>setShowCreateWebhook(true)}>
                     + Add Webhook
                 </button>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-lg p-6">
-                <h4 className="font-semibold text-slate-900 mb-4">Available Events</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {[
-                        'payment.success', 'payment.failed', 'student.created', 'student.updated',
-                        'attendance.marked', 'result.published', 'fee.overdue', 'user.login'
-                    ].map(event => (
-                        <div key={event} className="flex items-center space-x-2 p-2 bg-slate-50 rounded">
-                            <span className="text-sm font-mono text-slate-700">{event}</span>
-                        </div>
-                    ))}
+            <Modal isOpen={showCreateWebhook} onClose={()=>setShowCreateWebhook(false)} title="Create Webhook">
+              <div className="p-6 space-y-3">
+                <div>
+                  <label className="label">URL</label>
+                  <input className="input-field" value={newHook.url} onChange={e=>setNewHook({...newHook, url: e.target.value})} placeholder="https://example.com/webhook" />
                 </div>
-            </div>
+                <div>
+                  <label className="label">Events (comma-separated)</label>
+                  <input className="input-field" value={newHook.events} onChange={e=>setNewHook({...newHook, events: e.target.value})} placeholder="payment.success,student.created" />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button className="btn btn-secondary" onClick={()=>setShowCreateWebhook(false)}>Cancel</button>
+                  <button className="btn btn-primary" onClick={async ()=>{
+                    try {
+                      const headers = await authHeaders();
+                      const events = newHook.events.split(',').map(e=>e.trim()).filter(Boolean);
+                      const res = await fetch('/api/webhooks', { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify({ url: newHook.url, events }) });
+                      if (!res.ok) throw new Error(await res.text());
+                      setShowCreateWebhook(false);
+                      setNewHook({ url: '', events: '' });
+                      await loadWebhooks();
+                    } catch { alert('Failed to create webhook'); }
+                  }}>Create</button>
+                </div>
+              </div>
+            </Modal>
 
             <div className="space-y-4">
-                {webhooks.map(webhook => (
+                {webhooks.map((webhook: any) => (
                     <div key={webhook.id} className="bg-white border border-slate-200 rounded-lg p-6">
                         <div className="flex items-start justify-between mb-4">
                             <div className="flex-1">
@@ -237,30 +325,37 @@ const APIManager = () => {
                                     </span>
                                 </div>
                                 <div className="flex flex-wrap gap-2 mb-3">
-                                    {webhook.events.map((event, idx) => (
+                                    {(webhook.events || []).map((event: string, idx: number) => (
                                         <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
                                             {event}
                                         </span>
                                     ))}
                                 </div>
                                 <div className="text-sm text-slate-600">
-                                    Last triggered: {webhook.lastTriggered}
+                                    Last triggered: {webhook.last_triggered ? new Date(webhook.last_triggered).toLocaleString() : '-'}
                                 </div>
                             </div>
                         </div>
                         <div className="flex space-x-3 pt-4 border-t border-slate-200">
-                            <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                                Edit
+                            <button className="text-blue-600 hover:text-blue-700 text-sm font-medium" onClick={async ()=>{
+                                try { const headers = await authHeaders(); await fetch(`/api/webhooks/${webhook.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify({ status: webhook.status==='active'?'inactive':'active' }) }); await loadWebhooks(); } catch { alert('Update failed'); }
+                            }}>
+                                {webhook.status==='active'?'Disable':'Enable'}
                             </button>
-                            <button className="text-green-600 hover:text-green-700 text-sm font-medium">
+                            <button className="text-green-600 hover:text-green-700 text-sm font-medium" onClick={async ()=>{
+                                try { const headers = await authHeaders(); const r = await fetch(`/api/webhooks/${webhook.id}/test`, { method: 'POST', headers }); if (!r.ok) throw new Error(); alert('Test sent'); await loadWebhooks(); } catch { alert('Test failed'); }
+                            }}>
                                 Test
                             </button>
-                            <button className="text-red-600 hover:text-red-700 text-sm font-medium">
+                            <button className="text-red-600 hover:text-red-700 text-sm font-medium" onClick={async ()=>{
+                                if (!confirm('Delete webhook?')) return; try { const headers = await authHeaders(); await fetch(`/api/webhooks/${webhook.id}`, { method: 'DELETE', headers }); await loadWebhooks(); } catch { alert('Delete failed'); }
+                            }}>
                                 Delete
                             </button>
                         </div>
                     </div>
                 ))}
+                {webhooks.length===0 && <div className="text-sm text-slate-500">No webhooks configured.</div>}
             </div>
         </div>
     );

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { apiSendMessage } from '../../services/api';
 
 interface SMSProvider {
     id: string;
@@ -97,11 +98,15 @@ const SMSGatewayConfig = () => {
             alert('Please enter phone number and message');
             return;
         }
-        
-        setIsSending(true);
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        setIsSending(false);
-        alert('Test SMS sent successfully!');
+        try {
+            setIsSending(true);
+            await apiSendMessage({ channel: 'sms', content: testMessage, recipients: [testPhone], type: 'direct' });
+            alert('Test SMS queued successfully.');
+        } catch (e: any) {
+            alert(e?.message || 'Failed to send test SMS');
+        } finally {
+            setIsSending(false);
+        }
     };
 
     const toggleApiKeyVisibility = (providerId: string, field: string) => {

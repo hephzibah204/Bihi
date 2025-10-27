@@ -52,7 +52,7 @@ const main = async () => {
       const stored = localStorage.getItem('sitewide_ai_settings');
       let parsed: any = null;
       if (stored) {
-        try { parsed = JSON.parse(stored); } catch {}
+        try { parsed = JSON.parse(stored); } catch (e) { /* ignore malformed JSON */ }
       }
       const nextSettings = {
         ...parsed,

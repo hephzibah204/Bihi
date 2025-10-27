@@ -14,10 +14,19 @@ const TenantManagement = () => {
     const [isAddModalOpen, setAddModalOpen] = useState(false);
     const [isSubModalOpen, setSubModalOpen] = useState(false);
     const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
-    const [newTenantData, setNewTenantData] = useState({ name: '', id: '' });
+    const [newTenantData, setNewTenantData] = useState({ name: '', id: '', adminEmail: '', adminPassword: '', adminName: '', schoolType: '' });
+    const [isCreateAdminOpen, setCreateAdminOpen] = useState(false);
+    const [newAdminData, setNewAdminData] = useState({ adminEmail: '', adminPassword: '', adminName: '' });
+    const [busy, setBusy] = useState(false);
 
     useEffect(() => {
         fetchData();
+    }, []);
+
+    useEffect(() => {
+        const open = () => setAddModalOpen(true);
+        window.addEventListener('open-add-tenant', open as any);
+        return () => window.removeEventListener('open-add-tenant', open as any);
     }, []);
 
     const fetchData = async () => {
@@ -37,15 +46,24 @@ const TenantManagement = () => {
     };
 
     const handleAddTenant = async () => {
-        if (!newTenantData.name || !newTenantData.id) return;
+        if (!newTenantData.name || !newTenantData.id || !newTenantData.adminEmail || !newTenantData.adminPassword || !newTenantData.adminName) return;
         try {
-            await apiAddTenant(newTenantData);
-            fetchData();
+            setBusy(true);
+            await (await import('../../services/api')).apiSuperAdminCreateTenant({
+                schoolName: newTenantData.name,
+                slug: newTenantData.id,
+                schoolType: newTenantData.schoolType,
+                adminEmail: newTenantData.adminEmail,
+                adminPassword: newTenantData.adminPassword,
+                adminName: newTenantData.adminName
+            });
+            await fetchData();
             setAddModalOpen(false);
-            setNewTenantData({ name: '', id: '' });
+            setNewTenantData({ name: '', id: '', adminEmail: '', adminPassword: '', adminName: '', schoolType: '' });
         } catch (error) {
             console.error('Failed to add tenant:', error);
-        }
+            alert('Failed to add tenant');
+        } finally { setBusy(false); }
     };
 
     const handleDeleteTenant = async (tenantId: string) => {
@@ -132,6 +150,12 @@ const TenantManagement = () => {
                                             >
                                                 Manage
                                             </button>
+                                            <button
+                                                onClick={() => { setSelectedTenant(tenant); setCreateAdminOpen(true); setNewAdminData({ adminEmail: '', adminPassword: '', adminName: '' }); }}
+                                                className="text-sm text-green-600 hover:text-green-700 font-medium"
+                                            >
+                                                Create Admin
+                                            </button>
                                             <button 
                                                 onClick={() => handleDeleteTenant(tenant.id)} 
                                                 className="p-1 text-red-500 hover:text-red-700" 
@@ -181,6 +205,48 @@ const TenantManagement = () => {
                         />
                         <p className="text-sm text-slate-500 mt-1">This will be used as the subdomain (e.g., school-name.yourdomain.com)</p>
                     </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">School Type</label>
+                        <input
+                            type="text"
+                            value={newTenantData.schoolType}
+                            onChange={e => setNewTenantData({...newTenantData, schoolType: e.target.value})}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Secondary, Primary, etc."
+                        />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Admin Name</label>
+                            <input
+                                type="text"
+                                value={newTenantData.adminName}
+                                onChange={e => setNewTenantData({...newTenantData, adminName: e.target.value})}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="Full name"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Admin Email</label>
+                            <input
+                                type="email"
+                                value={newTenantData.adminEmail}
+                                onChange={e => setNewTenantData({...newTenantData, adminEmail: e.target.value})}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="admin@school.com"
+                            />
+                        </div>
+                        <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Admin Password</label>
+                            <input
+                                type="password"
+                                value={newTenantData.adminPassword}
+                                onChange={e => setNewTenantData({...newTenantData, adminPassword: e.target.value})}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="Strong password"
+                            />
+                        </div>
+                    </div>
                     <div className="flex justify-end space-x-2 pt-4">
                         <button 
                             onClick={() => setAddModalOpen(false)}
@@ -191,14 +257,53 @@ const TenantManagement = () => {
                         <button 
                             onClick={handleAddTenant} 
                             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                            disabled={!newTenantData.name || !newTenantData.id}
+                            disabled={busy || !newTenantData.name || !newTenantData.id || !newTenantData.adminEmail || !newTenantData.adminPassword || !newTenantData.adminName}
                         >
-                            Save School
+                            {busy ? 'Saving...' : 'Save School'}
                         </button>
                     </div>
                 </div>
             </Modal>
             
+            {/* Create Admin User Modal */}
+            <Modal isOpen={isCreateAdminOpen} onClose={() => setCreateAdminOpen(false)} title={`Create Admin for ${selectedTenant?.name || ''}`}>
+                <div className="p-6 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Admin Name</label>
+                            <input className="w-full px-3 py-2 border rounded-lg" value={newAdminData.adminName} onChange={e=>setNewAdminData({...newAdminData, adminName: e.target.value})} />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Admin Email</label>
+                            <input type="email" className="w-full px-3 py-2 border rounded-lg" value={newAdminData.adminEmail} onChange={e=>setNewAdminData({...newAdminData, adminEmail: e.target.value})} />
+                        </div>
+                        <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Admin Password</label>
+                            <input type="password" className="w-full px-3 py-2 border rounded-lg" value={newAdminData.adminPassword} onChange={e=>setNewAdminData({...newAdminData, adminPassword: e.target.value})} />
+                        </div>
+                    </div>
+                    <div className="flex justify-end space-x-2 pt-2">
+                        <button onClick={() => setCreateAdminOpen(false)} className="px-4 py-2 border rounded-lg">Cancel</button>
+                        <button
+                            disabled={busy || !selectedTenant || !newAdminData.adminEmail || !newAdminData.adminPassword || !newAdminData.adminName}
+                            onClick={async ()=>{
+                                try {
+                                    setBusy(true);
+                                    await (await import('../../services/api')).apiSuperAdminCreateTenantAdmin(selectedTenant!.id, newAdminData);
+                                    setCreateAdminOpen(false);
+                                    alert('Admin user created');
+                                } catch (e) {
+                                    alert('Failed to create admin user');
+                                } finally { setBusy(false); }
+                            }}
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg"
+                        >
+                            {busy ? 'Creating...' : 'Create Admin'}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
             {/* Subscription Management Modal */}
             {isSubModalOpen && selectedTenant && (
                 <SubscriptionManagementModal 

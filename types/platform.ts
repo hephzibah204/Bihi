@@ -59,3 +59,29 @@ export interface ActivityLog {
   type: string;
   description: string;
 }
+
+// Broadcast Notifications model for platform settings
+export type BroadcastChannel = 'banner' | 'toast' | 'modal';
+export type BroadcastType = 'info' | 'success' | 'warning' | 'error';
+
+export interface BroadcastNotification {
+  id: string;
+  title: string;
+  message: string;
+  type: BroadcastType;
+  channel: BroadcastChannel;
+  roles?: string[]; // audience; omit or include 'all' means everyone
+  tenants?: string[]; // subdomains/tenant ids; omit or include 'all' means all tenants
+  startAt?: string; // ISO timestamp
+  endAt?: string;   // ISO timestamp
+  dismissible?: boolean;
+  createdBy?: string;
+  createdAt?: string; // ISO
+  updatedAt?: string; // ISO
+  // CTAs
+  ctaText?: string;
+  ctaUrl?: string;
+  ctaByRole?: Record<string, { text: string; url: string }>;
+  // Repeat behavior
+  repeat?: 'always' | 'once' | 'daily' | 'weekly';
+}

@@ -952,7 +952,23 @@ export const apiGetPlatformSettings = async () => {
 };
 
 
-export const apiSavePlatformSettings = (settings) => upsert('platform_settings', { id: 1, data: settings });
+export const apiSavePlatformSettings = async (settings: any) => {
+  if (isDemo()) return settings;
+  if (!supabase) return settings;
+  const { data: { session } } = await supabase.auth.getSession();
+  const res = await fetch('/api/platform-settings', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}) },
+    body: JSON.stringify({ settings })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({} as any));
+    throw new Error(err?.details || err?.error || 'Failed to save platform settings');
+  }
+  // Invalidate cache so next read refreshes
+  try { localStorage.removeItem(PLATFORM_SETTINGS_CACHE_KEY); } catch (e) { logger.warn('Failed to clear platform settings cache', { error: e }); }
+  return settings;
+};
 
 export const apiUpdateTenantSubscription = async (planId: string, cycle: 'monthly' | 'termly' | 'yearly') => {
     if (isDemo()) {
@@ -991,6 +1007,79 @@ export const apiFindTenantByEmail = async (email) => {
     return data.tenant_id;
 };
 export const apiGetPlatformUsers = () => get<{data: any}>('platform_settings').then(d => d[0]?.data?.platform_users || []);
+
+export const apiGetRolePermissions = async (): Promise<Record<string, Record<string, boolean>>> => {
+  const settings = await apiGetPlatformSettings();
+  return (settings?.role_permissions || {}) as Record<string, Record<string, boolean>>;
+};
+
+export const apiSaveRolePermissions = async (rolePermissions: Record<string, Record<string, boolean>>) => {
+  const settings = await apiGetPlatformSettings();
+  return apiSavePlatformSettings({ ...(settings || {}), role_permissions: rolePermissions });
+};
+
+export const apiCreatePlatformUser = async (payload: { email: string; role: string; name?: string; password?: string }) => {
+  if (!supabase) throw new Error('Auth client not available.');
+  const { data: { session } } = await supabase.auth.getSession();
+  const res = await fetch('/api/platform-users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}) },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error || 'Failed to create user');
+  }
+  const body = await res.json();
+  // Do not persist tempPassword anywhere; caller may handle clipboard
+  return body as { user: any; tempPassword?: string };
+};
+
+export const apiDeletePlatformUser = async (id: string) => {
+  if (!supabase) throw new Error('Auth client not available.');
+  const { data: { session } } = await supabase.auth.getSession();
+  const res = await fetch('/api/platform-users', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}) },
+    body: JSON.stringify({ id })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error || 'Failed to delete user');
+  }
+  return res.json();
+};
+
+// --- Super Admin (platform) ---
+export const apiSuperAdminCreateTenant = async (payload: { schoolName: string; slug: string; schoolType?: string; adminEmail: string; adminPassword: string; adminName: string; }) => {
+    if (!supabase) throw new Error('Auth client not available.');
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch('/api/tenants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+        body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.details || err?.error || 'Failed to create tenant');
+    }
+    return res.json();
+};
+
+export const apiSuperAdminCreateTenantAdmin = async (tenantId: string, payload: { adminEmail: string; adminPassword: string; adminName: string; }) => {
+    if (!supabase) throw new Error('Auth client not available.');
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch(`/api/tenants/${tenantId}/admin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+        body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.details || err?.error || 'Failed to create admin user');
+    }
+    return res.json();
+};
 export const apiSavePlatformUsers = (users) => apiGetPlatformSettings().then(s => apiSavePlatformSettings({...s, platform_users: users}));
 export const apiGetKbArticles = () => get<{data: any}>('platform_settings').then(d => d[0]?.data?.kb_articles || []);
 export const apiSaveKbArticles = (articles) => apiGetPlatformSettings().then(s => apiSavePlatformSettings({...s, kb_articles: articles}));

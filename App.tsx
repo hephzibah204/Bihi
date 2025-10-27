@@ -2,6 +2,9 @@ import { lazy, Suspense, PropsWithChildren, useEffect } from 'react';
 import { Routes, Route, useParams, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import GlobalSuccessNotification from './components/GlobalSuccessNotification';
+import GlobalNotification from './components/GlobalNotification';
+import GlobalBroadcast from './components/GlobalBroadcast';
+import { applyThemeToDocument, defaultTheme, ThemeSettings } from './hooks/useTheme';
 import { getConnectionManager } from './utils/connectionManager';
 
 // Lazy load components
@@ -51,6 +54,14 @@ const TenantRouter = () => {
 
 const AppRouter = () => {
     const { loading, isValidTenant, subdomain, platformSettings } = useAuth();
+
+    // Apply theme when platform settings load/change
+    useEffect(() => {
+        try {
+            const theme = (platformSettings as any)?.theme as ThemeSettings | undefined;
+            applyThemeToDocument(theme || defaultTheme);
+        } catch {}
+    }, [platformSettings]);
     
     // Check for Super Admin route first - this takes highest precedence
     const isControlHub = typeof window !== 'undefined' && window.location.pathname.startsWith('/controlhub');
@@ -124,8 +135,10 @@ const App = () => {
     const AppWrapper = ({ children }: PropsWithChildren) => (
         <AuthProvider>
             <div className="min-h-screen bg-gray-50">
+                <GlobalBroadcast />
                 {children}
                 <GlobalSuccessNotification />
+                <GlobalNotification />
             </div>
         </AuthProvider>
     );

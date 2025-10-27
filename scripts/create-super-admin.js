@@ -47,8 +47,10 @@ async function createSuperAdmin() {
       email_confirm: true, // Auto-confirm email
       user_metadata: {
         role: 'Super Admin',
+        platform_role: 'Super Admin',
         is_super_admin: true
-      }
+      },
+      app_metadata: { roles: ['super_admin'] }
     });
     
     if (error) {
