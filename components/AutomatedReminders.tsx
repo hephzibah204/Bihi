@@ -113,7 +113,15 @@ const ReminderFormModal = ({ reminder, templates, onSave, onClose }) => {
         <Modal isOpen={true} onClose={onClose} title={reminder ? 'Edit Reminder' : 'New Reminder'}>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
                 <div><label className="label">Reminder Name</label><input name="name" value={formData.name} onChange={handleChange} className="input-field" placeholder="e.g., 3-Day Fee Reminder" required /></div>
-                <div><label className="label">Reminder Type</label><select name="type" value={formData.type} onChange={handleChange} className="input-field"><option value="overdue_fees">Overdue School Fees</option></select></div>
+                <div>
+                    <label className="label">Reminder Type</label>
+                    <select name="type" value={formData.type} onChange={handleChange} className="input-field">
+                        <option value="overdue_fees">Overdue School Fees</option>
+                        <option value="partial_payment">Partial Payment Follow-up</option>
+                        <option value="attendance_absent">Attendance Alert (Absent)</option>
+                        <option value="upcoming_event">Upcoming Event Notification</option>
+                    </select>
+                </div>
                 <div><label className="label">Message Template</label><select name="templateId" value={formData.templateId} onChange={handleChange} className="input-field" required><option value="">-- Select a Template --</option>{templates.map(t => <option key={t.id} value={t.id}>{t.name} ({t.type})</option>)}</select></div>
                 <div><label className="label">Send After</label><input type="number" name="days_after_due" value={formData.days_after_due} onChange={handleChange} className="input-field" required min="1" /></div>
                 <div className="flex justify-end pt-2"><button type="submit" className="btn btn-primary">Save Reminder</button></div>

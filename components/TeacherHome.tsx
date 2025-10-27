@@ -62,7 +62,7 @@ const TeacherHome = ({ setActiveView }: { setActiveView: (view: TeacherView) => 
                 setSessions(sessionsList.length > 0 ? sessionsList : [currentSession].filter(Boolean));
                 setScopeLabel([currentSession, currentTerm].filter(Boolean).join(' • '));
             } catch (e) {
-                console.error('Failed to init teacher filters', e);
+                // Non-fatal: defaults will be used
             }
         };
         initFilters();
@@ -143,7 +143,6 @@ const TeacherHome = ({ setActiveView }: { setActiveView: (view: TeacherView) => 
 
                 setLoading(false);
             } catch (error) {
-                console.error('Failed to fetch dashboard data', error);
                 setLoading(false);
             }
         };

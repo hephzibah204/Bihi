@@ -155,19 +155,53 @@ export function getSupabase() {
 // Test connectivity with retry logic
 export async function isSupabaseOnline(): Promise<boolean> {
   if (!supabase || supabase._offline) return false;
-  
+
+  if (typeof navigator !== 'undefined' && !navigator.onLine) return false;
+
+  const SUPABASE_URL = (typeof window !== 'undefined')
+    ? (window.process?.env?.VITE_SUPABASE_URL || import.meta.env?.VITE_SUPABASE_URL)
+    : process.env.VITE_SUPABASE_URL;
+
+  // First try a lightweight REST query (works even if Edge Functions are not deployed)
   try {
-    // Use a lightweight query to test connection
     await withRetry(
       async () => {
         const { error } = await supabase.from("platform_settings").select("id").limit(1);
         if (error) throw error;
       },
-      { 
-        maxRetries: 2,
-        initialDelay: 500,
-        onRetry: () => {} // Silent retry for connectivity check
-      }
+      { maxRetries: 1, initialDelay: 300 }
+    );
+    return true;
+  } catch { /* fall through to optional functions ping */ }
+
+  // Optional: test the Edge Functions endpoint if explicitly enabled
+  const enableFunctionsPing = ((typeof window !== 'undefined')
+    ? (import.meta as any)?.env?.VITE_ENABLE_FUNCTIONS_PING
+    : process.env.VITE_ENABLE_FUNCTIONS_PING) === 'true';
+
+  if (SUPABASE_URL && enableFunctionsPing) {
+    try {
+      const pingCore = `RS1|SID=ping|ADM=|TS=${Date.now()}|CS=0000`;
+      const resp = await withRetry(
+        async () => fetch(`${SUPABASE_URL}/functions/v1/sign-qr`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ core: pingCore })
+        }),
+        { maxRetries: 1, initialDelay: 300 }
+      );
+      if (resp.ok) return true;
+    } catch { /* ignore */ }
+  }
+
+  // If both checks failed, consider offline
+  try {
+    await withRetry(
+      async () => {
+        const { error } = await supabase.from("platform_settings").select("id").limit(1);
+        if (error) throw error;
+      },
+      { maxRetries: 1, initialDelay: 300 }
     );
     return true;
   } catch {
@@ -211,6 +245,9 @@ export function stopConnectionMonitoring() {
  */
 async function reconnectSupabase() {
   try {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      throw new Error('Network offline');
+    }
     // Reset connection
     supabase = null;
     await initSupabase();

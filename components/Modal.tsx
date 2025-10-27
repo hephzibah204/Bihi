@@ -40,6 +40,7 @@ const Modal: FC<PropsWithChildren<ModalProps>> = ({ isOpen, onClose, title, chil
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
+      aria-label="Close modal by clicking background"
     >
       <div
         className={`bg-white rounded-lg shadow-xl w-full ${sizeClasses[size]} flex flex-col max-h-[90vh]`}

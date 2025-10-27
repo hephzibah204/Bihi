@@ -22,6 +22,11 @@ export interface AnalysisResult {
   error?: string;
 }
 
+// Direct define substitution (Vite) for Hugging Face key
+// This ensures the key is available even when using dynamic env access.
+// In Vite, occurrences of `process.env.HUGGINGFACE_API_KEY` are replaced at build time.
+const HF_DEFINE_KEY: string | undefined = process.env.HUGGINGFACE_API_KEY as any;
+
 function getEnv(key: string): string | undefined {
   // Works in Node and Vite environments
   const fromProcess = typeof process !== 'undefined' ? process.env?.[key] : undefined;
@@ -105,7 +110,10 @@ async function tryGemini(prompt: string, options?: AnalysisOptions): Promise<str
 }
 
 async function tryHuggingFace(prompt: string, options?: AnalysisOptions): Promise<string> {
-  const apiKey = getAnyEnv(['HUGGINGFACE_API_KEY', 'VITE_HUGGINGFACE_API_KEY']);
+  // Resolve HF API key from multiple sources to avoid "not working" due to env differences
+  const apiKey = HF_DEFINE_KEY
+    || getAnyEnv(['VITE_HUGGINGFACE_API_KEY', 'HUGGINGFACE_API_KEY'])
+    || (typeof window !== 'undefined' ? localStorage.getItem('huggingface_api_key') || undefined : undefined);
   if (!apiKey) throw new Error('Missing HUGGINGFACE_API_KEY');
 
   const model = options?.huggingFaceModel || 'tiiuae/falcon-7b-instruct';

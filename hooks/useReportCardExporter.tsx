@@ -15,7 +15,6 @@ export const useReportCardExporter = () => {
     const exportToPDF = (elementId: string, fileName: string = 'document.pdf') => {
         const element = document.getElementById(elementId);
         if (!element) {
-            console.error(`Element with id "${elementId}" not found.`);
             return;
         }
 
@@ -23,7 +22,6 @@ export const useReportCardExporter = () => {
         
         const { html2canvas, jspdf } = window;
         if (!html2canvas || !jspdf) {
-            console.error("html2canvas or jspdf is not loaded.");
             setExporting(false);
             return;
         }
@@ -40,8 +38,7 @@ export const useReportCardExporter = () => {
                 pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
                 pdf.save(fileName);
             })
-            .catch(err => {
-                console.error("Error exporting to PDF:", err);
+            .catch(() => {
             })
             .finally(() => {
                 setExporting(false);

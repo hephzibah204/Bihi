@@ -119,6 +119,15 @@ class ConnectionManager {
    */
   private async performSupabaseHandshake(): Promise<HandshakeResult> {
     const startTime = Date.now();
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      return {
+        success: false,
+        service: 'supabase',
+        responseTime: Date.now() - startTime,
+        error: 'Network offline'
+      };
+    }
     
     try {
       this.logger.info('Performing Supabase handshake');
@@ -166,6 +175,15 @@ class ConnectionManager {
    */
   private async performAIHandshake(): Promise<HandshakeResult> {
     const startTime = Date.now();
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      return {
+        success: false,
+        service: 'ai',
+        responseTime: Date.now() - startTime,
+        error: 'Network offline'
+      };
+    }
     
     try {
       this.logger.info('Performing AI service handshake');

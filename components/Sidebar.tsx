@@ -131,8 +131,12 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView, use
         return (
           <>
             <div 
+                role="button"
+                tabIndex={0}
+                aria-label="Close sidebar"
                 className={`fixed inset-0 z-20 bg-black bg-opacity-50 transition-opacity md:hidden ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
                 onClick={() => setSidebarOpen(false)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSidebarOpen(false); }}
             ></div>
             <aside 
                 className={`fixed inset-y-0 left-0 z-30 w-64 bg-white transform transition-transform duration-300 md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
@@ -227,8 +231,12 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView, use
     return (
         <>
             <div 
+                role="button"
+                tabIndex={0}
+                aria-label="Close sidebar"
                 className={`fixed inset-0 z-20 bg-black bg-opacity-50 transition-opacity md:hidden ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
                 onClick={() => setSidebarOpen(false)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSidebarOpen(false); }}
             ></div>
             <aside 
                 className={`fixed inset-y-0 left-0 z-30 w-64 bg-white transform transition-transform duration-300 md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}

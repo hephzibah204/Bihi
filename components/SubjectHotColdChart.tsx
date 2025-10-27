@@ -75,7 +75,7 @@ const SubjectHotColdChart: React.FC<{ onDrillDown?: (view: DashboardView) => voi
         list.sort((a, b) => b.average - a.average);
         setSubjectsAvg(list);
       } catch (e) {
-        console.error('Failed to load subject hot/cold chart', e);
+        // Non-fatal: show empty chart
         setSubjectsAvg([]);
       } finally {
         setLoading(false);

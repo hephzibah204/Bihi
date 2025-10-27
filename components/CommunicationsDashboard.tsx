@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo, PropsWithChildren } from 'react';
-import { apiGetStudents, apiGetSubjects, apiSendMessage, apiGetCommunicationLogs, apiGetMessageTemplates } from '../services/api';
-import { Student, Subject, CommunicationLog, MessageTemplate } from '../types';
+import React, { useState, useEffect, PropsWithChildren } from 'react';
+import { apiGetStudents, apiGetSubjects, apiSendMessage, apiGetMessageTemplates, apiGetInvoices } from '../services/api';
+import { Student, MessageTemplate, Invoice } from '../types';
 import AIAnnouncementGenerator from '../AIAnnouncementGenerator';
 import MessageTemplates from './MessageTemplates';
 import AutomatedReminders from './AutomatedReminders';
@@ -81,14 +81,18 @@ const ComposeAnnouncement = ({ setSetupModalInfo, sharedMessage, setSharedMessag
     const [templates, setTemplates] = useState<MessageTemplate[]>([]);
     const [sending, setSending] = useState(false);
     const [channel, setChannel] = useState<'sms' | 'email'>('sms');
+    const [invoices, setInvoices] = useState<Invoice[]>([]);
+    const [personalize, setPersonalize] = useState(false);
+    const [previewStudentId, setPreviewStudentId] = useState<string>('');
 
     useEffect(() => {
         const fetchData = async () => {
-            const [subjectsData, studentsData, templatesData] = await Promise.all([apiGetSubjects(), apiGetStudents(), apiGetMessageTemplates()]);
+            const [subjectsData, studentsData, templatesData, invoicesData] = await Promise.all([apiGetSubjects(), apiGetStudents(), apiGetMessageTemplates(), apiGetInvoices()]);
             const allClasses = [...new Set<string>(subjectsData.flatMap(s => s.classes))].sort();
             setClasses(allClasses);
             setStudents(studentsData);
             setTemplates(templatesData);
+            setInvoices(invoicesData);
         };
         fetchData();
     }, []);
@@ -111,6 +115,22 @@ const ComposeAnnouncement = ({ setSetupModalInfo, sharedMessage, setSharedMessag
         }
     };
 
+    const computeOutstanding = (studentId: string) => {
+        const invs = invoices.filter(i => i.studentId === studentId);
+        const total = invs.reduce((sum, i) => sum + (i.totalAmount || 0), 0);
+        const paid = invs.reduce((sum, i) => sum + (i.amountPaid || 0), 0);
+        return Math.max(0, total - paid);
+    };
+
+    const applyTemplateForStudent = (tmpl: string, student: Student) => {
+        const outstanding = computeOutstanding(student.id);
+        return tmpl
+            .replace(/\{\{\s*student_name\s*\}\}/gi, student.name || '')
+            .replace(/\{\{\s*class\s*\}\}/gi, student.class || '')
+            .replace(/\{\{\s*admission_no\s*\}\}/gi, student.admissionNo || '')
+            .replace(/\{\{\s*outstanding\s*\}\}/gi, `₦${outstanding.toLocaleString()}`);
+    };
+
     const handleSend = async () => {
         if (channel === 'sms' && !isSmsConfigured) {
             if (role === USER_ROLES.ADMIN) {
@@ -123,15 +143,24 @@ const ComposeAnnouncement = ({ setSetupModalInfo, sharedMessage, setSharedMessag
 
         setSending(true);
         try {
-            let targetRecipients: string[] = [];
-            if (target === 'all') {
-                targetRecipients = [...new Set<string>(students.map(s => channel === 'sms' ? s.parentId : s.parentEmail).filter(Boolean))];
+            const studentsInScope = target === 'all' ? students : students.filter(s => s.class === target);
+            if (personalize) {
+                // Send individualized messages with template substitution per student
+                let sent = 0;
+                for (const s of studentsInScope) {
+                    const recipient = channel === 'sms' ? s.parentId : s.parentEmail;
+                    if (!recipient) continue;
+                    const content = applyTemplateForStudent(message, s);
+                    await apiSendMessage({ channel, content, recipients: [recipient] });
+                    sent++;
+                }
+                window.dispatchEvent(new CustomEvent('show-global-success', { detail: { message: `Personalized messages sent to ${sent} recipients.` } }));
             } else {
-                targetRecipients = [...new Set<string>(students.filter(s => s.class === target).map(s => channel === 'sms' ? s.parentId : s.parentEmail).filter(Boolean))];
+                // Broadcast one message without per-student substitution
+                const recipients = [...new Set<string>(studentsInScope.map(s => channel === 'sms' ? s.parentId : s.parentEmail).filter(Boolean))];
+                await apiSendMessage({ channel, content: message, recipients });
+                window.dispatchEvent(new CustomEvent('show-global-success', { detail: { message: `Message sent to ${recipients.length} recipients.` } }));
             }
-
-            await apiSendMessage({ channel, content: message, recipients: targetRecipients });
-            window.dispatchEvent(new CustomEvent('show-global-success', { detail: { message: `Message sent to ${targetRecipients.length} recipients.` } }));
             setMessage('');
         } catch (error) {
              window.dispatchEvent(new CustomEvent('show-global-error', { detail: { message: `Error sending message: ${error.message}` } }));
@@ -144,30 +173,55 @@ const ComposeAnnouncement = ({ setSetupModalInfo, sharedMessage, setSharedMessag
         <div className="card">
             <div className="p-6 space-y-4">
                 <div>
-                    <label className="label">Channel</label>
-                    <div className="flex gap-4 p-1 bg-gray-100 rounded-lg">
+                    <span id="channel-label" className="label">Channel</span>
+                    <div role="group" aria-labelledby="channel-label" className="flex gap-4 p-1 bg-gray-100 rounded-lg">
                         <button onClick={() => setChannel('sms')} className={`flex-1 p-2 rounded-md font-semibold text-sm ${channel === 'sms' ? 'bg-white shadow' : ''}`}>SMS</button>
                         <button onClick={() => setChannel('email')} className={`flex-1 p-2 rounded-md font-semibold text-sm ${channel === 'email' ? 'bg-white shadow' : ''}`}>Email</button>
                     </div>
                 </div>
-                 <div>
-                    <label className="label">Use Template</label>
-                    <select onChange={e => handleUseTemplate(e.target.value)} className="input-field">
+                <div>
+                    <label className="label" htmlFor="template-select">Use Template</label>
+                    <select id="template-select" onChange={e => handleUseTemplate(e.target.value)} className="input-field">
                         <option value="">-- Start from scratch --</option>
                         {templates.map(t => <option key={t.id} value={t.id}>{t.name} ({t.type})</option>)}
                     </select>
                 </div>
                 <div>
-                    <label className="label">Message</label>
-                    <textarea value={message} onChange={e => setMessage(e.target.value)} rows={5} className="input-field"></textarea>
+                    <label className="label" htmlFor="compose-message">Message</label>
+                    <textarea id="compose-message" value={message} onChange={e => setMessage(e.target.value)} rows={5} className="input-field"></textarea>
+                    <div className="text-xs text-gray-500 mt-2">
+                        Available variables: <code>{`{{student_name}}`}</code>, <code>{`{{class}}`}</code>, <code>{`{{admission_no}}`}</code>, <code>{`{{outstanding}}`}</code>
+                    </div>
                 </div>
                 <div>
-                    <label className="label">Send To</label>
-                    <select value={target} onChange={e => setTarget(e.target.value)} className="input-field">
+                    <label className="label" htmlFor="sendto-select">Send To</label>
+                    <select id="sendto-select" value={target} onChange={e => setTarget(e.target.value)} className="input-field">
                         <option value="all">All Parents</option>
                         {classes.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                 </div>
+                <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-2 text-sm">
+                        <input type="checkbox" checked={personalize} onChange={e => setPersonalize(e.target.checked)} /> Personalize per student
+                    </label>
+                    <select value={previewStudentId} onChange={e => setPreviewStudentId(e.target.value)} className="input-field text-sm max-w-xs">
+                        <option value="">Preview with...</option>
+                        {students.map(s => <option key={s.id} value={s.id}>{s.name} ({s.class})</option>)}
+                    </select>
+                </div>
+                {previewStudentId && (
+                    <div className="card mt-2">
+                        <div className="p-3">
+                            <div className="text-xs font-semibold text-gray-500">Preview</div>
+                            <p className="text-sm mt-1">
+                                {(() => {
+                                    const s = students.find(stu => stu.id === previewStudentId);
+                                    return s ? applyTemplateForStudent(message, s) : message;
+                                })()}
+                            </p>
+                        </div>
+                    </div>
+                )}
                 <div className="text-right">
                     <button onClick={handleSend} disabled={sending || !message} className="btn btn-primary">
                         {sending ? <SpinnerIcon className="w-5 h-5 animate-spin mr-2" /> : null}

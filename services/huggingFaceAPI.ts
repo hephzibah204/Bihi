@@ -42,14 +42,17 @@ export class HuggingFaceClient {
      */
     private loadApiKeyFromStorage(): string | null {
         // Try environment variable first (server-side or build-time)
+        // Support Vite and Next-style public keys
         if (process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY) {
             return process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY;
         }
-        
-        // Try HUGGINGFACE_API_KEY (Cloudflare Pages environment)
+        // Vite define for non-VITE_ env
         if (process.env.HUGGINGFACE_API_KEY) {
             return process.env.HUGGINGFACE_API_KEY;
         }
+        // Vite public env (recommended)
+        const viteEnvKey = (typeof import.meta !== 'undefined' && (import.meta as any)?.env?.VITE_HUGGINGFACE_API_KEY) || undefined;
+        if (viteEnvKey) return viteEnvKey as string;
         
         // Fallback to localStorage (browser only, for user-provided keys)
         if (typeof window === 'undefined') return null;

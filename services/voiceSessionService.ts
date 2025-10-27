@@ -71,7 +71,7 @@ export class VoiceSessionService {
             if (error) throw error;
             return data;
         } catch (error) {
-            logger.error('Failed to create voice session', { error: error as any });
+            logger.error('Failed to create voice session', { error: error as unknown });
             throw new Error('Could not create voice session');
         }
     }
@@ -84,7 +84,7 @@ export class VoiceSessionService {
         updates: UpdateVoiceSessionParams
     ): Promise<VoiceSession> {
         try {
-            const updateData: any = {};
+            const updateData: Record<string, unknown> = {};
 
             if (updates.transcripts !== undefined) {
                 updateData.transcripts = updates.transcripts;
@@ -109,7 +109,7 @@ export class VoiceSessionService {
             if (error) throw error;
             return data;
         } catch (error) {
-            logger.error('Failed to update voice session', { error: error as any });
+            logger.error('Failed to update voice session', { error: error as unknown });
             throw new Error('Could not update voice session');
         }
     }
@@ -147,7 +147,7 @@ export class VoiceSessionService {
 
             return data;
         } catch (error) {
-            logger.error('Failed to get voice session', { error: error as any });
+            logger.error('Failed to get voice session', { error: error as unknown });
             throw new Error('Could not retrieve voice session');
         }
     }
@@ -178,7 +178,7 @@ export class VoiceSessionService {
             if (error) throw error;
             return data || [];
         } catch (error) {
-            logger.error('Failed to list voice sessions', { error: error as any });
+            logger.error('Failed to list voice sessions', { error: error as unknown });
             throw new Error('Could not list voice sessions');
         }
     }
@@ -197,7 +197,7 @@ export class VoiceSessionService {
             if (error) throw error;
             return data || [];
         } catch (error) {
-            logger.error('Failed to get sessions for conversation', { error: error as any });
+            logger.error('Failed to get sessions for conversation', { error: error as unknown });
             throw new Error('Could not retrieve conversation sessions');
         }
     }
@@ -214,7 +214,7 @@ export class VoiceSessionService {
 
             if (error) throw error;
         } catch (error) {
-            logger.captureError(error as any, 'Failed to delete voice session');
+            logger.captureError(error as unknown, 'Failed to delete voice session');
             throw new Error('Could not delete voice session');
         }
     }
@@ -256,7 +256,7 @@ export class VoiceSessionService {
 
             return stats;
         } catch (error) {
-            logger.captureError(error as any, 'Failed to get user stats');
+            logger.captureError(error as unknown, 'Failed to get user stats');
             throw new Error('Could not retrieve user statistics');
         }
     }
@@ -305,7 +305,7 @@ export class VoiceSessionService {
 
             return true;
         } catch (error) {
-            logger.captureError(error as any, 'Failed to sync to conversation');
+            logger.captureError(error as unknown, 'Failed to sync to conversation');
             return false;
         }
     }

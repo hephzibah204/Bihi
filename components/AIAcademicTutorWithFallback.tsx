@@ -8,11 +8,17 @@ import MicrophoneIcon from './icons/MicrophoneIcon';
 import StopIcon from './icons/StopIcon';
 import SparklesIcon from './icons/SparklesIcon';
 import UserCircleIcon from './icons/UserCircleIcon';
-import SpinnerIcon from './icons/SpinnerIcon';
 
 interface Props {
     demoUserId?: string;
 }
+
+type FallbackAPI = {
+    startListening: () => void;
+    stopListening: () => void;
+    stopSpeaking: () => void;
+    cleanup: () => void;
+};
 
 const AIAcademicTutorWithFallback: React.FC<Props> = ({ demoUserId }) => {
     const [useGemini, setUseGemini] = useState(true);
@@ -20,7 +26,7 @@ const AIAcademicTutorWithFallback: React.FC<Props> = ({ demoUserId }) => {
     const [fallbackActive, setFallbackActive] = useState(false);
     const [fallbackStatus, setFallbackStatus] = useState<'idle' | 'listening' | 'speaking' | 'error'>('idle');
     const [fallbackTranscripts, setFallbackTranscripts] = useState<VoiceTranscript[]>([]);
-    const fallbackRef = useRef<any>(null);
+    const fallbackRef = useRef<FallbackAPI | null>(null);
     const transcriptsEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -81,17 +87,6 @@ const AIAcademicTutorWithFallback: React.FC<Props> = ({ demoUserId }) => {
         setFallbackStatus('idle');
     };
 
-    const handleGeminiError = (error: string) => {
-        console.warn('Gemini unavailable:', error);
-        setGeminiError(error);
-        
-        // Check if fallback is available
-        if (isFallbackAvailable()) {
-            console.log('Switching to voice fallback mode...');
-            setUseGemini(false);
-            setFallbackActive(true);
-        }
-    };
 
     const getStatusIndicator = () => {
         switch (fallbackStatus) {

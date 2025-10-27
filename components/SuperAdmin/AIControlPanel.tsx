@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { AISettingsPanel } from '../AISettings';
 import { AIUsageDashboard } from '../AIUsageDashboard';
 import { getAIRouter, type AISettings } from '../../services/aiRouter';
+import { logger } from '../../utils/logger';
 
 interface AIControlPanelProps {
   isSuperAdmin: boolean;
@@ -28,7 +29,7 @@ export const SuperAdminAIControlPanel: React.FC<AIControlPanelProps> = ({ isSupe
   const handleSettingsChange = (settings: AISettings) => {
     // Save to database/localStorage for site-wide application
     localStorage.setItem('sitewide_ai_settings', JSON.stringify(settings));
-    console.log('Site-wide AI settings updated:', settings);
+    logger.info('Site-wide AI settings updated', { settings });
     
     // Show success notification
     alert('AI settings updated successfully for all users!');

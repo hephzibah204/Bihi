@@ -4,6 +4,7 @@ import { useQRCodeGenerator } from '../hooks/useQRCodeGenerator';
 import { useAI } from '../hooks/useAI';
 import Modal from './Modal';
 import StudentReportCardViewer from './StudentReportCardViewer';
+import { logger } from '../utils/logger';
 
 const StudentProfile = ({ demoUserId }) => {
     const [student, setStudent] = useState(null);
@@ -56,7 +57,7 @@ const StudentProfile = ({ demoUserId }) => {
                     setSubjects(allSubjects);
                 }
             } catch (error) {
-                console.error('Error fetching student profile:', error);
+                logger.error('Error fetching student profile', { error: error as unknown });
             } finally {
                 setLoading(false);
             }
@@ -88,7 +89,7 @@ Keep the analysis professional and actionable for educators.`;
             setAiAnalysis(content);
             setShowAIAnalysis(true);
         } catch (error) {
-            console.error('Error generating AI analysis:', error);
+            logger.error('Error generating AI analysis', { error: error as unknown });
             setAiAnalysis('Unable to generate analysis at this time. Please try again later.');
             setShowAIAnalysis(true);
         } finally {

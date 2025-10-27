@@ -103,7 +103,7 @@ const AnalyticsDashboard = () => {
                     <div>
                         <h4 className="font-semibold text-slate-900 mb-3">Step 1: Get Your Google Analytics Property ID</h4>
                         <ol className="text-sm text-slate-600 space-y-2 ml-4">
-                            <li>1. Go to <a href="https://analytics.google.com" target="_blank" className="text-blue-600 underline">analytics.google.com</a></li>
+<li>1. Go to <a href="https://analytics.google.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">analytics.google.com</a></li>
                             <li>2. Select your account and property</li>
                             <li>3. Go to Admin → Property Settings</li>
                             <li>4. Copy your Measurement ID (starts with G-)</li>

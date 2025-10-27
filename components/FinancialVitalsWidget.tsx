@@ -5,11 +5,13 @@ import { formatNGN } from '../utils/currency';
 
 type Metric = { label: string; value: string; hint?: string; tone?: 'success' | 'warn' | 'danger' };
 
-type InvoiceLike = any;
-type PaymentLike = any;
-type ExpenseLike = any;
-type PayrollRunLike = any;
-type IncomeLike = any;
+import type { Invoice, Payment, Expense, PayrollRun, Income } from '../types';
+
+type InvoiceLike = Invoice;
+type PaymentLike = Payment;
+type ExpenseLike = Expense;
+type PayrollRunLike = PayrollRun;
+type IncomeLike = Income;
 
 const currency = (n: number) => formatNGN(n);
 
@@ -35,11 +37,10 @@ const FinancialVitalsWidget: React.FC = () => {
     const fetchAll = async () => {
       try {
         setLoading(true);
-        const [settings, invoices, payments, students, expenses, payrollRuns, incomes] = await Promise.all([
+        const [settings, invoices, payments, expenses, payrollRuns, incomes] = await Promise.all([
           apiGetSchoolSettings(),
           apiGetInvoices(),
           apiGetPayments(),
-          apiGetStudents(),
           apiGetExpenses(),
           apiGetPayrollRuns(),
           apiGetIncome(),
@@ -59,7 +60,7 @@ const FinancialVitalsWidget: React.FC = () => {
         // Derive sessions and terms from invoices data plus current settings
         const sessionSet = new Set<string>();
         const termSet = new Set<string>();
-        (invoices || []).forEach((inv: any) => {
+        (invoices || []).forEach((inv: InvoiceLike) => {
           if (inv.session) sessionSet.add(inv.session);
           if (inv.term) termSet.add(inv.term);
         });
@@ -69,7 +70,7 @@ const FinancialVitalsWidget: React.FC = () => {
         setTerms(Array.from(termSet));
 
       } catch (e) {
-        console.error('Failed to fetch financial data', e);
+        // Non-fatal: keep UI placeholders
         setInvoicesData([]);
         setPaymentsData([]);
         setExpensesData([]);
@@ -88,7 +89,7 @@ const FinancialVitalsWidget: React.FC = () => {
     const cutoff = new Date(now);
     cutoff.setDate(now.getDate() - 7);
 
-    const filteredInvoices = invoicesData.filter((inv: any) => {
+    const filteredInvoices = invoicesData.filter((inv: InvoiceLike) => {
       if (selectedSession && inv.session && inv.session !== selectedSession) return false;
       if (selectedTerm && inv.term && inv.term !== selectedTerm) return false;
       return true;
@@ -106,7 +107,7 @@ const FinancialVitalsWidget: React.FC = () => {
     const collectionRate = totalBilled > 0 ? +(100 * (totalPaid / totalBilled)).toFixed(1) : 0;
 
     const paymentsByInvoice = new Map<string, { date: number; amount: number }[]>();
-    (paymentsData || []).forEach((p: any) => {
+    (paymentsData || []).forEach((p: PaymentLike) => {
       const arr = paymentsByInvoice.get(p.invoiceId) || [];
       arr.push({ date: new Date(p.paymentDate).getTime(), amount: p.amount || 0 });
       paymentsByInvoice.set(p.invoiceId, arr);
@@ -145,25 +146,25 @@ const FinancialVitalsWidget: React.FC = () => {
     ninetyDaysAgo.setDate(now.getDate() - 90);
     const ninetyTs = ninetyDaysAgo.getTime();
 
-    const paymentsRecent = (paymentsData || []).filter((p: any) => {
+    const paymentsRecent = (paymentsData || []).filter((p: PaymentLike) => {
       const ts = new Date(p.paymentDate).getTime();
       return isFinite(ts) && ts >= ninetyTs;
-    }).reduce((s: number, p: any) => s + (p.amount || 0), 0);
+    }).reduce((s: number, p: PaymentLike) => s + (p.amount || 0), 0);
 
-    const incomeRecent = (incomesData || []).filter((inc: any) => {
+    const incomeRecent = (incomesData || []).filter((inc: IncomeLike) => {
       const ts = new Date(inc.date).getTime();
       return isFinite(ts) && ts >= ninetyTs;
-    }).reduce((s: number, inc: any) => s + (inc.amount || 0), 0);
+    }).reduce((s: number, inc: IncomeLike) => s + (inc.amount || 0), 0);
 
-    const expensesRecent = (expensesData || []).filter((exp: any) => {
+    const expensesRecent = (expensesData || []).filter((exp: ExpenseLike) => {
       const ts = new Date(exp.date).getTime();
       return isFinite(ts) && ts >= ninetyTs;
-    }).reduce((s: number, exp: any) => s + (exp.amount || 0), 0);
+    }).reduce((s: number, exp: ExpenseLike) => s + (exp.amount || 0), 0);
 
-    const payrollRecent = (payrollData || []).filter((pr: any) => {
+    const payrollRecent = (payrollData || []).filter((pr: PayrollRunLike) => {
       const ts = new Date(pr.runDate).getTime();
       return isFinite(ts) && ts >= ninetyTs;
-    }).reduce((s: number, pr: any) => s + (pr.totalNet || 0), 0);
+    }).reduce((s: number, pr: PayrollRunLike) => s + (pr.totalNet || 0), 0);
 
     setRevenueVsExpenses({ revenue: paymentsRecent + incomeRecent, expenses: expensesRecent + payrollRecent });
 

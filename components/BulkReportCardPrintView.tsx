@@ -10,7 +10,7 @@ import MinimalistReportCard from './report-templates/MinimalistReportCard';
 import SpinnerIcon from './icons/SpinnerIcon';
 import '../styles/report-card.css';
 
-const BulkReportCardPrintView = ({ studentIds, allData, onClose, action }) => {
+const BulkReportCardPrintView = ({ studentIds, allData, onClose, action, templateKey = 'auto' }) => {
     const [isProcessing, setIsProcessing] = useState(false);
     
     const handleDownload = async () => {
@@ -61,6 +61,11 @@ const BulkReportCardPrintView = ({ studentIds, allData, onClose, action }) => {
     const studentsToPrint = allData.allStudents.filter(s => studentIds.includes(s.id));
 
     const getTemplateForStudent = (student) => {
+        if (templateKey && templateKey !== 'auto') {
+            if (templateKey === 'modern') return ModernReportCard;
+            if (templateKey === 'classic') return ClassicReportCard;
+            if (templateKey === 'minimalist') return MinimalistReportCard;
+        }
         return getReportCardTemplate(student.class, allData.settings);
     }
 

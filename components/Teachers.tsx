@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { apiGetTeachers, apiUpsertTeacher, apiDeleteTeacher } from '../services/api';
-import { Teacher, UserRole } from '../types';
+import { apiGetTeachers, apiUpsertTeacher, apiDeleteTeacher, apiGetSubjects } from '../services/api';
+import { Teacher, UserRole, Subject } from '../types';
 import Modal from './Modal';
 import PlusIcon from './icons/PlusIcon';
+import TeacherAssignments from './TeacherAssignments';
 import EditIcon from './icons/EditIcon';
 import TrashIcon from './icons/TrashIcon';
 import ConfirmationModal from './ConfirmationModal';
@@ -17,6 +18,7 @@ const Teachers = () => {
     const [editingTeacher, setEditingTeacher] = useState<Partial<Teacher> | null>(null);
     const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
     const [teacherToDelete, setTeacherToDelete] = useState<Teacher | null>(null);
+    const [isAssignmentsOpen, setAssignmentsOpen] = useState(false);
 
     const fetchTeachers = async () => {
         setLoading(true);
@@ -91,11 +93,13 @@ const Teachers = () => {
 
     return (
         <div>
-            <div className="flex justify-end mb-6">
+            <div className="flex justify-between items-center mb-6">
+                <button onClick={() => setAssignmentsOpen(true)} className="btn btn-secondary">Manage Assignments</button>
                 <button onClick={() => handleOpenModal()} className="btn btn-primary"><PlusIcon className="w-5 h-5 mr-2" /> Add Teacher/Staff</button>
             </div>
             {renderContent()}
             {isModalOpen && <TeacherFormModal teacher={editingTeacher} onSave={handleSaveTeacher} onClose={() => setModalOpen(false)} />}
+            {isAssignmentsOpen && <TeacherAssignments onClose={() => setAssignmentsOpen(false)} />}
             <ConfirmationModal
                 isOpen={isDeleteModalOpen}
                 onClose={() => setDeleteModalOpen(false)}
@@ -108,10 +112,26 @@ const Teachers = () => {
 };
 
 const TeacherFormModal = ({ teacher, onSave, onClose }) => {
-    const [formData, setFormData] = useState({ name: '', email: '', role: USER_ROLES.TEACHER, baseSalary: 0, ...teacher });
+    const [formData, setFormData] = useState({ name: '', email: '', role: USER_ROLES.TEACHER, baseSalary: 0, classTeacherOf: '', subjects: [], ...teacher });
+    const [subjects, setSubjects] = useState<Subject[]>([]);
+    const [classes, setClasses] = useState<string[]>([]);
+
+    useEffect(() => {
+        const load = async () => {
+            const subs = await apiGetSubjects();
+            setSubjects(subs);
+            setClasses([...new Set<string>(subs.flatMap(s => s.classes))].sort());
+        };
+        load();
+    }, []);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleSubjectsChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const selected = Array.from(e.target.selectedOptions).map(o => o.value);
+        setFormData(prev => ({ ...prev, subjects: selected }));
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -129,7 +149,23 @@ const TeacherFormModal = ({ teacher, onSave, onClose }) => {
                     <select name="role" value={formData.role} onChange={handleChange} className="input-field">
                         <option value={USER_ROLES.TEACHER}>Teacher</option>
                         <option value={USER_ROLES.ADMIN}>Admin</option>
+                        <option value={USER_ROLES.BURSAR}>Bursar</option>
+                        <option value={USER_ROLES.SUPER_ADMIN}>Other Staff</option>
                     </select>
+                </div>
+                <div>
+                    <label className="label">Class Teacher Of</label>
+                    <select name="classTeacherOf" value={formData.classTeacherOf || ''} onChange={handleChange} className="input-field">
+                        <option value="">-- None --</option>
+                        {classes.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label className="label">Assigned Subjects</label>
+                    <select multiple value={(formData.subjects as string[]) || []} onChange={handleSubjectsChange} className="input-field h-32">
+                        {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple.</p>
                 </div>
                  <div><label className="label">Base Salary (Monthly)</label><input type="number" name="baseSalary" value={formData.baseSalary || ''} onChange={handleChange} className="input-field" /></div>
                 <div className="flex justify-end pt-2"><button type="submit" className="btn btn-primary">Save</button></div>

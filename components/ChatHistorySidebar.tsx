@@ -48,8 +48,12 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
         <>
             {/* Overlay */}
             <div
+                role="button"
+                tabIndex={0}
+                aria-label="Close chat history"
                 className="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity"
                 onClick={onClose}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClose(); }}
             />
 
             {/* Sidebar */}
@@ -98,15 +102,19 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
                         />
                     ) : (
                         <>
-                            <ConversationHistory
-                                conversationId={selectedConversationId!}
-                                authToken={authToken}
-                                autoScroll={true}
-                                showSourceBadge={true}
-                            />
+                            {selectedConversationId ? (
+                                <ConversationHistory
+                                    conversationId={selectedConversationId}
+                                    authToken={authToken}
+                                    autoScroll={true}
+                                    showSourceBadge={true}
+                                />
+                            ) : (
+                                <div className="p-4 text-center text-gray-500">No conversation selected.</div>
+                            )}
                             
                             {/* Action buttons when viewing conversation */}
-                            {onLoadConversation && (
+                            {onLoadConversation && selectedConversationId && (
                                 <div className="p-4 border-t bg-gray-50">
                                     <button
                                         onClick={handleLoadConversation}

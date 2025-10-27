@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiGetTenants, apiGetPlatformSettings } from '../../services/api';
+import { logger } from '../../utils/logger';
 
 interface DashboardStats {
     totalTenants: number;
@@ -170,7 +171,7 @@ const QuickActionsWidget = () => {
     ];
 
     const handleAction = (action: string) => {
-        console.log(`Executing action: ${action}`);
+        logger.info('Executing quick action', { action, scope: 'SuperAdminOverview' });
         // TODO: Implement actual actions
     };
 
@@ -319,7 +320,7 @@ const SuperAdminOverview = () => {
                 ]);
 
             } catch (error) {
-                console.error('Failed to fetch dashboard data:', error);
+                logger.captureError(error, 'Failed to fetch dashboard data', { scope: 'SuperAdminOverview' });
             } finally {
                 setLoading(false);
             }

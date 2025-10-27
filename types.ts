@@ -62,6 +62,7 @@ export interface Teacher {
   role: UserRole;
   classTeacherOf?: string;
   baseSalary?: number;
+  subjects?: string[];
 }
 
 export interface Parent {

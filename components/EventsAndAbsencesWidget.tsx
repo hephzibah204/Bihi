@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { apiGetEvents, apiGetAbsenceReports } from '../services/api';
 import CalendarIcon from './icons/CalendarIcon';
 import UserMinusIcon from './icons/UserMinusIcon';
+import { logger } from '../utils/logger';
 
 type UpcomingEvent = { id: string; date: string; title: string };
 type RecentAbsence = { id: string; date: string; reason: string };
@@ -36,7 +37,7 @@ const EventsAndAbsencesWidget: React.FC = () => {
         setEvents(upcoming);
         setAbsences(recent);
       } catch (e) {
-        console.error('Failed to load events/absences', e);
+        logger.error('Failed to load events/absences', { error: e as unknown });
         setEvents([]);
         setAbsences([]);
       } finally {

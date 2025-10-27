@@ -60,7 +60,7 @@ const IncomeExpenseTrendChart: React.FC = () => {
         setIncomeSeries(incomeByMonth);
         setExpenseSeries(expenseByMonth);
       } catch (e) {
-        console.error('Failed to load income/expense trend', e);
+        // Non-fatal: keep empty chart fallback
         setLabels([]);
         setIncomeSeries([]);
         setExpenseSeries([]);

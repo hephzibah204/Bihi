@@ -36,13 +36,7 @@ const ReportCard = ({ setActiveView }: ReportCardProps) => {
             icon: <DocumentArrowDownIcon className="w-8 h-8" />,
             action: () => setShowGenerator(true),
         },
-        {
-            title: 'AI Comment Generator',
-            description: 'Use AI to write insightful and personalized student comments.',
-            icon: <SparklesIcon className="w-8 h-8" />,
-            // FIX: Cast ADMIN_VIEWS constant to DashboardView type.
-            action: () => setActiveView(ADMIN_VIEWS.AI_TOOLS as DashboardView),
-        },
+        // Removed AI Comment Generator from Dossier Hub; accessible via AI Tools
         {
             title: 'Performance Analytics',
             description: 'View class performance, subject averages, and trends.',

@@ -1,4 +1,4 @@
-﻿// services/api.ts
+// services/api.ts
 import { supabase } from './supabaseClient';
 import { DEMO_TENANT_ID, CORE_DEMO_DATA } from '../utils/demoData';
 import { withRetry } from '../utils/retry';
@@ -27,6 +27,7 @@ import type {
 import { USER_ROLES } from '../utils/constants';
 import { DEFAULT_LANDING_PAGE_CONTENT, DEFAULT_MENU_ITEMS } from '../utils/landingPageContent';
 import { getSubdomain } from '../utils/subdomain';
+import { logger } from '../utils/logger';
 
 // --- New Fallback Logic Implementation ---
 
@@ -88,7 +89,7 @@ async function fetchWithExponentialBackoff<T>(
     } catch (error) {
       attempt++;
       if (attempt >= maxRetries) {
-        console.error(`All ${maxRetries} attempts failed for ${url}.`, error);
+        logger.error('All attempts failed for URL', { url, error });
         throw error; // Rethrow the last error after all retries fail.
       }
       
@@ -97,9 +98,7 @@ async function fetchWithExponentialBackoff<T>(
       const jitter = delay * 0.5 * Math.random(); // Jitter is up to 50% of the delay
       const backoffTime = delay + jitter;
       
-      console.warn(
-        `Attempt ${attempt} for ${url} failed: ${error.message}. Retrying in ${Math.round(backoffTime)}ms...`
-      );
+      logger.warn('Fetch attempt failed, retrying', { attempt, url, error: (error as any)?.message, backoffMs: Math.round(backoffTime) });
       await new Promise(resolve => setTimeout(resolve, backoffTime));
     }
   }
@@ -173,6 +172,32 @@ const del = async (table: string, id: string) => {
         if (error) throw error;
         return { id };
     });
+};
+
+// --- Storage (Uploads) ---
+export const apiUploadSchoolLogo = async (file: File): Promise<string> => {
+    // In demo mode, persist the image as a data URL within settings
+    if (isDemo()) {
+        const dataUrl: string = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+        return dataUrl;
+    }
+    if (!supabase) throw new Error('Storage client not available');
+    const tenant_id = getTenantId() || 'default';
+    const cleanName = file.name.replace(/[^a-zA-Z0-9_.-]/g, '_');
+    const path = `logos/${tenant_id}/${Date.now()}_${cleanName}`;
+    const { data, error } = await supabase.storage.from('school-assets').upload(path, file, {
+        upsert: true,
+        cacheControl: '3600'
+    });
+    if (error) throw error;
+    const { data: pub } = supabase.storage.from('school-assets').getPublicUrl(data.path);
+    if (!pub?.publicUrl) throw new Error('Failed to generate public URL for logo');
+    return pub.publicUrl;
 };
 
 // --- Students ---
@@ -519,7 +544,18 @@ export const apiSendAlumniEmail = async (recipients: string[], subject: string, 
 
 export const apiGetCommunicationLogs = () => get<CommunicationLog>('communication_logs');
 export const apiUpsertCommunicationLog = (log: Partial<CommunicationLog>) => upsert('communication_logs', log);
-export const apiGetMessageTemplates = () => get<MessageTemplate>('message_templates');
+export const apiGetMessageTemplates = async (): Promise<MessageTemplate[]> => {
+    if (isDemo()) {
+        // Provide sensible defaults in demo
+        return [
+            { id: 'tmpl_fee_overdue_sms', name: 'Overdue Fees Reminder (SMS)', type: 'sms', content: 'Dear Parent, your ward has an outstanding school fee of ₦{{outstanding}} for {{term}} {{session}}. Please pay by {{due_date}}. Thank you.' } as any,
+            { id: 'tmpl_fee_partial_sms', name: 'Partial Payment Reminder (SMS)', type: 'sms', content: 'Dear Parent, a partial payment was made. Balance outstanding: ₦{{balance}}. Kindly settle by {{due_date}}.' } as any,
+            { id: 'tmpl_attendance_absent_sms', name: 'Attendance Alert (Absent) (SMS)', type: 'sms', content: 'Dear Parent, {{student_name}} was marked absent today ({{date}}). Please contact the school if this is unexpected.' } as any,
+            { id: 'tmpl_performance_update_email', name: 'Performance Update (Email)', type: 'email', subject: 'Performance Update for {{student_name}}', content: 'Dear Parent/Guardian,\n\nHere is a brief performance update for {{student_name}} for {{term}} {{session}}. Average score: {{average}}%. Kindly encourage consistent study habits.\n\nRegards,\n{{school_name}}' } as any,
+        ];
+    }
+    return get<MessageTemplate>('message_templates');
+};
 export const apiUpsertMessageTemplate = (template: Partial<MessageTemplate>) => upsert('message_templates', template);
 export const apiDeleteMessageTemplate = (templateId: string) => del('message_templates', templateId);
 export const apiGetScheduledReminders = () => get<ScheduledReminder>('scheduled_reminders');
@@ -662,7 +698,7 @@ export const apiSendDirectMessage = async (message: Message): Promise<Message> =
         .eq('id', message.conversationId);
 
     if (updateConvoError) {
-        console.error("Failed to update conversation summary:", updateConvoError);
+        logger.error('Failed to update conversation summary', { error: updateConvoError });
     }
     
     return {
@@ -810,8 +846,8 @@ const fetchFromNetworkAndCache = async (): Promise<PlatformSettings> => {
     try {
         data = await fetchWithTimeout<PlatformSettings>(CLOUDFLARE_URL, { headers }, 4000);
     } catch (err: any) {
-        console.warn("âš ï¸ Cloudflare failed:", err.message);
-    }
+            logger.warn('Cloudflare platform settings fetch failed', { error: err.message });
+        }
 
     // Fallback: Supabase Edge Function with retry logic
     if (!data) {
@@ -821,7 +857,7 @@ const fetchFromNetworkAndCache = async (): Promise<PlatformSettings> => {
                 { headers }
             );
         } catch (err: any) {
-            console.error("âŒ Supabase fallback failed after all retries:", err.message);
+            logger.error('Supabase fallback failed after all retries', { error: err.message });
             throw new Error("Both primary and fallback sources failed.");
         }
     }
@@ -842,7 +878,7 @@ const fetchFromNetworkAndCache = async (): Promise<PlatformSettings> => {
     try {
         localStorage.setItem(PLATFORM_SETTINGS_CACHE_KEY, JSON.stringify(cachePayload));
     } catch (e) {
-        console.warn("Could not write to localStorage:", e);
+        logger.warn('Could not write platform settings cache to localStorage', { error: e });
     }
     
     return fullSettings;
@@ -877,14 +913,14 @@ export const apiGetPlatformSettings = async () => {
             if (isStale) {
                 // Don't await, let it run in the background to update cache for next time
                 fetchFromNetworkAndCache().catch(err => {
-                    console.error("Background cache refresh failed:", err.message);
+                    logger.error('Background cache refresh failed', { error: err?.message });
                 });
             }
             
             return data; // Return cached data (stale or fresh) immediately
 
         } catch (e) {
-            console.warn("Failed to parse cache, fetching from network.", e);
+            logger.warn('Failed to parse platform settings cache, fetching from network', { error: e });
             localStorage.removeItem(PLATFORM_SETTINGS_CACHE_KEY); // Clear bad cache
         }
     }
@@ -893,7 +929,7 @@ export const apiGetPlatformSettings = async () => {
     try {
         return await fetchFromNetworkAndCache();
     } catch (err) {
-        console.error("âŒ All fetch attempts failed, falling back to default content:", err.message);
+        logger.error('All platform settings fetch attempts failed; using defaults', { error: (err as any)?.message });
         // Ensure we always return a valid object with all required properties
         const defaultSettings = { 
             landingPageContent: DEFAULT_LANDING_PAGE_CONTENT, 
@@ -908,7 +944,7 @@ export const apiGetPlatformSettings = async () => {
                 data: defaultSettings
             }));
         } catch (cacheErr) {
-            console.warn("Failed to cache default settings:", cacheErr);
+            logger.warn('Failed to cache default platform settings', { error: cacheErr });
         }
         
         return defaultSettings;

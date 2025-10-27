@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { apiGetCommunicationLogs, apiGetStudents } from '../services/api';
 import { supabase } from '../services/supabaseClient';
 import { formatDate } from '../utils/dateHelpers';
+import { logger } from '../utils/logger';
 
 const NotificationViewer = ({ demoUserId }) => {
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [student, setStudent] = useState(null);
 
-    const fetchData = async () => {
+    const fetchData = React.useCallback(async () => {
         setLoading(true);
         try {
             const [allAnnouncements, allStudents] = await Promise.all([
@@ -36,18 +37,19 @@ const NotificationViewer = ({ demoUserId }) => {
             filterAndSetNotifications(allAnnouncements);
 
         } catch (error) {
-            console.error("Failed to load notifications", error);
+            logger.error('Failed to load notifications', { error: error as unknown });
         } finally {
             setLoading(false);
         }
-    };
+    }, [demoUserId]);
 
     useEffect(() => {
         fetchData();
 
         if (!supabase) return;
 
-        const handleNewAnnouncement = (payload) => {
+        interface MinimalAnnouncement { id: string; recipients?: string[]; channel: string; content: string; sentAt: string }
+        const handleNewAnnouncement = (payload: { new: MinimalAnnouncement }) => {
              const newAnn = payload.new;
              setNotifications(prev => {
                 // Avoid duplicates
@@ -75,7 +77,7 @@ const NotificationViewer = ({ demoUserId }) => {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [demoUserId, student]); // Re-run effect if student context changes
+    }, [demoUserId, student, fetchData]); // Re-run effect if student context changes
     
     if (loading) return <div className="card p-6 text-center">Loading notifications...</div>;
 

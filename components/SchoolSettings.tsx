@@ -1,5 +1,5 @@
 import React, { useState, useEffect, PropsWithChildren } from 'react';
-import { apiGetSchoolSettings, apiSaveSchoolSettings } from '../services/api';
+import { apiGetSchoolSettings, apiSaveSchoolSettings, apiUploadSchoolLogo } from '../services/api';
 import { SchoolSettings, ReportCardSkill, ClassLevel, ClassSection } from '../types';
 import SpinnerIcon from './icons/SpinnerIcon';
 import PlusIcon from './icons/PlusIcon';
@@ -18,17 +18,49 @@ const TabButton = ({ view, active, onClick, children }: PropsWithChildren<{ view
     </button>
 );
 
-const GeneralSettings = ({ settings, onSettingsChange }) => (
-    <div className="space-y-4">
-        <div><label className="label">School Name</label><input type="text" value={settings.schoolName || ''} onChange={e => onSettingsChange({ schoolName: e.target.value })} className="input-field" /></div>
-        <div><label className="label">School Address</label><input type="text" value={settings.schoolAddress || ''} onChange={e => onSettingsChange({ schoolAddress: e.target.value })} className="input-field" /></div>
-        <div><label className="label">School Logo URL</label><input type="text" value={settings.schoolLogo || ''} onChange={e => onSettingsChange({ schoolLogo: e.target.value })} className="input-field" /></div>
-        <div className="grid grid-cols-2 gap-4">
-            <div><label className="label">Current Session</label><input type="text" value={settings.session || ''} onChange={e => onSettingsChange({ session: e.target.value })} className="input-field" placeholder="e.g., 2023/2024" /></div>
-            <div><label className="label">Current Term</label><select value={settings.term || ''} onChange={e => onSettingsChange({ term: e.target.value })} className="input-field"><option>First Term</option><option>Second Term</option><option>Third Term</option></select></div>
+const GeneralSettings = ({ settings, onSettingsChange }) => {
+    const [uploading, setUploading] = useState(false);
+    const handleLogoFile = async (file?: File) => {
+        if (!file) return;
+        setUploading(true);
+        try {
+            const url = await apiUploadSchoolLogo(file);
+            onSettingsChange({ schoolLogo: url });
+            window.dispatchEvent(new CustomEvent('show-global-success', { detail: { message: 'Logo uploaded successfully.' } }));
+        } catch (e: any) {
+            window.dispatchEvent(new CustomEvent('show-global-error', { detail: { message: `Logo upload failed: ${e?.message || 'Unknown error'}` } }));
+        } finally {
+            setUploading(false);
+        }
+    };
+    return (
+        <div className="space-y-4">
+            <div><label className="label" htmlFor="schoolName">School Name</label><input id="schoolName" type="text" value={settings.schoolName || ''} onChange={e => onSettingsChange({ schoolName: e.target.value })} className="input-field" /></div>
+            <div><label className="label" htmlFor="schoolAddress">School Address</label><input id="schoolAddress" type="text" value={settings.schoolAddress || ''} onChange={e => onSettingsChange({ schoolAddress: e.target.value })} className="input-field" /></div>
+            <div>
+                <label className="label" htmlFor="schoolLogoUpload">School Logo</label>
+                <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-lg border flex items-center justify-center bg-gray-50 overflow-hidden">
+                        {settings.schoolLogo ? <img src={settings.schoolLogo} alt="Logo" className="w-full h-full object-contain" /> : <span className="text-xs text-gray-400">No logo</span>}
+                    </div>
+                    <div className="space-y-2">
+                        <input id="schoolLogoUpload" type="file" accept="image/*" onChange={e => handleLogoFile(e.target.files?.[0])} />
+                        <div className="text-xs text-gray-500">Supported: PNG, JPG, SVG. For hosted logos, you can still paste a URL below.</div>
+                        <input id="schoolLogoUrl" aria-label="School logo URL" type="text" value={settings.schoolLogo || ''} onChange={e => onSettingsChange({ schoolLogo: e.target.value })} className="input-field" placeholder="Or paste logo URL" />
+                        {settings.schoolLogo && (
+                            <button type="button" className="btn btn-outline btn-sm" onClick={() => onSettingsChange({ schoolLogo: '' })}>Remove Logo</button>
+                        )}
+                    </div>
+                </div>
+                {uploading && <div className="text-xs text-indigo-600 mt-1">Uploading...</div>}
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                <div><label className="label" htmlFor="currentSession">Current Session</label><input id="currentSession" type="text" value={settings.session || ''} onChange={e => onSettingsChange({ session: e.target.value })} className="input-field" placeholder="e.g., 2023/2024" /></div>
+                <div><label className="label" htmlFor="currentTerm">Current Term</label><select id="currentTerm" value={settings.term || ''} onChange={e => onSettingsChange({ term: e.target.value })} className="input-field"><option>First Term</option><option>Second Term</option><option>Third Term</option></select></div>
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 const GradingSettings = ({ settings, onSettingsChange }) => {
     const handleChange = (index: number, field: string, value: any) => {
@@ -48,9 +80,9 @@ const GradingSettings = ({ settings, onSettingsChange }) => {
     return (
         <div className="space-y-4">
             <div className="grid grid-cols-3 gap-4">
-                <div><label className="label">Max CA 1 Score</label><input type="number" value={settings.maxCa1 || 0} onChange={e => onSettingsChange({ maxCa1: Number(e.target.value) })} className="input-field"/></div>
-                <div><label className="label">Max CA 2 Score</label><input type="number" value={settings.maxCa2 || 0} onChange={e => onSettingsChange({ maxCa2: Number(e.target.value) })} className="input-field"/></div>
-                <div><label className="label">Max Exam Score</label><input type="number" value={settings.maxExam || 0} onChange={e => onSettingsChange({ maxExam: Number(e.target.value) })} className="input-field"/></div>
+                <div><label className="label" htmlFor="maxCa1">Max CA 1 Score</label><input id="maxCa1" type="number" value={settings.maxCa1 || 0} onChange={e => onSettingsChange({ maxCa1: Number(e.target.value) })} className="input-field"/></div>
+                <div><label className="label" htmlFor="maxCa2">Max CA 2 Score</label><input id="maxCa2" type="number" value={settings.maxCa2 || 0} onChange={e => onSettingsChange({ maxCa2: Number(e.target.value) })} className="input-field"/></div>
+                <div><label className="label" htmlFor="maxExam">Max Exam Score</label><input id="maxExam" type="number" value={settings.maxExam || 0} onChange={e => onSettingsChange({ maxExam: Number(e.target.value) })} className="input-field"/></div>
             </div>
             <div className="space-y-2">
                 {settings.gradingSystem?.map((grade, index) => (
@@ -91,11 +123,12 @@ const ReportCardSettingsTab = ({ settings, onSettingsChange }) => {
 
     return (
         <div className="space-y-4">
-            <div><label className="label">Principal's Name</label><input type="text" value={reportCardSettings.principalName || ''} onChange={e => onSettingsChange({ reportCardSettings: { ...reportCardSettings, principalName: e.target.value } })} className="input-field" /></div>
-            <div><label className="label">School Motto</label><input type="text" value={reportCardSettings.schoolMotto || ''} onChange={e => onSettingsChange({ reportCardSettings: { ...reportCardSettings, schoolMotto: e.target.value } })} className="input-field" /></div>
+            <div><label className="label" htmlFor="principalName">Principal's Name</label><input id="principalName" type="text" value={reportCardSettings.principalName || ''} onChange={e => onSettingsChange({ reportCardSettings: { ...reportCardSettings, principalName: e.target.value } })} className="input-field" /></div>
+            <div><label className="label" htmlFor="schoolMotto">School Motto</label><input id="schoolMotto" type="text" value={reportCardSettings.schoolMotto || ''} onChange={e => onSettingsChange({ reportCardSettings: { ...reportCardSettings, schoolMotto: e.target.value } })} className="input-field" /></div>
             <div>
-              <label className="label">Primary Report Card Template</label>
+              <label className="label" htmlFor="primaryTemplate">Primary Report Card Template</label>
               <select
+                id="primaryTemplate"
                 className="input-field"
                 value={reportCardSettings.primaryTemplate || 'primary_default'}
                 onChange={e => onSettingsChange({ reportCardSettings: { ...reportCardSettings, primaryTemplate: e.target.value } })}
@@ -112,7 +145,7 @@ const ReportCardSettingsTab = ({ settings, onSettingsChange }) => {
                     <h4 className="font-semibold">Affective Skills</h4>
                     {reportCardSettings.affectiveSkills.map((skill, index) => (
                         <div key={skill.id} className="flex items-center gap-2 mt-2">
-                            <input type="text" value={skill.label} onChange={e => handleSkillChange('affectiveSkills', index, e.target.value)} className="input-field" />
+                            <input type="text" aria-label={`Affective skill ${index + 1}`} value={skill.label} onChange={e => handleSkillChange('affectiveSkills', index, e.target.value)} className="input-field" />
                             <button onClick={() => removeSkill('affectiveSkills', index)}><TrashIcon className="w-4 h-4 text-red-500"/></button>
                         </div>
                     ))}
@@ -122,7 +155,7 @@ const ReportCardSettingsTab = ({ settings, onSettingsChange }) => {
                     <h4 className="font-semibold">Psychomotor Skills</h4>
                     {reportCardSettings.psychomotorSkills.map((skill, index) => (
                         <div key={skill.id} className="flex items-center gap-2 mt-2">
-                            <input type="text" value={skill.label} onChange={e => handleSkillChange('psychomotorSkills', index, e.target.value)} className="input-field" />
+                            <input type="text" aria-label={`Psychomotor skill ${index + 1}`} value={skill.label} onChange={e => handleSkillChange('psychomotorSkills', index, e.target.value)} className="input-field" />
                             <button onClick={() => removeSkill('psychomotorSkills', index)}><TrashIcon className="w-4 h-4 text-red-500"/></button>
                         </div>
                     ))}
@@ -275,13 +308,13 @@ const SchoolSettingsComponent = () => {
 
     const renderTabContent = () => {
         switch (activeTab) {
-            case 'general': return <GeneralSettings settings={settings!} onSettingsChange={handleSettingsChange} />;
-            case 'classes': return <ClassSettings settings={settings!} onSettingsChange={handleSettingsChange} />;
-            case 'grading': return <GradingSettings settings={settings!} onSettingsChange={handleSettingsChange} />;
-            case 'report-card': return <ReportCardSettingsTab settings={settings!} onSettingsChange={handleSettingsChange} />;
-            case 'features': return <FeatureControlSettings settings={settings!} onSettingsChange={handleSettingsChange} />;
-            case 'integrations': return <IntegrationSettings settings={settings!} onSettingsChange={handleSettingsChange} />;
-            case 'payments': return <ManualBankSettings settings={settings!} onSettingsChange={handleSettingsChange} />;
+            case 'general': return settings ? <GeneralSettings settings={settings} onSettingsChange={handleSettingsChange} /> : null;
+            case 'classes': return settings ? <ClassSettings settings={settings} onSettingsChange={handleSettingsChange} /> : null;
+            case 'grading': return settings ? <GradingSettings settings={settings} onSettingsChange={handleSettingsChange} /> : null;
+            case 'report-card': return settings ? <ReportCardSettingsTab settings={settings} onSettingsChange={handleSettingsChange} /> : null;
+            case 'features': return settings ? <FeatureControlSettings settings={settings} onSettingsChange={handleSettingsChange} /> : null;
+            case 'integrations': return settings ? <IntegrationSettings settings={settings} onSettingsChange={handleSettingsChange} /> : null;
+            case 'payments': return settings ? <ManualBankSettings settings={settings} onSettingsChange={handleSettingsChange} /> : null;
             default: return null;
         }
     };

@@ -1,7 +1,7 @@
 // components/AIFallbackDashboard.tsx
 // Dashboard for monitoring AI service health and fallback usage
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { getGeminiAIService } from '../services/geminiAIService';
 import { getHuggingFaceClient } from '../services/huggingFaceAPI';
 
@@ -32,47 +32,51 @@ const AIFallbackDashboard: React.FC = () => {
     });
     const [isRefreshing, setIsRefreshing] = useState(false);
 
-    useEffect(() => {
-        checkAllServices();
-        loadStats();
-        
-        // Auto-refresh every 30 seconds
-        const interval = setInterval(() => {
-            checkAllServices();
-            loadStats();
-        }, 30000);
-
-        return () => clearInterval(interval);
+    // Stable accessor for counts stored in localStorage
+    const getLocalStorageCount = useCallback((key: string): number => {
+        if (typeof window === 'undefined') return 0;
+        try {
+            return parseInt(localStorage.getItem(key) || '0', 10);
+        } catch {
+            return 0;
+        }
     }, []);
 
-    const checkAllServices = async () => {
-        setIsRefreshing(true);
-        
-        const serviceStatuses: AIServiceStatus[] = [];
+    const loadStats = useCallback(() => {
+        // Load from localStorage (in real app, this would be from database)
+        const geminiSuccess = getLocalStorageCount('gemini_success') || 0;
+        const geminiFailed = getLocalStorageCount('gemini_failed') || 0;
+        const hfSuccess = getLocalStorageCount('hf_success') || 0;
+        const hfFailed = getLocalStorageCount('hf_failed') || 0;
+        const templateUsed = getLocalStorageCount('template_usage') || 0;
 
-        // Check Gemini
-        const geminiStatus = await checkGeminiService();
-        serviceStatuses.push(geminiStatus);
+        const totalRequests = geminiSuccess + geminiFailed;
+        const fallbackRate = totalRequests > 0 ? (geminiFailed / totalRequests) * 100 : 0;
 
-        // Check HuggingFace
-        const hfStatus = await checkHuggingFaceService();
-        serviceStatuses.push(hfStatus);
-
-        // Template system is always available
-        serviceStatuses.push({
-            name: 'Template System',
-            status: 'active',
-            lastChecked: Date.now(),
-            responseTime: 10,
-            usageCount: getLocalStorageCount('template_usage') || 0,
-            fallbackCount: 0
+        setStats({
+            gemini: {
+                success: geminiSuccess,
+                failed: geminiFailed,
+                avgResponseTime: 1200
+            },
+            huggingface: {
+                success: hfSuccess,
+                failed: hfFailed,
+                avgResponseTime: 2500
+            },
+            templates: {
+                used: templateUsed
+            },
+            total: {
+                requests: totalRequests,
+                fallbackRate: Math.round(fallbackRate)
+            }
         });
+    }, [getLocalStorageCount]);
 
-        setServices(serviceStatuses);
-        setIsRefreshing(false);
-    };
 
-    const checkGeminiService = async (): Promise<AIServiceStatus> => {
+
+    const checkGeminiService = useCallback(async (): Promise<AIServiceStatus> => {
         const startTime = Date.now();
         
         try {
@@ -100,9 +104,9 @@ const AIFallbackDashboard: React.FC = () => {
                 fallbackCount: 0
             };
         }
-    };
+    }, [getLocalStorageCount]);
 
-    const checkHuggingFaceService = async (): Promise<AIServiceStatus> => {
+    const checkHuggingFaceService = useCallback(async (): Promise<AIServiceStatus> => {
         try {
             const hfClient = getHuggingFaceClient();
             
@@ -135,48 +139,48 @@ const AIFallbackDashboard: React.FC = () => {
                 fallbackCount: 0
             };
         }
-    };
+    }, [getLocalStorageCount]);
 
-    const loadStats = () => {
-        // Load from localStorage (in real app, this would be from database)
-        const geminiSuccess = getLocalStorageCount('gemini_success') || 0;
-        const geminiFailed = getLocalStorageCount('gemini_failed') || 0;
-        const hfSuccess = getLocalStorageCount('hf_success') || 0;
-        const hfFailed = getLocalStorageCount('hf_failed') || 0;
-        const templateUsed = getLocalStorageCount('template_usage') || 0;
+    const checkAllServices = useCallback(async () => {
+        setIsRefreshing(true);
+        
+        const serviceStatuses: AIServiceStatus[] = [];
 
-        const totalRequests = geminiSuccess + geminiFailed;
-        const fallbackRate = totalRequests > 0 ? (geminiFailed / totalRequests) * 100 : 0;
+        // Check Gemini
+        const geminiStatus = await checkGeminiService();
+        serviceStatuses.push(geminiStatus);
 
-        setStats({
-            gemini: {
-                success: geminiSuccess,
-                failed: geminiFailed,
-                avgResponseTime: 1200
-            },
-            huggingface: {
-                success: hfSuccess,
-                failed: hfFailed,
-                avgResponseTime: 2500
-            },
-            templates: {
-                used: templateUsed
-            },
-            total: {
-                requests: totalRequests,
-                fallbackRate: Math.round(fallbackRate)
-            }
+        // Check HuggingFace
+        const hfStatus = await checkHuggingFaceService();
+        serviceStatuses.push(hfStatus);
+
+        // Template system is always available
+        serviceStatuses.push({
+            name: 'Template System',
+            status: 'active',
+            lastChecked: Date.now(),
+            responseTime: 10,
+            usageCount: getLocalStorageCount('template_usage') || 0,
+            fallbackCount: 0
         });
-    };
 
-    const getLocalStorageCount = (key: string): number => {
-        if (typeof window === 'undefined') return 0;
-        try {
-            return parseInt(localStorage.getItem(key) || '0');
-        } catch {
-            return 0;
-        }
-    };
+        setServices(serviceStatuses);
+        setIsRefreshing(false);
+    }, [checkGeminiService, checkHuggingFaceService, getLocalStorageCount]);
+
+    useEffect(() => {
+        checkAllServices();
+        loadStats();
+        
+        // Auto-refresh every 30 seconds
+        const interval = setInterval(() => {
+            checkAllServices();
+            loadStats();
+        }, 30000);
+
+        return () => clearInterval(interval);
+    }, [checkAllServices, loadStats]);
+
 
     const getStatusColor = (status: string) => {
         switch (status) {

@@ -14,6 +14,8 @@ const Assignments = () => {
     const [selectedClass, setSelectedClass] = useState('');
     const [isModalOpen, setModalOpen] = useState(false);
     const [editingAssignment, setEditingAssignment] = useState<Partial<Assignment> | null>(null);
+    const [isScoreModalOpen, setScoreModalOpen] = useState(false);
+    const [scoringAssignment, setScoringAssignment] = useState<Assignment | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -67,12 +69,22 @@ const Assignments = () => {
                         <p className="text-sm text-gray-500">{subjects.find(s=>s.id === assignment.subjectId)?.name}</p>
                         <p className="text-sm mt-2">{assignment.description}</p>
                         <div className="text-xs mt-2">Due: {formatDate(assignment.dueDate)}</div>
-                        <button onClick={() => { setEditingAssignment(assignment); setModalOpen(true); }} className="text-indigo-600 text-sm mt-2">Edit</button>
+                        <div className="flex gap-3 mt-2">
+                            <button onClick={() => { setEditingAssignment(assignment); setModalOpen(true); }} className="text-indigo-600 text-sm">Edit</button>
+                            <button onClick={() => { setScoringAssignment(assignment); setScoreModalOpen(true); }} className="text-indigo-600 text-sm">Record Scores</button>
+                        </div>
                     </div>
                 ))}
             </div>
 
             {isModalOpen && <AssignmentFormModal assignment={editingAssignment} subjects={subjects.filter(s => s.classes.includes(selectedClass))} selectedClass={selectedClass} onSave={handleSave} onClose={() => setModalOpen(false)} />}
+            {isScoreModalOpen && scoringAssignment && (
+                <RecordScoresModal
+                    assignment={scoringAssignment}
+                    selectedClass={selectedClass}
+                    onClose={() => { setScoreModalOpen(false); setScoringAssignment(null); }}
+                />
+            )}
         </div>
     );
 };
@@ -106,3 +118,86 @@ const AssignmentFormModal = ({ assignment, subjects, selectedClass, onSave, onCl
 
 
 export default Assignments;
+
+const RecordScoresModal = ({ assignment, selectedClass, onClose }: { assignment: Assignment; selectedClass: string; onClose: () => void }) => {
+    const [students, setStudents] = useState<Student[]>([]);
+    const [scores, setScores] = useState<Record<string, { score: number; comment?: string }>>({});
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        const load = async () => {
+            const studs = await apiGetStudents({ classFilter: selectedClass });
+            setStudents(studs);
+            const allExisting = await apiGetAssignmentScores();
+            const existingForThis = allExisting.filter(s => s.assignmentId === assignment.id);
+            const initial: Record<string, { score: number; comment?: string }> = {};
+            existingForThis.forEach(s => { initial[s.studentId] = { score: s.score, comment: s.comment }; });
+            setScores(initial);
+        };
+        load();
+    }, [assignment.id, selectedClass]);
+
+    const setScore = (studentId: string, value: number) => {
+        setScores(prev => ({ ...prev, [studentId]: { ...prev[studentId], score: value } }));
+    };
+
+    const setComment = (studentId: string, value: string) => {
+        setScores(prev => ({ ...prev, [studentId]: { ...prev[studentId], comment: value } }));
+    };
+
+    const saveScores = async () => {
+        setSaving(true);
+        try {
+            const entries: AssignmentScore[] = students.map(s => ({
+                id: `asgscore_${assignment.id}_${s.id}`,
+                assignmentId: assignment.id,
+                studentId: s.id,
+                score: Math.max(0, Math.min(Number(scores[s.id]?.score || 0), Number(assignment.maxScore || 10))),
+                comment: scores[s.id]?.comment || '',
+            }));
+            await apiSaveAssignmentScores(entries);
+            onClose();
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <Modal isOpen={true} onClose={onClose} title={`Record Scores: ${assignment.title}`} size="lg">
+            <div className="p-6">
+                <div className="table-container">
+                    <table className="table">
+                        <thead>
+                            <tr>
+                                <th className="th">Student</th>
+                                <th className="th text-right">Score (/{assignment.maxScore})</th>
+                                <th className="th">Comment</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {students.map(st => (
+                                <tr key={st.id}>
+                                    <td className="td font-medium">{st.name}</td>
+                                    <td className="td text-right">
+                                        <input type="number" className="input-field w-24 text-right" min={0} max={Number(assignment.maxScore || 10)}
+                                            value={scores[st.id]?.score ?? ''}
+                                            onChange={e => setScore(st.id, e.target.valueAsNumber)} />
+                                    </td>
+                                    <td className="td">
+                                        <input type="text" className="input-field" placeholder="Optional"
+                                            value={scores[st.id]?.comment ?? ''}
+                                            onChange={e => setComment(st.id, e.target.value)} />
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+                <div className="flex justify-end gap-2 mt-4">
+                    <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                    <button className="btn btn-primary" onClick={saveScores} disabled={saving}>{saving ? 'Saving...' : 'Save Scores'}</button>
+                </div>
+            </div>
+        </Modal>
+    );
+};

@@ -207,8 +207,9 @@ const IntegrationSettings: React.FC<IntegrationSettingsProps> = ({ settings, onS
                 <h4 className="font-semibold">SMS Provider</h4>
                 <p className="text-sm text-gray-500 mt-1">Choose your preferred Nigerian SMS gateway</p>
                 <div className="mt-4">
-                    <label className="label">Provider</label>
+                    <label className="label" htmlFor="sms-provider-select">Provider</label>
                     <select 
+                        id="sms-provider-select"
                         value={integrations.sms_provider || 'termii'}
                         onChange={e => handleIntegrationChange('sms_provider', e.target.value)}
                         className="input-field"
@@ -438,8 +439,9 @@ const IntegrationSettings: React.FC<IntegrationSettingsProps> = ({ settings, onS
                 <p className="text-sm text-gray-500 mt-1">Send a test SMS to verify your current provider setup.</p>
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                        <label className="label">Test Phone Number</label>
+                        <label className="label" htmlFor="sms-test-phone">Test Phone Number</label>
                         <input
+                            id="sms-test-phone"
                             type="tel"
                             value={testPhone}
                             onChange={e => setTestPhone(e.target.value)}
@@ -455,8 +457,9 @@ const IntegrationSettings: React.FC<IntegrationSettingsProps> = ({ settings, onS
                                 try {
                                     await apiSendMessage({ channel: 'sms', content: 'This is a test SMS from ReportSheet.', recipients: [testPhone], type: 'direct' });
                                     setDiagMsg('Test SMS sent successfully. Check the phone for delivery.');
-                                } catch (err: any) {
-                                    setDiagMsg(`SMS test failed: ${err.message || 'Unknown error'}`);
+                                } catch (err: unknown) {
+                                    const msg = (err as { message?: string })?.message || 'Unknown error';
+                                    setDiagMsg(`SMS test failed: ${msg}`);
                                 } finally {
                                     setDiagBusy(false);
                                 }
@@ -560,8 +563,9 @@ const IntegrationSettings: React.FC<IntegrationSettingsProps> = ({ settings, onS
                 <p className="text-sm text-gray-500 mt-1">Send a test email using the current email provider.</p>
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                        <label className="label">Test Email Address</label>
+                        <label className="label" htmlFor="email-test-address">Test Email Address</label>
                         <input
+                            id="email-test-address"
                             type="email"
                             value={testEmail}
                             onChange={e => setTestEmail(e.target.value)}
@@ -577,8 +581,9 @@ const IntegrationSettings: React.FC<IntegrationSettingsProps> = ({ settings, onS
                                 try {
                                     await apiSendMessage({ channel: 'email', content: 'This is a test email from ReportSheet.', recipients: [testEmail], type: 'direct' });
                                     setDiagMsg('Test email queued successfully. Check the inbox for delivery.');
-                                } catch (err: any) {
-                                    setDiagMsg(`Email test failed: ${err.message || 'Unknown error'}`);
+                                } catch (err: unknown) {
+                                    const msg = (err as { message?: string })?.message || 'Unknown error';
+                                    setDiagMsg(`Email test failed: ${msg}`);
                                 } finally {
                                     setDiagBusy(false);
                                 }

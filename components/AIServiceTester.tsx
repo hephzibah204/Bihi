@@ -6,6 +6,7 @@ import { getGeminiAIService } from '../services/geminiAIService';
 import { getHuggingFaceClient } from '../services/huggingFaceAPI';
 import { generateFallbackResponse } from '../services/fallbackAiService';
 import { initializeSemanticCache, findSimilarResponses } from '../utils/semanticSearchUtils';
+import { logger } from '../utils/logger';
 
 interface TestResult {
   service: string;
@@ -159,7 +160,7 @@ export const AIServiceTester: React.FC = () => {
     setIsRunning(true);
     setTestResults([]);
 
-    console.log('🧪 Starting AI Services Test Suite...');
+    logger.info('Starting AI Services Test Suite...');
 
     // Test all services
     await Promise.all([
@@ -170,7 +171,7 @@ export const AIServiceTester: React.FC = () => {
     ]);
 
     setIsRunning(false);
-    console.log('✅ AI Services Test Suite Complete');
+    logger.info('AI Services Test Suite Complete');
   };
 
   const getStatusIcon = (status: TestResult['status']) => {

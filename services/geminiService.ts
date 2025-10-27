@@ -72,6 +72,19 @@ export const callGeminiApi = async (prompt: string | { prompt: string }, context
             }
         }
         
+        // If proxy endpoint is missing, attempt direct Gemini fallback
+        if (response.status === 404) {
+            try {
+                const text = await directGeminiGenerate(actualPrompt);
+                if (text) {
+                    cache.cacheResponse(actualPrompt, text, 'gemini', context);
+                    logger.info('Cached Gemini response via direct fallback');
+                }
+                return text;
+            } catch (e: any) {
+                throw new Error(e.message || errorMessage);
+            }
+        }
         throw new Error(errorMessage);
     }
 
@@ -140,15 +153,13 @@ export const callGeminiApi = async (prompt: string | { prompt: string }, context
     }
     
   } catch (error) {
-    logger.captureError(error as any, 'Error calling the AI proxy service');
     // Rethrow a more user-friendly and specific error for the useAI hook to catch.
     if ((error as any).message?.includes('Failed to fetch')) {
         throw new Error('Network connection failed. Could not reach AI service.');
     }
-    throw new Error(`The AI service is currently unavailable. ${error.message}`);
+    throw new Error(`The AI service is currently unavailable. ${error instanceof Error ? error.message : String(error)}`);
   }
 };
-
 
 /**
  * Generates text content in a stream by sending a prompt to a secure, server-side proxy.
@@ -192,6 +203,11 @@ export const callGeminiApiStream = async (prompt: string | { prompt: string }, o
         const errorText = await response.text();
         let errorMessage = `Server responded with status: ${response.status}`;
         try { const errorJson = JSON.parse(errorText); errorMessage = errorJson.error || errorText; } catch (e) { errorMessage = errorText; }
+        if (response.status === 404) {
+            // Try direct streaming from Gemini
+            await directGeminiStream(actualPrompt, onChunk);
+            return;
+        }
         throw new Error(errorMessage);
     }
 
@@ -231,18 +247,131 @@ export const callGeminiApiStream = async (prompt: string | { prompt: string }, o
     }
 
   } catch (error) {
-    logger.captureError(error as any, 'Error calling the AI proxy service (stream)');
     if ((error as any).message?.includes('Failed to fetch')) {
         throw new Error('Network connection failed. Could not reach AI service.');
     }
-    throw new Error(`The AI service is currently unavailable. ${error.message}`);
+    throw new Error(`The AI service is currently unavailable. ${error instanceof Error ? error.message : String(error)}`);
   }
 };
 
 /**
- * @deprecated This function is now a wrapper for `callGeminiApi`.
+* @deprecated This function is now a wrapper for `callGeminiApi`.
  * New components should use the `useAI` hook for robust error handling and fallback capabilities.
  */
 export const generateText = async (prompt: string): Promise<string> => {
     return callGeminiApi(prompt);
 };
+
+// --- Direct Gemini fallback (client-side) ---
+const getGeminiEnv = () => {
+    const apiKey = typeof window !== 'undefined'
+        ? (window.process?.env?.VITE_GEMINI_API_KEY || import.meta.env?.VITE_GEMINI_API_KEY)
+        : process.env.VITE_GEMINI_API_KEY;
+    const model = typeof window !== 'undefined'
+        ? (window.process?.env?.VITE_GEMINI_MODEL || import.meta.env?.VITE_GEMINI_MODEL || 'gemini-2.5-flash')
+        : (process.env.VITE_GEMINI_MODEL || 'gemini-2.5-flash');
+    if (!apiKey) throw new Error('Gemini API key not configured');
+    return { apiKey, model };
+};
+
+async function listAvailableModels(apiKey: string): Promise<any[]> {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+    const resp = await fetch(url);
+    if (!resp.ok) return [];
+    const data = await resp.json().catch(() => ({ models: [] }));
+    return Array.isArray(data.models) ? data.models : [];
+}
+
+function supportsGenerateContent(model: any): boolean {
+    const methods: string[] = model?.supportedGenerationMethods || [];
+    return methods.includes('generateContent') || methods.includes('generateText');
+}
+
+async function pickUsableModel(apiKey: string, preferred: string): Promise<string> {
+    try {
+        const models = await listAvailableModels(apiKey);
+        const preferredExists = models.find((m: any) => m.name?.includes(preferred) && supportsGenerateContent(m));
+        if (preferredExists) return preferred;
+        const candidates = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-1.5-pro'];
+        for (const name of candidates) {
+            const m = models.find((mm: any) => mm.name?.includes(name) && supportsGenerateContent(mm));
+            if (m) return name;
+        }
+    } catch { /* ignore */ }
+    return preferred; // fallback to preferred
+}
+
+async function directGeminiGenerate(prompt: string): Promise<string> {
+    const { apiKey, model } = getGeminiEnv();
+    let chosen = model;
+
+    async function tryGenerate(modelName: string): Promise<string> {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+        const body = { contents: [{ role: 'user', parts: [{ text: prompt }] }] };
+        const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        if (!resp.ok) {
+            const txt = await resp.text();
+            throw new Error(`Gemini API error: ${resp.status} ${txt}`);
+        }
+        const data = await resp.json();
+        return data?.candidates?.[0]?.content?.parts?.[0]?.text || data?.text || '';
+    }
+
+    try {
+        return await tryGenerate(chosen);
+    } catch (e: any) {
+        if ((e?.message || '').includes('404') || (e?.message || '').includes('NOT_FOUND') || (e?.message || '').toLowerCase().includes('unsupported')) {
+            chosen = await pickUsableModel(apiKey, chosen);
+            return await tryGenerate(chosen);
+        }
+        throw e;
+    }
+}
+
+async function directGeminiStream(prompt: string, onChunk: (chunk: string) => void): Promise<void> {
+    const { apiKey, model } = getGeminiEnv();
+    const chosen = await pickUsableModel(apiKey, model);
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${chosen}:streamGenerateContent?key=${apiKey}`;
+    const body = { contents: [{ role: 'user', parts: [{ text: prompt }] }] };
+    const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (!resp.ok) {
+        // Fall back to non-stream if streaming not allowed or model unsupported
+        const text = await directGeminiGenerate(prompt);
+        const CHUNK_SIZE = 256;
+        for (let i = 0; i < text.length; i += CHUNK_SIZE) {
+            onChunk(text.slice(i, i + CHUNK_SIZE));
+        }
+        return;
+    }
+    const contentType = resp.headers.get('Content-Type') || '';
+    if (!contentType.includes('text/event-stream') || !resp.body) {
+        const text = await directGeminiGenerate(prompt);
+        const CHUNK_SIZE = 256;
+        for (let i = 0; i < text.length; i += CHUNK_SIZE) {
+            onChunk(text.slice(i, i + CHUNK_SIZE));
+        }
+        return;
+    }
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+            if (line.startsWith('data: ')) {
+                const jsonString = line.substring(6);
+                if (jsonString.trim() === '[DONE]') continue;
+                try {
+                    const chunk = JSON.parse(jsonString);
+                    const textChunk = chunk.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (textChunk) onChunk(textChunk);
+                } catch { /* ignore */ }
+            }
+        }
+    }
+}

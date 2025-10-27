@@ -81,8 +81,16 @@ export const useAI = (onNotification?: AINotificationCallback) => {
             message: `${notificationMessage} Results may be less comprehensive than our premium AI service.`
           });
           
-          // Fall through to fallback with reason
-          const fallbackResponse = generateFallbackResponse(prompt, context || type, type);
+          // Fall through to fallback with reason; prefer HuggingFace if online
+          const ctxObj = { ...(context ? { context } : {}), ...(type ? { type } : {}) } as Record<string, unknown> | undefined;
+          let fallbackResponse: string;
+          try {
+            const { generateFallbackResponseAsync } = await import('../services/fallbackAiService');
+            fallbackResponse = await generateFallbackResponseAsync(prompt, ctxObj, type);
+          } catch {
+            const { generateFallbackResponse } = await import('../services/fallbackAiService');
+            fallbackResponse = generateFallbackResponse(prompt, ctxObj, type);
+          }
           setIsLoading(false);
           setIsOnline(false);
           
@@ -106,8 +114,21 @@ export const useAI = (onNotification?: AINotificationCallback) => {
         });
       }
       
-      // Use fallback AI service
-      const fallbackResponse = generateFallbackResponse(prompt, context || type, type);
+      // Use fallback AI service (prefer HF if online)
+      const ctxObj = { ...(context ? { context } : {}), ...(type ? { type } : {}) } as Record<string, unknown> | undefined;
+      let fallbackResponse: string;
+      try {
+        if (isOnline) {
+          const { generateFallbackResponseAsync } = await import('../services/fallbackAiService');
+          fallbackResponse = await generateFallbackResponseAsync(prompt, ctxObj, type);
+        } else {
+          const { generateFallbackResponse } = await import('../services/fallbackAiService');
+          fallbackResponse = generateFallbackResponse(prompt, ctxObj, type);
+        }
+      } catch {
+        const { generateFallbackResponse } = await import('../services/fallbackAiService');
+        fallbackResponse = generateFallbackResponse(prompt, ctxObj, type);
+      }
       setIsLoading(false);
       setIsOnline(false);
       
@@ -224,6 +245,6 @@ export const useAI = (onNotification?: AINotificationCallback) => {
     generateResponseStream,
     isLoading,
     isOnline,
-    status: isLoading ? 'loading' : 'idle'
+    status: isLoading ? 'loading' : (isOnline ? 'gemini' : 'offline')
   };
 };

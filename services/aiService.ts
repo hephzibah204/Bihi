@@ -110,6 +110,18 @@ class AIService {
    */
   private async checkServiceHealth() {
     const startTime = Date.now();
+
+    // Skip network checks if offline
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      this.updateStatus({
+        service: this.config.fallbackEnabled ? 'fallback' : 'offline',
+        online: this.config.fallbackEnabled,
+        lastCheck: new Date(),
+        error: 'Network offline'
+      });
+      this.notifyServiceDown('gemini', 'Network offline');
+      return;
+    }
     
     try {
       if (this.config.geminiApiKey) {
@@ -148,6 +160,10 @@ class AIService {
   private async testGeminiConnection(): Promise<void> {
     if (!this.config.geminiApiKey) {
       throw new Error('Gemini API key not configured');
+    }
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      throw new Error('Network offline');
     }
 
     const controller = new AbortController();

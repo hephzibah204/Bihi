@@ -14,13 +14,35 @@ export const useQRCodeGenerator = (text: string) => {
 
             try {
                 setIsLoading(true);
-                const url = await QRCodeGenerator.toDataURL(text, { 
-                    width: 200, 
-                    margin: 2 
+                // Prefer standard QR via CDN 'qrcode' lib if available
+                const ensureLib = () => new Promise<void>((resolve, reject) => {
+                    if ((window as any).QRCode) return resolve();
+                    const script = document.createElement('script');
+                    script.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js';
+                    script.async = true;
+                    script.onload = () => resolve();
+                    script.onerror = () => reject(new Error('Failed to load QR library'));
+                    document.head.appendChild(script);
                 });
-                setQrCodeUrl(url);
+                try {
+                    await ensureLib();
+                    const url = await (window as any).QRCode.toDataURL(text, {
+                        width: 256,
+                        margin: 8,
+                        color: { dark: '#000000', light: '#FFFFFF' }
+                    });
+                    setQrCodeUrl(url);
+                } catch (e) {
+                    // Fallback to simple generator
+                    const url = await QRCodeGenerator.toDataURL(text, { 
+                        width: 256, 
+                        margin: 8,
+                        color: { dark: '#000000', light: '#FFFFFF' }
+                    });
+                    setQrCodeUrl(url);
+                }
             } catch (error) {
-                console.error('QR Code generation error:', error);
+                // Non-fatal: fallback shows placeholder
                 setQrCodeUrl('');
             } finally {
                 setIsLoading(false);

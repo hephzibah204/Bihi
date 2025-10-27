@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, lazy, Suspense, PropsWithChildren } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense, PropsWithChildren, useCallback } from 'react';
 import { GoogleGenAI, Modality, FunctionDeclaration, Type } from '@google/genai';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import StopIcon from './icons/StopIcon';
@@ -11,6 +11,8 @@ import { USER_ROLES } from '../utils/constants';
 import { useAuth } from '../contexts/AuthContext';
 import { getVoiceSessionService } from '../services/voiceSessionService';
 import { getConversationService } from '../services/conversationService';
+
+type ToolProps = { topic?: string; numQuestions?: number; learningStyle?: string };
 
 const PracticeQuiz = lazy(() => import('./PracticeQuiz'));
 const LearningPathways = lazy(() => import('./LearningPathways'));
@@ -146,10 +148,10 @@ const VoiceTutorUI = ({ startSession, cleanup, status, isSpeaking, errorMessage,
 const AIAcademicTutor = ({ demoUserId }) => {
     const { session } = useAuth(); // Using the new centralized auth context
     const [activeTool, setActiveTool] = useState<'voice' | 'quiz' | 'pathway'>('voice');
-    const [toolProps, setToolProps] = useState<any>({});
+    const [toolProps, setToolProps] = useState<ToolProps>({} as ToolProps);
     
     // Voice session state
-    const [sessionPromise, setSessionPromise] = useState(null);
+    // Removed unused local sessionPromise state; using sessionPromiseRef instead
     const [status, setStatus] = useState('idle'); // idle, initializing, connecting, connected, error
     const [errorMessage, setErrorMessage] = useState('');
     const [transcripts, setTranscripts] = useState([]);
@@ -159,38 +161,53 @@ const AIAcademicTutor = ({ demoUserId }) => {
     const sessionStartTimeRef = useRef<number>(0);
     
     const aiRef = useRef(null);
-    const inputAudioContextRef = useRef(null);
-    const outputAudioContextRef = useRef(null);
-    const scriptProcessorRef = useRef(null);
-    const mediaStreamSourceRef = useRef(null);
+    const inputAudioContextRef = useRef<AudioContext | null>(null);
+    const outputAudioContextRef = useRef<AudioContext | null>(null);
+    const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
+    const mediaStreamSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
     const nextStartTimeRef = useRef(0);
-    const audioSourcesRef = useRef(new Set());
-    const streamRef = useRef(null);
+    const audioSourcesRef = useRef(new Set<AudioBufferSourceNode>());
+    const streamRef = useRef<MediaStream | null>(null);
 
-    const cleanup = async () => {
+    // Stable refs for cleanup dependencies
+    const transcriptsRef = useRef<typeof transcripts>(transcripts);
+    const voiceSessionIdRef = useRef<string | null>(voiceSessionId);
+    const conversationIdRef = useRef<string | null>(conversationId);
+    const sessionPromiseRef = useRef<Promise<unknown> | null>(null);
+
+    useEffect(() => { transcriptsRef.current = transcripts; }, [transcripts]);
+    useEffect(() => { voiceSessionIdRef.current = voiceSessionId; }, [voiceSessionId]);
+    useEffect(() => { conversationIdRef.current = conversationId; }, [conversationId]);
+
+    const cleanup = useCallback(async () => {
         // Save voice session before cleanup
-        if (voiceSessionId && transcripts.length > 0) {
+        const vsId = voiceSessionIdRef.current;
+        const convId = conversationIdRef.current;
+        const allTranscripts = transcriptsRef.current;
+        if (vsId && allTranscripts.length > 0) {
             try {
                 const duration = Math.floor((Date.now() - sessionStartTimeRef.current) / 1000);
                 const voiceService = getVoiceSessionService();
-                await voiceService.endSession(voiceSessionId, transcripts, duration);
+                await voiceService.endSession(vsId, allTranscripts, duration);
                 
                 // Optionally sync to conversation
-                if (conversationId) {
-                    await voiceService.syncToConversation(voiceSessionId);
+                if (convId) {
+                    await voiceService.syncToConversation(vsId);
                 }
                 
-                logger.info('Voice session saved', { voiceSessionId });
+                logger.info('Voice session saved', { voiceSessionId: vsId });
             } catch (error) {
-                logger.error('Failed to save voice session', { error: error as any });
+                logger.error('Failed to save voice session', { error: error as unknown });
             }
         }
         
-        if (sessionPromise) {
-            sessionPromise
-              .then(session => session.close())
-              .catch((e: any) => logger.captureError(e, 'Failed to close voice session'));
-            setSessionPromise(null);
+        const sp = sessionPromiseRef.current;
+        if (sp) {
+            sp
+              .then((session: unknown) => (session as { close: () => void }).close())
+              .catch((e: unknown) => logger.captureError(e, 'Failed to close voice session'));
+            sessionPromiseRef.current = null;
+            // cleared via ref
         }
         if (streamRef.current) {
             streamRef.current.getTracks().forEach(track => track.stop());
@@ -198,8 +215,8 @@ const AIAcademicTutor = ({ demoUserId }) => {
         }
         if (scriptProcessorRef.current) scriptProcessorRef.current.disconnect();
         if (mediaStreamSourceRef.current) mediaStreamSourceRef.current.disconnect();
-        if (inputAudioContextRef.current && inputAudioContextRef.current.state !== 'closed') inputAudioContextRef.current.close().catch((e: any) => logger.captureError(e, 'Failed to close input audio context'));
-        if (outputAudioContextRef.current && outputAudioContextRef.current.state !== 'closed') outputAudioContextRef.current.close().catch((e: any) => logger.captureError(e, 'Failed to close output audio context'));
+        if (inputAudioContextRef.current && inputAudioContextRef.current.state !== 'closed') inputAudioContextRef.current.close().catch((e: unknown) => logger.captureError(e, 'Failed to close input audio context'));
+        if (outputAudioContextRef.current && outputAudioContextRef.current.state !== 'closed') outputAudioContextRef.current.close().catch((e: unknown) => logger.captureError(e, 'Failed to close output audio context'));
         
         scriptProcessorRef.current = null;
         mediaStreamSourceRef.current = null;
@@ -209,7 +226,7 @@ const AIAcademicTutor = ({ demoUserId }) => {
         setStatus('idle');
         setIsSpeaking(false);
         setVoiceSessionId(null);
-    };
+    }, []);
 
     useEffect(() => {
         const initialize = async () => {
@@ -278,15 +295,17 @@ const AIAcademicTutor = ({ demoUserId }) => {
                 logger.info('Voice session started', { voiceSessionId: voiceSession.id });
             }
         } catch (error) {
-            logger.error('Failed to create voice session', { error: error as any });
+            logger.error('Failed to create voice session', { error: error as unknown });
             // Continue anyway - don't block user
         }
         
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             streamRef.current = stream;
-            inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-            outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+            const AnyWindow = window as unknown as { webkitAudioContext?: typeof AudioContext };
+            const AudioCtxCtor = (window.AudioContext || AnyWindow.webkitAudioContext) as typeof AudioContext;
+            inputAudioContextRef.current = new AudioCtxCtor({ sampleRate: 16000 });
+            outputAudioContextRef.current = new AudioCtxCtor({ sampleRate: 24000 });
             
             const promise = aiRef.current.live.connect({
                 model: 'gemini-2.5-flash-native-audio-preview-09-2025',
@@ -304,8 +323,8 @@ const AIAcademicTutor = ({ demoUserId }) => {
                         scriptProcessorRef.current.connect(inputAudioContextRef.current.destination);
                     },
                     onmessage: async (message) => handleServerMessage(message, promise),
-                    onerror: (e) => { logger.error('Session error', { error: e as any }); setStatus('error'); setErrorMessage('Connection error.'); cleanup(); },
-                    onclose: (e) => { logger.info('Session closed'); cleanup(); },
+                    onerror: (e) => { logger.error('Session error', { error: e as unknown }); setStatus('error'); setErrorMessage('Connection error.'); cleanup(); },
+                    onclose: (_e) => { logger.info('Session closed'); cleanup(); },
                 },
                 config: {
                     responseModalities: [Modality.AUDIO],
@@ -316,7 +335,7 @@ const AIAcademicTutor = ({ demoUserId }) => {
                     tools: [{ functionDeclarations: [generateQuizFunction, createLearningPathwayFunction] }],
                 },
             });
-            setSessionPromise(promise);
+            sessionPromiseRef.current = promise;
         } catch (err) {
             setStatus('error');
             setErrorMessage('Microphone access denied. Please allow it in browser settings.');

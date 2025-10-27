@@ -4,6 +4,7 @@ import SpinnerIcon from './icons/SpinnerIcon';
 import SparklesIcon from './icons/SparklesIcon';
 import UserCircleIcon from './icons/UserCircleIcon';
 import { apiGetStudents, apiGetScores, apiGetSubjects } from '../services/api';
+import { logger } from '../utils/logger';
 
 const ChatbotPanel = ({ isOpen, onClose, userRole, demoUserId, activeView }) => {
     const [messages, setMessages] = useState<{ id: string; sender: string; text: string; }[]>([]);
@@ -52,7 +53,7 @@ const ChatbotPanel = ({ isOpen, onClose, userRole, demoUserId, activeView }) => 
                 const contextString = `Current student: ${student.name}, Class: ${student.class}. Recent performance: ${JSON.stringify(scoreSummary, null, 2)}`;
                 setPerformanceContext(contextString);
             } catch (error) {
-                console.error("Failed to build chatbot context:", error);
+                logger.captureError(error as unknown, 'Failed to build chatbot context');
             }
         };
         fetchContext();

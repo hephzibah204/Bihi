@@ -13,33 +13,58 @@ import { getHuggingFaceClient } from './huggingFaceAPI';
 // Now uses the new enhanced AI system with 500+ templates and Nigerian curriculum support
 // Plus semantic search for finding cached responses
 // Plus optional Hugging Face API for dynamic content generation
-export const generateFallbackResponse = (prompt: any, context?: any, type?: string): string => {
+export const generateFallbackResponse = (prompt: unknown, context?: Record<string, unknown>, type?: string): string => {
     try {
-        const p = typeof prompt === 'string' ? prompt : (prompt?.prompt ?? prompt?.text ?? String(prompt ?? ''));
+        const p = typeof prompt === 'string' ? prompt : ((prompt as any)?.prompt ?? (prompt as any)?.text ?? String(prompt ?? ''));
         // Step 1: Try semantic search for cached responses
         const semanticMatches = searchSemanticCache(p, context);
         if (semanticMatches.length > 0 && semanticMatches[0].similarity > 0.7) {
-            console.log(`✓ Semantic match found: ${semanticMatches[0].similarity.toFixed(3)} similarity`);
             return semanticMatches[0].response;
         }
         
-        // Step 2: Skip async Hugging Face API in synchronous context
-        // (HuggingFace is async but this function must be sync for compatibility)
-        
-        // Step 3: Use the enhanced fallback AI system with 500+ templates
-        // This provides much better responses with Nigerian curriculum alignment
+        // Step 2: Use the enhanced fallback AI system with 500+ templates (sync)
         const enhancedResponse = generateEnhancedFallbackResponse(p, context);
         
-        // Step 4: Cache this response for future semantic search
+        // Step 3: Cache this response for future semantic search
         cacheResponse(p, enhancedResponse, context);
         
         return enhancedResponse;
         
-    } catch (error) {
-        console.error('Enhanced fallback AI error, falling back to basic templates:', error);
-        
+    } catch (_error) {
         // Emergency fallback to old system if enhanced system fails
-        return generateLegacyFallbackResponse(prompt, context);
+        return generateLegacyFallbackResponse(prompt as string, context);
+    }
+};
+
+/**
+ * Async fallback that may attempt Hugging Face before templates when online
+ */
+export const generateFallbackResponseAsync = async (
+    prompt: unknown,
+    context?: Record<string, unknown>,
+    type?: string
+): Promise<string> => {
+    try {
+        const p = typeof prompt === 'string' ? prompt : ((prompt as any)?.prompt ?? (prompt as any)?.text ?? String(prompt ?? ''));
+        // Step 1: Semantic cache
+        const semanticMatches = searchSemanticCache(p, context);
+        if (semanticMatches.length > 0 && semanticMatches[0].similarity > 0.7) {
+            return semanticMatches[0].response;
+        }
+        // Step 2: Try Hugging Face when network is online
+        if (typeof navigator === 'undefined' || navigator.onLine) {
+            const hf = await tryHuggingFaceGeneration(p, context);
+            if (hf && hf.trim()) {
+                cacheResponse(p, hf, context);
+                return hf;
+            }
+        }
+        // Step 3: Enhanced templates (sync)
+        const enhanced = generateEnhancedFallbackResponse(p, context);
+        cacheResponse(p, enhanced, context);
+        return enhanced;
+    } catch {
+        return generateLegacyFallbackResponse(prompt as string, context);
     }
 };
 
@@ -47,7 +72,7 @@ export const generateFallbackResponse = (prompt: any, context?: any, type?: stri
  * Try to generate response using Hugging Face API (async)
  * Returns null if generation fails or is inappropriate
  */
-const tryHuggingFaceGeneration = async (prompt: string, context?: any): Promise<string | null> => {
+const tryHuggingFaceGeneration = async (prompt: string, context?: Record<string, unknown>): Promise<string | null> => {
     try {
         const hfClient = getHuggingFaceClient();
         
@@ -71,8 +96,7 @@ const tryHuggingFaceGeneration = async (prompt: string, context?: any): Promise<
         
         return response;
         
-    } catch (error) {
-        console.error('Hugging Face generation error:', error);
+    } catch (_error) {
         return null;
     }
 };
@@ -99,12 +123,11 @@ const selectHuggingFaceModel = (prompt: string, context?: any): string => {
 /**
  * Search semantic cache for similar prompts
  */
-const searchSemanticCache = (prompt: string, context?: any): SemanticMatch[] => {
+const searchSemanticCache = (prompt: string, _context?: Record<string, unknown>): SemanticMatch[] => {
     try {
         const searchEngine = getSemanticSearchEngine();
         return searchEngine.search(prompt, 3, 0.5); // Top 3 results, min 50% similarity
-    } catch (error) {
-        console.error('Semantic search error:', error);
+    } catch (_error) {
         return [];
     }
 };
@@ -112,7 +135,7 @@ const searchSemanticCache = (prompt: string, context?: any): SemanticMatch[] => 
 /**
  * Cache a response for future semantic retrieval
  */
-const cacheResponse = (prompt: string, response: string, context?: any): void => {
+const cacheResponse = (prompt: string, response: string, context?: Record<string, unknown>): void => {
     try {
         const searchEngine = getSemanticSearchEngine();
         const cacheId = `cache_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -126,15 +149,15 @@ const cacheResponse = (prompt: string, response: string, context?: any): void =>
             context: context?.userRole || 'general',
             cached: true
         });
-    } catch (error) {
-        console.error('Cache response error:', error);
+    } catch (_error) {
+        // ignore cache failures
     }
 };
 
 /**
  * Calculate confidence score for a response
  */
-const calculateResponseConfidence = (response: string, context?: any): number => {
+const calculateResponseConfidence = (response: string, context?: Record<string, unknown>): number => {
     let confidence = 0.5; // Base confidence
     
     // Longer, detailed responses have higher confidence
@@ -158,7 +181,7 @@ const calculateResponseConfidence = (response: string, context?: any): number =>
 };
 
 // Legacy fallback system (kept as emergency backup)
-const generateLegacyFallbackResponse = (prompt: string, context?: any): string => {
+const generateLegacyFallbackResponse = (prompt: string, context?: Record<string, unknown>): string => {
     const promptLower = prompt.toLowerCase();
     
     try {
@@ -238,8 +261,7 @@ const generateLegacyFallbackResponse = (prompt: string, context?: any): string =
         // Enhanced general responses with context awareness
         return getEnhancedGeneralResponse(prompt, context);
         
-    } catch (error) {
-        console.error('Fallback AI error:', error);
+    } catch (_error) {
         return "I'm currently running in offline mode with limited capabilities. Please connect to the internet for full AI functionality.";
     }
 };

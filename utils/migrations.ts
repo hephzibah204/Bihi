@@ -4,6 +4,7 @@
 import { getSupabase } from '../services/supabaseClient';
 import { withRetry } from './retry';
 import { parseSupabaseError, DatabaseError } from './errors';
+import { logger } from './logger';
 
 export interface Migration {
   version: string;
@@ -66,9 +67,9 @@ class MigrationManager {
         if (error) throw error;
       });
       
-      console.info('[Migrations] Migration tracking table initialized');
+      logger.info('[Migrations] Migration tracking table initialized');
     } catch (error) {
-      console.error('[Migrations] Failed to initialize migration table:', error);
+      logger.error('[Migrations] Failed to initialize migration table', { error });
       throw new DatabaseError('Failed to initialize migration system', 'CREATE');
     }
   }
@@ -127,7 +128,7 @@ class MigrationManager {
     const startTime = Date.now();
     const checksum = await this.calculateChecksum(migration);
     
-    console.info(`[Migrations] Running migration: ${migration.version} - ${migration.name}`);
+    logger.info(`[Migrations] Running migration: ${migration.version} - ${migration.name}`);
     
     try {
       await migration.up();
@@ -137,19 +138,19 @@ class MigrationManager {
       // Record successful migration
       await this.recordMigration(migration, checksum, executionTime);
       
-      console.info(`[Migrations] ✅ Migration ${migration.version} completed in ${executionTime}ms`);
+      logger.info(`[Migrations] ✅ Migration ${migration.version} completed in ${executionTime}ms`);
       
     } catch (error) {
-      console.error(`[Migrations] ❌ Migration ${migration.version} failed:`, error);
+      logger.error(`[Migrations] ❌ Migration ${migration.version} failed`, { error });
       
       // Attempt rollback if available
       if (migration.down) {
-        console.info(`[Migrations] Attempting rollback for ${migration.version}...`);
+        logger.info(`[Migrations] Attempting rollback for ${migration.version}...`);
         try {
           await migration.down();
-          console.info(`[Migrations] ✅ Rollback completed for ${migration.version}`);
+          logger.info(`[Migrations] ✅ Rollback completed for ${migration.version}`);
         } catch (rollbackError) {
-          console.error(`[Migrations] ❌ Rollback failed for ${migration.version}:`, rollbackError);
+          logger.error(`[Migrations] ❌ Rollback failed for ${migration.version}`, { error: rollbackError });
         }
       }
       
@@ -169,17 +170,17 @@ class MigrationManager {
     const pending = await this.getPendingMigrations();
     
     if (pending.length === 0) {
-      console.info('[Migrations] No pending migrations');
+      logger.info('[Migrations] No pending migrations');
       return;
     }
     
-    console.info(`[Migrations] Found ${pending.length} pending migrations`);
+    logger.info(`[Migrations] Found ${pending.length} pending migrations`);
     
     for (const migration of pending) {
       await this.runMigration(migration);
     }
     
-    console.info('[Migrations] All migrations completed successfully');
+    logger.info('[Migrations] All migrations completed successfully');
   }
 
   /**
@@ -202,7 +203,7 @@ class MigrationManager {
       throw new Error(`Migration ${version} is not applied`);
     }
     
-    console.info(`[Migrations] Rolling back migration: ${version} - ${migration.name}`);
+    logger.info(`[Migrations] Rolling back migration: ${version} - ${migration.name}`);
     
     try {
       await migration.down();
@@ -219,10 +220,10 @@ class MigrationManager {
         }
       });
       
-      console.info(`[Migrations] ✅ Migration ${version} rolled back successfully`);
+      logger.info(`[Migrations] ✅ Migration ${version} rolled back successfully`);
       
     } catch (error) {
-      console.error(`[Migrations] ❌ Rollback failed for ${version}:`, error);
+      logger.error(`[Migrations] ❌ Rollback failed for ${version}`, { error });
       throw new DatabaseError(
         `Rollback failed for migration ${version}: ${error.message}`,
         'DELETE'

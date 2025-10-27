@@ -40,7 +40,7 @@ const BursaryDashboard = () => {
             description: 'Generate new student invoice',
             icon: DocumentTextIcon,
             color: 'bg-blue-500 hover:bg-blue-600',
-            action: () => console.log('Create invoice')
+            action: () => {}
         },
         {
             id: 'verify-payment',
@@ -48,7 +48,7 @@ const BursaryDashboard = () => {
             description: 'Review pending payments',
             icon: CheckIcon,
             color: 'bg-green-500 hover:bg-green-600',
-            action: () => console.log('Verify payment')
+            action: () => {}
         },
         {
             id: 'debt-collection',
@@ -56,7 +56,7 @@ const BursaryDashboard = () => {
             description: 'Manage outstanding debts',
             icon: ScaleIcon,
             color: 'bg-orange-500 hover:bg-orange-600',
-            action: () => console.log('Debt collection')
+            action: () => {}
         },
         {
             id: 'generate-report',
@@ -64,7 +64,7 @@ const BursaryDashboard = () => {
             description: 'Create financial reports',
             icon: ChartBarIcon,
             color: 'bg-purple-500 hover:bg-purple-600',
-            action: () => console.log('Generate report')
+            action: () => {}
         }
     ];
 
@@ -111,7 +111,7 @@ const BursaryDashboard = () => {
                     monthlyRevenue
                 });
             } catch (error) {
-                console.error("Failed to load bursary stats", error);
+                // Non-fatal: show skeletons
             } finally {
                 setLoading(false);
             }

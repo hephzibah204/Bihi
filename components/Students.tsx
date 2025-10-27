@@ -204,7 +204,7 @@ const StudentFormModal = ({ student, onSave, onClose, classNames, onInviteParent
                 const structures = await apiGetFeeStructures();
                 setFeeStructures(structures);
             } catch (error) {
-                console.error('Error loading fee structures:', error);
+                // Non-fatal: fee structures optional
             }
         };
         loadFeeStructures();
@@ -272,7 +272,6 @@ const StudentFormModal = ({ student, onSave, onClose, classNames, onInviteParent
                 const { data } = supabase.storage.from('uploads').getPublicUrl(filePath);
                 photoUrl = data.publicUrl;
             } catch (error) {
-                console.error('Error uploading image:', error);
                 alert('Error uploading profile picture. Please try again.');
                 return;
             }

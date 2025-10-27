@@ -53,5 +53,23 @@
       "version": "detect"
     }
   },
-  "ignorePatterns": ["dist", "node_modules", "*.js"]
+  "ignorePatterns": [
+    "dist",
+    "node_modules",
+    "*.js",
+    "supabase/functions/**"
+  ],
+  "overrides": [
+    {
+      "files": ["supabase/functions/**/*.{ts,tsx}"]
+      ,
+      "parserOptions": {
+        "project": []
+      },
+      "rules": {
+        "@typescript-eslint/no-unused-vars": "off",
+        "@typescript-eslint/no-explicit-any": "off"
+      }
+    }
+  ]
 }

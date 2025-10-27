@@ -1,6 +1,8 @@
 // utils/retry.ts
 // Retry logic with exponential backoff for resilient operations
 
+import { logger } from './logger';
+
 export interface RetryOptions {
   maxRetries?: number;
   initialDelay?: number;
@@ -30,9 +32,7 @@ const DEFAULT_OPTIONS: Required<RetryOptions> = {
     );
   },
   onRetry: (attempt, error, delay) => {
-    console.warn(
-      `[Retry] Attempt ${attempt} failed: ${error?.message || error}. Retrying in ${delay}ms...`
-    );
+    logger.warn('[Retry] Operation will retry', { attempt, message: error?.message || String(error), delay });
   },
 };
 

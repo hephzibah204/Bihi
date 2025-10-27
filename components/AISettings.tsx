@@ -100,6 +100,8 @@ export const AISettingsPanel: React.FC<AISettingsProps> = ({
           {(['auto', 'gemini', 'huggingface', 'templates'] as AIProvider[]).map((provider) => (
             <label
               key={provider}
+              htmlFor={`provider-${provider}`}
+              aria-label={`Select ${provider} provider`}
               className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-all ${
                 settings.preferredProvider === provider
                   ? 'border-blue-500 bg-blue-50'
@@ -107,6 +109,7 @@ export const AISettingsPanel: React.FC<AISettingsProps> = ({
               }`}
             >
               <input
+                id={`provider-${provider}`}
                 type="radio"
                 name="provider"
                 value={provider}
@@ -167,9 +170,12 @@ export const AISettingsPanel: React.FC<AISettingsProps> = ({
               </p>
             </div>
           </div>
-          <label className="relative inline-flex items-center cursor-pointer ml-4">
+          <label className="relative inline-flex items-center cursor-pointer ml-4" htmlFor="autoRoutingToggle">
             <input
+              id="autoRoutingToggle"
               type="checkbox"
+              role="switch"
+              aria-label="Toggle intelligent auto-routing"
               checked={settings.autoRouting}
               onChange={(e) => handleSettingsUpdate({ autoRouting: e.target.checked })}
               className="sr-only peer"
@@ -194,6 +200,7 @@ export const AISettingsPanel: React.FC<AISettingsProps> = ({
             {(['low', 'medium', 'high'] as const).map((threshold) => (
               <label
                 key={threshold}
+                htmlFor={`threshold-${threshold}`}
                 className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all ${
                   settings.complexityThreshold === threshold
                     ? 'border-blue-500 bg-blue-50'
@@ -201,6 +208,7 @@ export const AISettingsPanel: React.FC<AISettingsProps> = ({
                 }`}
               >
                 <input
+                  id={`threshold-${threshold}`}
                   type="radio"
                   name="threshold"
                   value={threshold}
@@ -238,6 +246,7 @@ export const AISettingsPanel: React.FC<AISettingsProps> = ({
           {(['always', 'offline-only', 'never'] as const).map((behavior) => (
             <label
               key={behavior}
+              htmlFor={`fallback-${behavior}`}
               className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all ${
                 settings.fallbackBehavior === behavior
                   ? 'border-blue-500 bg-blue-50'
@@ -245,6 +254,7 @@ export const AISettingsPanel: React.FC<AISettingsProps> = ({
               }`}
             >
               <input
+                id={`fallback-${behavior}`}
                 type="radio"
                 name="fallback"
                 value={behavior}

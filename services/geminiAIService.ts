@@ -4,24 +4,26 @@ import { analyzeWithFallback } from '../utils/aiAdapter';
 import { generateEnhancedFallbackResponse } from './enhancedFallbackAI';
 import { logger } from '../utils/logger';
 
-export function normalizePrompt(input: any): string {
+export function normalizePrompt(input: unknown): string {
   if (typeof input === 'string') return input;
   if (input && typeof input === 'object') {
-    return (
-      input.prompt ?? input.text ?? input.content ?? input.message ?? JSON.stringify(input)
-    );
+    const obj = input as Record<string, unknown>;
+    const candidate = obj['prompt'] ?? obj['text'] ?? obj['content'] ?? obj['message'];
+    if (typeof candidate === 'string') return candidate;
+    if (typeof candidate === 'number' || typeof candidate === 'boolean') return String(candidate);
+    try { return JSON.stringify(input); } catch { return String(input); }
   }
   return String(input ?? '');
 }
 
-export async function generateResponse(prompt: any, options?: any): Promise<string> {
+export async function generateResponse(prompt: unknown, options?: Record<string, unknown>): Promise<string> {
   const p = normalizePrompt(prompt);
   try {
-    const res = await analyzeWithFallback(p, options);
+    const res = await analyzeWithFallback(p, options as any);
     return (res?.text ?? '').toString();
   } catch {
     // final sync fallback
-    return generateEnhancedFallbackResponse(p, options);
+    return generateEnhancedFallbackResponse(p, options as any);
   }
 }
 
@@ -54,7 +56,7 @@ export interface AIRequest {
         userRole?: 'Teacher' | 'Student' | 'Parent' | 'Admin';
         subject?: string;
         grade?: string;
-        [key: string]: any;
+        [key: string]: unknown;
     };
     options?: {
         timeout?: number;
@@ -91,7 +93,7 @@ export class GeminiAIService {
         fallbackAvailable: true,
         lastGeminiCheck: 0
     };
-    private conversationService: any = null;
+    private conversationService: { addMessage: (params: { conversationId: string; role: 'user' | 'assistant'; content: string; source: 'gemini' | 'semantic-cache' | 'huggingface' | 'templates'; isFallback: boolean; metadata?: Record<string, unknown> }) => Promise<unknown>; getContextMessages?: (id: string, n: number) => Promise<Array<{ role: 'user' | 'assistant' | 'system'; content: string }>> } | null = null;
 
     constructor(apiKey?: string) {
         this.geminiApiKey = apiKey || this.loadGeminiKey();
@@ -104,7 +106,7 @@ export class GeminiAIService {
     private async initConversationService() {
         try {
             const { getConversationService } = await import('./conversationService');
-            this.conversationService = getConversationService();
+            this.conversationService = getConversationService() as any;
         } catch (error) {
             logger.captureError(error, 'Conversation service not available');
         }
@@ -141,7 +143,7 @@ export class GeminiAIService {
             try {
                 localStorage.setItem('gemini_api_key', apiKey);
             } catch (error) {
-                logger.captureError(error as any, 'Failed to save Gemini API key');
+                logger.captureError(error as unknown, 'Failed to save Gemini API key');
             }
         }
     }
@@ -192,7 +194,7 @@ export class GeminiAIService {
                             isFallback: false
                         });
                     } catch (error) {
-                        console.warn('Failed to save conversation history:', error);
+                        logger.warn('Failed to save conversation history', { error });
                     }
                 }
 
@@ -312,8 +314,8 @@ export class GeminiAIService {
     /**
      * Build contents array with conversation history for Gemini
      */
-    private async buildGeminiContents(request: AIRequest): Promise<Array<any>> {
-        const contents: Array<any> = [];
+    private async buildGeminiContents(request: AIRequest): Promise<Array<{ role: string; parts?: Array<{ text: string }>; content?: string }>> {
+        const contents: Array<{ role: string; parts?: Array<{ text: string }>; content?: string }> = [];
 
         // Load conversation history if conversationId provided
         let history = request.conversationHistory || [];
@@ -323,7 +325,7 @@ export class GeminiAIService {
                     request.conversationId,
                     20 // Last 20 messages for context
                 );
-                history = messages.map((msg: any) => ({
+                history = messages.map((msg: { role: 'user' | 'assistant' | 'system'; content: string }) => ({
                     role: msg.role,
                     content: msg.content
                 }));

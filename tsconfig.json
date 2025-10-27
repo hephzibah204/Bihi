@@ -59,6 +59,7 @@
     "utils/migrations.ts",
     "utils/rls.ts",
     "services/conversationService.ts",
-    "services/voiceSessionService.ts"
+    "services/voiceSessionService.ts",
+    "supabase/functions/**"
   ]
 }

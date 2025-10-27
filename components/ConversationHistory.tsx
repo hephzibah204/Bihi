@@ -69,7 +69,6 @@ const ConversationHistory: React.FC<ConversationHistoryProps> = ({
             setMessages(data.messages || []);
         } catch (err: any) {
             setError(err.message);
-            console.error('Error loading messages:', err);
         } finally {
             setLoading(false);
         }

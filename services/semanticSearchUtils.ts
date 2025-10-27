@@ -13,11 +13,9 @@ export function initializeSemanticCache(): void {
     // Check if cache already initialized
     const stats = searchEngine.getStats();
     if (stats.documentCount > 0) {
-        console.log(`Semantic cache already initialized with ${stats.documentCount} documents`);
         return;
     }
     
-    console.log('Initializing semantic search cache with common templates...');
     
     const commonTemplates = [
         // Lesson Plans

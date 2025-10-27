@@ -8,6 +8,7 @@ import TrashIcon from './icons/TrashIcon';
 import ConfirmationModal from './ConfirmationModal';
 import TableSkeleton from './skeletons/TableSkeleton';
 import EmptyState from './EmptyState';
+import { logger } from '../utils/logger';
 
 const ReviewChangesModal = ({ parent, onApprove, onReject, onClose }) => {
     const changes = parent.pendingChanges;
@@ -190,16 +191,39 @@ const Parents = () => {
 };
 
 const ParentFormModal = ({ parent, onSave, onClose }) => {
-    const [formData, setFormData] = useState({ name: '', email: '', phone: '', ...parent });
-    const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-    const handleSubmit = (e) => { e.preventDefault(); onSave(formData); };
+    const [formData, setFormData] = useState({ id: parent?.id || `parent_${Date.now()}`, name: '', email: '', phone: '', address: '', occupation: '', childrenIds: [] as string[], ...parent });
+    const [students, setLocalStudents] = useState<Student[]>([]);
+
+    useEffect(() => { (async () => { try { const studs = await apiGetStudents(); setLocalStudents(studs); } catch (e) { logger.warn('Failed to load students in ParentFormModal', { error: e as unknown }); } })(); }, []);
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    const handleChildrenChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const selected = Array.from(e.target.selectedOptions).map(o => o.value);
+        setFormData(prev => ({ ...prev, childrenIds: selected }));
+    };
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => { 
+        e.preventDefault(); 
+        await onSave(formData); 
+        if (formData.childrenIds && formData.childrenIds.length > 0) {
+            const updated = students.filter(s => formData.childrenIds.includes(s.id)).map(s => ({ ...s, parentId: formData.id, parentEmail: formData.email }));
+            await apiBatchUpdateStudents(updated);
+        }
+    };
 
     return (
         <Modal isOpen={true} onClose={onClose} title={parent ? 'Edit Parent' : 'Add Parent'}>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                <div><label className="label">Full Name</label><input name="name" value={formData.name} onChange={handleChange} className="input-field" required /></div>
-                <div><label className="label">Email</label><input type="email" name="email" value={formData.email} onChange={handleChange} className="input-field" required /></div>
-                <div><label className="label">Phone Number</label><input type="tel" name="phone" value={formData.phone} onChange={handleChange} className="input-field" /></div>
+                <div><label className="label" htmlFor="parent-name">Full Name</label><input id="parent-name" name="name" value={formData.name} onChange={handleChange} className="input-field" required /></div>
+                <div><label className="label" htmlFor="parent-email">Email</label><input id="parent-email" type="email" name="email" value={formData.email} onChange={handleChange} className="input-field" required /></div>
+                <div><label className="label" htmlFor="parent-phone">Phone Number</label><input id="parent-phone" type="tel" name="phone" value={formData.phone} onChange={handleChange} className="input-field" /></div>
+                <div><label className="label" htmlFor="parent-address">Address</label><input id="parent-address" name="address" value={formData.address} onChange={handleChange} className="input-field" placeholder="Home address" /></div>
+                <div><label className="label" htmlFor="parent-occupation">Occupation / Business</label><input id="parent-occupation" name="occupation" value={formData.occupation} onChange={handleChange} className="input-field" placeholder="e.g., Banker, Trader" /></div>
+                <div>
+                    <label className="label" htmlFor="children-select">Link Children</label>
+                    <select id="children-select" multiple value={formData.childrenIds as string[]} onChange={handleChildrenChange} className="input-field h-32">
+                        {students.map(s => <option key={s.id} value={s.id}>{s.name} ({s.class})</option>)}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple.</p>
+                </div>
                 <div className="flex justify-end pt-2"><button type="submit" className="btn btn-primary">Save Parent</button></div>
             </form>
         </Modal>

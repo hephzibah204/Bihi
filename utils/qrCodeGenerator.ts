@@ -116,3 +116,99 @@ export class QRCodeGenerator {
     });
   }
 }
+
+// --- Standardized Payload Utilities ---
+
+// Very lightweight checksum (sum of char codes mod 65535) to help detect typos
+export function computeChecksum(input: string): string {
+  let sum = 0;
+  for (let i = 0; i < input.length; i++) sum = (sum + input.charCodeAt(i)) & 0xffff;
+  return sum.toString(16).toUpperCase().padStart(4, '0');
+}
+
+/**
+ * Build a standardized QR payload for attendance and verification.
+ * Format: RS1|SID=<studentId>|ADM=<admissionNo>|TS=<unix_ms>|CS=<hex4>
+ * - RS1: ReportSheet payload version 1
+ * - SID: Student ID (preferred)
+ * - ADM: Admission Number (legacy fallback)
+ * - TS: Timestamp in ms since epoch
+ * - CS: 4-hex checksum of the content without CS
+ */
+export function buildStandardQRPayload(studentId?: string, admissionNo?: string, timestamp?: number): string {
+  const ts = typeof timestamp === 'number' ? timestamp : Date.now();
+  const core = `RS1|SID=${studentId || ''}|ADM=${admissionNo || ''}|TS=${ts}`;
+  const cs = computeChecksum(core);
+  return `${core}|CS=${cs}`;
+}
+
+/**
+ * Parse standardized payload. Returns null if format or checksum invalid.
+ */
+export function parseStandardQRPayload(payload: string): { studentId?: string; admissionNo?: string; timestamp?: number; signature?: string } | null {
+  if (!payload || !payload.startsWith('RS1|')) return null;
+  const parts = payload.split('|');
+  const coreParts = [] as string[];
+  let csPart = '';
+  let sigPart = '';
+  for (let i = 0; i < parts.length; i++) {
+    if (parts[i].startsWith('CS=')) csPart = parts[i];
+    else if (parts[i].startsWith('SIG=')) sigPart = parts[i];
+    else coreParts.push(parts[i]);
+  }
+  const core = coreParts.join('|');
+  if (!csPart.startsWith('CS=')) return null;
+  const expected = csPart.slice(3);
+  const actual = computeChecksum(core);
+  if (expected !== actual) return null;
+  const map = new Map<string, string>();
+  for (let i = 1; i < parts.length; i++) {
+    if (parts[i].startsWith('CS=') || parts[i].startsWith('SIG=')) continue;
+    const [k, v] = parts[i].split('=');
+    map.set(k, v);
+  }
+  const sid = map.get('SID') || undefined;
+  const adm = map.get('ADM') || undefined;
+  const tsStr = map.get('TS');
+  const ts = tsStr ? Number(tsStr) : undefined;
+  const signature = sigPart ? sigPart.slice(4) : undefined;
+  return { studentId: sid, admissionNo: adm, timestamp: ts, signature };
+}
+
+// --- Signature (Demo) ---
+
+async function sha256Base64(input: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(input);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  const bytes = new Uint8Array(hash);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+
+/**
+ * Build RS1 payload with a demo signature (SHA-256 over core + secret, base64).
+ * Note: For production, use HMAC (crypto.subtle.sign with 'HMAC') and a server-side secret.
+ */
+export async function buildSignedQRPayload(studentId?: string, admissionNo?: string, timestamp?: number, secret?: string): Promise<string> {
+  const core = buildStandardQRPayload(studentId, admissionNo, timestamp);
+  if (!secret) return core; // no signature
+  const sig = await sha256Base64(core + '|' + secret);
+  return `${core}|SIG=${sig}`;
+}
+
+/**
+ * Verify RS1 payload signature (demo). Returns true if signature is present and matches.
+ */
+export async function verifyPayloadSignature(payload: string, secret?: string): Promise<boolean> {
+  if (!secret || !payload.includes('SIG=')) return true; // nothing to verify
+  // Extract signature
+  const parts = payload.split('|');
+  const sigPart = parts.find(p => p.startsWith('SIG='));
+  if (!sigPart) return true;
+  const provided = sigPart.slice(4);
+  const core = parts.filter(p => !p.startsWith('SIG=')).join('|');
+  const expected = await sha256Base64(core + '|' + secret);
+  return provided === expected;
+}

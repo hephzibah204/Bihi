@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { apiGetStudents, apiGetScores, apiGetSubjects } from '../services/api';
-import { Student, Score, Subject } from '../types';
+import { apiGetStudents, apiGetScores, apiGetSubjects, apiGetInvoices, apiGetPayments } from '../services/api';
+import { Student, Score, Subject, Invoice, Payment } from '../types';
 import { ADMIN_VIEWS } from '../utils/constants';
 import { useQRCodeGenerator } from '../hooks/useQRCodeGenerator';
+import { buildStandardQRPayload } from '../utils/qrCodeGenerator';
+import { apiSignQRPayload } from '../services/qr';
 
 // Make Chart.js available from CDN
 declare global {
@@ -80,9 +82,20 @@ const StudentProfilePage = ({ studentId, setActiveView }) => {
     const [subjects, setSubjects] = useState<Subject[]>([]);
     const [allStudents, setAllStudents] = useState<Student[]>([]);
     const [loading, setLoading] = useState(true);
+    const [invoices, setInvoices] = useState<Invoice[]>([]);
+    const [payments, setPayments] = useState<Payment[]>([]);
     const chartRef = useRef<HTMLCanvasElement>(null);
     const chartInstanceRef = useRef(null);
-    const { qrCodeUrl } = useQRCodeGenerator(student?.admissionNo || '');
+    const [qrPayload, setQrPayload] = useState('');
+    useEffect(() => {
+        (async () => {
+            if (!student) { setQrPayload(''); return; }
+            const core = buildStandardQRPayload(student.id, student.admissionNo);
+            const sig = await apiSignQRPayload(core);
+            setQrPayload(sig ? `${core}|SIG=${sig}` : core);
+        })();
+    }, [student]);
+    const { qrCodeUrl } = useQRCodeGenerator(qrPayload);
 
     useEffect(() => {
         if (!studentId) {
@@ -102,13 +115,17 @@ const StudentProfilePage = ({ studentId, setActiveView }) => {
                     const studentsInClass = studentsData.filter(s => s.class === currentStudent.class);
                     const studentIdsInClass = studentsInClass.map(s => s.id);
 
-                    const [scoresData, subjectsData] = await Promise.all([
+                    const [scoresData, subjectsData, invoicesData, paymentsData] = await Promise.all([
                         apiGetScores({ studentIds: studentIdsInClass }),
-                        apiGetSubjects()
+                        apiGetSubjects(),
+                        apiGetInvoices(),
+                        apiGetPayments(),
                     ]);
 
                     setScores(scoresData);
                     setSubjects(subjectsData);
+                    setInvoices(invoicesData);
+                    setPayments(paymentsData);
                 }
             } catch (error) {
                 console.error("Failed to load student profile:", error);
@@ -218,6 +235,42 @@ const StudentProfilePage = ({ studentId, setActiveView }) => {
                                 )}
                                 <p className="mt-2 text-sm text-gray-500">Scan for attendance & verification.</p>
                             </div>
+                        </div>
+                    </div>
+                    <div className="card">
+                        <div className="p-6">
+                            <h3 className="text-xl font-semibold">Fees & Invoices</h3>
+                            {student && (
+                                (() => {
+                                    const invs = invoices.filter(i => i.studentId === student.id);
+                                    const totalBilled = invs.reduce((sum, i) => sum + (i.totalAmount || 0), 0);
+                                    const totalPaid = invs.reduce((sum, i) => sum + (i.amountPaid || 0), 0);
+                                    const outstanding = Math.max(0, totalBilled - totalPaid);
+                                    const recentInvs = invs.slice(-3).reverse();
+                                    return (
+                                        <div>
+                                            <div className="grid grid-cols-3 gap-2 text-sm">
+                                                <div><span className="text-gray-500">Total Billed</span><div className="font-semibold">₦{totalBilled.toLocaleString()}</div></div>
+                                                <div><span className="text-gray-500">Total Paid</span><div className="font-semibold">₦{totalPaid.toLocaleString()}</div></div>
+                                                <div><span className="text-gray-500">Outstanding</span><div className="font-semibold text-red-600">₦{outstanding.toLocaleString()}</div></div>
+                                            </div>
+                                            <h4 className="mt-4 font-medium">Recent Invoices</h4>
+                                            {recentInvs.length > 0 ? (
+                                                <ul className="mt-2 divide-y">
+                                                    {recentInvs.map(i => (
+                                                        <li key={i.id} className="py-2 flex justify-between"><span>{i.term} {i.session}</span><span className="font-mono">₦{i.totalAmount.toLocaleString()}</span></li>
+                                                    ))}
+                                                </ul>
+                                            ) : (
+                                                <p className="text-sm text-gray-500 mt-2">No invoices.</p>
+                                            )}
+                                            <div className="mt-4 flex gap-2">
+                                                <button onClick={() => setActiveView(ADMIN_VIEWS.REPORT_CARDS)} className="btn btn-secondary">Print Report Card</button>
+                                            </div>
+                                        </div>
+                                    );
+                                })()
+                            )}
                         </div>
                     </div>
                     <div className="card">

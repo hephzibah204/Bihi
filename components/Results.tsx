@@ -6,7 +6,6 @@ import ScoreEntryModal from './ScoreEntryModal';
 import ArrowUpTrayIcon from './icons/ArrowUpTrayIcon';
 import BulkScoreImportModal from './BulkScoreImportModal';
 import SparklesIcon from './icons/SparklesIcon';
-import { useAI } from '../hooks/useAI';
 import { generateResponse as aiGenerateResponse } from '../services/geminiAIService';
 import { useTenant } from '../contexts/TenantContext';
 import { generateClassNames } from '../utils/classManager';
@@ -29,7 +28,6 @@ const Results = () => {
     const [isImportModalOpen, setImportModalOpen] = useState(false);
     
     // For AI Comment Generation
-    const { generateResponse } = useAI();
     const [isGenerating, setIsGenerating] = useState(false);
 
     const { settings: tenantSettings } = useTenant();
@@ -95,7 +93,7 @@ const Results = () => {
         return students.filter(s => s.class === selectedClass);
     }, [students, selectedClass]);
 
-    const debouncedSave = useCallback(debounce((studentId: string, field: keyof Score, value: any) => {
+    const debouncedSave = useCallback(debounce((studentId: string, field: keyof Score, value: string | number) => {
         const existingScore = scores.find(s => s.studentId === studentId && s.subjectId === selectedSubjectId && s.session === settings.session && s.term === settings.term);
         const scoreData = {
             ...(existingScore || { studentId, subjectId: selectedSubjectId, session: settings.session, term: settings.term }),
@@ -216,7 +214,7 @@ Comment on their strength or a key area for improvement based on this score.`;
                     isOpen={editingStudentIndex !== null}
                     onClose={() => setEditingStudentIndex(null)}
                     onSave={handleScoreChange}
-                    onNavigate={(dir) => setEditingStudentIndex(prev => dir === 'next' ? prev! + 1 : prev! - 1)}
+                    onNavigate={(dir) => setEditingStudentIndex(prev => (prev == null ? prev : (dir === 'next' ? prev + 1 : prev - 1)))}
                     student={studentsInClass[editingStudentIndex]}
                     score={scores.find(s => s.studentId === studentsInClass[editingStudentIndex].id && s.subjectId === selectedSubjectId && s.session === settings.session && s.term === settings.term) || {}}
                     settings={settings}

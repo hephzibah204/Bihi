@@ -6,6 +6,7 @@ import PlusIcon from './icons/PlusIcon';
 import BrainCircuitIcon from './icons/BrainCircuitIcon';
 import { Subject, Teacher } from '../types';
 import ShieldExclamationIcon from './icons/ShieldExclamationIcon';
+import { logger } from '../utils/logger';
 
 interface TimetableSlot {
     subjectId: string;
@@ -153,7 +154,7 @@ const Timetable = () => {
                 setSelectedClass(allClasses[0]);
             }
         } catch (error) {
-            console.error("Failed to load timetable data", error);
+            logger.error("Failed to load timetable data", { error: error as unknown });
         } finally {
             setLoading(false);
         }
@@ -215,25 +216,32 @@ const Timetable = () => {
     return (
         <div>
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                <div className="flex space-x-1 bg-gray-200 p-1 rounded-lg">
+                <div className="flex space-x-1 bg-gray-200 p-1 rounded-lg" role="tablist" aria-label="Timetable view mode">
                     <button 
                         onClick={() => setViewMode('class')}
                         className={`px-4 py-1.5 rounded-md font-semibold text-sm transition-colors ${viewMode === 'class' ? 'bg-white shadow-sm' : 'text-gray-600'}`}
+                        role="tab"
+                        aria-selected={viewMode === 'class'}
                     >
                         Class View
                     </button>
                     <button 
                         onClick={() => setViewMode('master')}
                         className={`px-4 py-1.5 rounded-md font-semibold text-sm transition-colors ${viewMode === 'master' ? 'bg-white shadow-sm' : 'text-gray-600'}`}
+                        role="tab"
+                        aria-selected={viewMode === 'master'}
                     >
                         Master View
                     </button>
                 </div>
                 <div className="flex items-center gap-4">
                     {viewMode === 'class' && (
-                        <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="input-field">
-                            {classes.map(c => <option key={c} value={c}>{c}</option>)}
-                        </select>
+                        <>
+                            <label htmlFor="class-select" className="sr-only">Select class</label>
+                            <select id="class-select" value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="input-field">
+                                {classes.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                        </>
                     )}
                     <button onClick={() => setAIModalOpen(true)} className="btn btn-primary">
                         <BrainCircuitIcon className="h-5 w-5 mr-2" />
@@ -258,7 +266,15 @@ const Timetable = () => {
                                     {DAYS.map(day => {
                                         const slotInfo = getSlotInfo(day, time);
                                         return (
-                                            <td key={day} className="td text-center align-top p-2 hover:bg-gray-100 cursor-pointer" onClick={() => handleSlotClick(day, time)}>
+                                            <td 
+                                                key={day} 
+                                                className="td text-center align-top p-2 hover:bg-gray-100 cursor-pointer" 
+                                                onClick={() => handleSlotClick(day, time)}
+                                                role="button"
+                                                tabIndex={0}
+                                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleSlotClick(day, time); }}
+                                                aria-label={`Edit ${day} ${time} slot`}
+                                            >
                                                 {slotInfo ? (
                                                     <div>
                                                         <p className="font-bold text-indigo-600">{slotInfo.subject}</p>
@@ -282,8 +298,9 @@ const Timetable = () => {
             <Modal isOpen={isEditModalOpen} onClose={() => setEditModalOpen(false)} title={`Edit Slot - ${currentSlot.day} ${currentSlot.time}`}>
                 <div className="p-6 space-y-4">
                     <div>
-                        <label className="label">Subject</label>
+                        <label className="label" htmlFor="subject-select">Subject</label>
                         <select
+                            id="subject-select"
                             className="input-field"
                             value={currentSelection.subjectId}
                             onChange={(e) => setCurrentSelection(prev => ({ ...prev, subjectId: e.target.value }))}
@@ -293,14 +310,15 @@ const Timetable = () => {
                         </select>
                     </div>
                     <div>
-                        <label className="label">Teacher</label>
+                        <label className="label" htmlFor="teacher-select">Teacher</label>
                         <select
+                            id="teacher-select"
                             className="input-field"
                             value={currentSelection.teacherId}
                             onChange={(e) => setCurrentSelection(prev => ({ ...prev, teacherId: e.target.value }))}
                         >
-                             <option value="">-- Select Teacher --</option>
-                             {teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                            <option value="">-- Select Teacher --</option>
+                            {teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                         </select>
                     </div>
                     <div className="flex justify-end pt-4">

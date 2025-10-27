@@ -26,6 +26,7 @@ const ReportCardDashboard: React.FC<ReportCardDashboardProps> = ({ onBack }) => 
     const [selectedClass, setSelectedClass] = useState('');
     const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
     const [printAction, setPrintAction] = useState<'print' | 'download' | null>(null);
+    const [templateKey, setTemplateKey] = useState<'auto' | 'classic' | 'modern' | 'minimalist'>('auto');
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -82,6 +83,7 @@ const ReportCardDashboard: React.FC<ReportCardDashboardProps> = ({ onBack }) => 
                 allData={allData}
                 onClose={() => setPrintAction(null)}
                 action={printAction}
+                templateKey={templateKey}
             />
         );
     }
@@ -103,6 +105,15 @@ const ReportCardDashboard: React.FC<ReportCardDashboardProps> = ({ onBack }) => 
                             <label className="label">Select Class</label>
                             <select value={selectedClass} onChange={e => setSelectedClass(e.target.value)} className="input-field">
                                 {allData.subjects && [...new Set<string>(allData.subjects.flatMap(s => s.classes))].sort().map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="label">Report Card Template</label>
+                            <select value={templateKey} onChange={e => setTemplateKey(e.target.value as any)} className="input-field">
+                                <option value="auto">Auto (by class/settings)</option>
+                                <option value="classic">Classic</option>
+                                <option value="modern">Modern</option>
+                                <option value="minimalist">Minimalist</option>
                             </select>
                         </div>
                         <div className="flex gap-2">
