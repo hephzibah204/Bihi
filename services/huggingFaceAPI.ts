@@ -156,14 +156,30 @@ export class HuggingFaceClient {
                 throw new Error(`API request failed: ${response.status} - ${error}`);
             }
             
-            const data = await response.json();
+            // Be robust to non-JSON or malformed JSON bodies
+            const contentType = response.headers.get('content-type') || '';
+            const raw = await response.text();
+            let data: any;
+            try {
+                data = contentType.includes('application/json') ? JSON.parse(raw) : JSON.parse(raw);
+            } catch {
+                // If not JSON, treat raw as the generated text (some HF endpoints may return plain text)
+                data = raw;
+            }
             
             // Handle different response formats
-            let generatedText: string;
+            let generatedText: string = '';
             if (Array.isArray(data)) {
                 generatedText = data[0]?.generated_text || data[0]?.translation_text || '';
-            } else {
-                generatedText = data.generated_text || data[0]?.generated_text || '';
+            } else if (data && typeof data === 'object') {
+                generatedText = (data as any).generated_text || (Array.isArray((data as any)[0]) ? (data as any)[0]?.generated_text : '') || '';
+            } else if (typeof data === 'string') {
+                generatedText = data;
+            }
+            
+            if (!generatedText) {
+                // As a last resort, return the raw text body
+                generatedText = typeof raw === 'string' ? raw : '';
             }
             
             // Cache the response
