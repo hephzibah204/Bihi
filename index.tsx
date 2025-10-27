@@ -44,6 +44,31 @@ const main = async () => {
       logger.warn('Demo-mode init failed', { error: e as any });
     }
 
+    // Ensure AI auto-routing is enabled site-wide by default
+    try {
+      // Do not allow forced offline mode at runtime
+      (globalThis as any).__AI_FORCE_OFFLINE__ = false;
+
+      const stored = localStorage.getItem('sitewide_ai_settings');
+      let parsed: any = null;
+      if (stored) {
+        try { parsed = JSON.parse(stored); } catch {}
+      }
+      const nextSettings = {
+        ...parsed,
+        preferredProvider: 'auto',
+        autoRouting: true,
+        fallbackBehavior: parsed?.fallbackBehavior ?? 'always',
+        complexityThreshold: parsed?.complexityThreshold ?? 'medium',
+      };
+      // Only write if not already auto-routing
+      if (!parsed || parsed.preferredProvider !== 'auto' || parsed.autoRouting !== true) {
+        localStorage.setItem('sitewide_ai_settings', JSON.stringify(nextSettings));
+      }
+    } catch (e) {
+      logger.warn('Auto-routing init failed', { error: e as any });
+    }
+
     const container = document.getElementById('root');
     if (container) {
       const root = createRoot(container);
