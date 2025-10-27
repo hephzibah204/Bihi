@@ -56,14 +56,6 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
 5. Click **Save**
 6. **Redeploy** your project for changes to take effect
 
-**Method 2: Wrangler CLI**
-```bash
-wrangler pages secret put NEXT_PUBLIC_GEMINI_API_KEY
-# Enter your key when prompted
-
-wrangler pages secret put HUGGINGFACE_API_KEY
-# Enter your key when prompted
-```
 
 ### 3. Verify Setup
 

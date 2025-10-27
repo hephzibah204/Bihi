@@ -5,7 +5,6 @@ This project is set up to run API endpoints on Cloudflare Pages Functions (under
 ## Prerequisites
 
 - Cloudflare account with Pages enabled
-- Wrangler CLI (`npm i -g wrangler`)
 - Node.js 18+
 
 ## Environment Variables
@@ -18,26 +17,20 @@ Configure these in Cloudflare Pages (Dashboard → Pages → your project → Se
 - `VITE_SUPABASE_PUBLISHABLE_KEY` or `VITE_SUPABASE_ANON_KEY` (frontend auth)
 - Optional: `GEMINI_API_KEY` if AI features are used
 
-For local development of Pages Functions, `.dev.vars` is provided and used by `wrangler pages dev`.
-
 ## Local Validate (Pages Functions)
 
 1. Install dependencies: `npm install`
 2. Build the frontend: `npm run build`
-3. Start Pages dev server: `wrangler pages dev dist`
-4. Test endpoints:
-   - `GET /api/platform-settings`
-   - `POST /api/register`
+3. Serve the built site locally (static preview): `npx serve -s dist`
+4. Note: Pages Functions run in Cloudflare's environment; test endpoints after deploying or via Preview deployments.
 
-## Deploy via Wrangler
+## Deploy via Cloudflare Dashboard
 
-1. Create project: `wrangler pages project create reportsheet-pages`
-2. Push secrets:
-   - `wrangler pages secret put SUPABASE_URL --project-name reportsheet-pages`
-   - `wrangler pages secret put SUPABASE_SERVICE_ROLE_KEY --project-name reportsheet-pages`
-3. Deploy: `wrangler pages deploy dist --project-name reportsheet-pages`
-
-Alternatively, connect the repository in the Cloudflare Dashboard and set Build command `npm run build`, Output directory `dist`.
+1. In Cloudflare Dashboard, create a Pages project and connect your repository.
+2. Set Build command: `npm run build`
+3. Set Output directory: `dist`
+4. Configure the environment variables listed above.
+5. Deploy (the Dashboard will build and publish).
 
 ## Routes
 
