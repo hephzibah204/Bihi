@@ -1,5 +1,6 @@
 import React, { useState, useEffect, PropsWithChildren } from 'react';
 import { apiGetPlatformSettings, apiSavePlatformSettings } from '../../services/api';
+import { usePlatformPermission } from '../../utils/usePlatformPermission';
 import LandingPageEditor from '../LandingPageEditor';
 import PlanManager from '../PlanManager';
 
@@ -133,6 +134,8 @@ const PlatformSettings = () => {
         </button>
     );
 
+    const { can } = usePlatformPermission();
+
     return (
         <div className="space-y-6">
             <div className="bg-gradient-to-r from-slate-600 to-gray-600 text-white p-6 rounded-xl">
@@ -143,14 +146,14 @@ const PlatformSettings = () => {
                     </div>
                     <button 
                         onClick={() => handleSave()} 
-                        disabled={saving} 
-                        className={`px-6 py-2 bg-white text-slate-700 rounded-lg font-medium transition-colors ${
-                            saving 
-                                ? 'opacity-50 cursor-not-allowed' 
-                                : 'hover:bg-slate-100'
+                        disabled={saving || !can('manage_platform_settings')} 
+                        className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+                            saving || !can('manage_platform_settings')
+                                ? 'bg-slate-200 text-slate-500 cursor-not-allowed' 
+                                : 'bg-white text-slate-700 hover:bg-slate-100'
                         }`}
                     >
-                        {saving ? 'Saving...' : 'Save All Settings'}
+                        {saving ? 'Saving...' : can('manage_platform_settings') ? 'Save All Settings' : 'Read-only'}
                     </button>
                 </div>
             </div>
