@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { apiSendMessage } from '../../services/api';
+import { usePlatformPermission } from '../../utils/usePlatformPermission';
 
 interface SMSProvider {
     id: string;
@@ -18,6 +19,9 @@ interface SMSProvider {
 }
 
 const SMSGatewayConfig = () => {
+    const { can } = usePlatformPermission();
+    const canManageIntegrations = can('manage_integrations');
+    const canSendBroadcasts = can('send_broadcasts');
     const [providers, setProviders] = useState<SMSProvider[]>([
         {
             id: 'twilio',
@@ -74,18 +78,30 @@ const SMSGatewayConfig = () => {
     const [isSending, setIsSending] = useState(false);
 
     const toggleProvider = (id: string) => {
+        if (!canManageIntegrations) {
+            alert('You do not have permission to manage integrations.');
+            return;
+        }
         setProviders(providers.map(p => 
             p.id === id ? { ...p, enabled: !p.enabled } : p
         ));
     };
 
     const updateProviderConfig = (id: string, field: string, value: any) => {
+        if (!canManageIntegrations) {
+            alert('You do not have permission to manage integrations.');
+            return;
+        }
         setProviders(providers.map(p => 
             p.id === id ? { ...p, config: { ...p.config, [field]: value } } : p
         ));
     };
 
     const saveConfiguration = (id: string) => {
+        if (!canManageIntegrations) {
+            alert('You do not have permission to manage integrations.');
+            return;
+        }
         const provider = providers.find(p => p.id === id);
         if (provider) {
             localStorage.setItem(`sms_provider_${id}`, JSON.stringify(provider));
@@ -94,6 +110,10 @@ const SMSGatewayConfig = () => {
     };
 
     const sendTestSMS = async () => {
+        if (!canSendBroadcasts) {
+            alert('You do not have permission to send broadcasts.');
+            return;
+        }
         if (!testPhone || !testMessage) {
             alert('Please enter phone number and message');
             return;
@@ -149,11 +169,12 @@ const SMSGatewayConfig = () => {
                             e.stopPropagation();
                             toggleProvider(provider.id);
                         }}
+                        disabled={!canManageIntegrations}
                         className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                             provider.enabled
                                 ? 'bg-red-100 text-red-700 hover:bg-red-200'
                                 : 'bg-green-100 text-green-700 hover:bg-green-200'
-                        }`}
+                        } ${!canManageIntegrations ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                         {provider.enabled ? 'Disable' : 'Enable'}
                     </button>
@@ -176,7 +197,8 @@ const SMSGatewayConfig = () => {
                                         value={provider.config.accountSid || ''}
                                         onChange={(e) => updateProviderConfig(provider.id, 'accountSid', e.target.value)}
                                         placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                        disabled={!canManageIntegrations}
+                                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-slate-50"
                                     />
                                 </div>
                                 <div>
@@ -189,11 +211,13 @@ const SMSGatewayConfig = () => {
                                             value={provider.config.authToken || ''}
                                             onChange={(e) => updateProviderConfig(provider.id, 'authToken', e.target.value)}
                                             placeholder="••••••••"
-                                            className="w-full px-3 py-2 pr-10 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                            disabled={!canManageIntegrations}
+                                            className="w-full px-3 py-2 pr-10 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-slate-50"
                                         />
                                         <button
                                             onClick={() => toggleApiKeyVisibility(provider.id, 'authToken')}
-                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                            disabled={!canManageIntegrations}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 disabled:opacity-50"
                                         >
                                             {showApiKeys[`${provider.id}_authToken`] ? '👁️' : '🙈'}
                                         </button>
@@ -213,7 +237,8 @@ const SMSGatewayConfig = () => {
                                         value={provider.config.username || ''}
                                         onChange={(e) => updateProviderConfig(provider.id, 'username', e.target.value)}
                                         placeholder="sandbox"
-                                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                        disabled={!canManageIntegrations}
+                                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-slate-50"
                                     />
                                 </div>
                                 <div>
@@ -226,11 +251,13 @@ const SMSGatewayConfig = () => {
                                             value={provider.config.apiKey || ''}
                                             onChange={(e) => updateProviderConfig(provider.id, 'apiKey', e.target.value)}
                                             placeholder="••••••••"
-                                            className="w-full px-3 py-2 pr-10 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                            disabled={!canManageIntegrations}
+                                            className="w-full px-3 py-2 pr-10 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-slate-50"
                                         />
                                         <button
                                             onClick={() => toggleApiKeyVisibility(provider.id, 'apiKey')}
-                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                            disabled={!canManageIntegrations}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 disabled:opacity-50"
                                         >
                                             {showApiKeys[`${provider.id}_apiKey`] ? '👁️' : '🙈'}
                                         </button>
@@ -250,11 +277,13 @@ const SMSGatewayConfig = () => {
                                         value={provider.config.apiKey || ''}
                                         onChange={(e) => updateProviderConfig(provider.id, 'apiKey', e.target.value)}
                                         placeholder="••••••••"
-                                        className="w-full px-3 py-2 pr-10 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                        disabled={!canManageIntegrations}
+                                        className="w-full px-3 py-2 pr-10 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-slate-50"
                                     />
                                     <button
                                         onClick={() => toggleApiKeyVisibility(provider.id, 'apiKey')}
-                                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                        disabled={!canManageIntegrations}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 disabled:opacity-50"
                                     >
                                         {showApiKeys[`${provider.id}_apiKey`] ? '👁️' : '🙈'}
                                     </button>
@@ -272,7 +301,8 @@ const SMSGatewayConfig = () => {
                                 onChange={(e) => updateProviderConfig(provider.id, 'senderId', e.target.value)}
                                 placeholder="YourSchool"
                                 maxLength={11}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                disabled={!canManageIntegrations}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-slate-50"
                             />
                             <p className="text-xs text-slate-500 mt-1">Max 11 characters, alphanumeric</p>
                         </div>
@@ -280,7 +310,8 @@ const SMSGatewayConfig = () => {
                         <div className="flex space-x-3 pt-4 border-t border-slate-200">
                             <button
                                 onClick={() => saveConfiguration(provider.id)}
-                                className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                                disabled={!canManageIntegrations}
+                                className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Save Configuration
                             </button>
@@ -294,7 +325,17 @@ const SMSGatewayConfig = () => {
     const enabledCount = providers.filter(p => p.enabled).length;
 
     return (
-        <div className="space-y-6">
+            <div className="space-y-6">
+            {!canManageIntegrations && (
+                <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg p-3">
+                    You have read-only access to SMS provider configurations (missing manage_integrations).
+                </div>
+            )}
+            {!canSendBroadcasts && (
+                <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg p-3">
+                    You cannot send test SMS (missing send_broadcasts).
+                </div>
+            )}
             <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-6 rounded-xl">
                 <h1 className="text-2xl font-bold mb-2">SMS Gateway Configuration</h1>
                 <p className="text-purple-100">
@@ -341,7 +382,7 @@ const SMSGatewayConfig = () => {
                     </div>
                     <button
                         onClick={sendTestSMS}
-                        disabled={isSending || !testPhone || !testMessage}
+                        disabled={isSending || !testPhone || !testMessage || !canSendBroadcasts}
                         className="w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isSending ? 'Sending...' : '📤 Send Test SMS'}
@@ -358,7 +399,7 @@ const SMSGatewayConfig = () => {
                             <p className="text-sm text-slate-500">Send SMS reminders for pending payments</p>
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" className="sr-only peer" />
+                            <input type="checkbox" className="sr-only peer" disabled={!canManageIntegrations} />
                             <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
                         </label>
                     </div>
@@ -369,7 +410,7 @@ const SMSGatewayConfig = () => {
                             <p className="text-sm text-slate-500">Notify parents about student absences</p>
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" className="sr-only peer" defaultChecked />
+                            <input type="checkbox" className="sr-only peer" defaultChecked disabled={!canManageIntegrations} />
                             <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
                         </label>
                     </div>
@@ -380,12 +421,12 @@ const SMSGatewayConfig = () => {
                             <p className="text-sm text-slate-500">Send SMS when exam results are published</p>
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" className="sr-only peer" defaultChecked />
+                            <input type="checkbox" className="sr-only peer" defaultChecked disabled={!canManageIntegrations} />
                             <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
                         </label>
                     </div>
                 </div>
-                <button className="mt-6 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                <button className="mt-6 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled={!canManageIntegrations}>
                     Save SMS Settings
                 </button>
             </div>

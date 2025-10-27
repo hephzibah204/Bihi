@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { usePlatformPermission } from '../../utils/usePlatformPermission';
 
 interface Feature {
     id: string;
@@ -30,6 +31,8 @@ interface Package {
 }
 
 const PricingPackageManager = () => {
+    const { can } = usePlatformPermission();
+    const canManagePlatformSettings = can('manage_platform_settings');
     const [activeTab, setActiveTab] = useState<'packages' | 'features'>('packages');
     
     // All Available Features
@@ -136,6 +139,10 @@ const PricingPackageManager = () => {
     const [showCreateModal, setShowCreateModal] = useState(false);
 
     const handleCreatePackage = () => {
+        if (!canManagePlatformSettings) {
+            alert('You do not have permission to manage platform settings.');
+            return;
+        }
         const newPackage: Package = {
             id: `package_${Date.now()}`,
             name: 'new_package',
@@ -164,6 +171,10 @@ const PricingPackageManager = () => {
     };
 
     const handleSavePackage = () => {
+        if (!canManagePlatformSettings) {
+            alert('You do not have permission to manage platform settings.');
+            return;
+        }
         if (selectedPackage) {
             setPackages(packages.map(p => p.id === selectedPackage.id ? selectedPackage : p));
             alert('Package saved successfully!');
@@ -172,6 +183,10 @@ const PricingPackageManager = () => {
     };
 
     const handleDeletePackage = (id: string) => {
+        if (!canManagePlatformSettings) {
+            alert('You do not have permission to manage platform settings.');
+            return;
+        }
         if (confirm('Are you sure you want to delete this package?')) {
             setPackages(packages.filter(p => p.id !== id));
             setSelectedPackage(null);
@@ -180,6 +195,10 @@ const PricingPackageManager = () => {
 
     const toggleFeature = (featureId: string) => {
         if (!selectedPackage) return;
+        if (!canManagePlatformSettings) {
+            alert('You do not have permission to manage platform settings.');
+            return;
+        }
         const features = selectedPackage.features.includes(featureId)
             ? selectedPackage.features.filter(f => f !== featureId)
             : [...selectedPackage.features, featureId];
@@ -194,8 +213,9 @@ const PricingPackageManager = () => {
                     <p className="text-sm text-slate-500">Create and manage pricing plans</p>
                 </div>
                 <button
-                    onClick={() => setShowCreateModal(true)}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    onClick={() => canManagePlatformSettings ? setShowCreateModal(true) : alert('You do not have permission to manage platform settings.')}
+                    disabled={!canManagePlatformSettings}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     + Create Package
                 </button>
@@ -256,10 +276,15 @@ const PricingPackageManager = () => {
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
+                                    if (!canManagePlatformSettings) {
+                                        alert('You do not have permission to manage platform settings.');
+                                        return;
+                                    }
                                     setSelectedPackage(pkg);
                                     setIsEditing(true);
                                 }}
-                                className="flex-1 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 text-sm font-medium"
+                                disabled={!canManagePlatformSettings}
+                                className="flex-1 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Edit
                             </button>
@@ -268,7 +293,8 @@ const PricingPackageManager = () => {
                                     e.stopPropagation();
                                     handleDeletePackage(pkg.id);
                                 }}
-                                className="flex-1 px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 text-sm font-medium"
+                                disabled={!canManagePlatformSettings}
+                                className="flex-1 px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Delete
                             </button>
@@ -285,8 +311,9 @@ const PricingPackageManager = () => {
                         </h3>
                         {!isEditing && (
                             <button
-                                onClick={() => setIsEditing(true)}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                onClick={() => canManagePlatformSettings ? setIsEditing(true) : alert('You do not have permission to manage platform settings.')}
+                                disabled={!canManagePlatformSettings}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Edit Package
                             </button>
@@ -476,7 +503,8 @@ const PricingPackageManager = () => {
                         <div className="mt-6 flex space-x-3">
                             <button
                                 onClick={handleSavePackage}
-                                className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                                disabled={!canManagePlatformSettings}
+                                className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Save Changes
                             </button>
@@ -498,6 +526,11 @@ const PricingPackageManager = () => {
 
     const FeaturesPanel = () => (
         <div className="space-y-6">
+            {!canManagePlatformSettings && (
+                <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg p-3">
+                    You have read-only access to pricing packages (missing manage_platform_settings).
+                </div>
+            )}
             <div>
                 <h3 className="text-lg font-semibold text-slate-900">Available Features</h3>
                 <p className="text-sm text-slate-500">Manage all system features</p>

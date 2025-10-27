@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../services/supabaseClient';
+import { usePlatformPermission } from '../../utils/usePlatformPermission';
 
 interface MediaFile {
     id: string;
@@ -34,6 +35,7 @@ const MediaLibrary = () => {
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const { can } = usePlatformPermission();
 
     const PATH_PREFIX = 'media/platform';
 
@@ -86,12 +88,13 @@ const MediaLibrary = () => {
     }, []);
 
     const handleFileSelect = () => {
+        if (!can('manage_content')) return;
         fileInputRef.current?.click();
     };
 
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const uploadedFiles = event.target.files;
-        if (!uploadedFiles) return;
+        if (!uploadedFiles || !can('manage_content')) return;
 
         setIsUploading(true);
         setUploadProgress(0);
@@ -117,6 +120,7 @@ const MediaLibrary = () => {
     };
 
     const handleDeleteSelected = async () => {
+        if (!can('manage_content')) return;
         if (selectedFiles.length === 0) return;
         if (!window.confirm(`Delete ${selectedFiles.length} file(s)?`)) return;
         try {
@@ -176,7 +180,8 @@ const MediaLibrary = () => {
                     <div className="flex items-center space-x-2">
                         <button
                             onClick={handleFileSelect}
-                            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            disabled={!can('manage_content')}
+                            className={`flex items-center px-4 py-2 rounded-lg transition-colors ${!can('manage_content') ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
                         >
                             <span className="mr-2">⬆️</span>
                             Upload Files
@@ -184,7 +189,8 @@ const MediaLibrary = () => {
                         {selectedFiles.length > 0 && (
                             <button
                                 onClick={handleDeleteSelected}
-                                className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                                disabled={!can('manage_content')}
+                                className={`flex items-center px-4 py-2 rounded-lg transition-colors ${!can('manage_content') ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700'}`}
                             >
                                 <span className="mr-2">🗑️</span>
                                 Delete ({selectedFiles.length})
@@ -357,9 +363,11 @@ const MediaLibrary = () => {
                                                         View
                                                     </button>
                                                     <button
-                                                        className="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded"
+                                                        className={`px-3 py-1 text-sm rounded ${!can('manage_content') ? 'text-slate-400 cursor-not-allowed' : 'text-red-600 hover:bg-red-50'}`}
+                                                        disabled={!can('manage_content')}
                                                         onClick={async (e) => {
                                                             e.stopPropagation();
+                                                            if (!can('manage_content')) return;
                                                             try {
                                                                 const { error } = await supabase.storage.from('school-assets').remove([file.id]);
                                                                 if (error) throw error;

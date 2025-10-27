@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../services/supabaseClient';
+import { usePlatformPermission } from '../../utils/usePlatformPermission';
 
 const SecurityCenter = () => {
     const [findings, setFindings] = useState<any[]>([]);
     const [scanning, setScanning] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const { can } = usePlatformPermission();
 
     const authHeaders = async () => {
         const { data: { session } } = await supabase.auth.getSession();
@@ -62,8 +64,8 @@ const SecurityCenter = () => {
                         <h3 className="font-semibold text-slate-900">Run Security Scan</h3>
                         <p className="text-sm text-slate-500">Checks environment configuration and common misconfigurations.</p>
                     </div>
-                    <button onClick={runScan} disabled={scanning} className="px-4 py-2 bg-red-600 text-white rounded-lg disabled:opacity-50">
-                        {scanning ? 'Scanning...' : 'Run Scan'}
+                    <button onClick={runScan} disabled={scanning || !can('manage_security')} className={`px-4 py-2 rounded-lg ${!can('manage_security') ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-red-600 text-white'} disabled:opacity-50`}>
+                        {scanning ? 'Scanning...' : (can('manage_security') ? 'Run Scan' : 'Insufficient permission')}
                     </button>
                 </div>
                 {error && <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-800 rounded">{error}</div>}

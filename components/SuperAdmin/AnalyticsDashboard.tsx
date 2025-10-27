@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { usePlatformPermission } from '../../utils/usePlatformPermission';
 
 interface AnalyticsData {
     pageViews: number;
@@ -14,9 +15,21 @@ interface AnalyticsData {
 }
 
 const AnalyticsDashboard = () => {
+    const { can, loaded } = usePlatformPermission();
+    const canViewReports = can('view_reports');
+    const canManageIntegrations = can('manage_integrations');
     const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d' | 'custom'>('30d');
     const [isGAConnected, setIsGAConnected] = useState(true);
     const [showGASetup, setShowGASetup] = useState(false);
+
+    if (loaded && !canViewReports) {
+        return (
+            <div className="p-6 border border-red-200 bg-red-50 rounded-lg">
+                <h3 className="text-red-800 font-semibold mb-1">Access restricted</h3>
+                <p className="text-sm text-red-700">You do not have permission to view analytics (view_reports).</p>
+            </div>
+        );
+    }
     
     const [analytics] = useState<AnalyticsData>({
         pageViews: 125847,
@@ -64,12 +77,20 @@ const AnalyticsDashboard = () => {
     });
 
     const handleConnectGA = () => {
+        if (!canManageIntegrations) {
+            alert('You do not have permission to manage integrations.');
+            return;
+        }
         alert('Google Analytics connected successfully!');
         setIsGAConnected(true);
         setShowGASetup(false);
     };
 
     const handleDisconnectGA = () => {
+        if (!canManageIntegrations) {
+            alert('You do not have permission to manage integrations.');
+            return;
+        }
         if (confirm('Are you sure you want to disconnect Google Analytics?')) {
             setIsGAConnected(false);
             alert('Google Analytics disconnected');
@@ -119,7 +140,8 @@ const AnalyticsDashboard = () => {
                             value={gaConfig.measurementId}
                             onChange={(e) => setGaConfig({ ...gaConfig, measurementId: e.target.value })}
                             placeholder="G-XXXXXXXXXX"
-                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={!canManageIntegrations}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50"
                         />
                         <p className="text-xs text-slate-500 mt-1">Format: G-XXXXXXXXXX</p>
                     </div>
@@ -138,7 +160,8 @@ const AnalyticsDashboard = () => {
                                     value={gaConfig.propertyId}
                                     onChange={(e) => setGaConfig({ ...gaConfig, propertyId: e.target.value })}
                                     placeholder="G-XXXXXXXXXX"
-                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    disabled={!canManageIntegrations}
+                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50"
                                 />
                             </div>
 
@@ -151,7 +174,8 @@ const AnalyticsDashboard = () => {
                                     value={gaConfig.apiKey}
                                     onChange={(e) => setGaConfig({ ...gaConfig, apiKey: e.target.value })}
                                     placeholder="Enter your API key"
-                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    disabled={!canManageIntegrations}
+                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50"
                                 />
                             </div>
 
@@ -164,7 +188,8 @@ const AnalyticsDashboard = () => {
                                     value={gaConfig.viewId}
                                     onChange={(e) => setGaConfig({ ...gaConfig, viewId: e.target.value })}
                                     placeholder="Enter View/Stream ID"
-                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    disabled={!canManageIntegrations}
+                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50"
                                 />
                             </div>
                         </div>
@@ -180,7 +205,8 @@ const AnalyticsDashboard = () => {
                     <div className="flex space-x-3 pt-4">
                         <button
                             onClick={handleConnectGA}
-                            className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                            disabled={!canManageIntegrations}
+                            className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Connect Google Analytics
                         </button>
@@ -215,15 +241,17 @@ const AnalyticsDashboard = () => {
                                 </div>
                                 <button
                                     onClick={handleDisconnectGA}
-                                    className="px-3 py-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg text-sm"
+                                    disabled={!canManageIntegrations}
+                                    className="px-3 py-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     Disconnect
                                 </button>
                             </>
                         ) : (
                             <button
-                                onClick={() => setShowGASetup(true)}
-                                className="px-4 py-2 bg-white text-purple-600 rounded-lg hover:bg-purple-50 font-medium"
+                                onClick={() => canManageIntegrations ? setShowGASetup(true) : alert('You do not have permission to manage integrations.')}
+                                disabled={!canManageIntegrations}
+                                className="px-4 py-2 bg-white text-purple-600 rounded-lg hover:bg-purple-50 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Connect Google Analytics
                             </button>

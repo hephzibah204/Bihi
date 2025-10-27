@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { usePlatformPermission } from '../../utils/usePlatformPermission';
 import { supabase } from '../../services/supabaseClient';
 
 const DatabaseManager = () => {
     const [activeTab, setActiveTab] = useState('overview');
     const [queryResult, setQueryResult] = useState(null);
     const [queryInput, setQueryInput] = useState('');
+    const { can } = usePlatformPermission();
 
     return (
         <div className="space-y-6">
@@ -61,6 +63,7 @@ const DatabaseManager = () => {
                         <div className="flex space-x-2">
                             <button
                                 onClick={async ()=>{
+                                    if (!can('manage_integrations')) return;
                                     try {
                                         const { data: { session } } = await supabase.auth.getSession();
                                         const res = await fetch('/api/db-query', {
@@ -75,7 +78,9 @@ const DatabaseManager = () => {
                                         setQueryResult([{ error: e?.message || 'Query failed' }]);
                                     }
                                 }}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                className={`px-4 py-2 rounded-lg ${!can('manage_integrations') ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                                disabled={!can('manage_integrations')}
+                                >
                                 Execute Query
                             </button>
                             <button disabled className="px-4 py-2 bg-slate-300 text-white rounded-lg" title="Coming soon">

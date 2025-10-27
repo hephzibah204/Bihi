@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { usePlatformPermission } from '../../utils/usePlatformPermission';
 
 interface Page {
     id: string;
@@ -18,6 +19,9 @@ interface Page {
 }
 
 const PageBuilder = () => {
+    const { can } = usePlatformPermission();
+    const canManageContent = can('manage_content');
+    const canPublishContent = can('publish_content');
     const [activeTab, setActiveTab] = useState<'all' | 'landing' | 'blog' | 'knowledge'>('all');
     const [selectedPage, setSelectedPage] = useState<Page | null>(null);
     const [isEditing, setIsEditing] = useState(false);
@@ -82,6 +86,10 @@ const PageBuilder = () => {
     ]);
 
     const handleCreatePage = (type: 'landing' | 'blog' | 'knowledge-base') => {
+        if (!canManageContent) {
+            alert('You do not have permission to manage content.');
+            return;
+        }
         const newPage: Page = {
             id: `page_${Date.now()}`,
             title: 'New Page',
@@ -103,6 +111,10 @@ const PageBuilder = () => {
     };
 
     const handleSavePage = () => {
+        if (!canManageContent) {
+            alert('You do not have permission to manage content.');
+            return;
+        }
         if (selectedPage) {
             setPages(pages.map(p => p.id === selectedPage.id ? selectedPage : p));
             alert('Page saved successfully!');
@@ -111,6 +123,10 @@ const PageBuilder = () => {
     };
 
     const handleDeletePage = (id: string) => {
+        if (!canManageContent) {
+            alert('You do not have permission to manage content.');
+            return;
+        }
         if (confirm('Are you sure you want to delete this page?')) {
             setPages(pages.filter(p => p.id !== id));
             setSelectedPage(null);
@@ -118,6 +134,10 @@ const PageBuilder = () => {
     };
 
     const handlePublish = (id: string) => {
+        if (!canPublishContent) {
+            alert('You do not have permission to publish content.');
+            return;
+        }
         setPages(pages.map(p => 
             p.id === id ? { ...p, status: 'published', publishDate: new Date().toISOString().split('T')[0] } : p
         ));
@@ -161,19 +181,22 @@ const PageBuilder = () => {
                 <div className="flex space-x-2">
                     <button
                         onClick={() => handleCreatePage('landing')}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                        disabled={!canManageContent}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         + Landing Page
                     </button>
                     <button
                         onClick={() => handleCreatePage('blog')}
-                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                        disabled={!canManageContent}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         + Blog Post
                     </button>
                     <button
                         onClick={() => handleCreatePage('knowledge-base')}
-                        className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm"
+                        disabled={!canManageContent}
+                        className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         + Knowledge Base
                     </button>
@@ -227,14 +250,16 @@ const PageBuilder = () => {
                                         {page.status === 'draft' && (
                                             <button
                                                 onClick={() => handlePublish(page.id)}
-                                                className="text-green-600 hover:text-green-700 text-sm"
+                                                disabled={!canPublishContent}
+                                                className="text-green-600 hover:text-green-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
                                                 Publish
                                             </button>
                                         )}
                                         <button
                                             onClick={() => handleDeletePage(page.id)}
-                                            className="text-red-600 hover:text-red-700 text-sm"
+                                            disabled={!canManageContent}
+                                            className="text-red-600 hover:text-red-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             Delete
                                         </button>
@@ -260,8 +285,9 @@ const PageBuilder = () => {
                     <div className="flex space-x-2">
                         {!isEditing && (
                             <button
-                                onClick={() => setIsEditing(true)}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                onClick={() => canManageContent ? setIsEditing(true) : alert('You do not have permission to manage content.')}
+                                disabled={!canManageContent}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Edit Page
                             </button>
@@ -429,7 +455,8 @@ const PageBuilder = () => {
                         <div className="mt-6 flex space-x-3 pt-6 border-t border-slate-200">
                             <button
                                 onClick={handleSavePage}
-                                className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                                disabled={!canManageContent}
+                                className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Save Changes
                             </button>
@@ -451,6 +478,11 @@ const PageBuilder = () => {
 
     return (
         <div className="space-y-6">
+            {!canManageContent && (
+                <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg p-3">
+                    You have read-only access to content management (missing manage_content).
+                </div>
+            )}
             <div className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white p-6 rounded-xl">
                 <h1 className="text-2xl font-bold mb-2">Page Builder & CMS</h1>
                 <p className="text-cyan-100">Create and manage landing pages, blog posts, and knowledge base articles</p>

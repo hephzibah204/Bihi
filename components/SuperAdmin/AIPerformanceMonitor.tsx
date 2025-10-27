@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { getAIResponseCache } from '../../services/aiResponseCache';
+import { usePlatformPermission } from '../../utils/usePlatformPermission';
 
 const AIPerformanceMonitor = () => {
+    const { can, loaded } = usePlatformPermission();
+    const canViewReports = can('view_reports');
+    const canManageSecurity = can('manage_security');
     const [stats, setStats] = useState<any>(null);
     const [cachedResponses, setCachedResponses] = useState<any[]>([]);
     const [selectedTab, setSelectedTab] = useState<'overview' | 'cache' | 'quality'>('overview');
@@ -21,6 +25,10 @@ const AIPerformanceMonitor = () => {
     };
 
     const clearCache = () => {
+        if (!canManageSecurity) {
+            alert('You do not have permission to manage security.');
+            return;
+        }
         if (confirm('Are you sure you want to clear all cached responses?')) {
             const cache = getAIResponseCache();
             cache.clearCache();
@@ -30,6 +38,10 @@ const AIPerformanceMonitor = () => {
     };
 
     const exportCache = () => {
+        if (!canManageSecurity) {
+            alert('You do not have permission to manage security.');
+            return;
+        }
         const cache = getAIResponseCache();
         const responses = cache.exportCache();
         
@@ -48,6 +60,14 @@ const AIPerformanceMonitor = () => {
 
     const cacheHitRate = stats ? (stats.cacheHits / (stats.cacheHits + stats.cacheMisses) * 100).toFixed(1) : '0';
 
+    if (loaded && !canViewReports) {
+        return (
+            <div className="p-6 border border-red-200 bg-red-50 rounded-lg">
+                <h3 className="text-red-800 font-semibold mb-1">Access restricted</h3>
+                <p className="text-sm text-red-700">You do not have permission to view AI performance reports (view_reports).</p>
+            </div>
+        );
+    }
     return (
         <div className="space-y-6">
             <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6 rounded-xl">
@@ -199,13 +219,15 @@ const AIPerformanceMonitor = () => {
                         <div className="flex space-x-2">
                             <button
                                 onClick={exportCache}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                                disabled={!canManageSecurity}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 📥 Export Cache
                             </button>
                             <button
                                 onClick={clearCache}
-                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
+                                disabled={!canManageSecurity}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 🗑️ Clear Cache
                             </button>

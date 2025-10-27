@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { usePlatformPermission } from '../../utils/usePlatformPermission';
 
 interface SEOScore {
     overall: number;
@@ -8,6 +9,9 @@ interface SEOScore {
 }
 
 const SEOManager = () => {
+    const { can, loaded } = usePlatformPermission();
+    const canManageContent = can('manage_content');
+    const canManageIntegrations = can('manage_integrations');
     const [activeTab, setActiveTab] = useState<'meta' | 'sitemap' | 'analytics' | 'score'>('meta');
     const [seoScore] = useState<SEOScore>({
         overall: 78,
@@ -64,7 +68,8 @@ const SEOManager = () => {
                         onChange={(e) => setMetaSettings({...metaSettings, siteTitle: e.target.value})}
                         placeholder="Your School Name - Tagline"
                         maxLength={60}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        disabled={!canManageContent}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50"
                     />
                     <p className="text-xs text-slate-500 mt-1">{metaSettings.siteTitle.length}/60 characters</p>
                 </div>
@@ -79,7 +84,8 @@ const SEOManager = () => {
                         placeholder="Brief description of your school..."
                         maxLength={160}
                         rows={3}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        disabled={!canManageContent}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50"
                     />
                     <p className="text-xs text-slate-500 mt-1">{metaSettings.siteDescription.length}/160 characters</p>
                 </div>
@@ -93,7 +99,8 @@ const SEOManager = () => {
                         value={metaSettings.keywords}
                         onChange={(e) => setMetaSettings({...metaSettings, keywords: e.target.value})}
                         placeholder="school, education, management"
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        disabled={!canManageContent}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50"
                     />
                 </div>
 
@@ -110,7 +117,8 @@ const SEOManager = () => {
                                 value={metaSettings.ogImage}
                                 onChange={(e) => setMetaSettings({...metaSettings, ogImage: e.target.value})}
                                 placeholder="https://yourschool.com/og-image.jpg"
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                disabled={!canManageContent}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50"
                             />
                             <p className="text-xs text-slate-500 mt-1">Recommended: 1200x630px</p>
                         </div>
@@ -122,7 +130,8 @@ const SEOManager = () => {
                             <select
                                 value={metaSettings.twitterCard}
                                 onChange={(e) => setMetaSettings({...metaSettings, twitterCard: e.target.value})}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                disabled={!canManageContent}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50"
                             >
                                 <option value="summary">Summary</option>
                                 <option value="summary_large_image">Summary with Large Image</option>
@@ -138,12 +147,13 @@ const SEOManager = () => {
                         value={metaSettings.robotsTxt}
                         onChange={(e) => setMetaSettings({...metaSettings, robotsTxt: e.target.value})}
                         rows={6}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                        disabled={!canManageContent}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm disabled:bg-slate-50"
                     />
                     <p className="text-xs text-slate-500 mt-1">Controls search engine crawler access</p>
                 </div>
 
-                <button className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                <button className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled={!canManageContent}>
                     Save Meta Settings
                 </button>
             </div>
@@ -158,7 +168,7 @@ const SEOManager = () => {
                         <h3 className="font-semibold text-slate-900">XML Sitemap</h3>
                         <p className="text-sm text-slate-500 mt-1">Helps search engines discover your content</p>
                     </div>
-                    <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                    <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled={!canManageContent}>
                         Generate Sitemap
                     </button>
                 </div>
@@ -170,25 +180,25 @@ const SEOManager = () => {
 
             <div className="bg-white border border-slate-200 rounded-lg p-6">
                 <h3 className="font-semibold text-slate-900 mb-4">Sitemap Settings</h3>
-                <div className="space-y-3">
+                        <div className="space-y-3">
                     <label className="flex items-center space-x-3">
-                        <input type="checkbox" defaultChecked className="w-4 h-4 text-blue-600 rounded" />
+                        <input type="checkbox" defaultChecked className="w-4 h-4 text-blue-600 rounded" disabled={!canManageContent} />
                         <span className="text-sm text-slate-700">Include Blog Posts</span>
                     </label>
                     <label className="flex items-center space-x-3">
-                        <input type="checkbox" defaultChecked className="w-4 h-4 text-blue-600 rounded" />
+                        <input type="checkbox" defaultChecked className="w-4 h-4 text-blue-600 rounded" disabled={!canManageContent} />
                         <span className="text-sm text-slate-700">Include Pages</span>
                     </label>
                     <label className="flex items-center space-x-3">
-                        <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" />
+                        <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" disabled={!canManageContent} />
                         <span className="text-sm text-slate-700">Include Knowledge Base Articles</span>
                     </label>
                     <label className="flex items-center space-x-3">
-                        <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" />
+                        <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" disabled={!canManageContent} />
                         <span className="text-sm text-slate-700">Include Course Catalog</span>
                     </label>
                 </div>
-                <button className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                <button className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled={!canManageContent}>
                     Update Settings
                 </button>
             </div>
@@ -196,14 +206,14 @@ const SEOManager = () => {
             <div className="bg-white border border-slate-200 rounded-lg p-6">
                 <h3 className="font-semibold text-slate-900 mb-4">Submit to Search Engines</h3>
                 <div className="space-y-3">
-                    <button className="w-full flex items-center justify-between px-4 py-3 border border-slate-200 rounded-lg hover:bg-slate-50">
+                    <button className="w-full flex items-center justify-between px-4 py-3 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" disabled={!canManageIntegrations}>
                         <div className="flex items-center space-x-3">
                             <span className="text-2xl">🔍</span>
                             <span className="font-medium">Google Search Console</span>
                         </div>
                         <span className="text-sm text-blue-600">Submit →</span>
                     </button>
-                    <button className="w-full flex items-center justify-between px-4 py-3 border border-slate-200 rounded-lg hover:bg-slate-50">
+                    <button className="w-full flex items-center justify-between px-4 py-3 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" disabled={!canManageIntegrations}>
                         <div className="flex items-center space-x-3">
                             <span className="text-2xl">🔷</span>
                             <span className="font-medium">Bing Webmaster Tools</span>
@@ -229,7 +239,8 @@ const SEOManager = () => {
                             value={analyticsKeys.googleAnalytics}
                             onChange={(e) => setAnalyticsKeys({...analyticsKeys, googleAnalytics: e.target.value})}
                             placeholder="G-XXXXXXXXXX"
-                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={!canManageIntegrations}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50"
                         />
                     </div>
 
@@ -242,7 +253,8 @@ const SEOManager = () => {
                             value={analyticsKeys.googleSearchConsole}
                             onChange={(e) => setAnalyticsKeys({...analyticsKeys, googleSearchConsole: e.target.value})}
                             placeholder="verification-code-here"
-                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={!canManageIntegrations}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50"
                         />
                     </div>
 
@@ -255,7 +267,8 @@ const SEOManager = () => {
                             value={analyticsKeys.bingWebmaster}
                             onChange={(e) => setAnalyticsKeys({...analyticsKeys, bingWebmaster: e.target.value})}
                             placeholder="verification-code-here"
-                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={!canManageIntegrations}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50"
                         />
                     </div>
 
@@ -268,11 +281,12 @@ const SEOManager = () => {
                             value={analyticsKeys.facebookPixel}
                             onChange={(e) => setAnalyticsKeys({...analyticsKeys, facebookPixel: e.target.value})}
                             placeholder="123456789012345"
-                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={!canManageIntegrations}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50"
                         />
                     </div>
 
-                    <button className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <button className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled={!canManageIntegrations}>
                         Save Analytics Keys
                     </button>
                 </div>
@@ -286,14 +300,14 @@ const SEOManager = () => {
                             <h4 className="font-medium text-slate-900">Track Admin Users</h4>
                             <p className="text-sm text-slate-500">Include admin activity in analytics</p>
                         </div>
-                        <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" />
+                        <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" disabled={!canManageIntegrations} />
                     </label>
                     <label className="flex items-center justify-between">
                         <div>
                             <h4 className="font-medium text-slate-900">Cookie Consent Banner</h4>
                             <p className="text-sm text-slate-500">Show GDPR-compliant cookie notice</p>
                         </div>
-                        <input type="checkbox" defaultChecked className="w-4 h-4 text-blue-600 rounded" />
+                        <input type="checkbox" defaultChecked className="w-4 h-4 text-blue-600 rounded" disabled={!canManageIntegrations} />
                     </label>
                 </div>
             </div>
@@ -374,6 +388,16 @@ const SEOManager = () => {
 
     return (
         <div className="space-y-6">
+            {!canManageContent && (
+                <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg p-3">
+                    You have read-only access to SEO content settings (missing manage_content).
+                </div>
+            )}
+            {!canManageIntegrations && (
+                <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg p-3">
+                    Analytics integration settings are read-only (missing manage_integrations).
+                </div>
+            )}
             <div className="bg-gradient-to-r from-teal-600 to-cyan-600 text-white p-6 rounded-xl">
                 <h1 className="text-2xl font-bold mb-2">SEO Manager</h1>
                 <p className="text-teal-100">Optimize your site for search engines and improve visibility</p>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { apiSendMessage } from '../../services/api';
+import { usePlatformPermission } from '../../utils/usePlatformPermission';
 
 interface SMTPConfig {
     host: string;
@@ -34,6 +35,7 @@ const EmailCenter = () => {
     const [testEmail, setTestEmail] = useState('');
     const [isTesting, setIsTesting] = useState(false);
     const [testResult, setTestResult] = useState<'success' | 'error' | null>(null);
+    const { can } = usePlatformPermission();
 
     const [templates] = useState<EmailTemplate[]>([
         {
@@ -56,11 +58,13 @@ const EmailCenter = () => {
 
     const handleSMTPSave = () => {
         // Save SMTP configuration
+        if (!can('manage_integrations')) return;
         localStorage.setItem('smtp_config', JSON.stringify(smtpConfig));
         alert('SMTP Configuration saved successfully!');
     };
 
     const handleTestEmail = async () => {
+        if (!can('send_broadcasts')) return;
         setIsTesting(true);
         setTestResult(null);
         try {
@@ -201,8 +205,8 @@ const EmailCenter = () => {
                     </div>
                     <button
                         onClick={handleTestEmail}
-                        disabled={isTesting || !testEmail}
-                        className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={!can('send_broadcasts') || isTesting || !testEmail}
+className={`px-6 py-2 rounded-lg transition-colors ${!can('send_broadcasts') ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700'} disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                         {isTesting ? 'Sending...' : 'Send Test'}
                     </button>
@@ -224,7 +228,8 @@ const EmailCenter = () => {
             <div className="flex justify-end space-x-3">
                 <button
                     onClick={handleSMTPSave}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    disabled={!can('manage_integrations')}
+                    className={`px-6 py-2 rounded-lg transition-colors ${!can('manage_integrations') ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
                 >
                     Save Configuration
                 </button>
@@ -236,9 +241,9 @@ const EmailCenter = () => {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold text-slate-900">Email Templates</h3>
-                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                    + New Template
-                </button>
+                        <button className={`px-4 py-2 rounded-lg transition-colors ${!can('manage_content') ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`} disabled={!can('manage_content')}>
+                            + New Template
+                        </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -258,9 +263,9 @@ const EmailCenter = () => {
                         </p>
                         <p className="text-sm text-slate-500 line-clamp-2">{template.body}</p>
                         <div className="mt-3 flex items-center space-x-2">
-                            <button className="text-sm text-blue-600 hover:text-blue-700">Edit</button>
+                            <button className={`text-sm ${!can('manage_content') ? 'text-slate-400 cursor-not-allowed' : 'text-blue-600 hover:text-blue-700'}`} disabled={!can('manage_content')}>Edit</button>
                             <button className="text-sm text-green-600 hover:text-green-700">Preview</button>
-                            <button className="text-sm text-red-600 hover:text-red-700">Delete</button>
+                            <button className={`text-sm ${!can('manage_content') ? 'text-slate-400 cursor-not-allowed' : 'text-red-600 hover:text-red-700'}`} disabled={!can('manage_content')}>Delete</button>
                         </div>
                     </div>
                 ))}
@@ -314,10 +319,10 @@ const EmailCenter = () => {
                     </div>
 
                     <div className="flex justify-end space-x-3">
-                        <button className="px-6 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+                        <button className={`px-6 py-2 border rounded-lg transition-colors ${!can('manage_content') ? 'border-slate-200 text-slate-400 cursor-not-allowed' : 'border-slate-300 hover:bg-slate-50'}`} disabled={!can('manage_content')}>
                             Save Draft
                         </button>
-                        <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        <button className={`px-6 py-2 rounded-lg transition-colors ${!can('send_broadcasts') ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`} disabled={!can('send_broadcasts')}>
                             Send Email
                         </button>
                     </div>

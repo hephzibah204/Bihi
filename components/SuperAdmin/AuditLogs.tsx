@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { usePlatformPermission } from '../../utils/usePlatformPermission';
 
 interface AuditLog {
     id: string;
@@ -73,6 +74,7 @@ const AuditLogs = () => {
     });
 
     const [selectedLogs, setSelectedLogs] = useState<string[]>([]);
+    const { can } = usePlatformPermission();
 
     const getStatusBadge = (status: AuditLog['status']) => {
         switch (status) {
@@ -337,6 +339,9 @@ const AuditLogs = () => {
 
             <div className="bg-white border border-slate-200 rounded-lg p-6">
                 <h3 className="font-semibold text-slate-900 mb-4">Audit Log Settings</h3>
+                {!can('manage_security') && (
+                    <div className="mb-3 p-3 bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded">You have read-only access to audit settings.</div>
+                )}
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
                         <div>
@@ -344,7 +349,7 @@ const AuditLogs = () => {
                             <p className="text-sm text-slate-500">Track all administrative actions</p>
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" className="sr-only peer" defaultChecked />
+                            <input type="checkbox" className="sr-only peer" defaultChecked disabled={!can('manage_security')} />
                             <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                         </label>
                     </div>
@@ -354,7 +359,7 @@ const AuditLogs = () => {
                             <p className="text-sm text-slate-500">Track authentication events</p>
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" className="sr-only peer" defaultChecked />
+                            <input type="checkbox" className="sr-only peer" defaultChecked disabled={!can('manage_security')} />
                             <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                         </label>
                     </div>
@@ -364,7 +369,7 @@ const AuditLogs = () => {
                             <p className="text-sm text-slate-500">Track modifications to records</p>
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" className="sr-only peer" defaultChecked />
+                            <input type="checkbox" className="sr-only peer" defaultChecked disabled={!can('manage_security')} />
                             <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                         </label>
                     </div>
@@ -374,7 +379,7 @@ const AuditLogs = () => {
                             <p className="text-sm text-slate-500">Track security threats and errors</p>
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" className="sr-only peer" defaultChecked />
+                            <input type="checkbox" className="sr-only peer" defaultChecked disabled={!can('manage_security')} />
                             <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                         </label>
                     </div>
@@ -382,7 +387,7 @@ const AuditLogs = () => {
                         <label className="block text-sm font-medium text-slate-700 mb-2">
                             Log Retention Period
                         </label>
-                        <select className="w-full md:w-64 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <select disabled={!can('manage_security')} className={`w-full md:w-64 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${!can('manage_security') ? 'border-slate-200 text-slate-400 cursor-not-allowed' : 'border-slate-300'}`}>
                             <option value="30">30 Days</option>
                             <option value="60">60 Days</option>
                             <option value="90">90 Days</option>
@@ -392,7 +397,7 @@ const AuditLogs = () => {
                         </select>
                     </div>
                 </div>
-                <button className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                <button disabled={!can('manage_security')} className={`mt-6 px-6 py-2 rounded-lg ${!can('manage_security') ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
                     Save Settings
                 </button>
             </div>

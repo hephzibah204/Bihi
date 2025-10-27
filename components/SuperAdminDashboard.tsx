@@ -361,13 +361,13 @@ const SuperAdminHeader = ({ activeView, onLogout, onQuickAction, can, roleLabel 
                                     <div className="text-xs text-slate-500">admin@platform.com</div>
                                 </div>
                                 <button 
-                                    onClick={() => { setActiveView('admin-profile'); setUserMenu(false); }}
+                                    onClick={() => { setUserMenu(false); }}
                                     className="w-full text-left px-2 py-2 rounded hover:bg-slate-100 text-sm mt-1"
                                 >
                                     👤 Profile Settings
                                 </button>
                                 <button 
-                                    onClick={() => { setActiveView('security'); setUserMenu(false); }}
+                                    onClick={() => { setUserMenu(false); }}
                                     className="w-full text-left px-2 py-2 rounded hover:bg-slate-100 text-sm"
                                 >
                                     🔐 Security Settings

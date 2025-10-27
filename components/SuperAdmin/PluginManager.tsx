@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { usePlatformPermission } from '../../utils/usePlatformPermission';
 
 interface Plugin {
     id: string;
@@ -45,6 +46,8 @@ const PluginManager = () => {
         }
     ]);
 
+    const { can } = usePlatformPermission();
+
     return (
         <div className="space-y-6">
             <div className="bg-gradient-to-r from-green-600 to-blue-600 text-white p-6 rounded-xl">
@@ -75,14 +78,10 @@ const PluginManager = () => {
                         <p className="text-sm text-slate-600 mb-4">{plugin.description}</p>
                         
                         <div className="flex space-x-2">
-                            <button className={`px-3 py-1 rounded text-sm font-medium ${
-                                plugin.active 
-                                    ? 'bg-red-600 text-white hover:bg-red-700' 
-                                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                            }`}>
+                            <button disabled={!can('manage_plugins')} className={`px-3 py-1 rounded text-sm font-medium ${!can('manage_plugins') ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : (plugin.active ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-blue-600 text-white hover:bg-blue-700')}`}>
                                 {plugin.active ? 'Deactivate' : 'Activate'}
                             </button>
-                            <button className="px-3 py-1 border border-slate-300 rounded text-sm font-medium hover:bg-slate-50">
+                            <button disabled={!can('manage_plugins')} className={`px-3 py-1 border rounded text-sm font-medium ${!can('manage_plugins') ? 'border-slate-200 text-slate-400 cursor-not-allowed' : 'border-slate-300 hover:bg-slate-50'}`}>
                                 Settings
                             </button>
                         </div>

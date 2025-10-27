@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { apiGetPlatformSettings, apiSavePlatformSettings, apiUploadSchoolLogo } from '../../services/api';
+import { usePlatformPermission } from '../../utils/usePlatformPermission';
 import { defaultTheme, applyThemeToDocument, isValidHexColor, normalizeHex, withFontFallback, ThemeSettings } from '../../hooks/useTheme';
 
 const ThemeManager = () => {
@@ -8,6 +9,7 @@ const ThemeManager = () => {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [validationErrors, setValidationErrors] = useState<{ primaryColor?: string; secondaryColor?: string; accentColor?: string; fontFamily?: string } | null>(null);
+    const { can } = usePlatformPermission();
 
     useEffect(() => {
         const load = async () => {
@@ -120,7 +122,7 @@ const ThemeManager = () => {
                                 <input
                                     type="color"
                                     value={theme.primaryColor}
-                                    onChange={e => setTheme({ ...theme, primaryColor: e.target.value })}
+                                    onChange={e => can('manage_content') && setTheme({ ...theme, primaryColor: e.target.value })}
                                     className="w-16 h-10 p-1 border rounded ml-2 align-middle"
                                 />
                                 {validationErrors?.primaryColor && (
@@ -132,7 +134,7 @@ const ThemeManager = () => {
                                 <input
                                     type="color"
                                     value={theme.secondaryColor}
-                                    onChange={e => setTheme({ ...theme, secondaryColor: e.target.value })}
+                                    onChange={e => can('manage_content') && setTheme({ ...theme, secondaryColor: e.target.value })}
                                     className="w-16 h-10 p-1 border rounded ml-2 align-middle"
                                 />
                                 {validationErrors?.secondaryColor && (
@@ -144,7 +146,7 @@ const ThemeManager = () => {
                                 <input
                                     type="color"
                                     value={theme.accentColor}
-                                    onChange={e => setTheme({ ...theme, accentColor: e.target.value })}
+                                    onChange={e => can('manage_content') && setTheme({ ...theme, accentColor: e.target.value })}
                                     className="w-16 h-10 p-1 border rounded ml-2 align-middle"
                                 />
                                 {validationErrors?.accentColor && (
@@ -156,7 +158,7 @@ const ThemeManager = () => {
                                 <input
                                     type="text"
                                     value={theme.fontFamily}
-                                    onChange={e => setTheme({ ...theme, fontFamily: e.target.value })}
+                                    onChange={e => can('manage_content') && setTheme({ ...theme, fontFamily: e.target.value })}
                                     className="mt-1 w-full px-3 py-2 border rounded-lg"
                                     placeholder="Inter, system-ui, sans-serif"
                                 />
@@ -182,7 +184,7 @@ const ThemeManager = () => {
                                     <input
                                         type="file"
                                         accept="image/*"
-                                        onChange={e => onFileChange(e.target.files?.[0])}
+                                        onChange={e => { if (can('manage_content')) onFileChange(e.target.files?.[0]); }}
                                         className="block"
                                     />
                                     {theme.logoUrl && (
@@ -193,15 +195,15 @@ const ThemeManager = () => {
                             <div className="pt-2 flex gap-3">
                                 <button
                                     onClick={save}
-                                    disabled={saving || !!validationErrors}
-                                    className="btn btn-primary disabled:opacity-50"
+                                    disabled={!can('manage_content') || saving || !!validationErrors}
+className={`btn ${!can('manage_content') ? 'btn-disabled' : 'btn-primary'} disabled:opacity-50`}
                                 >
                                     {saving ? 'Saving...' : 'Save Theme'}
                                 </button>
                                 <button
                                     onClick={resetToDefaults}
-                                    disabled={saving}
-                                    className="btn btn-secondary disabled:opacity-50"
+                                    disabled={!can('manage_content') || saving}
+className={`btn ${!can('manage_content') ? 'btn-disabled' : 'btn-secondary'} disabled:opacity-50`}
                                 >
                                     Reset to Defaults
                                 </button>

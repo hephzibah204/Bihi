@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../services/supabaseClient';
+import { usePlatformPermission } from '../../utils/usePlatformPermission';
 
 interface Backup {
     id: string;
@@ -16,6 +17,7 @@ const BackupSystem = () => {
     const [backups, setBackups] = useState<any[]>([]);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const { can } = usePlatformPermission();
 
     const getAuthHeaders = async () => {
         const { data: { session } } = await supabase.auth.getSession();
@@ -73,6 +75,7 @@ const BackupSystem = () => {
                 </div>
                 <button
                     onClick={async () => {
+                        if (!can('manage_security')) return;
                         try {
                             setBusy(true); setError(null);
                             const auth = await getAuthHeaders();
@@ -83,8 +86,8 @@ const BackupSystem = () => {
                             setError(e?.message || 'Backup failed');
                         } finally { setBusy(false); }
                     }}
-                    disabled={busy}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                    disabled={busy || !can('manage_security')}
+                    className={`px-6 py-2 rounded-lg transition-colors ${!can('manage_security') ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'} disabled:opacity-50`}
                 >
                     {busy ? 'Creating...' : '🔄 Create Backup Now'}
                 </button>
@@ -156,6 +159,7 @@ const BackupSystem = () => {
                                                 className="text-blue-600 hover:text-blue-700 text-sm">Download</button>
                                             <button
                                                 onClick={async () => {
+                                                    if (!can('manage_security')) return;
                                                     const ok = window.confirm('Warning: Restoring will overwrite data. Type OK to proceed.');
                                                     if (!ok) return;
                                                     try {
@@ -168,9 +172,13 @@ const BackupSystem = () => {
                                                         setError(e?.message || 'Restore failed');
                                                     } finally { setBusy(false); }
                                                 }}
-                                                className="text-green-600 hover:text-green-700 text-sm">Restore</button>
+                                                className={`text-sm ${!can('manage_security') ? 'text-slate-400 cursor-not-allowed' : 'text-green-600 hover:text-green-700'}`}
+                                            >
+                                                Restore
+                                            </button>
                                             <button
                                                 onClick={async () => {
+                                                    if (!can('manage_security')) return;
                                                     if (!window.confirm('Delete this backup?')) return;
                                                     try {
                                                         setBusy(true); setError(null);
@@ -182,7 +190,10 @@ const BackupSystem = () => {
                                                         setError(e?.message || 'Delete failed');
                                                     } finally { setBusy(false); }
                                                 }}
-                                                className="text-red-600 hover:text-red-700 text-sm">Delete</button>
+                                                className={`text-sm ${!can('manage_security') ? 'text-slate-400 cursor-not-allowed' : 'text-red-600 hover:text-red-700'}`}
+                                            >
+                                                Delete
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -283,9 +294,9 @@ const BackupSystem = () => {
                         />
                     </div>
                 </div>
-                <button className="mt-4 w-full px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                    Add Schedule
-                </button>
+                    <button disabled={!can('manage_security')} className={`mt-4 w-full px-6 py-2 rounded-lg ${!can('manage_security') ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
+                        Add Schedule
+                    </button>
             </div>
         </div>
     );
@@ -334,7 +345,7 @@ const BackupSystem = () => {
                             <option value="eu-west-1">EU (Ireland)</option>
                             <option value="ap-southeast-1">Asia Pacific (Singapore)</option>
                         </select>
-                        <button className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        <button disabled={!can('manage_security')} className={`w-full px-4 py-2 rounded-lg ${!can('manage_security') ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
                             Save AWS Configuration
                         </button>
                     </div>
@@ -372,7 +383,7 @@ const BackupSystem = () => {
                             rows={4}
                             className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                         />
-                        <button className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        <button disabled={!can('manage_security')} className={`w-full px-4 py-2 rounded-lg ${!can('manage_security') ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
                             Save Google Cloud Configuration
                         </button>
                     </div>
@@ -405,7 +416,7 @@ const BackupSystem = () => {
                             placeholder="Access Token"
                             className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
-                        <button className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        <button disabled={!can('manage_security')} className={`w-full px-4 py-2 rounded-lg ${!can('manage_security') ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
                             Save Dropbox Configuration
                         </button>
                     </div>
@@ -469,7 +480,7 @@ const BackupSystem = () => {
                         </ul>
                     </div>
 
-                    <button className="w-full px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                    <button disabled={!can('manage_security')} className={`w-full px-6 py-3 rounded-lg transition-colors ${!can('manage_security') ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700'}`}>
                         🔄 Start Restore Process
                     </button>
                 </div>

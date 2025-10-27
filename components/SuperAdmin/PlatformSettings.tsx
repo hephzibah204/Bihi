@@ -159,6 +159,9 @@ const PlatformSettings = () => {
             </div>
             
             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                {!can('manage_platform_settings') && (
+                    <div className="mb-4 p-3 rounded bg-amber-50 border border-amber-200 text-amber-800 text-sm">You have read-only access to Platform Settings.</div>
+                )}
                 <div className="border-b border-slate-200 mb-6">
                     <TabButton view="general">General</TabButton>
                     <TabButton view="landing-page">Landing Page</TabButton>

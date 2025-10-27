@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { usePlatformPermission } from '../../utils/usePlatformPermission';
 
 interface SystemMetrics {
     cpu: number;
@@ -280,6 +281,9 @@ const RequestAnalytics = ({ requests }: { requests: SystemMetrics['requests'] })
 
 // Main System Monitoring Component
 const SystemMonitoring = () => {
+    const { can, loaded } = usePlatformPermission();
+    const canViewReports = can('view_reports');
+    const canManageSecurity = can('manage_security');
     const [metrics, setMetrics] = useState<SystemMetrics>({
         cpu: 0,
         memory: 0,
@@ -363,12 +367,25 @@ const SystemMonitoring = () => {
     }, []);
 
     const handleResolveAlert = (id: string) => {
+        if (!canManageSecurity) {
+            alert('You do not have permission to manage security.');
+            return;
+        }
         setAlerts(prev => 
             prev.map(alert => 
                 alert.id === id ? { ...alert, resolved: true } : alert
             )
         );
     };
+
+    if (loaded && !canViewReports) {
+        return (
+            <div className="p-6 border border-red-200 bg-red-50 rounded-lg">
+                <h3 className="text-red-800 font-semibold mb-1">Access restricted</h3>
+                <p className="text-sm text-red-700">You do not have permission to view system metrics (view_reports).</p>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">

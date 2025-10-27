@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Modal from '../Modal';
 import { supabase } from '../../services/supabaseClient';
+import { usePlatformPermission } from '../../utils/usePlatformPermission';
 
 interface APIKey {
     id: string;
@@ -72,6 +73,7 @@ const APIManager = () => {
     const [newKey, setNewKey] = useState({ name: '', environment: 'development', rateLimit: 1000 });
     const [busy, setBusy] = useState(false);
     const [showCreateWebhook, setShowCreateWebhook] = useState(false);
+    const { can } = usePlatformPermission();
     const [newHook, setNewHook] = useState<{url: string; events: string}>({ url: '', events: '' });
 
     const authHeaders = async () => {
@@ -118,8 +120,9 @@ const APIManager = () => {
                     <p className="text-sm text-slate-500">Manage API keys for external integrations</p>
                 </div>
                 <button
-                    onClick={() => setShowCreateModal(true)}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    onClick={() => { if (can('manage_integrations')) setShowCreateModal(true); }}
+                    disabled={!can('manage_integrations')}
+                    className={`px-6 py-2 rounded-lg transition-colors ${!can('manage_integrations') ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
                 >
                     + Create New Key
                 </button>
@@ -143,10 +146,10 @@ const APIManager = () => {
                     </div>
                     <div className="flex justify-end gap-2 pt-2">
                         <button className="btn btn-secondary" onClick={()=>setShowCreateModal(false)}>Cancel</button>
-                        <button
+                            <button
                             className="btn btn-primary"
-                            disabled={busy || !newKey.name}
-                            onClick={async ()=>{
+                            disabled={busy || !newKey.name || !can('manage_integrations')}
+                            onClick={async ()=>{ if (!can('manage_integrations')) return;
                                 try {
                                     setBusy(true);
                                     const headers = await authHeaders();
@@ -250,13 +253,14 @@ const APIManager = () => {
                             <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
                                 Edit Permissions
                             </button>
-                            <button className="text-orange-600 hover:text-orange-700 text-sm font-medium">
+                            <button disabled={!can('manage_integrations')} className={`text-sm font-medium ${!can('manage_integrations') ? 'text-slate-400 cursor-not-allowed' : 'text-orange-600 hover:text-orange-700'}`}>
                                 Regenerate
                             </button>
                             {apiKey.status === 'active' && (
                                 <button
-                                    onClick={() => revokeKey(apiKey.id)}
-                                    className="text-red-600 hover:text-red-700 text-sm font-medium"
+                                    onClick={() => { if (can('manage_integrations')) revokeKey(apiKey.id); }}
+                                    disabled={!can('manage_integrations')}
+                                    className={`text-sm font-medium ${!can('manage_integrations') ? 'text-slate-400 cursor-not-allowed' : 'text-red-600 hover:text-red-700'}`}
                                 >
                                     Revoke
                                 </button>
@@ -275,7 +279,7 @@ const APIManager = () => {
                     <h3 className="text-lg font-semibold text-slate-900">Webhooks</h3>
                     <p className="text-sm text-slate-500">Configure webhook endpoints for real-time events</p>
                 </div>
-                <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors" onClick={()=>setShowCreateWebhook(true)}>
+                <button className={`px-6 py-2 rounded-lg transition-colors ${!can('manage_integrations') ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`} onClick={()=>{ if (can('manage_integrations')) setShowCreateWebhook(true); }} disabled={!can('manage_integrations')}>
                     + Add Webhook
                 </button>
             </div>
@@ -292,7 +296,8 @@ const APIManager = () => {
                 </div>
                 <div className="flex justify-end gap-2">
                   <button className="btn btn-secondary" onClick={()=>setShowCreateWebhook(false)}>Cancel</button>
-                  <button className="btn btn-primary" onClick={async ()=>{
+                  <button className="btn btn-primary" disabled={!can('manage_integrations')} onClick={async ()=>{
+                    if (!can('manage_integrations')) return;
                     try {
                       const headers = await authHeaders();
                       const events = newHook.events.split(',').map(e=>e.trim()).filter(Boolean);
@@ -337,18 +342,20 @@ const APIManager = () => {
                             </div>
                         </div>
                         <div className="flex space-x-3 pt-4 border-t border-slate-200">
-                            <button className="text-blue-600 hover:text-blue-700 text-sm font-medium" onClick={async ()=>{
+                            <button className={`text-sm font-medium ${!can('manage_integrations') ? 'text-slate-400 cursor-not-allowed' : 'text-blue-600 hover:text-blue-700'}`} disabled={!can('manage_integrations')} onClick={async ()=>{
+                                if (!can('manage_integrations')) return;
                                 try { const headers = await authHeaders(); await fetch(`/api/webhooks/${webhook.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify({ status: webhook.status==='active'?'inactive':'active' }) }); await loadWebhooks(); } catch { alert('Update failed'); }
                             }}>
                                 {webhook.status==='active'?'Disable':'Enable'}
                             </button>
-                            <button className="text-green-600 hover:text-green-700 text-sm font-medium" onClick={async ()=>{
+                            <button className={`text-sm font-medium ${!can('manage_integrations') ? 'text-slate-400 cursor-not-allowed' : 'text-green-600 hover:text-green-700'}`} disabled={!can('manage_integrations')} onClick={async ()=>{
+                                if (!can('manage_integrations')) return;
                                 try { const headers = await authHeaders(); const r = await fetch(`/api/webhooks/${webhook.id}/test`, { method: 'POST', headers }); if (!r.ok) throw new Error(); alert('Test sent'); await loadWebhooks(); } catch { alert('Test failed'); }
                             }}>
                                 Test
                             </button>
-                            <button className="text-red-600 hover:text-red-700 text-sm font-medium" onClick={async ()=>{
-                                if (!confirm('Delete webhook?')) return; try { const headers = await authHeaders(); await fetch(`/api/webhooks/${webhook.id}`, { method: 'DELETE', headers }); await loadWebhooks(); } catch { alert('Delete failed'); }
+                            <button className={`text-sm font-medium ${!can('manage_integrations') ? 'text-slate-400 cursor-not-allowed' : 'text-red-600 hover:text-red-700'}`} disabled={!can('manage_integrations')} onClick={async ()=>{
+                                if (!can('manage_integrations')) return; if (!confirm('Delete webhook?')) return; try { const headers = await authHeaders(); await fetch(`/api/webhooks/${webhook.id}`, { method: 'DELETE', headers }); await loadWebhooks(); } catch { alert('Delete failed'); }
                             }}>
                                 Delete
                             </button>

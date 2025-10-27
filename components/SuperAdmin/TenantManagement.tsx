@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiGetTenants, apiAddTenant, apiDeleteTenant, apiGetPlatformSettings } from '../../services/api';
+import { usePlatformPermission } from '../../utils/usePlatformPermission';
 import Modal from '../Modal';
 import PlusIcon from '../icons/PlusIcon';
 import TrashIcon from '../icons/TrashIcon';
@@ -18,6 +19,7 @@ const TenantManagement = () => {
     const [isCreateAdminOpen, setCreateAdminOpen] = useState(false);
     const [newAdminData, setNewAdminData] = useState({ adminEmail: '', adminPassword: '', adminName: '' });
     const [busy, setBusy] = useState(false);
+    const { can } = usePlatformPermission();
 
     useEffect(() => {
         fetchData();
@@ -105,8 +107,9 @@ const TenantManagement = () => {
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-xl font-semibold">School (Tenant) Management</h2>
                     <button 
-                        onClick={() => setAddModalOpen(true)} 
-                        className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        onClick={() => { if (can('manage_tenants')) setAddModalOpen(true); }} 
+                        disabled={!can('manage_tenants')}
+                        className={`flex items-center px-4 py-2 rounded-lg transition-colors ${!can('manage_tenants') ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
                     >
                         <PlusIcon className="w-5 h-5 mr-2"/> Add School
                     </button>
@@ -146,19 +149,22 @@ const TenantManagement = () => {
                                         <div className="flex items-center justify-end space-x-2">
                                             <button 
                                                 onClick={() => handleManageSubscription(tenant)} 
-                                                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                                                disabled={!can('manage_payments')}
+                                                className={`text-sm font-medium ${!can('manage_payments') ? 'text-slate-400 cursor-not-allowed' : 'text-blue-600 hover:text-blue-700'}`}
                                             >
                                                 Manage
                                             </button>
                                             <button
-                                                onClick={() => { setSelectedTenant(tenant); setCreateAdminOpen(true); setNewAdminData({ adminEmail: '', adminPassword: '', adminName: '' }); }}
-                                                className="text-sm text-green-600 hover:text-green-700 font-medium"
+                                                onClick={() => { if (!can('manage_users')) return; setSelectedTenant(tenant); setCreateAdminOpen(true); setNewAdminData({ adminEmail: '', adminPassword: '', adminName: '' }); }}
+                                                disabled={!can('manage_users')}
+                                                className={`text-sm font-medium ${!can('manage_users') ? 'text-slate-400 cursor-not-allowed' : 'text-green-600 hover:text-green-700'}`}
                                             >
                                                 Create Admin
                                             </button>
                                             <button 
-                                                onClick={() => handleDeleteTenant(tenant.id)} 
-                                                className="p-1 text-red-500 hover:text-red-700" 
+                                                onClick={() => { if (can('manage_tenants')) handleDeleteTenant(tenant.id); }} 
+                                                disabled={!can('manage_tenants')}
+                                                className={`p-1 ${!can('manage_tenants') ? 'text-slate-400 cursor-not-allowed' : 'text-red-500 hover:text-red-700'}`} 
                                                 title="Delete"
                                             >
                                                 <TrashIcon className="w-4 h-4"/>
@@ -256,8 +262,8 @@ const TenantManagement = () => {
                         </button>
                         <button 
                             onClick={handleAddTenant} 
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                            disabled={busy || !newTenantData.name || !newTenantData.id || !newTenantData.adminEmail || !newTenantData.adminPassword || !newTenantData.adminName}
+                            className={`px-4 py-2 rounded-lg transition-colors ${!can('manage_tenants') ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                            disabled={!can('manage_tenants') || busy || !newTenantData.name || !newTenantData.id || !newTenantData.adminEmail || !newTenantData.adminPassword || !newTenantData.adminName}
                         >
                             {busy ? 'Saving...' : 'Save School'}
                         </button>
@@ -285,8 +291,9 @@ const TenantManagement = () => {
                     <div className="flex justify-end space-x-2 pt-2">
                         <button onClick={() => setCreateAdminOpen(false)} className="px-4 py-2 border rounded-lg">Cancel</button>
                         <button
-                            disabled={busy || !selectedTenant || !newAdminData.adminEmail || !newAdminData.adminPassword || !newAdminData.adminName}
+                            disabled={!can('manage_users') || busy || !selectedTenant || !newAdminData.adminEmail || !newAdminData.adminPassword || !newAdminData.adminName}
                             onClick={async ()=>{
+                                if (!can('manage_users')) return;
                                 try {
                                     setBusy(true);
                                     await (await import('../../services/api')).apiSuperAdminCreateTenantAdmin(selectedTenant!.id, newAdminData);

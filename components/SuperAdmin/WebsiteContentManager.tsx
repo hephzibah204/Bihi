@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { usePlatformPermission } from '../../utils/usePlatformPermission';
 
 interface HeroSection {
     title: string;
@@ -31,6 +32,8 @@ interface FAQItem {
 }
 
 const WebsiteContentManager = () => {
+    const { can } = usePlatformPermission();
+    const canManageContent = can('manage_content');
     const [activeTab, setActiveTab] = useState<'hero' | 'features' | 'testimonials' | 'faq' | 'footer'>('hero');
 
     // Hero Section
@@ -147,12 +150,21 @@ const WebsiteContentManager = () => {
     });
 
     const saveChanges = () => {
+        if (!canManageContent) {
+            alert('You do not have permission to manage content.');
+            return;
+        }
         // This would typically save to backend
         alert('Website content saved successfully! Changes will reflect on the live site.');
     };
 
     const HeroPanel = () => (
         <div className="space-y-6">
+            {!canManageContent && (
+                <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg p-3">
+                    You have read-only access to website content (missing manage_content).
+                </div>
+            )}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <div className="flex items-start space-x-3">
                     <span className="text-2xl">🎨</span>
@@ -231,7 +243,8 @@ const WebsiteContentManager = () => {
 
                     <button
                         onClick={saveChanges}
-                        className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                        disabled={!canManageContent}
+                        className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Save Hero Section
                     </button>
@@ -263,7 +276,7 @@ const WebsiteContentManager = () => {
                     <h3 className="text-lg font-semibold text-slate-900">Features Showcase</h3>
                     <p className="text-sm text-slate-500">Highlight what makes your platform special</p>
                 </div>
-                <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled={!canManageContent}>
                     + Add Feature
                 </button>
             </div>
@@ -273,7 +286,7 @@ const WebsiteContentManager = () => {
                     <div key={idx} className="bg-white border border-slate-200 rounded-lg p-6">
                         <div className="flex items-start justify-between mb-3">
                             <span className="text-4xl">{feature.icon}</span>
-                            <button className="text-red-600 hover:text-red-700 text-sm">Delete</button>
+                            <button className="text-red-600 hover:text-red-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed" disabled={!canManageContent}>Delete</button>
                         </div>
                         <input
                             type="text"
@@ -301,7 +314,8 @@ const WebsiteContentManager = () => {
 
             <button
                 onClick={saveChanges}
-                className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                disabled={!canManageContent}
+                className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 Save Features
             </button>
@@ -315,7 +329,7 @@ const WebsiteContentManager = () => {
                     <h3 className="text-lg font-semibold text-slate-900">Customer Testimonials</h3>
                     <p className="text-sm text-slate-500">Show social proof from happy clients</p>
                 </div>
-                <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled={!canManageContent}>
                     + Add Testimonial
                 </button>
             </div>
@@ -386,8 +400,9 @@ const WebsiteContentManager = () => {
                                 ))}
                             </div>
                             <button
-                                onClick={() => setTestimonials(testimonials.filter(t => t.id !== testimonial.id))}
-                                className="text-red-600 hover:text-red-700 text-sm font-medium"
+                                onClick={() => canManageContent ? setTestimonials(testimonials.filter(t => t.id !== testimonial.id)) : alert('You do not have permission to manage content.')}
+                                disabled={!canManageContent}
+                                className="text-red-600 hover:text-red-700 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Delete
                             </button>
@@ -398,7 +413,8 @@ const WebsiteContentManager = () => {
 
             <button
                 onClick={saveChanges}
-                className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                disabled={!canManageContent}
+                className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 Save Testimonials
             </button>
@@ -412,7 +428,7 @@ const WebsiteContentManager = () => {
                     <h3 className="text-lg font-semibold text-slate-900">Frequently Asked Questions</h3>
                     <p className="text-sm text-slate-500">Address common questions upfront</p>
                 </div>
-                <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled={!canManageContent}>
                     + Add Question
                 </button>
             </div>
@@ -448,8 +464,9 @@ const WebsiteContentManager = () => {
                                 />
                             </div>
                             <button
-                                onClick={() => setFaqItems(faqItems.filter(f => f.id !== item.id))}
-                                className="text-red-600 hover:text-red-700 text-sm font-medium"
+                                onClick={() => canManageContent ? setFaqItems(faqItems.filter(f => f.id !== item.id)) : alert('You do not have permission to manage content.')}
+                                disabled={!canManageContent}
+                                className="text-red-600 hover:text-red-700 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Delete Question
                             </button>
@@ -460,7 +477,8 @@ const WebsiteContentManager = () => {
 
             <button
                 onClick={saveChanges}
-                className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                disabled={!canManageContent}
+                className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 Save FAQ
             </button>

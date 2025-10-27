@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { usePlatformPermission } from '../../utils/usePlatformPermission';
 import { initializeSemanticCache, getCacheStats, clearSemanticCache, exportSemanticCache, importSemanticCache } from '../../services/semanticSearchUtils';
 import { testDomainConfiguration, runDomainTests, getCurrentDomainStatus } from '../../utils/domainTest';
 
@@ -8,6 +9,7 @@ const SystemTools: React.FC = () => {
   const [importText, setImportText] = useState<string>('');
   const [domainResults, setDomainResults] = useState<any[]>([]);
   const [domainStatus, setDomainStatus] = useState<any | null>(null);
+  const { can } = usePlatformPermission();
 
   const refreshStats = () => {
     try {
@@ -68,13 +70,13 @@ const SystemTools: React.FC = () => {
             <div className="text-sm text-slate-600">Documents: {stats?.documentCount ?? 0}</div>
             <div className="text-sm text-slate-600">Vocabulary Size: {stats?.vocabularySize ?? 0}</div>
             <div className="flex gap-2 mt-2">
-              <button className="btn btn-primary" onClick={handleInitialize}>Initialize</button>
+              <button className={`btn ${!can('manage_security') ? 'btn-disabled' : 'btn-primary'}`} disabled={!can('manage_security')} onClick={handleInitialize}>Initialize</button>
               <button className="btn btn-secondary" onClick={refreshStats}>Refresh Stats</button>
-              <button className="btn btn-danger" onClick={handleClear}>Clear</button>
+              <button className={`btn ${!can('manage_security') ? 'btn-disabled' : 'btn-danger'}`} disabled={!can('manage_security')} onClick={handleClear}>Clear</button>
             </div>
             <div className="flex gap-2 mt-2">
-              <button className="btn btn-secondary" onClick={handleExport}>Export</button>
-              <button className="btn btn-secondary" onClick={handleImport}>Import</button>
+              <button className={`btn ${!can('manage_security') ? 'btn-disabled' : 'btn-secondary'}`} disabled={!can('manage_security')} onClick={handleExport}>Export</button>
+              <button className={`btn ${!can('manage_security') ? 'btn-disabled' : 'btn-secondary'}`} disabled={!can('manage_security')} onClick={handleImport}>Import</button>
             </div>
             <div className="mt-3">
               <label className="label">Import JSON</label>
@@ -92,7 +94,7 @@ const SystemTools: React.FC = () => {
           <h3 className="font-semibold mb-2">Domain Tests</h3>
           <div className="space-y-2">
             <div className="flex gap-2">
-              <button className="btn btn-primary" onClick={handleRunDomainTests}>Run Tests</button>
+              <button className={`btn ${!can('manage_security') ? 'btn-disabled' : 'btn-primary'}`} disabled={!can('manage_security')} onClick={handleRunDomainTests}>Run Tests</button>
               <button className="btn btn-secondary" onClick={handleDomainStatus}>Current Status</button>
             </div>
             {domainStatus && (

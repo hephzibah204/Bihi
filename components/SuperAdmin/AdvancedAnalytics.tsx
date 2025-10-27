@@ -1,8 +1,20 @@
 import React, { useState } from 'react';
+import { usePlatformPermission } from '../../utils/usePlatformPermission';
 
 const AdvancedAnalytics = () => {
+    const { can, loaded } = usePlatformPermission();
+    const canViewReports = can('view_reports');
     const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'revenue' | 'performance'>('overview');
     const [dateRange, setDateRange] = useState('7days');
+
+    if (loaded && !canViewReports) {
+        return (
+            <div className="p-6 border border-red-200 bg-red-50 rounded-lg">
+                <h3 className="text-red-800 font-semibold mb-1">Access restricted</h3>
+                <p className="text-sm text-red-700">You do not have permission to view analytics (view_reports).</p>
+            </div>
+        );
+    }
 
     const OverviewPanel = () => (
         <div className="space-y-6">

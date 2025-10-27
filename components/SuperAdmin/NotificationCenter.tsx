@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { apiGetPlatformSettings, apiSavePlatformSettings, apiGetTenants } from '../../services/api';
+import { usePlatformPermission } from '../../utils/usePlatformPermission';
 import { USER_ROLES } from '../../utils/constants';
 import type { BroadcastNotification, BroadcastType, BroadcastChannel, Tenant } from '../../types/platform';
 import Modal from '../Modal';
@@ -219,6 +220,7 @@ const NotificationCenter: React.FC = () => {
   const [tenantsList, setTenantsList] = useState<Tenant[]>([]);
   const [analytics, setAnalytics] = useState<Record<string, { impressions: number; dismissals: number; lastShownIso?: string }>>({});
   const [previewing, setPreviewing] = useState<{ item: EditableNotification | null; role: string; tenant: string } | null>(null);
+  const { can } = usePlatformPermission();
 
   useEffect(() => {
     const load = async () => {
@@ -253,19 +255,19 @@ const NotificationCenter: React.FC = () => {
     }
   };
 
-  const onCreate = () => setEditing(emptyNotification());
-  const onEdit = (n: EditableNotification) => setEditing({ ...n });
-  const onDelete = async (id: string) => {
+  const onCreate = () => { if (!can('send_broadcasts')) return; setEditing(emptyNotification()); };
+  const onEdit = (n: EditableNotification) => { if (!can('send_broadcasts')) return; setEditing({ ...n }); };
+  const onDelete = async (id: string) => { if (!can('send_broadcasts')) return;
     if (!confirm('Delete this notification?')) return;
     const next = notifications.filter(n => n.id !== id);
     await saveAll(next);
   };
-  const onBroadcastNow = async (id: string) => {
+  const onBroadcastNow = async (id: string) => { if (!can('send_broadcasts')) return;
     const next = notifications.map(n => n.id === id ? { ...n, startAt: new Date().toISOString() } : n);
     await saveAll(next);
   };
 
-  const onSaveEditing = async () => {
+  const onSaveEditing = async () => { if (!can('send_broadcasts')) return;
     if (!editing) return;
     if (!editing.title?.trim() || !editing.message?.trim()) {
       window.dispatchEvent(new CustomEvent('show-global-error', { detail: { message: 'Title and message are required.' } }));
@@ -333,7 +335,7 @@ const NotificationCenter: React.FC = () => {
         <div className="flex gap-2">
           <button className="btn btn-ghost" onClick={refreshAnalytics}>Refresh Analytics</button>
           <button className="btn btn-ghost" onClick={() => resetAnalytics()}>Reset All Analytics</button>
-          <button className="btn btn-primary" onClick={onCreate}>New Notification</button>
+          <button className={`btn ${can('send_broadcasts') ? 'btn-primary' : 'btn-disabled'}`} disabled={!can('send_broadcasts')} onClick={onCreate}>New Notification</button>
         </div>
       </div>
 
@@ -360,11 +362,11 @@ const NotificationCenter: React.FC = () => {
                 </div>
               </div>
               <div className="flex gap-2">
-                <button className="btn btn-ghost" onClick={() => onEdit(n)}>Edit</button>
-                <button className="btn btn-ghost" onClick={() => onBroadcastNow(n.id)}>Broadcast Now</button>
+                <button className={`btn btn-ghost ${!can('send_broadcasts') ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={!can('send_broadcasts')} onClick={() => onEdit(n)}>Edit</button>
+                <button className={`btn btn-ghost ${!can('send_broadcasts') ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={!can('send_broadcasts')} onClick={() => onBroadcastNow(n.id)}>Broadcast Now</button>
                 <button className="btn btn-secondary" onClick={() => onPreview(n)}>Preview</button>
                 <button className="btn btn-ghost" onClick={() => resetAnalytics(n.id)}>Reset Analytics</button>
-                <button className="btn btn-danger" onClick={() => onDelete(n.id)}>Delete</button>
+                <button className={`btn btn-danger ${!can('send_broadcasts') ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={!can('send_broadcasts')} onClick={() => onDelete(n.id)}>Delete</button>
               </div>
             </div>
           </div>
@@ -438,7 +440,7 @@ const NotificationCenter: React.FC = () => {
             </div>
             <div className="mt-6 flex justify-end gap-2">
               <button className="btn btn-ghost" onClick={onCancelEditing}>Cancel</button>
-              <button className="btn btn-primary" onClick={onSaveEditing}>Save</button>
+              <button className={`btn ${can('send_broadcasts') ? 'btn-primary' : 'btn-disabled'}`} disabled={!can('send_broadcasts')} onClick={onSaveEditing}>Save</button>
             </div>
           </div>
         </div>
