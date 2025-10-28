@@ -13,6 +13,11 @@ const DashboardKnowledgeBase = lazy(() => import('./DashboardKnowledgeBase'));
 const MyPayslips = lazy(() => import('./MyPayslips'));
 const TeacherAssignments = lazy(() => import('./TeacherAssignments'));
 const TeacherBehavioral = lazy(() => import('./TeacherBehavioral'));
+const Attendance = lazy(() => import('./Attendance'));
+const DirectMessages = lazy(() => import('./DirectMessages'));
+const NotificationViewer = lazy(() => import('./NotificationViewer'));
+const ReportCard = lazy(() => import('./ReportCard'));
+const TeacherHome = lazy(() => import('./TeacherHome'));
 
 
 interface TeacherDashboardContentProps {
@@ -32,8 +37,7 @@ const TeacherDashboardContent: React.FC<TeacherDashboardContentProps> = ({ activ
             {(() => {
                 switch(activeView) {
                     case TEACHER_VIEWS.DASHBOARD:
-                        // Temporarily route to Schedule to avoid issues in TeacherHome
-                        return <TeacherSchedule />;
+                        return <TeacherHome />;
                     case TEACHER_VIEWS.MY_STUDENTS:
                         return <MyStudents />;
                     case TEACHER_VIEWS.ENTER_SCORES:
@@ -48,6 +52,18 @@ const TeacherDashboardContent: React.FC<TeacherDashboardContentProps> = ({ activ
                         return <DashboardKnowledgeBase />;
                     case TEACHER_VIEWS.MY_PAYSLIPS:
                         return <MyPayslips />;
+                    case TEACHER_VIEWS.ASSIGNMENTS:
+                        return <TeacherAssignments />;
+                    case TEACHER_VIEWS.BEHAVIORAL:
+                        return <TeacherBehavioral />;
+                    case TEACHER_VIEWS.ATTENDANCE:
+                        return <Attendance />;
+                    case TEACHER_VIEWS.MESSAGES:
+                        return <DirectMessages />;
+                    case TEACHER_VIEWS.NOTIFICATIONS:
+                        return <NotificationViewer />;
+                    case TEACHER_VIEWS.REPORT_CARDS:
+                        return <ReportCard />;
                     default:
                         return <TeacherSchedule />;
             }

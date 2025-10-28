@@ -240,13 +240,31 @@ const AIAcademicTutor = ({ demoUserId }) => {
                 if (isDemo) headers['X-Demo-Mode'] = 'true';
                 else if (session) headers['Authorization'] = `Bearer ${session.access_token}`;
 
-                const response = await fetch('/api/ai/client-key', { headers });
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Failed to fetch AI configuration.');
+                const response = await fetch('/api/ai/client-key', { headers: { ...headers, Accept: 'application/json' } });
+                let apiKeyFromServer: string | undefined;
+                if (response.ok) {
+                    const ct = response.headers.get('content-type') || '';
+                    try {
+                        if (ct.includes('application/json')) {
+                            const data = await response.json();
+                            apiKeyFromServer = (data as any)?.key;
+                        } else {
+                            // Non-JSON (likely HTML from dev server) — treat as unavailable
+                            await response.text(); // drain body
+                        }
+                    } catch {
+                        // JSON parse failed — ignore and fallback
+                    }
                 }
-                const { key } = await response.json();
-                if (!key) throw new Error('Server did not provide an API key.');
+
+                const envKey = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_GEMINI_API_KEY)
+                  || (typeof process !== 'undefined' && (process as any).env?.GEMINI_API_KEY)
+                  || (typeof localStorage !== 'undefined' ? localStorage.getItem('gemini_api_key') : null)
+                  || undefined;
+
+                const key = apiKeyFromServer || envKey;
+                if (!key) throw new Error('AI API key not available. Ensure /api/ai/client-key is running or set VITE_GEMINI_API_KEY.');
+
                 aiRef.current = new GoogleGenAI({ apiKey: key });
                 setStatus('idle');
             } catch (e) {

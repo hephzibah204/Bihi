@@ -12,6 +12,10 @@ import BookmarkSquareIcon from './icons/BookmarkSquareIcon';
 import BanknotesIcon from './icons/BanknotesIcon';
 import Bars3Icon from './icons/Bars3Icon';
 import UsersIcon from './icons/UsersIcon';
+import MegaphoneIcon from './icons/MegaphoneIcon';
+import ChatBubbleLeftRightIcon from './icons/ChatBubbleLeftRightIcon';
+import BellIcon from './icons/BellIcon';
+import DocumentTextIcon from './icons/DocumentTextIcon';
 
 interface SidebarProps {
     isSidebarOpen: boolean;
@@ -44,6 +48,12 @@ const TeacherSidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveVi
         { view: TEACHER_VIEWS.AI_TOOLS, label: 'AI Tools', icon: <BrainCircuitIcon className="h-5 w-5" /> },
         { view: TEACHER_VIEWS.RESOURCE_HUB, label: 'Resource Hub', icon: <BookmarkSquareIcon className="h-5 w-5" /> },
         { view: TEACHER_VIEWS.MY_PAYSLIPS, label: 'My Payslips', icon: <BanknotesIcon className="h-5 w-5" /> },
+        { view: TEACHER_VIEWS.ASSIGNMENTS, label: 'Assignments', icon: <MegaphoneIcon className="h-5 w-5" /> },
+{ view: TEACHER_VIEWS.ATTENDANCE, label: 'Attendance', icon: <DocumentTextIcon className="h-5 w-5" /> },
+        { view: TEACHER_VIEWS.MESSAGES, label: 'Messages', icon: <ChatBubbleLeftRightIcon className="h-5 w-5" /> },
+        { view: TEACHER_VIEWS.NOTIFICATIONS, label: 'Notifications', icon: <BellIcon className="h-5 w-5" /> },
+{ view: TEACHER_VIEWS.BEHAVIORAL, label: 'Behavioral', icon: <DocumentTextIcon className="h-5 w-5" /> },
+        { view: TEACHER_VIEWS.REPORT_CARDS, label: 'Report Cards', icon: <ClipboardListIcon className="h-5 w-5" /> },
         { view: TEACHER_VIEWS.HELP, label: 'Help & Support', icon: <QuestionMarkCircleIcon className="h-5 w-5" /> },
         { view: TEACHER_VIEWS.MORE, label: 'More', icon: <Bars3Icon className="h-5 w-5" /> },
     ];

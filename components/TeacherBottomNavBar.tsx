@@ -36,7 +36,7 @@ const TeacherBottomNavBar: FC<BottomNavBarProps> = ({ activeView, setActiveView 
         // Fix: Cast string constants to TeacherView
         { view: TEACHER_VIEWS.DASHBOARD as TeacherView, label: 'Home', icon: <HomeIcon className="h-6 w-6" /> },
         { view: TEACHER_VIEWS.ENTER_SCORES as TeacherView, label: 'Scores', icon: <ClipboardListIcon className="h-6 w-6" /> },
-        { view: TEACHER_VIEWS.RESOURCE_HUB as TeacherView, label: 'Resources', icon: <BookmarkSquareIcon className="h-6 w-6" /> },
+        { view: TEACHER_VIEWS.MESSAGES as TeacherView, label: 'Messages', icon: <ChatBubbleLeftRightIcon className="h-6 w-6" /> },
         { view: TEACHER_VIEWS.MORE as TeacherView, label: 'More', icon: <Bars3Icon className="h-6 w-6" /> },
     ];
 

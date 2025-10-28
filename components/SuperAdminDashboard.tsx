@@ -29,6 +29,18 @@ const AdvancedAnalytics = lazy(() => import('./SuperAdmin/AdvancedAnalytics'));
 const SystemTools = lazy(() => import('./SuperAdmin/SystemTools'));
 const Reports = lazy(() => import('./SuperAdmin/Reports'));
 const AdminProfile = lazy(() => import('./SuperAdmin/AdminProfile'));
+// Newly wired views
+const AccessControl = lazy(() => import('./SuperAdmin/AccessControl'));
+const ImportExport = lazy(() => import('./SuperAdmin/ImportExport'));
+const Branding = lazy(() => import('./SuperAdmin/Branding'));
+const AnalyticsDashboard = lazy(() => import('./SuperAdmin/AnalyticsDashboard'));
+const PageBuilder = lazy(() => import('./SuperAdmin/PageBuilder'));
+const WebsiteContentManager = lazy(() => import('./SuperAdmin/WebsiteContentManager'));
+const PricingPackageManager = lazy(() => import('./SuperAdmin/PricingPackageManager'));
+const SEOManager = lazy(() => import('./SuperAdmin/SEOManager'));
+const SMSGatewayConfig = lazy(() => import('./SuperAdmin/SMSGatewayConfig'));
+const PaymentGatewayConfig = lazy(() => import('./SuperAdmin/PaymentGatewayConfig'));
+const AIControlPanel = lazy(() => import('./SuperAdmin/AIControlPanel'));
 
 // Enhanced SuperAdmin Sidebar with WordPress-like navigation
 const SuperAdminSidebar = ({ activeView, setActiveView, isSidebarCollapsed, setSidebarCollapsed, can }) => {
@@ -57,6 +69,7 @@ const SuperAdminSidebar = ({ activeView, setActiveView, isSidebarCollapsed, setS
             items: [
                 { view: 'overview', label: 'Overview', icon: '🏠' },
                 { view: 'analytics', label: 'Advanced Analytics', icon: '📈' },
+                { view: 'web-analytics', label: 'Website Analytics', icon: '🌐' },
                 { view: 'performance', label: 'Performance', icon: '⚡' },
                 { view: 'notifications', label: 'Notifications', icon: '🔔', badge: '5' },
                 { view: 'reports', label: 'Reports', icon: '📊' }
@@ -70,6 +83,7 @@ const SuperAdminSidebar = ({ activeView, setActiveView, isSidebarCollapsed, setS
                 { view: 'tenants', label: 'Tenant Management', icon: '🏫' },
                 { view: 'users', label: 'User Management', icon: '👥' },
                 { view: 'licenses', label: 'License Manager', icon: '📝' },
+                { view: 'pricing-packages', label: 'Pricing Packages', icon: '💵' },
                 { view: 'platform-settings', label: 'Platform Settings', icon: '⚙️' }
             ]
         },
@@ -101,6 +115,9 @@ const SuperAdminSidebar = ({ activeView, setActiveView, isSidebarCollapsed, setS
             items: [
                 { view: 'themes', label: 'Theme Manager', icon: '🖌️' },
                 { view: 'media', label: 'Media Library', icon: '📸' },
+                { view: 'pages', label: 'Page Builder', icon: '🧱' },
+                { view: 'website-content', label: 'Website Content', icon: '🌐' },
+                { view: 'seo', label: 'SEO Manager', icon: '🔎' },
                 { view: 'branding', label: 'White Label', icon: '🏷️' }
             ]
         },
@@ -112,6 +129,9 @@ const SuperAdminSidebar = ({ activeView, setActiveView, isSidebarCollapsed, setS
                 { view: 'plugins', label: 'Plugin Manager', icon: '🧩' },
                 { view: 'system-tools', label: 'System Tools', icon: '🛠️' },
                 { view: 'email-center', label: 'Email Center', icon: '📧' },
+                { view: 'sms-gateway', label: 'SMS Gateway', icon: '📨' },
+                { view: 'payment-gateways', label: 'Payment Gateways', icon: '💳' },
+                { view: 'ai-control', label: 'AI Control', icon: '🤖' },
                 { view: 'import-export', label: 'Import/Export', icon: '📊' }
             ]
         }
@@ -241,7 +261,7 @@ const SuperAdminHeader = ({ activeView, onLogout, onQuickAction, can, roleLabel 
     const [userMenu, setUserMenu] = useState(false);
     
     const viewTitles = {
-        'overview': 'Dashboard Overview',
+'overview': 'Dashboard Overview',
         'tenants': 'Tenant Management',
         'users': 'User Management',
         'platform-settings': 'Platform Settings',
@@ -251,7 +271,11 @@ const SuperAdminHeader = ({ activeView, onLogout, onQuickAction, can, roleLabel 
         'plugins': 'Plugin Manager',
         'themes': 'Theme Manager',
         'media': 'Media Library',
+        'pages': 'Page Builder',
+        'website-content': 'Website Content',
+        'seo': 'SEO Manager',
         'analytics': 'Advanced Analytics',
+        'web-analytics': 'Website Analytics',
         'performance': 'Performance Optimizer',
         'backups': 'Backup Manager',
         'audit-logs': 'Audit Logs',
@@ -259,7 +283,14 @@ const SuperAdminHeader = ({ activeView, onLogout, onQuickAction, can, roleLabel 
         'email-center': 'Email Center',
         'notifications': 'Notification Center',
         'licenses': 'License Manager',
-        'system-tools': 'System Tools'
+        'pricing-packages': 'Pricing Packages',
+        'sms-gateway': 'SMS Gateway',
+        'payment-gateways': 'Payment Gateways',
+        'ai-control': 'AI Control Panel',
+        'system-tools': 'System Tools',
+        'access-control': 'Access Control',
+        'import-export': 'Import / Export',
+        'branding': 'White Label'
     };
 
     return (
@@ -482,12 +513,14 @@ const SuperAdminDashboard = () => {
         const map: Record<string, PermissionKey | null> = {
             overview: null,
             analytics: 'view_reports',
+            'web-analytics': 'view_reports',
             performance: 'view_reports',
             notifications: 'send_broadcasts',
             reports: 'view_reports',
             tenants: 'manage_tenants',
             users: 'manage_users',
             licenses: 'manage_payments',
+            'pricing-packages': 'manage_platform_settings',
             'platform-settings': 'manage_platform_settings',
             database: 'manage_integrations',
             monitoring: 'manage_security',
@@ -498,10 +531,16 @@ const SuperAdminDashboard = () => {
             'access-control': 'manage_users',
             themes: 'manage_content',
             media: 'manage_content',
+            pages: 'manage_content',
+            'website-content': 'manage_content',
+            seo: 'manage_content',
             branding: 'manage_content',
             plugins: 'manage_plugins',
             'system-tools': 'manage_security',
             'email-center': 'send_broadcasts',
+            'sms-gateway': 'manage_integrations',
+            'payment-gateways': 'manage_payments',
+            'ai-control': 'manage_security',
             'import-export': 'manage_integrations',
         };
         return (map as any)[view] ?? null;
@@ -529,7 +568,18 @@ const SuperAdminDashboard = () => {
                 monitoring: 'monitoring',
                 'audit-logs': 'audit-logs',
                 analytics: 'analytics',
+                'web-analytics': 'web-analytics',
                 performance: 'performance',
+                'pricing-packages': 'pricing-packages',
+                'sms-gateway': 'sms-gateway',
+                'payment-gateways': 'payment-gateways',
+                pages: 'pages',
+                'website-content': 'website-content',
+                seo: 'seo',
+                'access-control': 'access-control',
+                'import-export': 'import-export',
+                branding: 'branding',
+                'ai-control': 'ai-control',
             };
             const view = map[target] || target;
             guardedSetActiveView(view);
@@ -575,7 +625,11 @@ const SuperAdminDashboard = () => {
             case 'plugins': return <PluginManager />;
             case 'themes': return <ThemeManager />;
             case 'media': return <MediaLibrary />;
+            case 'pages': return <PageBuilder />;
+            case 'website-content': return <WebsiteContentManager />;
+            case 'seo': return <SEOManager />;
             case 'analytics': return <AdvancedAnalytics />;
+            case 'web-analytics': return <AnalyticsDashboard />;
             case 'performance': return <PerformanceOptimizer />;
             case 'backups': return <BackupManager />;
             case 'audit-logs': return <AuditLogs />;
@@ -583,8 +637,15 @@ const SuperAdminDashboard = () => {
             case 'email-center': return <EmailCenter />;
             case 'notifications': return <NotificationCenter />;
             case 'licenses': return <LicenseManager />;
+            case 'pricing-packages': return <PricingPackageManager />;
+            case 'sms-gateway': return <SMSGatewayConfig />;
+            case 'payment-gateways': return <PaymentGatewayConfig />;
+            case 'ai-control': return <AIControlPanel isSuperAdmin={true} />;
             case 'system-tools': return <SystemTools />;
             case 'reports': return <Reports />;
+            case 'access-control': return <AccessControl />;
+            case 'import-export': return <ImportExport />;
+            case 'branding': return <Branding />;
             case 'admin-profile': return <AdminProfile />;
             default: return <SuperAdminOverview />;
         }

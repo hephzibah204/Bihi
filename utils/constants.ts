@@ -61,6 +61,10 @@ export const TEACHER_VIEWS: { [key: string]: TeacherView } = {
     MORE: 'more',
     ASSIGNMENTS: 'assignments',
     BEHAVIORAL: 'behavioral',
+    ATTENDANCE: 'attendance',
+    MESSAGES: 'messages',
+    NOTIFICATIONS: 'notifications',
+    REPORT_CARDS: 'report-cards',
 };
 
 export const STUDENT_VIEWS: { [key: string]: StudentView } = {
