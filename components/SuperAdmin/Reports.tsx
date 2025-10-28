@@ -1,7 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../services/supabaseClient';
+import { usePlatformPermission } from '../../utils/usePlatformPermission';
 
 const Reports: React.FC = () => {
+  const { can, loaded } = usePlatformPermission();
+  const canViewReports = can('view_reports');
   const [data, setData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,6 +45,15 @@ const Reports: React.FC = () => {
     a.href = url; a.download = `comms_${range}d.csv`; a.click();
     URL.revokeObjectURL(url);
   };
+
+  if (loaded && !canViewReports) {
+    return (
+      <div className="p-6 border border-red-200 bg-red-50 rounded-lg">
+        <h3 className="text-red-800 font-semibold mb-1">Access restricted</h3>
+        <p className="text-sm text-red-700">You do not have permission to view reports (view_reports).</p>
+      </div>
+    );
+  }
 
   if (loading) return <div className="p-4">Loading reports...</div>;
 

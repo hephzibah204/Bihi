@@ -2,8 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { apiGetTenants, apiGetPlatformSettings } from '../../services/api';
 import SubscriptionManagementModal from '../SubscriptionManagementModal';
 import { Tenant, Plan } from '../../types';
+import { usePlatformPermission } from '../../utils/usePlatformPermission';
 
 const LicenseManager: React.FC = () => {
+  const { can } = usePlatformPermission();
+  const canManagePlatformSettings = can('manage_platform_settings');
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,6 +62,12 @@ const LicenseManager: React.FC = () => {
         />
       </div>
 
+      {!canManagePlatformSettings && (
+        <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded">
+          You have read-only access to licenses (missing manage_platform_settings).
+        </div>
+      )}
+
       {loading ? (
         <div className="p-6">Loading tenants...</div>
       ) : (
@@ -83,7 +92,7 @@ const LicenseManager: React.FC = () => {
                   <td className="td">{tenant.subscriptionExpiryDate ? new Date(tenant.subscriptionExpiryDate).toLocaleDateString() : '-'}</td>
                   <td className="td">{tenant.trialEndDate ? new Date(tenant.trialEndDate).toLocaleDateString() : '-'}</td>
                   <td className="td">
-                    <button className="btn btn-secondary" onClick={() => openManageModal(tenant)}>Manage</button>
+                    <button className="btn btn-secondary disabled:opacity-50 disabled:cursor-not-allowed" onClick={() => canManagePlatformSettings ? openManageModal(tenant) : alert('You do not have permission to manage platform settings.')} disabled={!canManagePlatformSettings}>Manage</button>
                   </td>
                 </tr>
               ))}

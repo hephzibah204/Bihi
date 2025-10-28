@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiGetTenants, apiGetPlatformSettings } from '../../services/api';
 import { logger } from '../../utils/logger';
+import { usePlatformPermission } from '../../utils/usePlatformPermission';
 
 interface DashboardStats {
     totalTenants: number;
@@ -130,7 +131,15 @@ const RecentActivityWidget = ({ activities }: { activities: ActivityLog[] }) => 
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
             <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-slate-900">Recent Activity</h3>
-                <button className="text-sm text-blue-600 hover:text-blue-700">View All</button>
+                <button
+                    onClick={() => {
+                        window.dispatchEvent(new CustomEvent('superadmin:navigate', { detail: { target: 'audit-logs' } }));
+                        window.location.hash = '#/superadmin/audit-logs';
+                    }}
+                    className="text-sm text-blue-600 hover:text-blue-700"
+                >
+                    View All
+                </button>
             </div>
             <div className="space-y-3 max-h-80 overflow-y-auto">
                 {activities.map((activity) => (
@@ -161,18 +170,69 @@ const RecentActivityWidget = ({ activities }: { activities: ActivityLog[] }) => 
 
 // Quick Actions Widget
 const QuickActionsWidget = () => {
+    const { can } = usePlatformPermission();
+    const canManageTenants = can('manage_tenants');
+    const canManageUsers = can('manage_users');
+    const canManageSecurity = can('manage_security');
+    const canSendBroadcasts = can('send_broadcasts');
+    const canViewReports = can('view_reports');
+
     const quickActions = [
-        { title: 'Add New Tenant', icon: '🏫', action: 'create-tenant', color: 'blue' },
-        { title: 'Create Admin User', icon: '👤', action: 'create-user', color: 'green' },
-        { title: 'System Backup', icon: '💾', action: 'backup', color: 'purple' },
-        { title: 'Send Broadcast', icon: '📢', action: 'broadcast', color: 'orange' },
-        { title: 'View Reports', icon: '📊', action: 'reports', color: 'indigo' },
-        { title: 'Security Scan', icon: '🔍', action: 'security-scan', color: 'red' }
+        { title: 'Add New Tenant', icon: '🏫', action: 'create-tenant', color: 'blue', enabled: canManageTenants },
+        { title: 'Create Admin User', icon: '👤', action: 'create-user', color: 'green', enabled: canManageUsers },
+        { title: 'System Backup', icon: '💾', action: 'backup', color: 'purple', enabled: canManageSecurity },
+        { title: 'Send Broadcast', icon: '📢', action: 'broadcast', color: 'orange', enabled: canSendBroadcasts },
+        { title: 'View Reports', icon: '📊', action: 'reports', color: 'indigo', enabled: canViewReports },
+        { title: 'Security Scan', icon: '🔍', action: 'security-scan', color: 'red', enabled: canManageSecurity }
     ];
+
+    const navigateTo = (target: string) => {
+        // Emit a global navigation event that the app shell/router can listen to
+        window.dispatchEvent(new CustomEvent('superadmin:navigate', { detail: { target } }));
+        // Fallback: attempt hash navigation commonly used in admin shells
+        const map: Record<string, string> = {
+            'tenants': '#/superadmin/tenants',
+            'users': '#/superadmin/users',
+            'backups': '#/superadmin/backups',
+            'notifications': '#/superadmin/notifications',
+            'reports': '#/superadmin/reports',
+            'security': '#/superadmin/security'
+        };
+        if (map[target]) {
+            window.location.hash = map[target];
+        }
+    };
 
     const handleAction = (action: string) => {
         logger.info('Executing quick action', { action, scope: 'SuperAdminOverview' });
-        // TODO: Implement actual actions
+        switch (action) {
+            case 'create-tenant':
+                if (!canManageTenants) return alert('You lack permission: manage_tenants');
+                navigateTo('tenants');
+                break;
+            case 'create-user':
+                if (!canManageUsers) return alert('You lack permission: manage_users');
+                navigateTo('users');
+                break;
+            case 'backup':
+                if (!canManageSecurity) return alert('You lack permission: manage_security');
+                navigateTo('backups');
+                break;
+            case 'broadcast':
+                if (!canSendBroadcasts) return alert('You lack permission: send_broadcasts');
+                navigateTo('notifications');
+                break;
+            case 'reports':
+                if (!canViewReports) return alert('You lack permission: view_reports');
+                navigateTo('reports');
+                break;
+            case 'security-scan':
+                if (!canManageSecurity) return alert('You lack permission: manage_security');
+                navigateTo('security');
+                break;
+            default:
+                break;
+        }
     };
 
     return (
@@ -183,7 +243,10 @@ const QuickActionsWidget = () => {
                     <button
                         key={index}
                         onClick={() => handleAction(action.action)}
-                        className="flex flex-col items-center p-4 rounded-lg border border-slate-200 hover:border-blue-300 hover:bg-blue-50 transition-colors group"
+                        disabled={!action.enabled}
+                        className={`flex flex-col items-center p-4 rounded-lg border border-slate-200 transition-colors group ${
+                            action.enabled ? 'hover:border-blue-300 hover:bg-blue-50' : 'opacity-50 cursor-not-allowed'
+                        }`}
                     >
                         <span className="text-2xl mb-2">{action.icon}</span>
                         <span className="text-sm font-medium text-slate-700 text-center group-hover:text-blue-700">

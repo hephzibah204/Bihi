@@ -513,6 +513,56 @@ const SuperAdminDashboard = () => {
         else window.dispatchEvent(new CustomEvent('show-global-error', { detail: { message: 'You do not have permission to access this section.' } }));
     };
 
+    // Handle external navigation events and hash routing
+    useEffect(() => {
+        const onNavigate = (evt: Event) => {
+            const detail = (evt as CustomEvent).detail as any;
+            const target = detail?.target as string | undefined;
+            if (!target) return;
+            const map: Record<string, string> = {
+                tenants: 'tenants',
+                users: 'users',
+                backups: 'backups',
+                notifications: 'notifications',
+                reports: 'reports',
+                security: 'security',
+                monitoring: 'monitoring',
+                'audit-logs': 'audit-logs',
+                analytics: 'analytics',
+                performance: 'performance',
+            };
+            const view = map[target] || target;
+            guardedSetActiveView(view);
+        };
+        window.addEventListener('superadmin:navigate', onNavigate as EventListener);
+        return () => window.removeEventListener('superadmin:navigate', onNavigate as EventListener);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Sync active view from hash on load and when hash changes
+    useEffect(() => {
+        const parseHash = () => {
+            const h = window.location.hash || '';
+            const m = h.match(/#\/superadmin\/([A-Za-z0-9_-]+)/);
+            if (m && m[1]) {
+                const next = m[1];
+                if (next !== activeView) guardedSetActiveView(next);
+            }
+        };
+        parseHash();
+        window.addEventListener('hashchange', parseHash);
+        return () => window.removeEventListener('hashchange', parseHash);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeView]);
+
+    // Update hash when active view changes
+    useEffect(() => {
+        const desired = `#/superadmin/${activeView}`;
+        if (window.location.hash !== desired) {
+            window.location.hash = desired;
+        }
+    }, [activeView]);
+
     const renderContent = () => {
         switch (activeView) {
             case 'overview': return <SuperAdminOverview />;
