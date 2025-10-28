@@ -6,13 +6,13 @@ import DocumentArrowDownIcon from './icons/DocumentArrowDownIcon';
 import SparklesIcon from './icons/SparklesIcon';
 import ChartBarIcon from './icons/ChartBarIcon';
 // FIX: Corrected import path for types.
-import { DashboardView } from '../types';
+import { DashboardView, TeacherView } from '../types';
 // Fix: Corrected the import path for constants to be a relative path.
 import { ADMIN_VIEWS } from '../utils/constants';
 import PencilSquareIcon from './icons/PencilSquareIcon';
 
 interface ReportCardProps {
-    setActiveView: (view: DashboardView) => void;
+    setActiveView: (view: DashboardView | TeacherView) => void;
 }
 
 const ReportCard = ({ setActiveView }: ReportCardProps) => {

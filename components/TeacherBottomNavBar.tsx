@@ -3,10 +3,10 @@ import HomeIcon from './icons/HomeIcon';
 import UsersIcon from './icons/UsersIcon';
 import { TeacherView } from '../types';
 import ClipboardListIcon from './icons/ClipboardListIcon';
-import Bars3Icon from './icons/Bars3Icon';
 import { TEACHER_VIEWS } from '../utils/constants';
-import ChatBubbleLeftRightIcon from './icons/ChatBubbleLeftRightIcon';
 import BookmarkSquareIcon from './icons/BookmarkSquareIcon';
+import CheckBadgeIcon from './icons/CheckBadgeIcon';
+import BrainCircuitIcon from './icons/BrainCircuitIcon';
 
 interface NavItemProps {
     icon: React.ReactNode;
@@ -36,8 +36,9 @@ const TeacherBottomNavBar: FC<BottomNavBarProps> = ({ activeView, setActiveView 
         // Fix: Cast string constants to TeacherView
         { view: TEACHER_VIEWS.DASHBOARD as TeacherView, label: 'Home', icon: <HomeIcon className="h-6 w-6" /> },
         { view: TEACHER_VIEWS.ENTER_SCORES as TeacherView, label: 'Scores', icon: <ClipboardListIcon className="h-6 w-6" /> },
-        { view: TEACHER_VIEWS.MESSAGES as TeacherView, label: 'Messages', icon: <ChatBubbleLeftRightIcon className="h-6 w-6" /> },
-        { view: TEACHER_VIEWS.MORE as TeacherView, label: 'More', icon: <Bars3Icon className="h-6 w-6" /> },
+        { view: TEACHER_VIEWS.ATTENDANCE as TeacherView, label: 'Attendance', icon: <CheckBadgeIcon className="h-6 w-6" /> },
+        { view: TEACHER_VIEWS.REPORT_CARDS as TeacherView, label: 'Report Card', icon: <BookmarkSquareIcon className="h-6 w-6" /> },
+        { view: TEACHER_VIEWS.AI_TOOLS as TeacherView, label: 'AI Tools', icon: <BrainCircuitIcon className="h-6 w-6" /> },
     ];
 
     return (

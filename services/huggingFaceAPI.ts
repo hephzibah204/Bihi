@@ -24,7 +24,7 @@ export interface GenerationResponse {
  */
 export class HuggingFaceClient {
     private apiKey: string | null;
-    private baseUrl = 'https://api-inference.huggingface.co/models/';
+    private baseUrl = 'https://router.huggingface.co/hf-inference/models/';
     private requestCache: Map<string, { response: string; timestamp: number }> = new Map();
     private cacheTimeout = 60 * 60 * 1000; // 1 hour
     

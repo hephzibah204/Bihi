@@ -65,6 +65,8 @@ export const TEACHER_VIEWS: { [key: string]: TeacherView } = {
     MESSAGES: 'messages',
     NOTIFICATIONS: 'notifications',
     REPORT_CARDS: 'report-cards',
+    STUDENT_PROFILE: 'student-profile',
+    COMPREHENSIVE_ENTRY: 'comprehensive-entry',
 };
 
 export const STUDENT_VIEWS: { [key: string]: StudentView } = {

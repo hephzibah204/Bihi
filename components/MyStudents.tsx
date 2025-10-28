@@ -5,7 +5,11 @@ import { supabase } from '../services/supabaseClient';
 import { Student, Teacher } from '../types';
 import TableSkeleton from './skeletons/TableSkeleton';
 
-const MyStudents = () => {
+interface MyStudentsProps {
+    onViewProfile?: (studentId: string) => void;
+}
+
+const MyStudents: React.FC<MyStudentsProps> = ({ onViewProfile }) => {
     const [myStudents, setMyStudents] = useState<Student[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -95,6 +99,7 @@ const MyStudents = () => {
                             <th className="th">Name</th>
                             <th className="th">Class</th>
                             <th className="th">Admission No.</th>
+                            <th className="th">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white dark:bg-gray-800">
@@ -103,6 +108,14 @@ const MyStudents = () => {
                                 <td className="td"><div className="truncate max-w-sm" title={student.name}>{student.name}</div></td>
                                 <td className="td">{student.class}</td>
                                 <td className="td">{student.admissionNo}</td>
+                                <td className="td">
+                                    <button
+                                        className="btn btn-primary btn-sm"
+                                        onClick={() => onViewProfile && onViewProfile(student.id)}
+                                    >
+                                        View Profile
+                                    </button>
+                                </td>
                             </tr>
                         ))}
                     </tbody>

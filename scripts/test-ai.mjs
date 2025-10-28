@@ -55,7 +55,7 @@ async function testHuggingFace() {
   if (!HF_KEY) return { available: false, reason: 'missing_key' };
 
   const testGenerate = async (signal) => {
-    const url = `https://api-inference.huggingface.co/models/${HF_MODEL}`;
+    const url = `https://router.huggingface.co/hf-inference/models/${HF_MODEL}`;
     const body = { inputs: 'Say OK', parameters: { max_new_tokens: 16, return_full_text: false } };
     const r = await fetch(url, { method: 'POST', headers: { 'Authorization': `Bearer ${HF_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal });
     const txt = await r.text();

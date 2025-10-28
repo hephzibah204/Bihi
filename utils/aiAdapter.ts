@@ -126,7 +126,7 @@ async function tryHuggingFace(prompt: string, options?: AnalysisOptions): Promis
     },
   };
 
-  const res = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+  const res = await fetch(`https://router.huggingface.co/hf-inference/models/${model}`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,

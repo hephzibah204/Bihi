@@ -114,7 +114,15 @@ const Dashboard = () => {
         if (isDemoMode) {
             const demoRole = localStorage.getItem('demoUserRole');
             if (demoRole === USER_ROLES.TEACHER) {
-                return <Suspense fallback={<ContentLoader />}><TeacherDashboard onLogout={logout} /></Suspense>;
+                return (
+                    <TenantProvider>
+                        <PlanFeaturesProvider>
+                            <Suspense fallback={<ContentLoader />}>
+                                <TeacherDashboard onLogout={logout} />
+                            </Suspense>
+                        </PlanFeaturesProvider>
+                    </TenantProvider>
+                );
             }
             if (demoRole === USER_ROLES.STUDENT) {
                 return <Suspense fallback={<ContentLoader />}><StudentDashboard onLogout={logout} demoUserId="demo-student" /></Suspense>;
@@ -176,7 +184,15 @@ const Dashboard = () => {
     }
 
     if (role === USER_ROLES.TEACHER) {
-        return <Suspense fallback={<ContentLoader />}><TeacherDashboard onLogout={logout} /></Suspense>;
+        return (
+            <TenantProvider>
+                <PlanFeaturesProvider>
+                    <Suspense fallback={<ContentLoader />}>
+                        <TeacherDashboard onLogout={logout} />
+                    </Suspense>
+                </PlanFeaturesProvider>
+            </TenantProvider>
+        );
     }
     if (role === USER_ROLES.STUDENT) {
         return <Suspense fallback={<ContentLoader />}><StudentDashboard onLogout={logout} demoUserId={user?.id} /></Suspense>;

@@ -3,11 +3,11 @@ import TeacherSidebar from './TeacherSidebar';
 import Header from './Header';
 import { TeacherView } from '../types';
 import SyncStatusIndicator from './SyncStatusIndicator';
-import TeacherBottomNavBar from './TeacherBottomNavBar';
 import { TEACHER_VIEWS } from '../utils/constants';
 import Chatbot from './Chatbot';
 import { USER_ROLES } from '../utils/constants';
 import SpinnerIcon from './icons/SpinnerIcon';
+import TeacherBottomNavBar from './TeacherBottomNavBar';
 
 const TeacherDashboardContent = lazy(() => import('./TeacherDashboardContent'));
 const TeacherMoreView = lazy(() => import('./TeacherMoreView'));
@@ -19,15 +19,18 @@ const ContentLoader = () => (
 );
 
 const getViewFromUrl = () => new URLSearchParams(window.location.search).get('view');
+const getStudentIdFromUrl = () => new URLSearchParams(window.location.search).get('studentId');
 
 const TeacherDashboard = ({ onLogout }) => {
     const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [activeView, setActiveView] = useState<TeacherView>(getViewFromUrl() as TeacherView || TEACHER_VIEWS.DASHBOARD);
     const [headerTitle, setHeaderTitle] = useState('Dashboard');
+    const [profileStudentId, setProfileStudentId] = useState<string | null>(getStudentIdFromUrl());
 
     useEffect(() => {
         const handlePopState = () => {
             setActiveView(getViewFromUrl() as TeacherView || TEACHER_VIEWS.DASHBOARD);
+            setProfileStudentId(getStudentIdFromUrl());
         };
         window.addEventListener('popstate', handlePopState);
         return () => window.removeEventListener('popstate', handlePopState);
@@ -43,8 +46,24 @@ const TeacherDashboard = ({ onLogout }) => {
     const handleViewChange = (view: TeacherView) => {
         const url = new URL(window.location.toString());
         url.searchParams.set('view', view);
+        if (view !== TEACHER_VIEWS.STUDENT_PROFILE) {
+            url.searchParams.delete('studentId');
+            setProfileStudentId(null);
+        }
         window.history.pushState({}, '', url.toString());
         setActiveView(view);
+        if (window.innerWidth < 768) {
+            setSidebarOpen(false);
+        }
+    };
+
+    const handleViewStudentProfile = (studentId: string) => {
+        const url = new URL(window.location.toString());
+        url.searchParams.set('view', TEACHER_VIEWS.STUDENT_PROFILE);
+        url.searchParams.set('studentId', studentId);
+        window.history.pushState({}, '', url.toString());
+        setProfileStudentId(studentId);
+        setActiveView(TEACHER_VIEWS.STUDENT_PROFILE as TeacherView);
         if (window.innerWidth < 768) {
             setSidebarOpen(false);
         }
@@ -60,7 +79,12 @@ const TeacherDashboard = ({ onLogout }) => {
                         <Suspense fallback={<ContentLoader />}>
                             {activeView === TEACHER_VIEWS.MORE 
                                 ? <TeacherMoreView setActiveView={handleViewChange} /> 
-                                : <TeacherDashboardContent activeView={activeView} setActiveView={handleViewChange} />
+                                : <TeacherDashboardContent 
+                                    activeView={activeView} 
+                                    setActiveView={handleViewChange} 
+                                    profileStudentId={profileStudentId}
+                                    onViewStudentProfile={handleViewStudentProfile}
+                                  />
                             }
                         </Suspense>
                     </div>

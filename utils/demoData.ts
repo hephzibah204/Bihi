@@ -1,4 +1,4 @@
-import { Tenant, Student, Subject, SchoolSettings, Score, Teacher, Parent, Invoice, FeeStructure, BehavioralLogEntry, Remark, AttendanceRecord } from '../types';
+import { Tenant, Student, Subject, SchoolSettings, Score, Teacher, Parent, Invoice, FeeStructure, BehavioralLogEntry, Remark, AttendanceRecord, Assignment, AssignmentScore } from '../types';
 
 export const DEMO_TENANT_ID = 'demo';
 
@@ -61,6 +61,8 @@ export const CORE_DEMO_DATA = {
     remarks: [] as Remark[],
     behavioralRecords: [] as BehavioralLogEntry[],
     attendance: [] as AttendanceRecord[],
+    assignments: [] as Assignment[],
+    assignment_scores: [] as AssignmentScore[],
     settings: {
         schoolName: 'Brightstar Demo Academy',
         schoolAddress: '123 Innovation Drive, Lagos, Nigeria',

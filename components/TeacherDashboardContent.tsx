@@ -11,18 +11,22 @@ const MyStudents = lazy(() => import('./MyStudents'));
 const ResourceHub = lazy(() => import('./ResourceHub'));
 const DashboardKnowledgeBase = lazy(() => import('./DashboardKnowledgeBase'));
 const MyPayslips = lazy(() => import('./MyPayslips'));
-const TeacherAssignments = lazy(() => import('./TeacherAssignments'));
+const Assignments = lazy(() => import('./Assignments'));
 const TeacherBehavioral = lazy(() => import('./TeacherBehavioral'));
 const Attendance = lazy(() => import('./Attendance'));
 const DirectMessages = lazy(() => import('./DirectMessages'));
 const NotificationViewer = lazy(() => import('./NotificationViewer'));
 const ReportCard = lazy(() => import('./ReportCard'));
 const TeacherHome = lazy(() => import('./TeacherHome'));
+const StudentProfilePage = lazy(() => import('./StudentProfilePage'));
+const ComprehensiveReportEntry = lazy(() => import('./ComprehensiveReportEntry'));
 
 
 interface TeacherDashboardContentProps {
     activeView: TeacherView;
     setActiveView: (view: TeacherView) => void;
+    profileStudentId?: string | null;
+    onViewStudentProfile?: (studentId: string) => void;
 }
 
 const ContentLoader = () => (
@@ -31,15 +35,15 @@ const ContentLoader = () => (
     </div>
 );
 
-const TeacherDashboardContent: React.FC<TeacherDashboardContentProps> = ({ activeView, setActiveView }) => {
+const TeacherDashboardContent: React.FC<TeacherDashboardContentProps> = ({ activeView, setActiveView, profileStudentId, onViewStudentProfile }) => {
     return (
         <Suspense fallback={<ContentLoader />}>
             {(() => {
                 switch(activeView) {
                     case TEACHER_VIEWS.DASHBOARD:
-                        return <TeacherHome />;
+                        return <TeacherHome setActiveView={setActiveView} />;
                     case TEACHER_VIEWS.MY_STUDENTS:
-                        return <MyStudents />;
+                        return <MyStudents onViewProfile={onViewStudentProfile} />;
                     case TEACHER_VIEWS.ENTER_SCORES:
                         return <Results />;
                     case TEACHER_VIEWS.MY_SCHEDULE:
@@ -53,7 +57,7 @@ const TeacherDashboardContent: React.FC<TeacherDashboardContentProps> = ({ activ
                     case TEACHER_VIEWS.MY_PAYSLIPS:
                         return <MyPayslips />;
                     case TEACHER_VIEWS.ASSIGNMENTS:
-                        return <TeacherAssignments />;
+                        return <Assignments />;
                     case TEACHER_VIEWS.BEHAVIORAL:
                         return <TeacherBehavioral />;
                     case TEACHER_VIEWS.ATTENDANCE:
@@ -61,9 +65,13 @@ const TeacherDashboardContent: React.FC<TeacherDashboardContentProps> = ({ activ
                     case TEACHER_VIEWS.MESSAGES:
                         return <DirectMessages />;
                     case TEACHER_VIEWS.NOTIFICATIONS:
-                        return <NotificationViewer />;
+                        return <NotificationViewer demoUserId={null} />;
                     case TEACHER_VIEWS.REPORT_CARDS:
-                        return <ReportCard />;
+                        return <ReportCard setActiveView={setActiveView} />;
+                    case TEACHER_VIEWS.COMPREHENSIVE_ENTRY:
+                        return <ComprehensiveReportEntry />;
+                    case TEACHER_VIEWS.STUDENT_PROFILE:
+                        return <StudentProfilePage studentId={profileStudentId} setActiveView={setActiveView} />;
                     default:
                         return <TeacherSchedule />;
             }

@@ -42,7 +42,9 @@ export type DashboardView =
   
 export type TeacherView = 
   | 'dashboard' | 'my-students' | 'enter-scores' | 'my-schedule' | 'ai-tools'
-  | 'resource-hub' | 'my-payslips' | 'help' | 'more' | 'assignments' | 'behavioral';
+  | 'resource-hub' | 'my-payslips' | 'help' | 'more' | 'assignments' | 'behavioral'
+  | 'attendance' | 'messages' | 'notifications' | 'report-cards' | 'student-profile'
+  | 'comprehensive-entry';
   
 export type StudentView = 
   | 'dashboard' | 'results' | 'assignments' | 'timetable' | 'ai-tools'

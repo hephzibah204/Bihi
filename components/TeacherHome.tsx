@@ -154,6 +154,10 @@ const TeacherHome = ({ setActiveView }: { setActiveView: (view: TeacherView) => 
         { view: TEACHER_VIEWS.ENTER_SCORES, title: "Enter Scores", icon: <ClipboardListIcon className="w-6 h-6"/> },
         { view: TEACHER_VIEWS.MY_SCHEDULE, title: "Full Schedule", icon: <CalendarDaysIcon className="w-6 h-6"/> },
         { view: TEACHER_VIEWS.MY_STUDENTS, title: "My Students", icon: <UsersIcon className="w-6 h-6"/> },
+        { view: TEACHER_VIEWS.ASSIGNMENTS, title: "Assignments", icon: <TrophyIcon className="w-6 h-6"/> },
+        { view: TEACHER_VIEWS.ATTENDANCE, title: "Take Attendance", icon: <CheckBadgeIcon className="w-6 h-6"/> },
+        { view: TEACHER_VIEWS.REPORT_CARDS, title: "Report Cards", icon: <AcademicCapIcon className="w-6 h-6"/> },
+        { view: TEACHER_VIEWS.COMPREHENSIVE_ENTRY, title: "Comprehensive Entry", icon: <ClipboardListIcon className="w-6 h-6"/> },
         { view: TEACHER_VIEWS.AI_TOOLS, title: "AI Tools", icon: <BrainCircuitIcon className="w-6 h-6"/> },
     ];
     
