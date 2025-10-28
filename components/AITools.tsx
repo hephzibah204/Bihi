@@ -11,6 +11,8 @@ const CommentGenerator = lazy(() => import('./CommentGenerator'));
 const EarlyIntervention = lazy(() => import('./EarlyIntervention'));
 const LearningPathways = lazy(() => import('./LearningPathways'));
 const SubjectRecommender = lazy(() => import('./SubjectRecommender'));
+const RubricGenerator = lazy(() => import('./RubricGenerator'));
+const ParentMessageComposer = lazy(() => import('./ParentMessageComposer'));
 
 const AITools = ({ setActiveView }: { setActiveView: (view: DashboardView | TeacherView) => void }) => {
     const { hasFeature, isLoading } = usePlanFeatures();
@@ -27,6 +29,9 @@ const AITools = ({ setActiveView }: { setActiveView: (view: DashboardView | Teac
 
     return (
         <div className="space-y-8">
+            {/* Teacher-centric tools */}
+            <Suspense fallback={<AIToolSkeleton />}><RubricGenerator /></Suspense>
+            <Suspense fallback={<AIToolSkeleton />}><ParentMessageComposer /></Suspense>
             <Suspense fallback={<AIToolSkeleton />}><LessonPlanner /></Suspense>
             <Suspense fallback={<AIToolSkeleton />}><PracticeQuiz /></Suspense>
             <Suspense fallback={<AIToolSkeleton />}><CommentGenerator /></Suspense>

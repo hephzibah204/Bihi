@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiGetTimetableData, apiGetStudents, apiGetSubjects } from '../services/api';
 
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const TIME_SLOTS = ['8:00 - 9:00', '9:00 - 10:00', '10:00 - 11:00', '11:00 - 12:00', '1:00 - 2:00'];
 
 const StudentTimetable = ({ demoUserId }) => {
@@ -11,10 +11,6 @@ const StudentTimetable = ({ demoUserId }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!demoUserId) {
-            setLoading(false);
-            return;
-        }
         const fetchData = async () => {
             setLoading(true);
             try {
@@ -24,10 +20,17 @@ const StudentTimetable = ({ demoUserId }) => {
                     apiGetSubjects()
                 ]);
 
-                const currentStudent = studentData.find(s => s.id === demoUserId);
+                const currentStudent = demoUserId ? studentData.find(s => s.id === demoUserId) : null;
                 if (currentStudent) {
                     setStudentClass(currentStudent.class);
                     setTimetable(ttData[currentStudent.class]);
+                } else {
+                    // Fallback: pick the first available class in timetable
+                    const classNames = Object.keys(ttData || {});
+                    if (classNames.length > 0) {
+                        setStudentClass(classNames[0]);
+                        setTimetable(ttData[classNames[0]]);
+                    }
                 }
                 setSubjects(subjectData);
             } catch (error) {

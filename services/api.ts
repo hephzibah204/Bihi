@@ -485,7 +485,7 @@ export const apiSaveSchoolSettings = (settings: Partial<SchoolSettings>, tenant_
 
 // --- Timetable ---
 export const apiGetTimetableData = async () => {
-    if(isDemo()) return {};
+    if(isDemo()) return (CORE_DEMO_DATA as any).timetable || {};
     if(!supabase) return {};
     const { data, error } = await supabase.from('timetable').select('data').single();
     if(error && error.code !== 'PGRST116') throw error;

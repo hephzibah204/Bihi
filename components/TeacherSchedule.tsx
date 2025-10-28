@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { apiGetTimetableData, apiGetSubjects, apiGetTeachers } from '../services/api';
 // Fix: Corrected import path for supabase client
 import { supabase } from '../services/supabaseClient';
+import { getSubdomain } from '../utils/subdomain';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const TIME_SLOTS = ['8:00 - 9:00', '9:00 - 10:00', '10:00 - 11:00', '11:00 - 12:00', '1:00 - 2:00'];
@@ -15,20 +16,30 @@ const TeacherSchedule = () => {
         const fetchSchedule = async () => {
             setLoading(true);
 
-            if (!supabase) {
-                setLoading(false);
-                return;
-            }
-            
-            // FIX: Defensively destructure user data to prevent crash if 'data' is null.
-            const { data: userData, error } = await supabase.auth.getUser();
-            if (error || !userData?.user) {
-                console.error("Could not get user for teacher schedule:", error);
-                setLoading(false);
-                return;
-            }
-            const { user } = userData;
+            const demo = (typeof window !== 'undefined') && (
+                sessionStorage.getItem('isDemoMode') === 'true' ||
+                localStorage.getItem('isDemoMode') === 'true' ||
+                getSubdomain() === 'demo'
+            );
 
+            let userEmail: string | null = null;
+            if (!demo) {
+                if (!supabase) {
+                    setLoading(false);
+                    return;
+                }
+                // FIX: Defensively destructure user data to prevent crash if 'data' is null.
+                const { data: userData, error } = await supabase.auth.getUser();
+                if (error || !userData?.user) {
+                    console.error("Could not get user for teacher schedule:", error);
+                    setLoading(false);
+                    return;
+                }
+                userEmail = userData.user.email || null;
+            } else {
+                // Demo mode: use demo teacher email
+                userEmail = 'teacher@demo.com';
+            }
 
             const [timetableData, subjectData, teacherData] = await Promise.all([
                 apiGetTimetableData(),
@@ -37,7 +48,7 @@ const TeacherSchedule = () => {
             ]);
             setSubjects(subjectData);
 
-            const me = teacherData.find(t => t.email.toLowerCase() === user.email.toLowerCase());
+            const me = teacherData.find(t => t.email && t.email.toLowerCase() === (userEmail || '').toLowerCase());
             if (!me) {
                 setLoading(false);
                 return;

@@ -86,8 +86,389 @@ export const CORE_DEMO_DATA = {
             ],
             sections: [{id: 'sec_a', name: 'A'}, {id: 'sec_b', name: 'B'}]
         }
-    } as SchoolSettings
+    } as SchoolSettings,
+    // Demo timetable seeded for key classes used across components
+    timetable: {
+        'JSS 1A': {
+            'Monday': {
+                '8:00 - 9:00': { subjectId: 'subj_1', teacherId: 'teacher_2' }, // Math
+                '9:00 - 10:00': { subjectId: 'subj_2', teacherId: 'teacher_2' }, // English
+                '10:00 - 11:00': { subjectId: 'subj_4', teacherId: 'teacher_2' }, // Basic Science
+                '11:00 - 12:00': { subjectId: 'subj_9', teacherId: 'teacher_2' }, // Civic Education
+                '1:00 - 2:00': { subjectId: 'subj_11', teacherId: 'teacher_2' }, // Basic Technology
+            },
+            'Tuesday': {
+                '8:00 - 9:00': { subjectId: 'subj_2', teacherId: 'teacher_2' },
+                '9:00 - 10:00': { subjectId: 'subj_1', teacherId: 'teacher_2' },
+                '10:00 - 11:00': { subjectId: 'subj_12', teacherId: 'teacher_2' },
+                '11:00 - 12:00': { subjectId: 'subj_13', teacherId: 'teacher_2' },
+                '1:00 - 2:00': { subjectId: 'subj_14', teacherId: 'teacher_2' },
+            },
+            'Wednesday': {
+                '8:00 - 9:00': { subjectId: 'subj_1', teacherId: 'teacher_2' },
+                '9:00 - 10:00': { subjectId: 'subj_10', teacherId: 'teacher_2' }, // Social Studies
+                '10:00 - 11:00': { subjectId: 'subj_2', teacherId: 'teacher_2' },
+                '11:00 - 12:00': { subjectId: 'subj_9', teacherId: 'teacher_2' },
+                '1:00 - 2:00': { subjectId: 'subj_4', teacherId: 'teacher_2' },
+            },
+            'Thursday': {
+                '8:00 - 9:00': { subjectId: 'subj_13', teacherId: 'teacher_2' },
+                '9:00 - 10:00': { subjectId: 'subj_2', teacherId: 'teacher_2' },
+                '10:00 - 11:00': { subjectId: 'subj_1', teacherId: 'teacher_2' },
+                '11:00 - 12:00': { subjectId: 'subj_12', teacherId: 'teacher_2' },
+                '1:00 - 2:00': { subjectId: 'subj_11', teacherId: 'teacher_2' },
+            },
+            'Friday': {
+                '8:00 - 9:00': { subjectId: 'subj_2', teacherId: 'teacher_2' },
+                '9:00 - 10:00': { subjectId: 'subj_10', teacherId: 'teacher_2' },
+                '10:00 - 11:00': { subjectId: 'subj_9', teacherId: 'teacher_2' },
+                '11:00 - 12:00': { subjectId: 'subj_1', teacherId: 'teacher_2' },
+                '1:00 - 2:00': { subjectId: 'subj_4', teacherId: 'teacher_2' },
+            },
+        },
+        'SSS 2A': {
+            'Monday': {
+                '8:00 - 9:00': { subjectId: 'subj_3', teacherId: 'teacher_1' }, // Physics
+                '9:00 - 10:00': { subjectId: 'subj_7', teacherId: 'teacher_1' }, // Chemistry
+                '10:00 - 11:00': { subjectId: 'subj_8', teacherId: 'teacher_1' }, // Biology
+                '11:00 - 12:00': { subjectId: 'subj_2', teacherId: 'teacher_1' },
+                '1:00 - 2:00': { subjectId: 'subj_1', teacherId: 'teacher_1' },
+            },
+            'Tuesday': {
+                '8:00 - 9:00': { subjectId: 'subj_1', teacherId: 'teacher_1' },
+                '9:00 - 10:00': { subjectId: 'subj_3', teacherId: 'teacher_1' },
+                '10:00 - 11:00': { subjectId: 'subj_7', teacherId: 'teacher_1' },
+                '11:00 - 12:00': { subjectId: 'subj_8', teacherId: 'teacher_1' },
+                '1:00 - 2:00': { subjectId: 'subj_2', teacherId: 'teacher_1' },
+            },
+            'Wednesday': {
+                '8:00 - 9:00': { subjectId: 'subj_8', teacherId: 'teacher_1' },
+                '9:00 - 10:00': { subjectId: 'subj_1', teacherId: 'teacher_1' },
+                '10:00 - 11:00': { subjectId: 'subj_2', teacherId: 'teacher_1' },
+                '11:00 - 12:00': { subjectId: 'subj_3', teacherId: 'teacher_1' },
+                '1:00 - 2:00': { subjectId: 'subj_7', teacherId: 'teacher_1' },
+            },
+            'Thursday': {
+                '8:00 - 9:00': { subjectId: 'subj_7', teacherId: 'teacher_1' },
+                '9:00 - 10:00': { subjectId: 'subj_8', teacherId: 'teacher_1' },
+                '10:00 - 11:00': { subjectId: 'subj_3', teacherId: 'teacher_1' },
+                '11:00 - 12:00': { subjectId: 'subj_1', teacherId: 'teacher_1' },
+                '1:00 - 2:00': { subjectId: 'subj_2', teacherId: 'teacher_1' },
+            },
+            'Friday': {
+                '8:00 - 9:00': { subjectId: 'subj_2', teacherId: 'teacher_1' },
+                '9:00 - 10:00': { subjectId: 'subj_1', teacherId: 'teacher_1' },
+                '10:00 - 11:00': { subjectId: 'subj_7', teacherId: 'teacher_1' },
+                '11:00 - 12:00': { subjectId: 'subj_8', teacherId: 'teacher_1' },
+                '1:00 - 2:00': { subjectId: 'subj_3', teacherId: 'teacher_1' },
+            },
+        },
+        // Added demo timetables for Primary 4A and Nursery 1A to improve coverage
+        'Primary 4A': {
+            'Monday': {
+                '8:00 - 9:00': { subjectId: 'subj_2', teacherId: 'teacher_2' }, // English
+                '9:00 - 10:00': { subjectId: 'subj_1', teacherId: 'teacher_2' }, // Mathematics
+                '10:00 - 11:00': { subjectId: 'subj_6', teacherId: 'teacher_2' }, // Elementary Science
+                '11:00 - 12:00': { subjectId: 'subj_2', teacherId: 'teacher_2' },
+                '1:00 - 2:00': { subjectId: 'subj_6', teacherId: 'teacher_2' },
+            },
+            'Tuesday': {
+                '8:00 - 9:00': { subjectId: 'subj_1', teacherId: 'teacher_2' },
+                '9:00 - 10:00': { subjectId: 'subj_2', teacherId: 'teacher_2' },
+                '10:00 - 11:00': { subjectId: 'subj_6', teacherId: 'teacher_2' },
+                '11:00 - 12:00': { subjectId: 'subj_1', teacherId: 'teacher_2' },
+                '1:00 - 2:00': { subjectId: 'subj_2', teacherId: 'teacher_2' },
+            },
+            'Wednesday': {
+                '8:00 - 9:00': { subjectId: 'subj_6', teacherId: 'teacher_2' },
+                '9:00 - 10:00': { subjectId: 'subj_2', teacherId: 'teacher_2' },
+                '10:00 - 11:00': { subjectId: 'subj_1', teacherId: 'teacher_2' },
+                '11:00 - 12:00': { subjectId: 'subj_6', teacherId: 'teacher_2' },
+                '1:00 - 2:00': { subjectId: 'subj_2', teacherId: 'teacher_2' },
+            },
+            'Thursday': {
+                '8:00 - 9:00': { subjectId: 'subj_2', teacherId: 'teacher_2' },
+                '9:00 - 10:00': { subjectId: 'subj_6', teacherId: 'teacher_2' },
+                '10:00 - 11:00': { subjectId: 'subj_1', teacherId: 'teacher_2' },
+                '11:00 - 12:00': { subjectId: 'subj_2', teacherId: 'teacher_2' },
+                '1:00 - 2:00': { subjectId: 'subj_6', teacherId: 'teacher_2' },
+            },
+            'Friday': {
+                '8:00 - 9:00': { subjectId: 'subj_1', teacherId: 'teacher_2' },
+                '9:00 - 10:00': { subjectId: 'subj_2', teacherId: 'teacher_2' },
+                '10:00 - 11:00': { subjectId: 'subj_6', teacherId: 'teacher_2' },
+                '11:00 - 12:00': { subjectId: 'subj_1', teacherId: 'teacher_2' },
+                '1:00 - 2:00': { subjectId: 'subj_2', teacherId: 'teacher_2' },
+            },
+        },
+        'Nursery 1A': {
+            'Monday': {
+                '8:00 - 9:00': { subjectId: 'subj_5', teacherId: 'teacher_1' }, // Number Work
+                '9:00 - 10:00': { subjectId: 'subj_2', teacherId: 'teacher_1' }, // English
+                '10:00 - 11:00': { subjectId: 'subj_5', teacherId: 'teacher_1' },
+                '11:00 - 12:00': { subjectId: 'subj_2', teacherId: 'teacher_1' },
+                '1:00 - 2:00': { subjectId: 'subj_5', teacherId: 'teacher_1' },
+            },
+            'Tuesday': {
+                '8:00 - 9:00': { subjectId: 'subj_2', teacherId: 'teacher_1' },
+                '9:00 - 10:00': { subjectId: 'subj_5', teacherId: 'teacher_1' },
+                '10:00 - 11:00': { subjectId: 'subj_2', teacherId: 'teacher_1' },
+                '11:00 - 12:00': { subjectId: 'subj_5', teacherId: 'teacher_1' },
+                '1:00 - 2:00': { subjectId: 'subj_2', teacherId: 'teacher_1' },
+            },
+            'Wednesday': {
+                '8:00 - 9:00': { subjectId: 'subj_5', teacherId: 'teacher_1' },
+                '9:00 - 10:00': { subjectId: 'subj_2', teacherId: 'teacher_1' },
+                '10:00 - 11:00': { subjectId: 'subj_5', teacherId: 'teacher_1' },
+                '11:00 - 12:00': { subjectId: 'subj_2', teacherId: 'teacher_1' },
+                '1:00 - 2:00': { subjectId: 'subj_5', teacherId: 'teacher_1' },
+            },
+            'Thursday': {
+                '8:00 - 9:00': { subjectId: 'subj_2', teacherId: 'teacher_1' },
+                '9:00 - 10:00': { subjectId: 'subj_5', teacherId: 'teacher_1' },
+                '10:00 - 11:00': { subjectId: 'subj_2', teacherId: 'teacher_1' },
+                '11:00 - 12:00': { subjectId: 'subj_5', teacherId: 'teacher_1' },
+                '1:00 - 2:00': { subjectId: 'subj_2', teacherId: 'teacher_1' },
+            },
+            'Friday': {
+                '8:00 - 9:00': { subjectId: 'subj_5', teacherId: 'teacher_1' },
+                '9:00 - 10:00': { subjectId: 'subj_2', teacherId: 'teacher_1' },
+                '10:00 - 11:00': { subjectId: 'subj_5', teacherId: 'teacher_1' },
+                '11:00 - 12:00': { subjectId: 'subj_2', teacherId: 'teacher_1' },
+                '1:00 - 2:00': { subjectId: 'subj_5', teacherId: 'teacher_1' },
+            },
+        },
+    }
 };
+
+// Extend demo timetables for additional classes (including Saturday)
+CORE_DEMO_DATA.timetable['Primary 5A'] = {
+  'Monday': {
+    '8:00 - 9:00': { subjectId: 'subj_2', teacherId: 'teacher_2' },
+    '9:00 - 10:00': { subjectId: 'subj_1', teacherId: 'teacher_2' },
+    '10:00 - 11:00': { subjectId: 'subj_6', teacherId: 'teacher_2' },
+    '11:00 - 12:00': { subjectId: 'subj_2', teacherId: 'teacher_2' },
+    '1:00 - 2:00': { subjectId: 'subj_1', teacherId: 'teacher_2' },
+  },
+  'Tuesday': {
+    '8:00 - 9:00': { subjectId: 'subj_1', teacherId: 'teacher_2' },
+    '9:00 - 10:00': { subjectId: 'subj_2', teacherId: 'teacher_2' },
+    '10:00 - 11:00': { subjectId: 'subj_6', teacherId: 'teacher_2' },
+    '11:00 - 12:00': { subjectId: 'subj_1', teacherId: 'teacher_2' },
+    '1:00 - 2:00': { subjectId: 'subj_2', teacherId: 'teacher_2' },
+  },
+  'Wednesday': {
+    '8:00 - 9:00': { subjectId: 'subj_6', teacherId: 'teacher_2' },
+    '9:00 - 10:00': { subjectId: 'subj_1', teacherId: 'teacher_2' },
+    '10:00 - 11:00': { subjectId: 'subj_2', teacherId: 'teacher_2' },
+    '11:00 - 12:00': { subjectId: 'subj_6', teacherId: 'teacher_2' },
+    '1:00 - 2:00': { subjectId: 'subj_1', teacherId: 'teacher_2' },
+  },
+  'Thursday': {
+    '8:00 - 9:00': { subjectId: 'subj_2', teacherId: 'teacher_2' },
+    '9:00 - 10:00': { subjectId: 'subj_6', teacherId: 'teacher_2' },
+    '10:00 - 11:00': { subjectId: 'subj_1', teacherId: 'teacher_2' },
+    '11:00 - 12:00': { subjectId: 'subj_2', teacherId: 'teacher_2' },
+    '1:00 - 2:00': { subjectId: 'subj_6', teacherId: 'teacher_2' },
+  },
+  'Friday': {
+    '8:00 - 9:00': { subjectId: 'subj_1', teacherId: 'teacher_2' },
+    '9:00 - 10:00': { subjectId: 'subj_2', teacherId: 'teacher_2' },
+    '10:00 - 11:00': { subjectId: 'subj_6', teacherId: 'teacher_2' },
+    '11:00 - 12:00': { subjectId: 'subj_1', teacherId: 'teacher_2' },
+    '1:00 - 2:00': { subjectId: 'subj_2', teacherId: 'teacher_2' },
+  },
+  'Saturday': {
+    '9:00 - 10:00': { subjectId: 'subj_1', teacherId: 'teacher_2' },
+    '10:00 - 11:00': { subjectId: 'subj_2', teacherId: 'teacher_2' },
+  },
+};
+
+CORE_DEMO_DATA.timetable['SSS 1B'] = {
+  'Monday': {
+    '8:00 - 9:00': { subjectId: 'subj_3', teacherId: 'teacher_1' },
+    '9:00 - 10:00': { subjectId: 'subj_7', teacherId: 'teacher_1' },
+    '10:00 - 11:00': { subjectId: 'subj_8', teacherId: 'teacher_1' },
+    '11:00 - 12:00': { subjectId: 'subj_2', teacherId: 'teacher_1' },
+    '1:00 - 2:00': { subjectId: 'subj_1', teacherId: 'teacher_1' },
+  },
+  'Tuesday': {
+    '8:00 - 9:00': { subjectId: 'subj_1', teacherId: 'teacher_1' },
+    '9:00 - 10:00': { subjectId: 'subj_3', teacherId: 'teacher_1' },
+    '10:00 - 11:00': { subjectId: 'subj_7', teacherId: 'teacher_1' },
+    '11:00 - 12:00': { subjectId: 'subj_8', teacherId: 'teacher_1' },
+    '1:00 - 2:00': { subjectId: 'subj_2', teacherId: 'teacher_1' },
+  },
+  'Wednesday': {
+    '8:00 - 9:00': { subjectId: 'subj_8', teacherId: 'teacher_1' },
+    '9:00 - 10:00': { subjectId: 'subj_1', teacherId: 'teacher_1' },
+    '10:00 - 11:00': { subjectId: 'subj_2', teacherId: 'teacher_1' },
+    '11:00 - 12:00': { subjectId: 'subj_3', teacherId: 'teacher_1' },
+    '1:00 - 2:00': { subjectId: 'subj_7', teacherId: 'teacher_1' },
+  },
+  'Thursday': {
+    '8:00 - 9:00': { subjectId: 'subj_7', teacherId: 'teacher_1' },
+    '9:00 - 10:00': { subjectId: 'subj_8', teacherId: 'teacher_1' },
+    '10:00 - 11:00': { subjectId: 'subj_3', teacherId: 'teacher_1' },
+    '11:00 - 12:00': { subjectId: 'subj_1', teacherId: 'teacher_1' },
+    '1:00 - 2:00': { subjectId: 'subj_2', teacherId: 'teacher_1' },
+  },
+  'Friday': {
+    '8:00 - 9:00': { subjectId: 'subj_2', teacherId: 'teacher_1' },
+    '9:00 - 10:00': { subjectId: 'subj_1', teacherId: 'teacher_1' },
+    '10:00 - 11:00': { subjectId: 'subj_7', teacherId: 'teacher_1' },
+    '11:00 - 12:00': { subjectId: 'subj_8', teacherId: 'teacher_1' },
+    '1:00 - 2:00': { subjectId: 'subj_3', teacherId: 'teacher_1' },
+  },
+  'Saturday': {
+    '9:00 - 10:00': { subjectId: 'subj_3', teacherId: 'teacher_1' },
+    '10:00 - 11:00': { subjectId: 'subj_7', teacherId: 'teacher_1' },
+  },
+};
+
+// --- Assignments Demo Data ---
+// Provides sample assignments across demo classes for both teacher and student views
+CORE_DEMO_DATA.assignments = [
+    {
+        id: 'asg_jss1_math_worksheet',
+        class: 'JSS 1A',
+        title: 'Mathematics Worksheet: Fractions & Decimals',
+        description: 'Solve 10 problems on adding fractions and converting decimals. Show working.',
+        subjectId: 'subj_1',
+        dueDate: '2025-11-05',
+        maxScore: 20,
+        type: 'Homework'
+    },
+    {
+        id: 'asg_jss1_basic_science_quiz',
+        class: 'JSS 1A',
+        title: 'Basic Science Quiz: States of Matter',
+        description: 'Short quiz covering solids, liquids, and gases. Multiple choice.',
+        subjectId: 'subj_4',
+        dueDate: '2025-10-25',
+        maxScore: 10,
+        type: 'Quiz'
+    },
+    {
+        id: 'asg_sss2_physics_lab',
+        class: 'SSS 2A',
+        title: 'Physics Lab Report: Projectile Motion',
+        description: 'Conduct the projectile motion experiment and submit a detailed lab report with calculations and graphs.',
+        subjectId: 'subj_3',
+        dueDate: '2025-10-28',
+        maxScore: 30,
+        type: 'Lab Report'
+    },
+    {
+        id: 'asg_pri4_english_spelling',
+        class: 'Primary 4A',
+        title: 'English Spelling Quiz: Week 6',
+        description: 'Spell 15 new vocabulary words correctly. Practice before the quiz.',
+        subjectId: 'subj_2',
+        dueDate: '2025-11-02',
+        maxScore: 15,
+        type: 'Quiz'
+    },
+    {
+        id: 'asg_nur1_counting_practice',
+        class: 'Nursery 1A',
+        title: 'Number Work: Counting to 20',
+        description: 'Practice counting from 1 to 20 and circle the correct number of objects.',
+        subjectId: 'subj_5',
+        dueDate: '2025-10-30',
+        maxScore: 10,
+        type: 'Classwork'
+    }
+] as any;
+
+// Add varied assignments with staggered due dates
+CORE_DEMO_DATA.assignments.push(
+  {
+    id: 'asg_sss1b_bio_field_project',
+    class: 'SSS 1B',
+    title: 'Biology Field Project: Ecosystem Survey',
+    description: 'Conduct a local ecosystem survey, record observations, and submit a project report with photos.',
+    subjectId: 'subj_8',
+    dueDate: '2025-11-08',
+    maxScore: 25,
+    type: 'Project'
+  },
+  {
+    id: 'asg_pri5_math_mental_oral',
+    class: 'Primary 5A',
+    title: 'Mathematics Mental Drill: Oral Session',
+    description: 'Oral mental arithmetic round on addition, subtraction, and multiplication.',
+    subjectId: 'subj_1',
+    dueDate: '2025-11-03',
+    maxScore: 10,
+    type: 'Oral Presentation'
+  },
+  {
+    id: 'asg_jss1_civic_debate',
+    class: 'JSS 1A',
+    title: 'Civic Education Debate: Rights & Responsibilities',
+    description: 'Class debate on student rights and responsibilities. Points awarded for clarity and teamwork.',
+    subjectId: 'subj_9',
+    dueDate: '2025-11-06',
+    maxScore: 20,
+    type: 'Classwork'
+  },
+  {
+    id: 'asg_sss2_chem_midterm',
+    class: 'SSS 2A',
+    title: 'Chemistry Midterm Assessment',
+    description: 'Structured midterm covering stoichiometry, acids/bases, and bonding.',
+    subjectId: 'subj_7',
+    dueDate: '2025-11-10',
+    maxScore: 40,
+    type: 'Midterm'
+  },
+  {
+    id: 'asg_pri4_computer_poster',
+    class: 'Primary 4A',
+    title: 'Computer Studies: Safety Poster',
+    description: 'Create a poster showing smart computer usage and internet safety tips.',
+    subjectId: 'subj_13',
+    dueDate: '2025-11-04',
+    maxScore: 15,
+    type: 'Project'
+  },
+  {
+    id: 'asg_nur1_phonics_oral',
+    class: 'Nursery 1A',
+    title: 'Phonics Oral Presentation: Letter Sounds',
+    description: 'Recite letter sounds A–Z in class. Gentle scoring for participation and confidence.',
+    subjectId: 'subj_2',
+    dueDate: '2025-11-07',
+    maxScore: 10,
+    type: 'Oral Presentation'
+  }
+);
+
+CORE_DEMO_DATA.assignment_scores = [
+    // JSS 1A: graded quiz
+    { id: 'asgscore_asg_jss1_basic_science_quiz_stud_1', assignmentId: 'asg_jss1_basic_science_quiz', studentId: 'stud_1', score: 9, comment: 'Great understanding of basic concepts.' },
+    { id: 'asgscore_asg_jss1_basic_science_quiz_stud_2', assignmentId: 'asg_jss1_basic_science_quiz', studentId: 'stud_2', score: 6, comment: 'Study states of matter again and practice more.' },
+    // SSS 2A: graded lab report
+    { id: 'asgscore_asg_sss2_physics_lab_stud_3', assignmentId: 'asg_sss2_physics_lab', studentId: 'stud_3', score: 24, comment: 'Accurate calculations, improve on discussion section.' },
+    { id: 'asgscore_asg_sss2_physics_lab_stud_4', assignmentId: 'asg_sss2_physics_lab', studentId: 'stud_4', score: 27, comment: 'Well-structured report and clear graphs.' },
+    // Primary 4A: upcoming spelling quiz (no scores yet)
+    // Nursery 1A: upcoming classwork (no scores yet)
+] as any;
+
+// Pre-populate more assignment scores for visibility across dashboards
+CORE_DEMO_DATA.assignment_scores.push(
+  // JSS 1A civic debate
+  { id: 'asgscore_asg_jss1_civic_debate_stud_1', assignmentId: 'asg_jss1_civic_debate', studentId: 'stud_1', score: 18, comment: 'Strong points and teamwork.' },
+  { id: 'asgscore_asg_jss1_civic_debate_stud_2', assignmentId: 'asg_jss1_civic_debate', studentId: 'stud_2', score: 12, comment: 'Good effort; work on clarity.' },
+  // SSS 2A chemistry midterm
+  { id: 'asgscore_asg_sss2_chem_midterm_stud_3', assignmentId: 'asg_sss2_chem_midterm', studentId: 'stud_3', score: 30, comment: 'Solid stoichiometry; missed a few acid/base questions.' },
+  { id: 'asgscore_asg_sss2_chem_midterm_stud_4', assignmentId: 'asg_sss2_chem_midterm', studentId: 'stud_4', score: 34, comment: 'Excellent bonding section; minor arithmetic errors.' },
+  // Primary 4A computer poster
+  { id: 'asgscore_asg_pri4_computer_poster_stud_5', assignmentId: 'asg_pri4_computer_poster', studentId: 'stud_5', score: 13, comment: 'Creative poster and clear tips.' },
+  // Nursery 1A phonics oral
+  { id: 'asgscore_asg_nur1_phonics_oral_stud_6', assignmentId: 'asg_nur1_phonics_oral', studentId: 'stud_6', score: 9, comment: 'Confident recitation; few hesitations.' }
+);
 
 // --- Detailed Student Generator for Performance Testing ---
 
