@@ -1,4 +1,4 @@
-﻿import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase, initSupabase } from '../services/supabaseClient';
 import { getSubdomain } from '../utils/subdomain';
 import { apiGetTenants, apiGetPlatformSettings, apiGetTeachers, apiGetStudents, apiGetSchoolSettings } from '../services/api';
@@ -59,10 +59,30 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
                         .map(v => String(v).toLowerCase());
                         return candidates.includes(sd.toLowerCase());
                     });
-                    setIsValidTenant(isValid);
+
                     if (!isValid) {
-                        setLoading(false);
-                        return;
+                        // Dev convenience: if running on localhost and tenant list is empty/missing,
+                        // treat the current subdomain as valid and seed a local dev tenant so flows continue.
+                        const isLocalhost = typeof window !== 'undefined' && window.location.hostname.includes('localhost');
+                        if (isLocalhost) {
+                            setIsValidTenant(true);
+                            try {
+                                const existing = localStorage.getItem('dev_tenants');
+                                const list = existing ? JSON.parse(existing) : [];
+                                const entry = { id: sd, name: sd };
+                                if (!Array.isArray(list)) {
+                                    localStorage.setItem('dev_tenants', JSON.stringify([entry]));
+                                } else if (!list.some((t: any) => t.id === entry.id)) {
+                                    localStorage.setItem('dev_tenants', JSON.stringify([...list, entry]));
+                                }
+                            } catch { /* noop */ }
+                        } else {
+                            setIsValidTenant(false);
+                            setLoading(false);
+                            return;
+                        }
+                    } else {
+                        setIsValidTenant(true);
                     }
                 } catch (e) {
                     // Assume valid in local/offline to avoid blocking development

@@ -103,11 +103,15 @@ async function handlePost(request, env) {
             method: 'POST', headers: adminHeaders,
             body: JSON.stringify({ id: subdomain, name: schoolName, subscriptionStatus: 'trial', trialEndDate: trialExpiry })
         });
-        
+
         if (!tenantRes.ok) {
-            const tenantError = await tenantRes.json();
+            let raw = '';
+            try { raw = await tenantRes.text(); } catch {}
+            let tenantError = {};
+            try { tenantError = JSON.parse(raw || '{}'); } catch {}
             if (tenantError.code === '23505') throw new Error(`The portal address '${subdomain}' is already taken.`);
-            throw new Error(tenantError.message || 'Failed to create school record.');
+            const msg = tenantError.message || raw || `Failed to create school record (status ${tenantRes.status}).`;
+            throw new Error(msg);
         }
 
         // Step 2: Create Auth User
@@ -115,10 +119,12 @@ async function handlePost(request, env) {
             method: 'POST', headers: adminHeaders,
             body: JSON.stringify({ email: adminEmail, password: adminPassword, email_confirm: true, user_metadata: { tenant_id: subdomain, full_name: adminName } })
         });
-        const userData = await userRes.json();
+        let userData = {};
+        try { userData = await userRes.json(); } catch {}
         if (!userRes.ok) {
             await fetch(`${SUPABASE_URL}/rest/v1/tenants?id=eq.${subdomain}`, { method: 'DELETE', headers: adminHeaders });
-            throw new Error(userData.msg || 'Failed to create admin user.');
+            const raw = userData?.msg || `Failed to create admin user (status ${userRes.status}).`;
+            throw new Error(raw);
         }
 
         // Step 3: Create Teacher Profile
@@ -129,7 +135,10 @@ async function handlePost(request, env) {
         if (!teacherRes.ok) {
             await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userData.id}`, { method: 'DELETE', headers: adminHeaders });
             await fetch(`${SUPABASE_URL}/rest/v1/tenants?id=eq.${subdomain}`, { method: 'DELETE', headers: adminHeaders });
-            throw new Error(`Failed to create admin profile.`);
+            let raw = '';
+            try { raw = await teacherRes.text(); } catch {}
+            const msg = raw || `Failed to create admin profile (status ${teacherRes.status}).`;
+            throw new Error(msg);
         }
 
         // Step 4: Seed Data

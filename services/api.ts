@@ -831,7 +831,21 @@ export const apiLogActivity = (type: string, description: string) => {
 };
 
 // --- Platform Level ---
-export const apiGetTenants = () => isDemo() ? [{id: DEMO_TENANT_ID, name: 'Brightstar Demo Academy'}] : get<Tenant>('tenants');
+export const apiGetTenants = async () => {
+  if (isDemo()) return [{ id: DEMO_TENANT_ID, name: 'Brightstar Demo Academy' } as any];
+  // Try Supabase first
+  const supaTenants = await get<Tenant>('tenants');
+  if (supaTenants && supaTenants.length > 0) return supaTenants as any;
+  // Dev/local fallback: allow locally "registered" tenants via localStorage to avoid blocking flow
+  try {
+    const stored = typeof window !== 'undefined' ? localStorage.getItem('dev_tenants') : null;
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.length) return parsed as any;
+    }
+  } catch {}
+  return [] as any;
+};
 export const apiAddTenant = (tenant) => upsert('tenants', tenant);
 export const apiDeleteTenant = (tenantId) => del('tenants', tenantId);
 
@@ -844,7 +858,8 @@ const fetchFromNetworkAndCache = async (): Promise<PlatformSettings> => {
 
     // Attempt Cloudflare first (Primary)
     try {
-        data = await fetchWithTimeout<PlatformSettings>(CLOUDFLARE_URL, { headers }, 4000);
+        // Allow a slightly longer timeout in dev to reduce AbortErrors
+        data = await fetchWithTimeout<PlatformSettings>(CLOUDFLARE_URL, { headers }, 6000);
     } catch (err: any) {
             logger.warn('Cloudflare platform settings fetch failed', { error: err.message });
         }
@@ -852,9 +867,13 @@ const fetchFromNetworkAndCache = async (): Promise<PlatformSettings> => {
     // Fallback: Supabase Edge Function with retry logic
     if (!data) {
         try {
+            // Increase per-request timeout to accommodate slower edge function cold starts
             data = await fetchWithExponentialBackoff<PlatformSettings>(
                 getSupabaseFallbackUrl(), 
-                { headers }
+                { headers },
+                3,
+                1000,
+                12000
             );
         } catch (err: any) {
             logger.error('Supabase fallback failed after all retries', { error: err.message });

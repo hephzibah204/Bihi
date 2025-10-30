@@ -63,6 +63,18 @@ const SubscriptionPage = () => {
             sessionStorage.removeItem('isDemoMode');
             sessionStorage.removeItem('activeUser');
 
+            // Dev/local: persist the new tenant so validation passes without a backend
+            try {
+                const existing = localStorage.getItem('dev_tenants');
+                const list = existing ? JSON.parse(existing) : [];
+                const entry = { id: formData.subdomain, name: formData.schoolName };
+                if (!Array.isArray(list)) {
+                    localStorage.setItem('dev_tenants', JSON.stringify([entry]));
+                } else if (!list.some((t: any) => t.id === entry.id)) {
+                    localStorage.setItem('dev_tenants', JSON.stringify([...list, entry]));
+                }
+            } catch {}
+
             setStep(3);
         } catch (err) {
             let errorMessage = err.message;

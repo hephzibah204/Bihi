@@ -51,8 +51,9 @@ export default defineConfig(({ mode }) => {
     // Dev-only mock for /api/webviewClick when not using local API
     if (isDevelopment && env.VITE_USE_LOCAL_API !== 'true') {
       config.plugins.push({
-        name: 'mock-webviewClick',
+        name: 'mock-api-endpoints',
         configureServer(server) {
+          // Simple mock for /api/webviewClick
           server.middlewares.use('/api/webviewClick', (req, res) => {
             const method = req.method || 'GET';
             if (method !== 'POST' && method !== 'GET') {
@@ -65,6 +66,40 @@ export default defineConfig(({ mode }) => {
             req.on('end', () => {
               res.setHeader('Content-Type', 'application/json');
               res.end(JSON.stringify({ ok: true, route: '/api/webviewClick', ts: Date.now() }));
+            });
+          });
+
+          // Dev-only mock for signup endpoint to avoid 404 during local dev
+          server.middlewares.use('/api/register', async (req, res) => {
+            const method = req.method || 'GET';
+            if (method !== 'POST') {
+              res.statusCode = 405;
+              res.end('Method Not Allowed');
+              return;
+            }
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+              try {
+                const data = body ? JSON.parse(body) : {};
+                // Basic validation (mirror UI requirements)
+                const required = ['schoolName', 'subdomain', 'adminEmail', 'adminPassword', 'adminName'];
+                const missing = required.filter(k => !data[k]);
+                if (missing.length) {
+                  res.statusCode = 400;
+                  res.setHeader('Content-Type', 'application/json');
+                  res.end(JSON.stringify({ error: 'Missing required fields', details: missing.join(', ') }));
+                  return;
+                }
+                // Simulate success response
+                res.statusCode = 201;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ message: 'Registration successful! (dev mock)' }));
+              } catch (e) {
+                res.statusCode = 400;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ error: 'Invalid JSON' }));
+              }
             });
           });
         }
