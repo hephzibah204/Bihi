@@ -3,7 +3,6 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
-import { initSupabase } from './services/supabaseClient';
 import { getSubdomain } from './utils/subdomain';
 import { DEMO_TENANT_ID } from './utils/demoData';
 import { getAIService } from './services/aiService';
@@ -11,9 +10,6 @@ import { initializeSemanticCache } from './services/semanticSearchUtils';
 import { logger } from './utils/logger';
 
 const main = async () => {
-    // Initialize Supabase before rendering the app. This ensures the `supabase`
-    // client object is available for synchronous imports in other components.
-    await initSupabase();
 
     // Initialize semantic cache for offline AI fallback
     try {

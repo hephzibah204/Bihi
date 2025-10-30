@@ -44,6 +44,7 @@ const TeacherSidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveVi
         { view: TEACHER_VIEWS.DASHBOARD, label: 'Dashboard', icon: <HomeIcon className="h-5 w-5" /> },
         { view: TEACHER_VIEWS.MY_STUDENTS, label: 'My Students', icon: <UsersIcon className="h-5 w-5" /> },
         { view: TEACHER_VIEWS.ENTER_SCORES, label: 'Enter Scores', icon: <ClipboardListIcon className="h-5 w-5" /> },
+        { view: TEACHER_VIEWS.BROADSHEET, label: 'Broadsheet', icon: <ClipboardListIcon className="h-5 w-5" /> },
         { view: TEACHER_VIEWS.MY_SCHEDULE, label: 'My Schedule', icon: <CalendarDaysIcon className="h-5 w-5" /> },
         { view: TEACHER_VIEWS.AI_TOOLS, label: 'AI Tools', icon: <BrainCircuitIcon className="h-5 w-5" /> },
         { view: TEACHER_VIEWS.RESOURCE_HUB, label: 'Resource Hub', icon: <BookmarkSquareIcon className="h-5 w-5" /> },

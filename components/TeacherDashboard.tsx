@@ -4,8 +4,7 @@ import Header from './Header';
 import { TeacherView } from '../types';
 import SyncStatusIndicator from './SyncStatusIndicator';
 import { TEACHER_VIEWS } from '../utils/constants';
-import Chatbot from './Chatbot';
-import { USER_ROLES } from '../utils/constants';
+// Floating Chatbot removed; assistant is available under AI Tools
 import SpinnerIcon from './icons/SpinnerIcon';
 import TeacherBottomNavBar from './TeacherBottomNavBar';
 
@@ -92,7 +91,7 @@ const TeacherDashboard = ({ onLogout }) => {
                 <TeacherBottomNavBar activeView={activeView} setActiveView={handleViewChange} />
             </div>
             <SyncStatusIndicator />
-            <Chatbot userRole={USER_ROLES.TEACHER} activeView={activeView} />
+            {/* Chat assistant moved under AI Tools */}
         </div>
     );
 };

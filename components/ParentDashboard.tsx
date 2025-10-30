@@ -5,8 +5,7 @@ import { ParentView } from '../types';
 import SyncStatusIndicator from './SyncStatusIndicator';
 import ParentBottomNavBar from './ParentBottomNavBar';
 import { PARENT_VIEWS } from '../utils/constants';
-import Chatbot from './Chatbot';
-import { USER_ROLES } from '../utils/constants';
+// Floating Chatbot removed; assistant is available under AI Tools
 import SpinnerIcon from './icons/SpinnerIcon';
 
 const ParentDashboardContent = lazy(() => import('./ParentDashboardContent'));
@@ -63,7 +62,6 @@ const ParentDashboard = ({ onLogout, demoUserId }) => {
                 <ParentBottomNavBar activeView={activeView} setActiveView={handleViewChange} />
             </div>
             <SyncStatusIndicator />
-            <Chatbot userRole={USER_ROLES.PARENT} demoUserId={demoUserId} activeView={activeView} />
         </div>
     );
 };

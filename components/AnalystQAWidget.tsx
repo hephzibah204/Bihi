@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { generateResponse } from '../services/geminiAIService';
 import { apiGetStudents, apiGetScores, apiGetSubjects, apiGetSchoolSettings, apiGetTeachers, apiGetTimetableData } from '../services/api';
 import SparklesIcon from './icons/SparklesIcon';
+import HtmlContent from './HtmlContent';
 import SpinnerIcon from './icons/SpinnerIcon';
 
 const AnalystQAWidget: React.FC = () => {
@@ -118,9 +119,9 @@ const AnalystQAWidget: React.FC = () => {
           <p className="mt-3 text-xs text-gray-500">Loading context...</p>
         )}
         {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-        {answer && (
+{answer && (
           <div className="mt-4 border-t pt-4">
-            <pre className="text-sm whitespace-pre-wrap font-sans bg-gray-50 p-4 rounded-md">{answer}</pre>
+<HtmlContent html={answer} className="bg-gray-50 p-4 rounded-md" />
           </div>
         )}
       </div>

@@ -19,11 +19,18 @@ export function normalizePrompt(input: unknown): string {
 export async function generateResponse(prompt: unknown, options?: Record<string, unknown>): Promise<string> {
   const p = normalizePrompt(prompt);
   try {
-    const res = await analyzeWithFallback(p, options as any);
-    return (res?.text ?? '').toString();
-  } catch {
-    // final sync fallback
-    return generateEnhancedFallbackResponse(p, options as any);
+    // Gemini-first via in-app service (server-backed), with graceful fallback handled by this module
+    const service = getGeminiAIService();
+    const res = await service.generate({ prompt: p, context: options as any });
+    return String(res?.content ?? '');
+  } catch (e) {
+    try {
+      const { generateFallbackResponse } = await import('./fallbackAiService');
+      return generateFallbackResponse(p, options as any);
+    } catch {
+      // final sync fallback
+      return generateEnhancedFallbackResponse(p, options as any);
+    }
   }
 }
 
@@ -87,7 +94,9 @@ export interface ServiceStatus {
  */
 export class GeminiAIService {
     private geminiApiKey: string | null = null;
-    private geminiEndpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+    private geminiApiVersion = this.resolveApiVersion();
+    private model = this.resolveModelName();
+    private geminiEndpoint = `https://generativelanguage.googleapis.com/${this.geminiApiVersion}/models/${this.model}:generateContent`;
     private status: ServiceStatus = {
         geminiAvailable: false,
         fallbackAvailable: true,
@@ -116,18 +125,21 @@ export class GeminiAIService {
      * Load Gemini API key from environment or storage
      */
     private loadGeminiKey(): string | null {
-        // Try environment variable first
-        if (process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
-            return process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-        }
+        // Try common env variable names (server and client)
+        const fromEnv =
+            process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
+            process.env.VITE_GEMINI_API_KEY ||
+            process.env.GEMINI_API_KEY ||
+            process.env.GOOGLE_API_KEY ||
+            process.env.VITE_GOOGLE_API_KEY;
+        if (fromEnv) return fromEnv;
 
         // Try localStorage (browser only)
         if (typeof window !== 'undefined') {
             try {
-                return localStorage.getItem('gemini_api_key');
-            } catch {
-                return null;
-            }
+                const key = localStorage.getItem('gemini_api_key');
+                if (key) return key;
+            } catch { /* ignore */ }
         }
 
         return null;
@@ -204,7 +216,7 @@ export class GeminiAIService {
                     isFallback: false,
                     timestamp: Date.now(),
                     metadata: {
-                        model: 'gemini-pro',
+                        model: this.model,
                         tokensUsed: this.estimateTokens(geminiContent),
                         responseTime
                     }
@@ -364,6 +376,54 @@ export class GeminiAIService {
     }
 
     /**
+     * Resolve supported model name with back-compat mapping
+     */
+    private resolveModelName(): string {
+        // Prefer env-configured model; support both server and client envs
+        const rawModel =
+            (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_GEMINI_MODEL) ||
+            process.env.NEXT_PUBLIC_GEMINI_MODEL ||
+            process.env.VITE_GEMINI_MODEL ||
+            process.env.GEMINI_MODEL ||
+            (typeof window !== 'undefined' ? window.localStorage?.getItem('gemini_model') || undefined : undefined);
+
+        const candidate = (rawModel || '').toLowerCase().trim();
+
+        const map: Record<string, string> = {
+            'gemini-pro': 'gemini-1.5-pro',
+            'gemini-pro-vision': 'gemini-1.5-pro',
+            'gemini-1.0-pro': 'gemini-1.5-pro',
+            'gemini-1.0-pro-vision': 'gemini-1.5-pro',
+            'gemini-flash': 'gemini-1.5-flash',
+            'gemini-1.5-pro': 'gemini-1.5-pro',
+            'gemini-1.5-flash': 'gemini-1.5-flash',
+            'gemini-2.5-flash': 'gemini-2.5-flash',
+            'gemini': 'gemini-1.5-pro'
+        };
+
+        return map[candidate] || 'gemini-1.5-pro';
+    }
+
+    /**
+     * Resolve API version with sensible defaults
+     */
+    private resolveApiVersion(): string {
+        const rawVersion =
+            (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_GEMINI_API_VERSION) ||
+            process.env.NEXT_PUBLIC_GEMINI_API_VERSION ||
+            process.env.VITE_GEMINI_API_VERSION ||
+            process.env.GEMINI_API_VERSION;
+
+        const v = (rawVersion || '').toLowerCase().trim();
+        if (v === 'v1' || v === 'v1beta' || v === 'v1beta2') {
+            // Normalize beta variants
+            return v === 'v1beta2' ? 'v1beta' : v;
+        }
+        // Default to stable v1
+        return 'v1';
+    }
+
+    /**
      * Build system prompt with Nigerian context
      */
     private buildSystemPrompt(context?: any): string {
@@ -387,8 +447,17 @@ export class GeminiAIService {
         prompt += '- Align responses with Nigerian education standards\n';
         prompt += '- Use clear, accessible language\n';
         prompt += '- Include practical examples where appropriate\n';
-        prompt += '- Be culturally relevant to Nigerian context\n';
-        prompt += '- Maintain conversation continuity and context';
+        prompt += '- Be culturally relevant to Nigerian context\\n';
+        prompt += '- Maintain conversation continuity and context\\n';
+        prompt += '- Do not include generic disclaimers like "As an AI..."\\n';
+        prompt += '- Use only provided context; if data is missing, write "Not available in current context" and suggest one specific next data point.\\n';
+        prompt += '- When Teacher/Admin and metrics are present, summarize with concrete numbers and 3–5 concise insights.\\n';
+        prompt += '\nOutput Format (HTML):\n';
+        prompt += '- Return valid semantic HTML only (no Markdown).\n';
+        prompt += '- Use <h1> for title, <h2>/<h3> for sections, <p>, <ul>/<ol>, and <table> where helpful.\n';
+        prompt += '- Bold key labels with <strong>.\n';
+        prompt += '- For lesson notes include: Title, Objectives, Materials, Prerequisites, Lesson Outline (timed if useful), Activities, Assessment, Homework/Extension, References.\n';
+        prompt += '- Avoid emojis and slang; use clear standard Nigerian English (no pidgin).';
 
         return prompt;
     }

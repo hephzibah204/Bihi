@@ -4,6 +4,7 @@ import { generateResponse as aiGenerateResponse } from '../services/geminiAIServ
 import { apiGetInvoices, apiGetPayments, apiGetExpenses, apiGetPayrollRuns, apiGetIncome } from '../services/api';
 import SparklesIcon from './icons/SparklesIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
+import HtmlContent from './HtmlContent';
 import SkeletonLoader from './SkeletonLoader';
 
 const FinancialQAWidget: React.FC = () => {
@@ -110,9 +111,9 @@ const FinancialQAWidget: React.FC = () => {
           </div>
         )}
         {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-        {answer && (
+{answer && (
           <div className="mt-4 border-t pt-4">
-            <pre className="text-sm whitespace-pre-wrap font-sans bg-gray-50 p-4 rounded-md">{answer}</pre>
+<HtmlContent html={answer} className="text-sm bg-gray-50 p-4 rounded-md" />
           </div>
         )}
       </div>

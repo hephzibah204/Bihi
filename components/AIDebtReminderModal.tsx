@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Modal from './Modal';
 import { useAI } from '../hooks/useAI';
 import { generateResponse as aiGenerateResponse } from '../services/geminiAIService';
+import HtmlContent from './HtmlContent';
 import SpinnerIcon from './icons/SpinnerIcon';
 import SparklesIcon from './icons/SparklesIcon';
 import { Invoice, Student } from '../types';
@@ -83,12 +84,7 @@ const AIDebtReminderModal: React.FC<AIDebtReminderModalProps> = ({ isOpen, onClo
                 {generatedMessage && (
                     <div className="mt-4">
                         <label className="label">Generated Message</label>
-                        <textarea
-                            className="input-field w-full"
-                            rows={6}
-                            value={generatedMessage}
-                            readOnly
-                        />
+<HtmlContent html={generatedMessage} className="input-field w-full bg-white max-h-60 overflow-auto" />
                         <div className="flex justify-end gap-2 mt-2">
                             <button onClick={() => navigator.clipboard.writeText(generatedMessage)} className="btn btn-secondary">Copy</button>
                             <button onClick={handleSend} className="btn btn-primary" disabled={isSending}>

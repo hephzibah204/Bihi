@@ -286,14 +286,26 @@ const AIAcademicTutor = ({ demoUserId }) => {
         setStatus('connecting');
         setTranscripts([]);
         sessionStartTimeRef.current = Date.now();
-        
-        // Create voice session and conversation
+
+        // Request microphone permission immediately to ensure browser shows prompt on click
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            streamRef.current = stream;
+            const AnyWindow = window as unknown as { webkitAudioContext?: typeof AudioContext };
+            const AudioCtxCtor = (window.AudioContext || AnyWindow.webkitAudioContext) as typeof AudioContext;
+            inputAudioContextRef.current = new AudioCtxCtor({ sampleRate: 16000 });
+            outputAudioContextRef.current = new AudioCtxCtor({ sampleRate: 24000 });
+        } catch (err) {
+            setStatus('error');
+            setErrorMessage('Microphone access denied. Please allow it in browser settings.');
+            return;
+        }
+
+        // Create voice session and conversation (non-blocking for mic prompt)
         try {
             const isDemo = sessionStorage.getItem('isDemoMode') === 'true';
             const userId = isDemo ? (demoUserId || 'demo-user') : session?.user?.id;
-            
             if (userId) {
-                // Create conversation first
                 const conversationService = getConversationService();
                 const conversation = await conversationService.createConversation({
                     userId,
@@ -301,8 +313,6 @@ const AIAcademicTutor = ({ demoUserId }) => {
                     type: 'voice_tutor'
                 });
                 setConversationId(conversation.id);
-                
-                // Create voice session
                 const voiceService = getVoiceSessionService();
                 const voiceSession = await voiceService.createSession({
                     userId,
@@ -316,49 +326,36 @@ const AIAcademicTutor = ({ demoUserId }) => {
             logger.error('Failed to create voice session', { error: error as unknown });
             // Continue anyway - don't block user
         }
-        
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            streamRef.current = stream;
-            const AnyWindow = window as unknown as { webkitAudioContext?: typeof AudioContext };
-            const AudioCtxCtor = (window.AudioContext || AnyWindow.webkitAudioContext) as typeof AudioContext;
-            inputAudioContextRef.current = new AudioCtxCtor({ sampleRate: 16000 });
-            outputAudioContextRef.current = new AudioCtxCtor({ sampleRate: 24000 });
-            
-            const promise = aiRef.current.live.connect({
-                model: 'gemini-2.5-flash-native-audio-preview-09-2025',
-                callbacks: {
-                    onopen: async () => {
-                        setStatus('connected');
-                        mediaStreamSourceRef.current = inputAudioContextRef.current.createMediaStreamSource(stream);
-                        scriptProcessorRef.current = inputAudioContextRef.current.createScriptProcessor(4096, 1, 1);
-                        scriptProcessorRef.current.onaudioprocess = (e) => {
-                            const inputData = e.inputBuffer.getChannelData(0);
-                            const pcmBlob = createBlob(inputData);
-                            promise.then((session) => session.sendRealtimeInput({ media: pcmBlob }));
-                        };
-                        mediaStreamSourceRef.current.connect(scriptProcessorRef.current);
-                        scriptProcessorRef.current.connect(inputAudioContextRef.current.destination);
-                    },
-                    onmessage: async (message) => handleServerMessage(message, promise),
-                    onerror: (e) => { logger.error('Session error', { error: e as unknown }); setStatus('error'); setErrorMessage('Connection error.'); cleanup(); },
-                    onclose: (_e) => { logger.info('Session closed'); cleanup(); },
+
+        const promise = aiRef.current.live.connect({
+            model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+            callbacks: {
+                onopen: async () => {
+                    setStatus('connected');
+                    mediaStreamSourceRef.current = inputAudioContextRef.current.createMediaStreamSource(streamRef.current!);
+                    scriptProcessorRef.current = inputAudioContextRef.current.createScriptProcessor(4096, 1, 1);
+                    scriptProcessorRef.current.onaudioprocess = (e) => {
+                        const inputData = e.inputBuffer.getChannelData(0);
+                        const pcmBlob = createBlob(inputData);
+                        promise.then((session) => session.sendRealtimeInput({ media: pcmBlob }));
+                    };
+                    mediaStreamSourceRef.current.connect(scriptProcessorRef.current);
+                    scriptProcessorRef.current.connect(inputAudioContextRef.current.destination);
                 },
-                config: {
-                    responseModalities: [Modality.AUDIO],
-                    speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } },
-                    systemInstruction: `You are a friendly Nigerian academic tutor for secondary school students. Your main language is clear English, but you must sprinkle in common Nigerian English phrases (like "Well done o!", "Shey you understand?", "No wahala") for encouragement and to build rapport. You have access to tools to generate quizzes and learning plans. When a user asks for one, use the appropriate tool.`,
-                    outputAudioTranscription: {},
-                    inputAudioTranscription: {},
-                    tools: [{ functionDeclarations: [generateQuizFunction, createLearningPathwayFunction] }],
-                },
-            });
-            sessionPromiseRef.current = promise;
-        } catch (err) {
-            setStatus('error');
-            setErrorMessage('Microphone access denied. Please allow it in browser settings.');
-            cleanup();
-        }
+                onmessage: async (message) => handleServerMessage(message, promise),
+                onerror: (e) => { logger.error('Session error', { error: e as unknown }); setStatus('error'); setErrorMessage('Connection error.'); cleanup(); },
+                onclose: (_e) => { logger.info('Session closed'); cleanup(); },
+            },
+            config: {
+                responseModalities: [Modality.AUDIO],
+                speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } },
+                systemInstruction: `You are a Nigerian academic voice tutor for secondary school students. Use clear, standard Nigerian English (avoid pidgin). Be professional, polite, and friendly. Explain concepts step-by-step with concise examples aligned to the Nigerian curriculum (WAEC/NECO). Keep sentences well-structured and easy to follow. Avoid slang. Where helpful, check for understanding and briefly recap key points. If the learner struggles, break ideas into simpler parts and use relevant analogies. Aim for responses under 30 seconds unless the user requests more detail. You have tools to generate quizzes and learning plans; when asked, call the appropriate tool.`,
+                outputAudioTranscription: {},
+                inputAudioTranscription: {},
+                tools: [{ functionDeclarations: [generateQuizFunction, createLearningPathwayFunction] }],
+            },
+        });
+        sessionPromiseRef.current = promise;
     };
     
     const handleServerMessage = async (message, sessionPromise) => {

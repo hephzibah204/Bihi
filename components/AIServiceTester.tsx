@@ -2,6 +2,7 @@
 // Comprehensive AI service testing component
 
 import React, { useState } from 'react';
+import HtmlContent from './HtmlContent';
 import { getGeminiAIService } from '../services/geminiAIService';
 import { getHuggingFaceClient } from '../services/huggingFaceAPI';
 import { generateFallbackResponse } from '../services/fallbackAiService';
@@ -220,7 +221,7 @@ export const AIServiceTester: React.FC = () => {
       </div>
 
       <div className="space-y-4">
-        {testResults.map((result) => (
+                {testResults.map((result) => (
           <div key={result.service} className="border border-gray-200 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-lg font-semibold text-gray-800">
@@ -235,9 +236,7 @@ export const AIServiceTester: React.FC = () => {
             {result.response && (
               <div className="mb-2">
                 <p className="text-sm text-gray-600 mb-1">Response:</p>
-                <div className="bg-gray-50 p-3 rounded text-sm text-gray-800 max-h-32 overflow-y-auto">
-                  {result.response}
-                </div>
+<HtmlContent html={result.response || ''} className="bg-gray-50 p-3 rounded text-sm text-gray-800 max-h-32 overflow-y-auto" />
               </div>
             )}
             

@@ -7,8 +7,8 @@ import GlobalBroadcast from './components/GlobalBroadcast';
 import { applyThemeToDocument, defaultTheme, ThemeSettings } from './hooks/useTheme';
 import { getConnectionManager } from './utils/connectionManager';
 
-// Lazy load components
-const Dashboard = lazy(() => import('./components/Dashboard'));
+// Load Dashboard eagerly to avoid intermittent dynamic import fetch errors
+import Dashboard from './components/Dashboard';
 const LandingPage = lazy(() => import('./components/LandingPage'));
 const SuperAdminDashboard = lazy(() => import('./components/SuperAdminDashboard'));
 const DemoPage = lazy(() => import('./components/DemoPage'));
@@ -130,6 +130,14 @@ const App = () => {
             // Cleanup on unmount
             connectionManager.stopMonitoring();
         };
+    }, []);
+
+    // Prefetch Dashboard to avoid lazy-load fetch issues
+    useEffect(() => {
+        try {
+            // Warm up the module cache so Suspense loads instantly
+            import('./components/Dashboard');
+        } catch {}
     }, []);
 
     const AppWrapper = ({ children }: PropsWithChildren) => (

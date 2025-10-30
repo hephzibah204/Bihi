@@ -5,8 +5,7 @@ import Header from './Header';
 import { StudentView } from '../types';
 import StudentBottomNavBar from './StudentBottomNavBar';
 import { STUDENT_VIEWS } from '../utils/constants';
-import Chatbot from './Chatbot';
-import { USER_ROLES } from '../utils/constants';
+// Floating Chatbot removed; assistant is available under AI Tools
 import SpinnerIcon from './icons/SpinnerIcon';
 
 const StudentDashboardContent = lazy(() => import('./StudentDashboardContent'));
@@ -62,7 +61,7 @@ const StudentDashboard = ({ onLogout, demoUserId }) => {
                 </main>
                 <StudentBottomNavBar activeView={activeView} setActiveView={handleViewChange} />
             </div>
-            <Chatbot userRole={USER_ROLES.STUDENT} demoUserId={demoUserId} activeView={activeView}/>
+            {/* Chat assistant moved under AI Tools */}
         </div>
     );
 };

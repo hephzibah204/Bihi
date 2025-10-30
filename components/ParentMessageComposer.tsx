@@ -4,7 +4,7 @@ import { Student, Score } from '../types';
 import ChatBubbleLeftRightIcon from './icons/ChatBubbleLeftRightIcon';
 import SparklesIcon from './icons/SparklesIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
-import { generateResponse as aiGenerateResponse } from '../services/geminiAIService';
+import { callGeminiApi } from '../services/geminiService';
 import { normalizeAIText } from '../utils/aiNormalize';
 
 const ParentMessageComposer: React.FC = () => {
@@ -50,24 +50,21 @@ const ParentMessageComposer: React.FC = () => {
         return `${score.subjectId}: ${total}%`;
       }).join(', ');
 
-      const prompt = `
-        You are a professional Nigerian teacher writing to a parent/guardian about their child's recent academic performance.
-        Compose a brief, clear message with the following preferences:
-        - Student: ${selectedStudent?.name || 'the student'} (${selectedStudent?.class || ''})
-        - Tone: ${tone}
-        - Include Practical Action Steps: ${includeActionSteps ? 'Yes' : 'No'}
-        - Performance Summary: ${scoreSummary || 'No scores available.'}
+      const prompt = `You are a professional Nigerian teacher writing to a parent/guardian about their child's recent performance.
+Preferences:
+- Student: ${selectedStudent?.name || 'the student'} (${selectedStudent?.class || ''})
+- Tone: ${tone}
+- Include Practical Action Steps: ${includeActionSteps ? 'Yes' : 'No'}
+- Performance Summary: ${scoreSummary || 'No scores available.'}
 
-        The message should:
-        - Start with a warm greeting addressing the parent/guardian.
-        - Summarize strengths and areas for improvement (based ONLY on the performance summary above).
-        - ${includeActionSteps ? 'Offer 2–3 specific action steps the parent and student can take.' : 'Keep it concise without step-by-step actions.'}
-        - Close with appreciation and openness to further discussion.
+Constraints:
+- 100–180 words.
+- Return only HTML using <p> and, if steps are included, a single <ul> with 2–3 <li>.
+- No extra commentary before or after the HTML.
+- Use only information provided above; no generic disclaimers.
+`;
 
-        Return the message as simple HTML (<p> tags, <ul>/<li> if steps are included). No extra commentary.
-      `;
-
-      const result = await aiGenerateResponse(prompt);
+      const result = await callGeminiApi(prompt, { responseMimeType: 'text/html' });
       setMessageHtml(normalizeAIText(result));
     } catch (err) {
       const msg = (err as any)?.message || String(err);

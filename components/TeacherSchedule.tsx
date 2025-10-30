@@ -3,11 +3,15 @@ import { apiGetTimetableData, apiGetSubjects, apiGetTeachers } from '../services
 // Fix: Corrected import path for supabase client
 import { supabase } from '../services/supabaseClient';
 import { getSubdomain } from '../utils/subdomain';
-
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-const TIME_SLOTS = ['8:00 - 9:00', '9:00 - 10:00', '10:00 - 11:00', '11:00 - 12:00', '1:00 - 2:00'];
+import { useAuth } from '../contexts/AuthContext';
+import { computeTimetablePlan } from '../utils/timetable';
 
 const TeacherSchedule = () => {
+    const { settings } = useAuth();
+    const plan = computeTimetablePlan(settings || undefined);
+    const DAYS_LOCAL = plan.days;
+    const TIME_SLOTS_LOCAL = plan.timeSlots;
+    const SLOT_META = (plan as any).slotMeta;
     const [schedule, setSchedule] = useState({});
     const [subjects, setSubjects] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -92,21 +96,23 @@ const TeacherSchedule = () => {
                         <thead>
                             <tr>
                                 <th className="th w-1/6">Time</th>
-                                {DAYS.map(day => <th key={day} className="th text-center">{day}</th>)}
+                                {DAYS_LOCAL.map(day => <th key={day} className="th text-center">{day}</th>)}
                             </tr>
                         </thead>
                         <tbody className="bg-white">
-                            {TIME_SLOTS.map(time => (
+                            {TIME_SLOTS_LOCAL.map(time => (
                                 <tr key={time} className="divide-x divide-gray-200">
                                     <td className="td font-semibold">{time}</td>
-                                    {DAYS.map(day => {
+                                    {DAYS_LOCAL.map(day => {
                                         const slot = schedule[day]?.[time];
                                         return (
                                             <td key={day} className="td text-center p-2">
-                                                {slot ? (
-                                                    <div>
-                                                        <p className="font-bold text-indigo-600">{getSubjectName(slot.subjectId)}</p>
-                                                        <p className="text-sm text-gray-500">{slot.className}</p>
+                                                {SLOT_META?.[time]?.type === 'break' ? (
+                                                    <div className="text-sm text-gray-600 bg-amber-50 border border-amber-200 rounded p-2">Break</div>
+                                                ) : slot ? (
+                                                    <div className="bg-indigo-50 border border-indigo-200 rounded p-2">
+                                                        <p className="font-semibold text-indigo-700">{getSubjectName(slot.subjectId)}</p>
+                                                        <p className="text-sm text-gray-600">{slot.className}</p>
                                                     </div>
                                                 ) : <span className="text-gray-400">-</span>}
                                             </td>

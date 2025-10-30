@@ -11,6 +11,7 @@ import DocumentTextIcon from './icons/DocumentTextIcon';
 import CalendarDaysIcon from './icons/CalendarDaysIcon';
 import UserCircleIcon from './icons/UserCircleIcon';
 import { PARENT_VIEWS } from '../utils/constants';
+import BrainCircuitIcon from './icons/BrainCircuitIcon';
 import ChatBubbleLeftRightIcon from './icons/ChatBubbleLeftRightIcon';
 import CalendarMinusIcon from './icons/CalendarMinusIcon';
 
@@ -45,6 +46,7 @@ export const ParentSidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setAc
         { view: PARENT_VIEWS.BEHAVIORAL, label: 'Behavioral', icon: <ShieldExclamationIcon className="h-5 w-5" /> },
         { view: PARENT_VIEWS.ASSIGNMENTS, label: 'Assignments', icon: <DocumentTextIcon className="h-5 w-5" /> },
         { view: PARENT_VIEWS.MESSAGES, label: 'Messages', icon: <ChatBubbleLeftRightIcon className="h-5 w-5" /> },
+        { view: PARENT_VIEWS.AI_TOOLS, label: 'AI Tools', icon: <BrainCircuitIcon className="h-5 w-5" /> },
         { view: PARENT_VIEWS.PROFILE, label: 'My Profile', icon: <UserCircleIcon className="h-5 w-5" /> },
         { view: PARENT_VIEWS.EVENTS, label: 'Events', icon: <CalendarDaysIcon className="h-5 w-5" /> },
         { view: PARENT_VIEWS.REPORT_ABSENCE, label: 'Report Absence', icon: <CalendarMinusIcon className="h-5 w-5" /> },

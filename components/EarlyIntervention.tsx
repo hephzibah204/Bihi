@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAI } from '../hooks/useAI';
-import { generateResponse as aiGenerateResponse } from '../services/geminiAIService';
+import { callGeminiApi } from '../services/geminiService';
 import { apiGetStudents, apiGetScores, apiGetSubjects } from '../services/api';
 import { Student, Score, Subject } from '../types';
 import ShieldExclamationIcon from './icons/ShieldExclamationIcon';
@@ -26,7 +26,7 @@ const EarlyIntervention = () => {
     const [loadingData, setLoadingData] = useState(true);
 
     const [atRiskStudents, setAtRiskStudents] = useState<AtRiskStudent[]>([]);
-    const { generateResponse, status } = useAI();
+    const { status } = useAI();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const { settings } = useTenant();
@@ -51,6 +51,16 @@ const EarlyIntervention = () => {
         };
         fetchData();
     }, []);
+
+    const [conversationId] = useState(() => {
+        try {
+            const existing = localStorage.getItem('early_intervention_conversation_id');
+            if (existing) return existing;
+            const id = `early-${Date.now()}`;
+            localStorage.setItem('early_intervention_conversation_id', id);
+            return id;
+        } catch { return `early-${Date.now()}`; }
+    });
 
     const handleAnalyze = async () => {
         if (loadingData) return;
@@ -81,24 +91,28 @@ const EarlyIntervention = () => {
                 };
             });
             
-            const prompt = `
-                You are an expert school counselor in Nigeria. Analyze the provided student performance data to identify students who are at academic risk.
+            const prompt = `You are an expert Nigerian school counselor. Analyze the provided student performance data to identify at-risk students.
+Data: ${JSON.stringify(studentPerformanceData)}
+Task:
+- Identify students at 'High' or 'Medium' risk.
+- High: average < 45% OR failing in 3+ core subjects (Math, English).
+- Medium: average 45–55% OR failing in 1–2 core subjects.
+- For each, include a short 'justification' and a practical 'suggested_action'.
+Return ONLY a JSON object matching the schema and no other text.`;
 
-                **Data:**
-                ${JSON.stringify(studentPerformanceData)}
+            const expectedSchema = {
+                at_risk_students: [
+                    { id: 'string', name: 'string', class: 'string', risk_level: 'High|Medium', justification: 'string', suggested_action: 'string' }
+                ]
+            };
 
-                **Your Task:**
-                1.  Identify students who are at 'High' or 'Medium' risk.
-                2.  'High' risk: Average score below 45% OR failing in 3 or more core subjects (Maths, English).
-                3.  'Medium' risk: Average score between 45% and 55% OR failing in 1-2 core subjects.
-                4.  For each identified student, provide a brief 'justification' and a practical 'suggested_action' for teachers or counselors.
-                5.  Return ONLY a valid JSON object with a key "at_risk_students" which is an array of objects.
-                6.  Schema for each object: { "id": "string", "name": "string", "class": "string", "risk_level": "High" | "Medium", "justification": "string", "suggested_action": "string" }
-            `;
-            
-            const result = await aiGenerateResponse(prompt);
-            const jsonString = String(result).match(/\{[\s\S]*\}/)?.[0] || '{}';
-            const jsonResponse = JSON.parse(jsonString);
+            const result = await callGeminiApi(prompt, {
+                conversationId,
+                responseMimeType: 'application/json',
+                expectedSchema
+            });
+            const clean = String(result).trim().replace(/^```json\s*/i, '').replace(/```\s*$/i, '');
+            const jsonResponse = JSON.parse(clean);
             
             if (jsonResponse.at_risk_students && Array.isArray(jsonResponse.at_risk_students)) {
                 setAtRiskStudents(jsonResponse.at_risk_students);

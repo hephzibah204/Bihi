@@ -74,7 +74,14 @@ const Promotions = () => {
         try {
             const studentsToUpdate = students
                 .filter(s => selectedStudents.has(s.id))
-                .map(s => ({ ...s, class: toClass }));
+                .map(s => {
+                    const history = Array.isArray((s as any).classHistory) ? ([...(s as any).classHistory] as any[]) : [];
+                    const exists = history.some((h: any) => h.session === settings?.session && h.term === settings?.term && h.class === toClass);
+                    if (!exists && settings?.session && settings?.term) {
+                        history.push({ session: settings.session, term: settings.term, class: toClass });
+                    }
+                    return { ...s, class: toClass, classHistory: history } as any;
+                });
             
             await apiBatchUpdateStudents(studentsToUpdate);
             

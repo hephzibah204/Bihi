@@ -248,13 +248,13 @@ const LandingPage = ({ content, menuItems }: { content: LandingPageContent, menu
             <div className="bg-gray-50 text-gray-800">
                 <Header menuItems={menuItems} />
                 <main>
-                    <section className="pt-32 pb-20 text-center">
-                        <div className="container mx-auto px-6">
-                            <h1 className="text-4xl md:text-6xl font-extrabold text-gray-900">Welcome to ReportSheet</h1>
-                            <p className="mt-4 max-w-2xl mx-auto text-lg md:text-xl text-gray-600">The AI-Powered School Management System. Please sign in or sign up to continue.</p>
+                    <section className="pt-32 pb-20">
+                        <div className="container mx-auto px-6 animate-pulse">
+                            <div className="h-10 w-2/3 bg-gray-200 rounded" />
+                            <div className="mt-4 h-6 w-1/2 bg-gray-200 rounded" />
                             <div className="mt-8 flex justify-center gap-4">
-                                <Link to="/signup" className="btn btn-primary px-8 py-3 text-lg">Start Free Trial</Link>
-                                <Link to="/signin" className="btn btn-secondary px-8 py-3 text-lg">Sign In</Link>
+                                <div className="h-12 w-40 bg-gray-200 rounded" />
+                                <div className="h-12 w-40 bg-gray-200 rounded" />
                             </div>
                         </div>
                     </section>

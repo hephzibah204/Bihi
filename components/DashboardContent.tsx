@@ -11,6 +11,7 @@ const StudentProfilePage = lazy(() => import('./StudentProfilePage'));
 const Subjects = lazy(() => import('./Subjects'));
 const Results = lazy(() => import('./Results'));
 const ReportCard = lazy(() => import('./ReportCard'));
+const Broadsheet = lazy(() => import('./Broadsheet'));
 const ComprehensiveReportEntry = lazy(() => import('./ComprehensiveReportEntry'));
 const Promotions = lazy(() => import('./Promotions'));
 const Attendance = lazy(() => import('./Attendance'));
@@ -54,6 +55,8 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ activeView, setActi
             return <Results />;
         case ADMIN_VIEWS.REPORT_CARDS:
             return <ReportCard setActiveView={setActiveView} />;
+        case ADMIN_VIEWS.BROADSHEET:
+            return <Broadsheet setActiveView={setActiveView} userRole={userRole} />;
         case ADMIN_VIEWS.COMPREHENSIVE_ENTRY:
             return <ComprehensiveReportEntry />;
         case ADMIN_VIEWS.PROMOTIONS:

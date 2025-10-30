@@ -40,11 +40,7 @@ export type DashboardView =
   | 'help' | 'resource-hub' | 'billing' | 'more' | 'events' | 'absence-management'
   | 'platform-settings' | 'users' | 'pages' | 'menus' | 'blog-articles' | 'kb-articles';
   
-export type TeacherView = 
-  | 'dashboard' | 'my-students' | 'enter-scores' | 'my-schedule' | 'ai-tools'
-  | 'resource-hub' | 'my-payslips' | 'help' | 'more' | 'assignments' | 'behavioral'
-  | 'attendance' | 'messages' | 'notifications' | 'report-cards' | 'student-profile'
-  | 'comprehensive-entry';
+export type TeacherView = 'dashboard' | 'my-students' | 'enter-scores' | 'my-schedule' | 'ai-tools' | 'resource-hub' | 'my-payslips' | 'help' | 'more' | 'assignments' | 'behavioral' | 'attendance' | 'messages' | 'notifications' | 'report-cards' | 'student-profile' | 'comprehensive-entry';
   
 export type StudentView = 
   | 'dashboard' | 'results' | 'assignments' | 'timetable' | 'ai-tools'

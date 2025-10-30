@@ -16,7 +16,7 @@ export interface ControllableFeature {
 
 export type DashboardView = 
   | 'dashboard' | 'students' | 'student-profile' | 'subjects' | 'results' 
-  | 'report-cards' | 'comprehensive-entry' | 'promotions' | 'attendance' | 'settings'
+  | 'report-cards' | 'broadsheet' | 'comprehensive-entry' | 'promotions' | 'attendance' | 'settings'
   | 'bursary' | 'communications' | 'ai-tools' | 'analytics' | 'alumni' | 'staff'
   | 'parents' | 'timetable' | 'id-cards' | 'behavioral-remarks' | 'general-remarks'
   | 'help' | 'resource-hub' | 'billing' | 'more' | 'events' | 'absence-management'
@@ -24,7 +24,7 @@ export type DashboardView =
   
 export type TeacherView = 
   | 'dashboard' | 'my-students' | 'enter-scores' | 'my-schedule' | 'ai-tools'
-  | 'resource-hub' | 'my-payslips' | 'help' | 'more' | 'assignments' | 'behavioral';
+  | 'resource-hub' | 'my-payslips' | 'help' | 'more' | 'assignments' | 'behavioral' | 'broadsheet';
   
 export type StudentView = 
   | 'dashboard' | 'results' | 'assignments' | 'timetable' | 'ai-tools'
@@ -35,11 +35,18 @@ export type ParentView =
   | 'assignments' | 'messages' | 'profile' | 'events' | 'report-absence';
 
 // Data Models
+export interface ClassHistoryItem {
+  session: string;
+  term: string;
+  class: string;
+}
+
 export interface Student {
   id: string;
   name: string;
   admissionNo: string;
   class: string;
+  classHistory?: ClassHistoryItem[]; // optional historical records to make report viewer promotion-aware
   dob?: string;
   gender?: 'Male' | 'Female';
   photo?: string;
@@ -269,6 +276,19 @@ export interface ClassLevel {
 
 export interface SchoolSettings {
   schoolName: string;
+  // Timetable configuration
+  timetable?: {
+    startTime?: string; // e.g., '08:00'
+    periodMinutes?: number; // default 40
+    maxTeachingPeriods?: number; // default 8
+    fridayMaxTeachingPeriods?: number; // default 6
+    breakCount?: 0 | 1 | 2; // default 1
+    firstBreakAfter?: number; // period index after which to insert first break (e.g., 3)
+    firstBreakMinutes?: number; // default 15
+    secondBreakAfter?: number; // optional, default 6
+    secondBreakMinutes?: number; // default 15
+    workDays?: string[]; // default Mon-Fri
+  };
   schoolAddress?: string;
   schoolLogo?: string;
   schoolType?: string;

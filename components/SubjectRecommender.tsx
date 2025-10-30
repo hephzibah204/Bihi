@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { apiGetStudents, apiGetScores, apiGetSubjects } from '../services/api';
 import { useAI } from '../hooks/useAI';
-import { generateResponse as aiGenerateResponse } from '../services/geminiAIService';
+import { callGeminiApi } from '../services/geminiService';
 import { normalizeAIText } from '../utils/aiNormalize';
 import { Student, Score, Subject } from '../types';
 import GraduationCapIcon from './icons/GraduationCapIcon';
@@ -20,7 +20,7 @@ const SubjectRecommender: React.FC<SubjectRecommenderProps> = ({ studentId, user
     const [selectedStudentId, setSelectedStudentId] = useState<string>('');
     const [interests, setInterests] = useState<string>('');
     const [recommendations, setRecommendations] = useState<string>('');
-    const { generateResponse, status } = useAI();
+    const { status } = useAI();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const isStudentView = userRole === USER_ROLES.STUDENT;
@@ -73,19 +73,19 @@ const SubjectRecommender: React.FC<SubjectRecommenderProps> = ({ studentId, user
                 return `${subject?.name || 'Unknown Subject'}: ${total}%`;
             }).join(', ');
 
-            const prompt = `
-                As an expert Nigerian academic and career counselor, analyze the following student profile to suggest subjects they might excel in.
-                **Student Profile:**
-                - **Name:** ${student.name}
-                - **Class:** ${student.class}
-                - **Stated Interests:** "${interests || 'Not specified'}"
-                - **Recent Academic Performance:** ${performanceSummary || 'No scores available.'}
-                **Your Task:**
-                Based *only* on the performance data and interests provided, suggest 3 subjects this student is likely to excel in. For each subject, provide a 1-2 sentence justification connecting your suggestion to their strengths (high scores) or interests. If performance is generally low, focus on subjects related to their interests where they might find more motivation.
-                Format the response as an HTML unordered list (<ul>). Each item (<li>) should contain a <strong> tag for the subject name, followed by the justification.
-            `;
+            const prompt = `As an expert Nigerian academic and career counselor, analyze the profile and suggest subjects the student may excel in.
+Student Profile:
+- Name: ${student.name}
+- Class: ${student.class}
+- Interests: ${interests || 'Not specified'}
+- Recent Performance: ${performanceSummary || 'No scores available.'}
+Instructions:
+- Use ONLY the information above.
+- Return a single HTML unordered list (<ul>) with exactly 3 <li> items.
+- Each <li> starts with <strong>Subject</strong> followed by a short justification.
+- No extra text before or after the <ul>.`;
 
-            const result = await aiGenerateResponse(prompt);
+            const result = await callGeminiApi(prompt, { responseMimeType: 'text/html' });
             setRecommendations(normalizeAIText(result));
 
         } catch (err) {

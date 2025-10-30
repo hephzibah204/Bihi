@@ -90,10 +90,17 @@ export function extractAIText(response: unknown): string {
 }
 
 async function tryGemini(prompt: string, options?: AnalysisOptions): Promise<string> {
-  const apiKey = getAnyEnv(['GOOGLE_API_KEY', 'VITE_GOOGLE_API_KEY']);
-  if (!apiKey) throw new Error('Missing GOOGLE_API_KEY');
+  // Resolve Gemini key from multiple common env names and localStorage
+  const apiKey = getAnyEnv([
+    'GOOGLE_API_KEY',
+    'VITE_GOOGLE_API_KEY',
+    'GEMINI_API_KEY',
+    'VITE_GEMINI_API_KEY',
+    'NEXT_PUBLIC_GEMINI_API_KEY'
+  ]) || (typeof window !== 'undefined' ? localStorage.getItem('gemini_api_key') || undefined : undefined);
+  if (!apiKey) throw new Error('Missing Gemini API key');
 
-  const modelName = options?.model || 'gemini-1.5-flash';
+  const modelName = options?.model || 'gemini-2.5-flash';
 
   let mod: any = null;
   try { mod = await import('@google/genai'); } catch { /* noop */ }

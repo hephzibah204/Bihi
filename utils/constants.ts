@@ -20,6 +20,7 @@ export const ADMIN_VIEWS: { [key: string]: DashboardView } = {
     SUBJECTS: 'subjects',
     RESULTS: 'results',
     REPORT_CARDS: 'report-cards',
+    BROADSHEET: 'broadsheet',
     COMPREHENSIVE_ENTRY: 'comprehensive-entry',
     PROMOTIONS: 'promotions',
     ATTENDANCE: 'attendance',
@@ -49,7 +50,7 @@ export const ADMIN_VIEWS: { [key: string]: DashboardView } = {
     KB_ARTICLES: 'kb-articles',
 };
 
-export const TEACHER_VIEWS: { [key: string]: TeacherView } = {
+export const TEACHER_VIEWS = {
     DASHBOARD: 'dashboard',
     MY_STUDENTS: 'my-students',
     ENTER_SCORES: 'enter-scores',
@@ -67,7 +68,8 @@ export const TEACHER_VIEWS: { [key: string]: TeacherView } = {
     REPORT_CARDS: 'report-cards',
     STUDENT_PROFILE: 'student-profile',
     COMPREHENSIVE_ENTRY: 'comprehensive-entry',
-};
+    BROADSHEET: 'broadsheet',
+} as const;
 
 export const STUDENT_VIEWS: { [key: string]: StudentView } = {
     DASHBOARD: 'dashboard',
@@ -92,6 +94,7 @@ export const PARENT_VIEWS: { [key: string]: ParentView } = {
     PROFILE: 'profile',
     EVENTS: 'events',
     REPORT_ABSENCE: 'report-absence',
+    AI_TOOLS: 'ai-tools',
 };
 
 export const USER_ROLES: { [key: string]: UserRole } = {

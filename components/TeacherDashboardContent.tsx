@@ -20,6 +20,7 @@ const ReportCard = lazy(() => import('./ReportCard'));
 const TeacherHome = lazy(() => import('./TeacherHome'));
 const StudentProfilePage = lazy(() => import('./StudentProfilePage'));
 const ComprehensiveReportEntry = lazy(() => import('./ComprehensiveReportEntry'));
+const Broadsheet = lazy(() => import('./Broadsheet'));
 
 
 interface TeacherDashboardContentProps {
@@ -68,6 +69,8 @@ const TeacherDashboardContent: React.FC<TeacherDashboardContentProps> = ({ activ
                         return <NotificationViewer demoUserId={null} />;
                     case TEACHER_VIEWS.REPORT_CARDS:
                         return <ReportCard setActiveView={setActiveView} />;
+                    case TEACHER_VIEWS.BROADSHEET:
+                        return <Broadsheet setActiveView={setActiveView} userRole={'Teacher'} />;
                     case TEACHER_VIEWS.COMPREHENSIVE_ENTRY:
                         return <ComprehensiveReportEntry />;
                     case TEACHER_VIEWS.STUDENT_PROFILE:

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAI } from '../hooks/useAI';
-import { generateResponse as aiGenerateResponse } from '../services/geminiAIService';
+import { callGeminiApi } from '../services/geminiService';
 import { normalizeAIText } from '../utils/aiNormalize';
 // FIX: Corrected import path for api services.
 import { apiGetStudents, apiGetSubjects } from '../services/api';
@@ -27,7 +27,7 @@ const LearningPathways: React.FC<LearningPathwaysProps> = ({ studentId, userRole
     const [topic, setTopic] = useState<string>(initialTopic);
     const [learningStyle, setLearningStyle] = useState<string>('Balanced');
     const [generatedPathway, setGeneratedPathway] = useState<string>('');
-    const { generateResponse, status } = useAI();
+    const { status } = useAI();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const isStudentView = userRole === USER_ROLES.STUDENT;
@@ -76,26 +76,18 @@ const LearningPathways: React.FC<LearningPathwaysProps> = ({ studentId, userRole
                 ? 'the student' 
                 : `a student named ${(selectedStudent as Student)?.name || 'a student'} in ${selectedStudent?.class || 'their class'}`;
 
-            const prompt = `
-                As an expert Nigerian educator, create a personalized learning pathway for ${studentInfo}.
-                The goal is to help them master a specific topic. The plan should be encouraging, clear, and broken into actionable steps.
+            const prompt = `As an expert Nigerian educator, create a personalized learning pathway for ${studentInfo} to master the topic.
+Details:
+- Topic: "${topic}"
+- Preferred Learning Style: "${learningStyle}"
 
-                **Student & Topic Details:**
-                - **Topic to Master:** "${topic}"
-                - **Preferred Learning Style:** "${learningStyle}"
+Constraints:
+- Return only a single HTML snippet.
+- Exactly 3–5 steps, each with: <h3> title, <p> explanation, and a <ul> of 2–3 actionable activities.
+- Use <strong> for emphasis where helpful.
+- No extra commentary before or after the HTML.`;
 
-                **Your Task:**
-                Generate a step-by-step learning pathway with 3 to 5 distinct steps.
-                Format the response as a single HTML string. Use <h3> for step titles, <p> for explanations, and <ul>/<li> for lists of activities. Use <strong> for emphasis.
-                For each step, provide:
-                1. A clear title for the step (in an <h3> tag).
-                2. A brief, simple explanation of the goal for that step (in a <p> tag).
-                3. A practical activity the student can do to complete the step (in a <ul> with <li> tags).
-
-                Make the language accessible and motivating for a secondary school student.
-            `;
-
-            const result = await aiGenerateResponse(prompt);
+            const result = await callGeminiApi(prompt, { responseMimeType: 'text/html' });
             setGeneratedPathway(normalizeAIText(result));
         } catch (err) {
             const msg = (err as any)?.message || String(err);

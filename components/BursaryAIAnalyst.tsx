@@ -3,6 +3,7 @@ import { useAI } from '../hooks/useAI';
 import { generateResponse as aiGenerateResponse } from '../services/geminiAIService';
 import { apiGetInvoices, apiGetPayments, apiGetExpenses, apiGetPayrollRuns } from '../services/api';
 import SparklesIcon from './icons/SparklesIcon';
+import HtmlContent from './HtmlContent';
 import SpinnerIcon from './icons/SpinnerIcon';
 
 const BursaryAIAnalyst = () => {
@@ -100,7 +101,9 @@ const BursaryAIAnalyst = () => {
                     <div className="mt-6 border-t pt-4">
                         <h4 className="font-semibold">AI Response</h4>
                         {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
-                        {analysisResult && <pre className="mt-2 text-sm whitespace-pre-wrap font-sans bg-gray-50 p-4 rounded-md">{analysisResult}</pre>}
+{analysisResult && (
+<HtmlContent html={analysisResult} className="mt-2 p-4 bg-gray-50 rounded-md" />
+)}
                     </div>
                 )}
             </div>

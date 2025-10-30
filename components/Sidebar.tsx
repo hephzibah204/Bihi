@@ -177,6 +177,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView, use
             items: [
                 { view: ADMIN_VIEWS.RESULTS, label: 'Score Entry', icon: <ClipboardListIcon className="h-5 w-5" /> },
                 { view: ADMIN_VIEWS.REPORT_CARDS, label: 'Dossier', icon: <DocumentArrowDownIcon className="h-5 w-5" /> },
+                { view: ADMIN_VIEWS.BROADSHEET, label: 'Broadsheet', icon: <TableCellsIcon className="h-5 w-5" /> },
                 { view: ADMIN_VIEWS.SUBJECTS, label: 'Subjects', icon: <BookOpenIcon className="h-5 w-5" /> },
                 { view: ADMIN_VIEWS.TIMETABLE, label: 'Timetable', icon: <TableCellsIcon className="h-5 w-5" /> },
                 { view: ADMIN_VIEWS.ASSIGNMENTS, label: 'Assignments', icon: <DocumentCheckIcon className="h-5 w-5" /> },

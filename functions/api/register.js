@@ -101,7 +101,7 @@ async function handlePost(request, env) {
         // Step 1: Create Tenant
         const tenantRes = await fetch(`${SUPABASE_URL}/rest/v1/tenants`, {
             method: 'POST', headers: adminHeaders,
-            body: JSON.stringify({ id: subdomain, name: schoolName, subscriptionStatus: 'trial', trialEndDate: trialExpiry, subscriptionExpiryDate: trialExpiry })
+            body: JSON.stringify({ id: subdomain, name: schoolName, subscriptionStatus: 'trial', trialEndDate: trialExpiry })
         });
         
         if (!tenantRes.ok) {

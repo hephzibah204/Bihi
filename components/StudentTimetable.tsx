@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { apiGetTimetableData, apiGetStudents, apiGetSubjects } from '../services/api';
-
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const TIME_SLOTS = ['8:00 - 9:00', '9:00 - 10:00', '10:00 - 11:00', '11:00 - 12:00', '1:00 - 2:00'];
+import { useAuth } from '../contexts/AuthContext';
+import { computeTimetablePlan } from '../utils/timetable';
 
 const StudentTimetable = ({ demoUserId }) => {
+    const { settings } = useAuth();
+    const plan = computeTimetablePlan(settings || undefined);
+    const DAYS_LOCAL = plan.days;
+    const TIME_SLOTS_LOCAL = plan.timeSlots;
+    const SLOT_META = (plan as any).slotMeta;
     const [timetable, setTimetable] = useState(null);
     const [subjects, setSubjects] = useState([]);
     const [studentClass, setStudentClass] = useState('');
@@ -57,21 +61,23 @@ const StudentTimetable = ({ demoUserId }) => {
                     <thead>
                         <tr>
                             <th className="th w-1/6">Time</th>
-                            {DAYS.map(day => <th key={day} className="th text-center">{day}</th>)}
+                            {DAYS_LOCAL.map(day => <th key={day} className="th text-center">{day}</th>)}
                         </tr>
                     </thead>
-                    <tbody className="bg-white dark:bg-gray-800">
-                        {TIME_SLOTS.map(time => (
-                            <tr key={time} className="divide-x divide-gray-200 dark:divide-gray-700">
+                    <tbody className="bg-white">
+                        {TIME_SLOTS_LOCAL.map(time => (
+                            <tr key={time} className="divide-x divide-gray-200">
                                 <td className="td font-semibold">{time}</td>
-                                {DAYS.map(day => (
+                                {DAYS_LOCAL.map(day => (
                                     <td key={day} className="td text-center p-2">
-                                        {timetable[day]?.[time] ? (
-                                            <p className="font-bold text-indigo-600 dark:text-indigo-400">
-                                                {getSubjectName(timetable[day][time].subjectId)}
-                                            </p>
+                                        {SLOT_META?.[time]?.type === 'break' ? (
+                                            <div className="text-sm text-gray-600 bg-amber-50 border border-amber-200 rounded p-2">Break</div>
+                                        ) : timetable[day]?.[time] ? (
+                                            <div className="bg-indigo-50 border border-indigo-200 rounded p-2">
+                                                <p className="font-semibold text-indigo-700">{getSubjectName(timetable[day][time].subjectId)}</p>
+                                            </div>
                                         ) : (
-                                            <span className="text-gray-400">-</span>
+                                            <span className="text-gray-500">-</span>
                                         )}
                                     </td>
                                 ))}

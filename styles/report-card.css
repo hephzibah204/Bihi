@@ -28,15 +28,16 @@
   .report-card-layout,
   .report-card-page {
     padding: 1rem !important;
-    font-size: 0.92rem; /* slightly smaller text on mobile */
+    font-size: 1rem; /* keep base text readable on mobile */
+    line-height: 1.5;
   }
 
   .report-card-layout table th,
   .report-card-layout table td,
   .report-card-page table th,
   .report-card-page table td {
-    padding: 0.35rem;
-    font-size: 0.8rem;
+    padding: 0.5rem;
+    font-size: 0.9rem;
   }
 }
 

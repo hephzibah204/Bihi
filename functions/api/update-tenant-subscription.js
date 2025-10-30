@@ -75,7 +75,7 @@ async function handlePost(request, env) {
         const updatePayload = {
             planId,
             subscriptionStatus: 'active',
-            subscriptionExpiryDate: expiryDate.toISOString(),
+            // If your schema has subscriptionExpiryDate, you can add it back; keeping minimal fields for compatibility
             trialEndDate: null,
         };
 

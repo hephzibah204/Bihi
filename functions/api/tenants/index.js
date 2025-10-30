@@ -30,7 +30,7 @@ async function createTenant(env, body) {
   // 1) Create tenant
   const trialExpiry = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
   const tRes = await fetch(`${SUPABASE_URL}/rest/v1/tenants`, {
-    method: 'POST', headers, body: JSON.stringify({ id: slug, name: schoolName, subscriptionStatus: 'trial', trialEndDate: trialExpiry, subscriptionExpiryDate: trialExpiry })
+    method: 'POST', headers, body: JSON.stringify({ id: slug, name: schoolName, subscriptionStatus: 'trial', trialEndDate: trialExpiry })
   });
   if (!tRes.ok) {
     const text = await tRes.text();

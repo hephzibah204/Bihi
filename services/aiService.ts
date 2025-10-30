@@ -66,6 +66,26 @@ class AIService {
     return undefined;
   }
 
+  private getGeminiModel(): string | undefined {
+    // Prefer explicit model envs
+    if (typeof process !== 'undefined') {
+      const m = process.env?.GEMINI_MODEL || process.env?.NEXT_PUBLIC_GEMINI_MODEL;
+      if (m) return m;
+    }
+    if (typeof import.meta !== 'undefined') {
+      const m = (import.meta.env as any).VITE_GEMINI_MODEL || (import.meta.env as any).NEXT_PUBLIC_GEMINI_MODEL;
+      if (m) return m as string;
+    }
+    // Optional browser storage fallback
+    try {
+      if (typeof window !== 'undefined') {
+        const m = window.localStorage?.getItem('gemini_model');
+        if (m) return m;
+      }
+    } catch { /* ignore */ }
+    return undefined;
+  }
+
   private initializeFallbackResponses() {
     // Pre-defined intelligent fallback responses for common queries
     this.fallbackResponses.set('greeting', 'Hello! I\'m currently running in offline mode. I can still help with basic queries using cached responses.');
@@ -170,7 +190,7 @@ class AIService {
     const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
 
     try {
-      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models', {
+      const response = await fetch('https://generativelanguage.googleapis.com/v1/models', {
         method: 'GET',
         headers: {
           'x-goog-api-key': this.config.geminiApiKey
@@ -266,7 +286,8 @@ class AIService {
         const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
 
         try {
-          const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
+          const model = this.getGeminiModel() || 'gemini-1.5-pro';
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/${model}:generateContent`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

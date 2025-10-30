@@ -10,7 +10,6 @@ import SyncStatusIndicator from './SyncStatusIndicator';
 import AdminBottomNavBar from './AdminBottomNavBar';
 import { PlanFeaturesProvider } from '../contexts/PlanFeaturesContext';
 import GlobalNotification from './GlobalNotification';
-import Chatbot from './Chatbot';
 import { ADMIN_VIEWS, USER_ROLES } from '../utils/constants';
 import { getSubdomain } from '../utils/subdomain';
 import SelectChildModal from './SelectChildModal';
@@ -113,6 +112,28 @@ const Dashboard = () => {
         // Skip login for demo mode
         if (isDemoMode) {
             const demoRole = localStorage.getItem('demoUserRole');
+            // Resolve the correct demo user id based on selected profile
+            let effectiveDemoStudentId: string | undefined;
+            try {
+                const activeUserRaw = sessionStorage.getItem('activeUser');
+                const activeUser = activeUserRaw ? JSON.parse(activeUserRaw) : null;
+                // For a student selection, the Demo landing page passes a valid student id (e.g., 'stud_1')
+                if (demoRole === USER_ROLES.STUDENT) {
+                    effectiveDemoStudentId = activeUser?.userId || 'stud_1';
+                }
+                // For a parent selection, map parent id to the first child student id in demo data
+                if (demoRole === USER_ROLES.PARENT) {
+                    const parentId = activeUser?.userId;
+                    // Lazy import to avoid bundling overhead
+                    const { CORE_DEMO_DATA } = require('../utils/demoData');
+                    const students = CORE_DEMO_DATA?.students || [];
+                    const child = students.find((s: any) => s.parentId === parentId) || students[0];
+                    effectiveDemoStudentId = child?.id;
+                }
+            } catch (e) {
+                // Fallback if parsing fails
+                effectiveDemoStudentId = 'stud_1';
+            }
             if (demoRole === USER_ROLES.TEACHER) {
                 return (
                     <TenantProvider>
@@ -125,10 +146,10 @@ const Dashboard = () => {
                 );
             }
             if (demoRole === USER_ROLES.STUDENT) {
-                return <Suspense fallback={<ContentLoader />}><StudentDashboard onLogout={logout} demoUserId="demo-student" /></Suspense>;
+                return <Suspense fallback={<ContentLoader />}><StudentDashboard onLogout={logout} demoUserId={effectiveDemoStudentId} /></Suspense>;
             }
             if (demoRole === USER_ROLES.PARENT) {
-                return <Suspense fallback={<ContentLoader />}><ParentDashboard onLogout={logout} demoUserId="demo-parent" /></Suspense>;
+                return <Suspense fallback={<ContentLoader />}><ParentDashboard onLogout={logout} demoUserId={effectiveDemoStudentId} /></Suspense>;
             }
             // Default to admin dashboard for other roles
             return (
@@ -173,7 +194,6 @@ const Dashboard = () => {
 
                             <SyncStatusIndicator />
                             <GlobalNotification />
-                            <Chatbot userRole={(localStorage.getItem('demoUserRole') === USER_ROLES.BURSAR ? USER_ROLES.BURSAR : USER_ROLES.ADMIN) as string} activeView={activeView} />
                         </div>
                     </PlanFeaturesProvider>
                 </TenantProvider>
@@ -250,8 +270,8 @@ const Dashboard = () => {
                         <AdminBottomNavBar activeView={activeView} setActiveView={handleViewChange} userRole={role} />
                     </div>
                 </div>
-                <SyncStatusIndicator />
-                <GlobalNotification />
+            <SyncStatusIndicator />
+            <GlobalNotification />
                 <Chatbot userRole={role as string} activeView={activeView} />
                 </>
             </PlanFeaturesProvider>

@@ -14,6 +14,9 @@ interface AIResponse {
     suggestions?: string[];
 }
 
+// Learning: access Gemini cache to reuse high-quality responses offline
+import { getAIResponseCache } from './aiResponseCache';
+
 // Nigerian Education Knowledge Base
 const NIGERIAN_CURRICULUM = {
     subjects: {
@@ -780,6 +783,9 @@ class SemanticMatcher {
         if (promptLower.includes('my child') || promptLower.includes('parent')) {
             return 'parentChat';
         }
+        if (promptLower.includes('rubric')) {
+            return 'rubric';
+        }
         
         return 'general';
     }
@@ -806,8 +812,68 @@ class SemanticMatcher {
     }
 }
 
+// Simple Markdown→HTML converter for offline templates
+function mdToHtmlLite(md: string): string {
+    try {
+        const escape = (s: string) => s
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+        // Bold **text**
+        let html = md.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        const lines = html.split(/\r?\n/);
+        const out: string[] = [];
+        let inUl = false, inOl = false;
+        const endLists = () => { if (inUl) { out.push('</ul>'); inUl = false; } if (inOl) { out.push('</ol>'); inOl = false; } };
+        lines.forEach((raw, idx) => {
+            const line = raw.trim();
+            if (!line) { endLists(); return; }
+            // List detection
+            if (/^(?:[-•]\s+)/.test(line)) {
+                if (!inUl) { endLists(); out.push('<ul>'); inUl = true; }
+                out.push(`<li>${line.replace(/^[-•]\s+/, '')}</li>`);
+                return;
+            }
+            if (/^\d+\.\s+/.test(line)) {
+                if (!inOl) { endLists(); out.push('<ol>'); inOl = true; }
+                out.push(`<li>${line.replace(/^\d+\.\s+/, '')}</li>`);
+                return;
+            }
+            // Headings heuristics
+            if (idx === 0 && /lesson plan|analysis|help|parent support|financial/i.test(line.replace(/<strong>|<\/strong>/g, ''))) {
+                endLists(); out.push(`<h1>${line}</h1>`); return;
+            }
+            if (/:$/.test(line)) { endLists(); out.push(`<h3>${line}</h3>`); return; }
+            // Default paragraph
+            endLists(); out.push(`<p>${line}</p>`);
+        });
+        endLists();
+        // Simple table fences (Criteria table hints)
+        return out.join('\n');
+    } catch { return md; }
+}
+
 // Enhanced Response Generator
 export class EnhancedFallbackAI {
+    private static tryFromLearned(prompt: string, context?: any): string | null {
+        try {
+            const cache = getAIResponseCache();
+            const hit = cache.getCachedResponse(prompt, context);
+            if (hit && hit.source === 'gemini') {
+                return hit.response;
+            }
+            // As a fallback, scan top high-quality and pick best by simple similarity
+            const candidates = cache.getHighQualityResponses(0.8, 50);
+            let best: { resp: string; score: number } | null = null;
+            for (const c of candidates) {
+                const score = (prompt && c.prompt) ? (prompt.toLowerCase().split(' ').filter(w => c.prompt.toLowerCase().includes(w)).length / Math.max(1, prompt.split(' ').length)) : 0;
+                if (!best || score > best.score) best = { resp: c.response, score };
+            }
+            return best && best.score > 0.3 ? best.resp : null;
+        } catch {
+            return null;
+        }
+    }
     static generateResponse(request: AIRequest): AIResponse {
         const { prompt, context } = request;
         
@@ -842,6 +908,9 @@ export class EnhancedFallbackAI {
             case 'financialAnalysis':
                 response = this.generateFinancialAnalysis(prompt, fullContext);
                 break;
+            case 'rubric':
+                response = this.generateRubricResponse(prompt, fullContext);
+                break;
             default:
                 response = this.generateGeneralResponse(prompt, fullContext);
         }
@@ -850,6 +919,10 @@ export class EnhancedFallbackAI {
     }
 
     private static generateLessonPlan(prompt: string, context: any): AIResponse {
+        const learned = this.tryFromLearned(prompt, context);
+        if (learned) {
+            return { content: learned, confidence: 0.95, templateUsed: 'learned_gemini', suggestions: ['Adapt as needed for your class'] };
+        }
         const subject = context.subject || 'General';
         const topic = context.topic || 'the selected topic';
         const classLevel = context.class || 'SS2';
@@ -925,7 +998,7 @@ By the end of this lesson, students will be able to:
         }
         
         return {
-            content: template,
+            content: mdToHtmlLite(template),
             confidence,
             templateUsed: 'lessonPlan',
             suggestions: [
@@ -937,6 +1010,10 @@ By the end of this lesson, students will be able to:
     }
 
     private static generateReportComment(prompt: string, context: any): AIResponse {
+        const learned = this.tryFromLearned(prompt, context);
+        if (learned) {
+            return { content: learned, confidence: 0.95, templateUsed: 'learned_gemini_comment' };
+        }
         const studentName = context.name || 'The student';
         const subject = context.subject || 'this subject';
         const score = context.score;
@@ -983,7 +1060,7 @@ By the end of this lesson, students will be able to:
             '\n\n*Note: This comment was generated in offline mode. For more personalized, context-aware feedback, please connect to the internet.*';
         
         return {
-            content: fullComment,
+            content: mdToHtmlLite(fullComment),
             confidence,
             templateUsed: 'reportComment',
             suggestions: [
@@ -995,6 +1072,10 @@ By the end of this lesson, students will be able to:
     }
 
     private static generateTutoringResponse(prompt: string, context: any): AIResponse {
+        const learned = this.tryFromLearned(prompt, context);
+        if (learned) {
+            return { content: mdToHtmlLite(learned), confidence: 0.9, templateUsed: 'learned_gemini_tutor' };
+        }
         const subject = SemanticMatcher.detectSubject(prompt) || 'general';
         let response = '';
         let confidence = 0.7;
@@ -1125,7 +1206,7 @@ What subject or topic would you like to focus on?`;
         }
         
         return {
-            content: response,
+            content: mdToHtmlLite(response),
             confidence,
             templateUsed: 'tutoring',
             suggestions: [
@@ -1137,6 +1218,10 @@ What subject or topic would you like to focus on?`;
     }
 
     private static generateParentChatResponse(prompt: string, context: any): AIResponse {
+        const learned = this.tryFromLearned(prompt, context);
+        if (learned) {
+            return { content: mdToHtmlLite(learned), confidence: 0.9, templateUsed: 'learned_gemini_parent' };
+        }
         const promptLower = prompt.toLowerCase();
         let response = '';
         let confidence = 0.75;
@@ -1222,9 +1307,9 @@ What specific aspect of your child's education would you like to discuss?`;
         }
         
         return {
-            content: response,
+            content: mdToHtmlLite(response),
             confidence,
-            templateUsed,
+            templateUsed: templateUsed,
             suggestions: [
                 'Schedule a parent-teacher conference',
                 'Review your child\'s work regularly',
@@ -1234,6 +1319,10 @@ What specific aspect of your child's education would you like to discuss?`;
     }
 
     private static generateFinancialAnalysis(prompt: string, context: any): AIResponse {
+        const learned = this.tryFromLearned(prompt, context);
+        if (learned) {
+            return { content: mdToHtmlLite(learned), confidence: 0.9, templateUsed: 'learned_gemini_finance' };
+        }
         const promptLower = prompt.toLowerCase();
         let response = '';
         let confidence = 0.7;
@@ -1285,7 +1374,7 @@ What specific financial aspect would you like to explore?`;
         }
         
         return {
-            content: response,
+            content: mdToHtmlLite(response),
             confidence,
             templateUsed: 'financialAnalysis',
             suggestions: [
@@ -1324,7 +1413,7 @@ What specific financial aspect would you like to explore?`;
             `*Generated using enhanced offline templates. Connect to the internet for deeper personalization and real-time data analysis.*`;
         
         return {
-            content: response,
+            content: mdToHtmlLite(response),
             confidence: 0.65,
             templateUsed: 'generalStructured',
             suggestions: [
@@ -1334,7 +1423,40 @@ What specific financial aspect would you like to explore?`;
             ]
         };
     }
+    private static generateRubricResponse(prompt: string, context: any): AIResponse {
+        const subject = context.subject || 'Subject';
+        const topic = context.topic || 'Topic';
+        const criteriaInPrompt = (prompt.match(/criteria:?\s*([^\n]+)/i)?.[1] || '').split(/[,;]+/).map(s => s.trim()).filter(Boolean);
+        const crit = criteriaInPrompt.length ? criteriaInPrompt : ['Understanding', 'Accuracy', 'Clarity', 'Creativity', 'Completeness'];
+        const rows = crit.map(c => `
+          <tr>
+            <td><strong>${c}</strong></td>
+            <td>Insightful and thorough; exceeds expectations</td>
+            <td>Clear and accurate; meets expectations</td>
+            <td>Partially correct; needs guidance</td>
+            <td>Limited or inaccurate; requires significant support</td>
+          </tr>`).join('\n');
+        const html = `
+          <h2>Grading Rubric: ${subject} – ${topic}</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Criteria</th>
+                <th>Excellent (A)</th>
+                <th>Good (B)</th>
+                <th>Fair (C)</th>
+                <th>Needs Improvement (D/E)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>`;
+        return { content: html, confidence: 0.8, templateUsed: 'rubric' };
+    }
 }
+
+// (moved into EnhancedFallbackAI class)
 
 // Export main function
 export const generateEnhancedFallbackResponse = (prompt: any, context?: any): string => {

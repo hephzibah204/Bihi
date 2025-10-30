@@ -13,6 +13,7 @@ const DirectMessages = lazy(() => import('./DirectMessages'));
 const ParentProfile = lazy(() => import('./ParentProfile'));
 const ParentEvents = lazy(() => import('./ParentEvents'));
 const ParentAbsenceReport = lazy(() => import('./ParentAbsenceReport'));
+const ParentAITools = lazy(() => import('./ParentAITools'));
 
 const ContentLoader = () => (
     <div className="flex items-center justify-center p-8">
@@ -51,6 +52,8 @@ const ParentDashboardContent: React.FC<ParentDashboardContentProps> = ({ activeV
                         return <ParentEvents />;
                     case PARENT_VIEWS.REPORT_ABSENCE:
                         return <ParentAbsenceReport demoUserId={demoUserId}/>;
+                    case PARENT_VIEWS.AI_TOOLS:
+                        return <ParentAITools demoUserId={demoUserId} />;
                     default:
                         return <ParentHome setActiveView={setActiveView} demoUserId={demoUserId} />;
                 }

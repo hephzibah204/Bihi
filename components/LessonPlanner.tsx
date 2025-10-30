@@ -12,6 +12,7 @@ import { useTenant } from '../contexts/TenantContext';
 import { generateClassNames } from '../utils/classManager';
 import { supabase } from '../services/supabaseClient';
 import { normalizeAIText } from '../utils/aiNormalize';
+import HtmlContent from './HtmlContent';
 
 const LessonPlanner = () => {
     const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -87,36 +88,72 @@ const LessonPlanner = () => {
 
         try {
             const prompt = `
-                You are an expert Nigerian educator creating a 21st-century compliant lesson document.
+You are an expert Nigerian educator and curriculum designer. Create a deeply detailed, 21st‑century compliant lesson document grounded in the Nigerian context (NERDC, WAEC/NECO orientation) with practical, classroom‑ready specificity.
 
-                **CONTEXT:**
-                - School: ${schoolName}
-                - Teacher: ${teacherName}
-                - Subject: "${subjectName}"
-                - Topic: "${topic}"
-                - Class Level: "${classLevel}"
-                - Period: ${period || 'N/A'}
-                - Duration: ${duration || 'N/A'} minutes
-                - Curriculum: ${curriculum === 'Other' ? otherCurriculum : curriculum}. If you cannot find this specific curriculum, default to NERDC.
-                - Output Type: Generate a "${outputType}" document.
-                - Custom Instructions: ${customPrompt || 'None'}
-                - Teacher's Uploaded Scheme of Work (Prioritize this if available): 
-                  """
-                  ${uploadedScheme || 'None provided.'}
-                  """
+<strong>Context</strong>
+• School: ${schoolName}
+• Teacher: ${teacherName}
+• Subject: "${subjectName}"
+• Topic: "${topic}"
+• Class Level: "${classLevel}"
+• Period: ${period || 'N/A'}
+• Duration: ${duration || 'N/A'} minutes
+• Curriculum: ${curriculum === 'Other' ? otherCurriculum : curriculum} (default to NERDC if unclear)
+• Output Type: "${outputType}" (plan | note | combined)
+• Custom Instructions: ${customPrompt || 'None'}
+• Uploaded Scheme of Work (PRIORITIZE if present):
+"""
+${uploadedScheme || 'None provided.'}
+"""
 
-                **YOUR TASK:**
-                Generate the required document(s) based on the "Output Type". Format the response as a single, well-structured HTML string. Use <h2> for main sections (like "Lesson Plan", "Lesson Note") and <h3> for sub-sections. Use <strong>, <ul>, and <li> for emphasis and lists.
+<strong>Formatting</strong>
+• Return a single valid HTML string only (no external CSS).
+• Use <h2> for main sections (“Lesson Plan”, “Lesson Note”).
+• Use <h3> for sub‑sections; use <strong>, <ul>, <li> for clarity.
+• Write extensively (aim 1200–2000 words total for plan+note where applicable).
 
-                - If "Output Type" is "plan":
-                  Generate only a teacher-facing Lesson Plan with these sections: Instructional Objectives, Instructional Materials, Lesson Procedure (Intro, Presentation, Activities, Conclusion), Evaluation, and Assignment. Ensure it incorporates 21st-century skills like critical thinking and collaboration.
+<strong>If Output Type = plan</strong> (Teacher‑facing):
+Include ALL of the following, tailored to Nigeria’s classroom realities and resources:
+1) <h3>Standards & Alignment</h3>
+   • Map to NERDC strands and WAEC/NECO objectives relevant to the topic.
+2) <h3>Specific Learning Objectives</h3>
+   • SMART objectives across Bloom’s domains (Cognitive, Psychomotor, Affective).
+   • Success criteria students can demonstrate.
+3) <h3>Materials & Resources</h3>
+   • Low‑resource and local alternatives (chalkboard, locally available materials), plus digital tools if available.
+4) <h3>Prior Knowledge & Misconceptions</h3>
+   • Common misconceptions Nigerian learners have; strategies to address them.
+5) <h3>Differentiation & Inclusion</h3>
+   • Strategies for mixed ability classes, SEN accommodations, ELL, gender inclusivity.
+6) <h3>Lesson Procedure (Time‑boxed)</h3>
+   • Use 5E (Engage–Explore–Explain–Elaborate–Evaluate) OR Gradual Release (I Do–We Do–You Do).
+   • For each phase: teacher actions, student activities, probing questions, expected responses, and exact timing.
+   • Embed 21st‑century skills: critical thinking, collaboration, communication, creativity.
+7) <h3>Assessment</h3>
+   • Formative checks (exit tickets, peer assessment, oral questioning) during the lesson.
+   • Summative task aligned to objectives; marking guide.
+8) <h3>Real‑World Nigerian Context</h3>
+   • Concrete examples tied to local environment, economy, culture; community/household connections.
+9) <h3>Homework/Extension & Remediation</h3>
+   • Tasks for high‑flyers; remediation plan for learners needing support.
+10) <h3>Cross‑Curricular Links</h3>
+    • Relevant ties to other subjects (Maths, English, Civic Education, etc.).
+11) <h3>Safety & Ethics</h3>
+    • Any safety notes (labs/fieldwork); academic honesty.
+12) <h3>Teacher Reflection Notes</h3>
+    • What to observe, adapt next time, data to collect.
+13) <h3>Assessment Rubric (Table)</h3>
+    • Criteria with performance levels A–D/E for the main summative task.
 
-                - If "Output Type" is "note":
-                  Generate only a student-facing Lesson Note. This should be the detailed content the teacher would write on the board for students to copy. It should be clear, well-explained, and directly cover the topic.
+<strong>If Output Type = note</strong> (Student‑facing):
+• Produce clear, board‑ready notes: definitions, explanations, worked examples, diagrams (describe), key points, practice questions, and a short summary.
+• Use simple language suitable for the specified class level; emphasize exam‑style clarity.
 
-                - If "Output Type" is "combined":
-                  Generate both the Lesson Plan and the Lesson Note as two distinct sections within the same document, starting with the Lesson Plan.
-            `;
+<strong>If Output Type = combined</strong>
+• First output the complete Lesson Plan, then the complete Lesson Note.
+
+Incorporate the uploaded scheme of work strictly where applicable (topic sequencing, period/duration) and reflect local realities (power/internet availability, classroom size). Use evidence‑based pedagogy and Nigeria‑specific examples throughout. Ensure the result is thorough, practical, and immediately usable.
+`;
             const result = await aiGenerateResponse(prompt);
             setGeneratedPlan(normalizeAIText(result));
         } catch (err) {
@@ -187,7 +224,7 @@ const LessonPlanner = () => {
                             <h4 className="font-semibold">Generated Document for "{topic}":</h4>
                             <button onClick={downloadAsWord} className="btn btn-secondary"><ArrowDownTrayIcon className="w-5 h-5 mr-2"/> Download as Word</button>
                         </div>
-                        <div className="mt-2 p-4 bg-gray-50 rounded-md max-h-[60vh] overflow-y-auto prose-content" dangerouslySetInnerHTML={{ __html: generatedPlan }} />
+<HtmlContent html={generatedPlan} className="mt-2 p-4 bg-gray-50 rounded-md max-h-[60vh] overflow-y-auto" />
                     </div>
                 )}
             </div>

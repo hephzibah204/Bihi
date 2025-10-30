@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAI } from '../hooks/useAI';
-import { generateResponse as aiGenerateResponse } from '../services/geminiAIService';
+import { callGeminiApi } from '../services/geminiService';
 // FIX: Corrected import path for api services.
 import { apiGetSubjects, apiGetStudents } from '../services/api';
 // FIX: Corrected import path for types.
@@ -87,6 +87,16 @@ const PracticeQuiz = ({ userRole, studentId, initialTopic = '' }: { userRole?: s
         }
     }, [selectedClass, filteredSubjects, selectedSubject]);
 
+    const [conversationId] = useState(() => {
+        try {
+            const existing = localStorage.getItem('quiz_conversation_id');
+            if (existing) return existing;
+            const id = `quiz-${Date.now()}`;
+            localStorage.setItem('quiz_conversation_id', id);
+            return id;
+        } catch { return `quiz-${Date.now()}`; }
+    });
+
     const handleGenerate = async () => {
         if (!topic || !selectedClass || !selectedSubject) {
             setError('Please provide a class, subject, and topic.');
@@ -120,16 +130,26 @@ const PracticeQuiz = ({ userRole, studentId, initialTopic = '' }: { userRole?: s
         `;
 
         try {
-            const response = await aiGenerateResponse(prompt);
+            const expectedSchema = {
+                quiz: [
+                  {
+                    question: 'string',
+                    options: { A: 'string', B: 'string', C: 'string', D: 'string' },
+                    answer: 'string'
+                  }
+                ]
+            };
 
-            if (status === 'fallback') {
-                setError(String(response)); // Show the fallback message as an error/info
-                setIsLoading(false);
-                return;
-            }
+            const response = await callGeminiApi(prompt, {
+                conversationId,
+                userProfile: { userRole, selectedClass, selectedSubject: subjectName },
+                conversationHistory: [],
+                responseMimeType: 'application/json',
+                expectedSchema
+            });
 
-            const jsonString = String(response).match(/\{[\s\S]*\}/)?.[0] || '{}';
-            const jsonResponse = JSON.parse(jsonString);
+            const clean = String(response).trim().replace(/^```json\s*/i, '').replace(/```\s*$/i, '');
+            const jsonResponse = JSON.parse(clean);
             
             if (jsonResponse.quiz && Array.isArray(jsonResponse.quiz) && jsonResponse.quiz.length > 0) {
                 setGeneratedQuiz(jsonResponse.quiz);

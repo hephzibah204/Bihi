@@ -7,6 +7,13 @@ import { getTenantId } from './api';
 import { getAIResponseCache } from './aiResponseCache';
 import { logger } from '../utils/logger';
 
+// Prefer Supabase Edge Function if configured; otherwise use local proxy
+const AI_ENDPOINT = (
+    typeof window !== 'undefined'
+        ? (window.process?.env?.VITE_SUPABASE_AI_CHAT_URL || import.meta.env?.VITE_SUPABASE_AI_CHAT_URL)
+        : process.env.VITE_SUPABASE_AI_CHAT_URL
+) || '/api/ai/generate';
+
 /**
  * Generates text content by sending a prompt to a secure, server-side proxy
  * which then calls the Gemini API. This is the primary online generation function.
@@ -14,13 +21,25 @@ import { logger } from '../utils/logger';
  * @param context Additional context (deprecated, use prompt only)
  * @returns The generated text response.
  */
-export const callGeminiApi = async (prompt: string | { prompt: string }, context?: string): Promise<string> => {
+export const callGeminiApi = async (
+  prompt: string | { prompt: string },
+  contextOrOptions?: string | {
+    context?: any;
+    conversationId?: string;
+    conversationHistory?: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
+    userProfile?: any;
+    tenantId?: string;
+    responseMimeType?: string;
+    expectedSchema?: any;
+  }
+): Promise<string> => {
   // Handle both old object format and new string format
   const actualPrompt = typeof prompt === 'string' ? prompt : prompt.prompt;
+  const opts = typeof contextOrOptions === 'string' ? { context: contextOrOptions } : (contextOrOptions || {});
   
   // Try to get cached response first
   const cache = getAIResponseCache();
-  const cached = cache.getCachedResponse(actualPrompt, context);
+  const cached = cache.getCachedResponse(actualPrompt, opts.context as (string | undefined));
   
   if (cached && cached.source === 'gemini') {
     logger.info('Returning cached Gemini response (cache hit)');
@@ -51,12 +70,22 @@ export const callGeminiApi = async (prompt: string | { prompt: string }, context
     }
 
     // Get tenant context for API key resolution
-    const tenantId = getTenantId();
+    const tenantId = opts.tenantId || getTenantId();
     
-    const response = await fetch('/api/ai/generate', {
+    const response = await fetch(AI_ENDPOINT, {
       method: 'POST',
       headers: headers,
-      body: JSON.stringify({ prompt: actualPrompt, tenantId }),
+      body: JSON.stringify({
+        prompt: actualPrompt,
+        tenantId,
+        conversationId: opts.conversationId,
+        context: opts.context,
+        conversationHistory: opts.conversationHistory,
+        userProfile: opts.userProfile,
+        responseMimeType: opts.responseMimeType,
+        expectedSchema: opts.expectedSchema,
+        stream: false
+      }),
     });
 
     if (!response.ok) {
@@ -77,7 +106,7 @@ export const callGeminiApi = async (prompt: string | { prompt: string }, context
             try {
                 const text = await directGeminiGenerate(actualPrompt);
                 if (text) {
-                    cache.cacheResponse(actualPrompt, text, 'gemini', context);
+cache.cacheResponse(actualPrompt, text, 'gemini', opts.context);
                     logger.info('Cached Gemini response via direct fallback');
                 }
                 return text;
@@ -121,7 +150,7 @@ export const callGeminiApi = async (prompt: string | { prompt: string }, context
         
         // Cache the successful Gemini response
         if (fullText) {
-            cache.cacheResponse(actualPrompt, fullText, 'gemini', context);
+cache.cacheResponse(actualPrompt, fullText, 'gemini', opts.context);
             logger.info('Cached Gemini response for future use');
         }
         
@@ -136,7 +165,7 @@ export const callGeminiApi = async (prompt: string | { prompt: string }, context
         
         // Cache the successful Gemini response
         if (text) {
-            cache.cacheResponse(actualPrompt, text, 'gemini', context);
+cache.cacheResponse(actualPrompt, text, 'gemini', opts.context);
             logger.info('Cached Gemini response for future use');
         }
         
@@ -146,7 +175,7 @@ export const callGeminiApi = async (prompt: string | { prompt: string }, context
         
         // Cache even raw text responses
         if (text) {
-            cache.cacheResponse(actualPrompt, text, 'gemini', context);
+cache.cacheResponse(actualPrompt, text, 'gemini', opts.context);
         }
         
         return text; // As a last resort, return raw text
@@ -167,9 +196,22 @@ export const callGeminiApi = async (prompt: string | { prompt: string }, context
  * @param onChunk A callback function that receives chunks of text as they are generated.
  * @returns A promise that resolves when the stream is complete.
  */
-export const callGeminiApiStream = async (prompt: string | { prompt: string }, onChunk: (chunk: string) => void): Promise<void> => {
+export const callGeminiApiStream = async (
+  prompt: string | { prompt: string },
+  onChunk: (chunk: string) => void,
+  options?: {
+    context?: any;
+    conversationId?: string;
+    conversationHistory?: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
+    userProfile?: any;
+    tenantId?: string;
+    responseMimeType?: string;
+    expectedSchema?: any;
+  }
+): Promise<void> => {
   // Handle both old object format and new string format
   const actualPrompt = typeof prompt === 'string' ? prompt : prompt.prompt;
+  const opts = options || {};
   try {
     if (!supabase) {
         throw new Error("Authentication service is not available.");
@@ -191,12 +233,22 @@ export const callGeminiApiStream = async (prompt: string | { prompt: string }, o
     }
 
     // Get tenant context for API key resolution
-    const tenantId = getTenantId();
+    const tenantId = opts.tenantId || getTenantId();
     
-    const response = await fetch('/api/ai/generate', {
+    const response = await fetch(AI_ENDPOINT, {
       method: 'POST',
       headers: headers,
-      body: JSON.stringify({ prompt: actualPrompt, tenantId }),
+      body: JSON.stringify({
+        prompt: actualPrompt,
+        tenantId,
+        conversationId: opts.conversationId,
+        context: opts.context,
+        conversationHistory: opts.conversationHistory,
+        userProfile: opts.userProfile,
+        responseMimeType: opts.responseMimeType,
+        expectedSchema: opts.expectedSchema,
+        stream: true
+      }),
     });
 
     if (!response.ok) {
@@ -275,7 +327,7 @@ const getGeminiEnv = () => {
 };
 
 async function listAvailableModels(apiKey: string): Promise<any[]> {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`;
     const resp = await fetch(url);
     if (!resp.ok) return [];
     const data = await resp.json().catch(() => ({ models: [] }));
@@ -306,7 +358,7 @@ async function directGeminiGenerate(prompt: string): Promise<string> {
     let chosen = model;
 
     async function tryGenerate(modelName: string): Promise<string> {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent?key=${apiKey}`;
         const body = { contents: [{ role: 'user', parts: [{ text: prompt }] }] };
         const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
         if (!resp.ok) {
@@ -331,7 +383,7 @@ async function directGeminiGenerate(prompt: string): Promise<string> {
 async function directGeminiStream(prompt: string, onChunk: (chunk: string) => void): Promise<void> {
     const { apiKey, model } = getGeminiEnv();
     const chosen = await pickUsableModel(apiKey, model);
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${chosen}:streamGenerateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1/models/${chosen}:streamGenerateContent?key=${apiKey}`;
     const body = { contents: [{ role: 'user', parts: [{ text: prompt }] }] };
     const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     if (!resp.ok) {
