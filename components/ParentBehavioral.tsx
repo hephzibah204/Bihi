@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiGetBehavioralRecords } from '../services/api';
+import { apiGetBehavioralRecords, apiGetStudents } from '../services/api';
 import { formatDate } from '../utils/dateHelpers';
 
 const ParentBehavioral = ({ demoUserId }) => {
@@ -8,21 +8,36 @@ const ParentBehavioral = ({ demoUserId }) => {
     const [error, setError] = useState('');
 
     useEffect(() => {
-        if (!demoUserId) {
-            setLoading(false);
-            setError("Child profile not selected.");
-            return;
-        }
-
         const fetchRemarks = async () => {
+            setLoading(true);
+            setError('');
             try {
+                const students = await apiGetStudents();
+                // Resolve effective student id
+                let effectiveId = demoUserId || null;
+                if (!effectiveId && typeof window !== 'undefined') {
+                    try {
+                        const raw = sessionStorage.getItem('activeUser');
+                        const active = raw ? JSON.parse(raw) : null;
+                        if (active?.userId) effectiveId = active.userId;
+                    } catch {}
+                }
+                if (!effectiveId && students.length > 0) {
+                    effectiveId = students[0].id;
+                }
+                if (!effectiveId) {
+                    setLoading(false);
+                    setError('Child profile not selected.');
+                    return;
+                }
+
                 const allRemarks = await apiGetBehavioralRecords();
                 const studentRemarks = allRemarks
-                    .filter(r => r.studentId === demoUserId)
+                    .filter(r => r.studentId === effectiveId)
                     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
                 setRemarks(studentRemarks);
             } catch (err) {
-                setError("Could not load behavioral data.");
+                setError('Could not load behavioral data.');
             } finally {
                 setLoading(false);
             }

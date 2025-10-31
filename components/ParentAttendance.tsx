@@ -8,25 +8,41 @@ const ParentAttendance = ({ demoUserId }) => {
     const [error, setError] = useState('');
 
     useEffect(() => {
-        if (!demoUserId) {
-            setLoading(false);
-            setError("Child profile not selected.");
-            return;
-        }
-
         const fetchAttendance = async () => {
+            setLoading(true);
+            setError('');
             try {
+                const students = await apiGetStudents();
+                // Resolve effective student id
+                let effectiveId = demoUserId || null;
+                if (!effectiveId && typeof window !== 'undefined') {
+                    try {
+                        const raw = sessionStorage.getItem('activeUser');
+                        const active = raw ? JSON.parse(raw) : null;
+                        if (active?.userId) effectiveId = active.userId;
+                    } catch {}
+                }
+                if (!effectiveId && students.length > 0) {
+                    effectiveId = students[0].id;
+                }
+
+                if (!effectiveId) {
+                    setError('Child profile not selected.');
+                    setAttendanceLog([]);
+                    return;
+                }
+
                 const allAttendance = await apiGetAttendance();
                 const log = allAttendance
                     .map(record => ({
                         date: record.date,
-                        status: record.statuses?.[demoUserId]
+                        status: record.statuses?.[effectiveId]
                     }))
                     .filter(item => item.status)
                     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
                 setAttendanceLog(log);
             } catch (err) {
-                setError("Could not load attendance data.");
+                setError('Could not load attendance data.');
             } finally {
                 setLoading(false);
             }

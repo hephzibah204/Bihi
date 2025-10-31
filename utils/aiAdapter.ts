@@ -89,9 +89,30 @@ export function extractAIText(response: unknown): string {
   return ensureString(response);
 }
 
+async function fetchServerGeminiKey(): Promise<string | undefined> {
+  try {
+    const headers: Record<string, string> = { Accept: 'application/json' };
+    if (typeof window !== 'undefined' && sessionStorage.getItem('isDemoMode') === 'true') {
+      headers['X-Demo-Mode'] = 'true';
+    }
+    const resp = await fetch('/api/ai/client-key', { headers });
+    if (resp.ok) {
+      const ct = resp.headers.get('content-type') || '';
+      if (ct.includes('application/json')) {
+        const data = await resp.json().catch(() => ({}));
+        if (data?.key) return String(data.key);
+      } else {
+        await resp.text().catch(() => '');
+      }
+    }
+  } catch { /* ignore */ }
+  return undefined;
+}
+
 async function tryGemini(prompt: string, options?: AnalysisOptions): Promise<string> {
-  // Resolve Gemini key from multiple common env names and localStorage
-  const apiKey = getAnyEnv([
+  // Prefer the same key Live Tutor uses via server endpoint, then fall back to env/localStorage
+  const serverKey = await fetchServerGeminiKey();
+  const apiKey = serverKey || getAnyEnv([
     'GOOGLE_API_KEY',
     'VITE_GOOGLE_API_KEY',
     'GEMINI_API_KEY',

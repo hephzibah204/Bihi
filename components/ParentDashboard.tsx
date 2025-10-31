@@ -7,6 +7,7 @@ import ParentBottomNavBar from './ParentBottomNavBar';
 import { PARENT_VIEWS } from '../utils/constants';
 // Floating Chatbot removed; assistant is available under AI Tools
 import SpinnerIcon from './icons/SpinnerIcon';
+import { apiGetStudents, getCurrentUser } from '../services/api';
 
 const ParentDashboardContent = lazy(() => import('./ParentDashboardContent'));
 
@@ -22,6 +23,7 @@ const ParentDashboard = ({ onLogout, demoUserId }) => {
     const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [activeView, setActiveView] = useState<ParentView>(getViewFromUrl() as ParentView || PARENT_VIEWS.DASHBOARD);
     const [headerTitle, setHeaderTitle] = useState('Parent Dashboard');
+    const [resolvedChildId, setResolvedChildId] = useState<string | null>(null);
 
     useEffect(() => {
         const handlePopState = () => {
@@ -36,6 +38,63 @@ const ParentDashboard = ({ onLogout, demoUserId }) => {
         const capitalizedTitle = viewName.charAt(0).toUpperCase() + viewName.slice(1);
         setHeaderTitle(capitalizedTitle);
     }, [activeView]);
+
+    // Resolve a valid child (student) id for parent views
+    useEffect(() => {
+        const resolveChild = async () => {
+            try {
+                const students = await apiGetStudents();
+                let effectiveId: string | null = demoUserId || null;
+
+                // If the provided demoUserId is a student id, use it directly
+                if (effectiveId && students.some(s => s.id === effectiveId)) {
+                    setResolvedChildId(effectiveId);
+                    return;
+                }
+
+                // If the provided demoUserId is a parent id, map to first child
+                if (effectiveId) {
+                    const child = students.find(s => s.parentId === effectiveId);
+                    if (child) {
+                        setResolvedChildId(child.id);
+                        return;
+                    }
+                }
+
+                // Try sessionStorage activeUser (demo landing page stores student id for parent profile)
+                try {
+                    const raw = typeof window !== 'undefined' ? sessionStorage.getItem('activeUser') : null;
+                    const active = raw ? JSON.parse(raw) : null;
+                    if (active?.userId && students.some(s => s.id === active.userId)) {
+                        setResolvedChildId(active.userId);
+                        return;
+                    }
+                } catch {}
+
+                // For authenticated parent, use current user id to map to child
+                try {
+                    const currentUser = await getCurrentUser();
+                    if (currentUser?.id) {
+                        const child = students.find(s => s.parentId === currentUser.id) || students[0];
+                        if (child) {
+                            setResolvedChildId(child.id);
+                            return;
+                        }
+                    }
+                } catch {}
+
+                // Fallback to first student
+                if (students.length > 0) {
+                    setResolvedChildId(students[0].id);
+                } else {
+                    setResolvedChildId(null);
+                }
+            } catch {
+                setResolvedChildId(demoUserId || null);
+            }
+        };
+        resolveChild();
+    }, [demoUserId]);
 
     const handleViewChange = (view: ParentView) => {
         const url = new URL(window.location.toString());
@@ -55,7 +114,7 @@ const ParentDashboard = ({ onLogout, demoUserId }) => {
                 <main className="flex-1 overflow-x-hidden overflow-y-auto">
                     <div className="container mx-auto px-6 py-8">
                         <Suspense fallback={<ContentLoader />}>
-                            <ParentDashboardContent activeView={activeView} setActiveView={handleViewChange} demoUserId={demoUserId} />
+                            <ParentDashboardContent activeView={activeView} setActiveView={handleViewChange} demoUserId={resolvedChildId} />
                         </Suspense>
                     </div>
                 </main>

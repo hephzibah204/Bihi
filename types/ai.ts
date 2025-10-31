@@ -33,3 +33,21 @@ export type AINotificationCallback = (notification: AINotification) => void;
 // Legacy support
 export type AIGenerateFunction = (prompt: string | AIRequest, context?: string) => Promise<string>;
 export type AIStreamFunction = (prompt: string | AIRequest, onChunk: (chunk: string) => void) => Promise<void>;
+
+// Simulation metadata for PhET and similar providers
+export interface AiSimulation {
+  id: string;               // e.g., "ohms-law"
+  title: string;
+  subject?: string;         // physics, chemistry, etc.
+  description?: string;
+  keywords?: string[];
+  url: string;              // embeddable HTML5 url
+  image_url?: string;       // screenshot/thumbnail
+  languages?: string[];
+  provider?: string;        // default 'PhET'
+  updated_at?: string;      // ISO string
+}
+
+export interface AiSimulationSearchResult extends AiSimulation {
+  score?: number;           // optional relevance score
+}

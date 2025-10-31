@@ -7,6 +7,7 @@ import SpinnerIcon from './icons/SpinnerIcon';
 import { useAuth } from '../contexts/AuthContext';
 import { USER_ROLES } from '../utils/constants';
 import ChatbotPanel from './ChatbotPanel';
+const ELaboratory = lazy(() => import('./ELaboratory'));
 
 const LessonPlanner = lazy(() => import('./LessonPlanner'));
 const PracticeQuiz = lazy(() => import('./PracticeQuiz'));
@@ -70,6 +71,10 @@ const AITools = ({ setActiveView }: { setActiveView: (view: DashboardView | Teac
                     />
                 </div>
             </div>
+            {/* E-Laboratory: interactive simulations */}
+            <Suspense fallback={<AIToolSkeleton />}>
+                <ELaboratory />
+            </Suspense>
             {/* Teacher-centric tools */}
             <Suspense fallback={<AIToolSkeleton />}><RubricGenerator /></Suspense>
             <Suspense fallback={<AIToolSkeleton />}><ParentMessageComposer /></Suspense>

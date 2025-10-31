@@ -146,6 +146,47 @@ export class GeminiAIService {
     }
 
     /**
+     * Resolve and cache Gemini API key at runtime.
+     * Prefers the same key Live Tutor uses (/api/ai/client-key).
+     */
+    private async resolveRuntimeGeminiKey(): Promise<string | null> {
+        if (this.geminiApiKey) return this.geminiApiKey;
+        try {
+            const headers: Record<string, string> = { Accept: 'application/json' };
+            const isDemo = typeof window !== 'undefined' && sessionStorage.getItem('isDemoMode') === 'true';
+            if (isDemo) {
+                headers['X-Demo-Mode'] = 'true';
+            } else if (typeof window !== 'undefined') {
+                // Best-effort: try to attach Supabase auth token if available at runtime
+                try {
+                    const mod = await import('./supabaseClient');
+                    const supabase: any = (mod as any).supabase || (mod as any).getSupabase?.();
+                    if (supabase?.auth?.getSession) {
+                        const { data: { session } } = await supabase.auth.getSession();
+                        if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
+                    }
+                } catch { /* ignore */ }
+            }
+            const resp = await fetch('/api/ai/client-key', { headers });
+            if (resp.ok) {
+                const ct = resp.headers.get('content-type') || '';
+                if (ct.includes('application/json')) {
+                    const data = await resp.json().catch(() => ({}));
+                    if (data?.key) {
+                        this.geminiApiKey = String(data.key);
+                        return this.geminiApiKey;
+                    }
+                } else {
+                    await resp.text().catch(() => '');
+                }
+            }
+        } catch { /* ignore */ }
+        // Fallback to existing env/local resolution
+        this.geminiApiKey = this.loadGeminiKey();
+        return this.geminiApiKey;
+    }
+
+    /**
      * Set Gemini API key
      */
     public setGeminiKey(apiKey: string): void {
@@ -173,6 +214,9 @@ export class GeminiAIService {
      */
     public async generate(request: AIRequest): Promise<AIResponse> {
         const startTime = Date.now();
+
+        // Ensure we have a key (prefer Live Tutor's key via server endpoint)
+        await this.resolveRuntimeGeminiKey();
 
         // STEP 1: Try Gemini API (if configured)
         if (this.hasGeminiKey()) {
@@ -244,81 +288,100 @@ export class GeminiAIService {
      * Call Gemini API with conversation history
      */
     private async callGemini(request: AIRequest): Promise<string> {
-        if (!this.geminiApiKey) {
-            throw new Error('Gemini API key not configured');
-        }
-
+        // Route through our server proxy so all calls use the Live Tutor key
         const timeout = request.options?.timeout || 30000; // 30s default
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeout);
 
         try {
-            // Build contents with conversation history
+            // Build contents with conversation history (for better context on server)
             const contents = await this.buildGeminiContents(request);
 
-            const response = await fetch(
-                `${this.geminiEndpoint}?key=${this.geminiApiKey}`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        contents,
-                        generationConfig: {
-                            temperature: 0.7,
-                            topK: 40,
-                            topP: 0.95,
-                            maxOutputTokens: 2048,
-                        },
-                        safetySettings: [
-                            {
-                                category: 'HARM_CATEGORY_HARASSMENT',
-                                threshold: 'BLOCK_MEDIUM_AND_ABOVE'
-                            },
-                            {
-                                category: 'HARM_CATEGORY_HATE_SPEECH',
-                                threshold: 'BLOCK_MEDIUM_AND_ABOVE'
-                            },
-                            {
-                                category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-                                threshold: 'BLOCK_MEDIUM_AND_ABOVE'
-                            },
-                            {
-                                category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-                                threshold: 'BLOCK_MEDIUM_AND_ABOVE'
-                            }
-                        ]
-                    }),
-                    signal: controller.signal
+            // Prefer HTML output; server supports JSON too when requested
+            const effectiveMime = 'text/html';
+
+            // Attach auth/demo headers similar to other services
+            const headers: HeadersInit = { 'Content-Type': 'application/json' };
+            try {
+                const isDemo = typeof window !== 'undefined' && sessionStorage.getItem('isDemoMode') === 'true';
+                if (isDemo) headers['X-Demo-Mode'] = 'true';
+                else {
+                    const mod = await import('./supabaseClient');
+                    const supabase: any = (mod as any).supabase || (mod as any).getSupabase?.();
+                    if (supabase?.auth?.getSession) {
+                        const { data: { session } } = await supabase.auth.getSession();
+                        if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
+                    }
                 }
-            );
+            } catch { /* ignore auth header errors */ }
+
+            const resp = await fetch('/api/ai/generate', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({
+                    prompt: request.prompt,
+                    tenantId: undefined,
+                    conversationId: request.conversationId,
+                    context: request.context,
+                    conversationHistory: request.conversationHistory,
+                    userProfile: undefined,
+                    responseMimeType: effectiveMime,
+                    expectedSchema: undefined,
+                    stream: false
+                }),
+                signal: controller.signal
+            });
 
             clearTimeout(timeoutId);
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(
-                    errorData.error?.message || 
-                    `Gemini API error: ${response.status} ${response.statusText}`
-                );
+            if (!resp.ok) {
+                const errText = await resp.text().catch(() => '');
+                try {
+                    const json = JSON.parse(errText);
+                    throw new Error(json.error || errText || `Server responded ${resp.status}`);
+                } catch {
+                    throw new Error(errText || `Server responded ${resp.status}`);
+                }
             }
 
-            const data = await response.json();
-            
-            if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
-                throw new Error('Invalid response format from Gemini');
+            const contentType = resp.headers.get('Content-Type') || '';
+            if (contentType.includes('text/event-stream') && resp.body) {
+                const reader = resp.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                let fullText = '';
+                // eslint-disable-next-line no-constant-condition
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n\n');
+                    buffer = lines.pop() || '';
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const jsonString = line.substring(6);
+                            if (jsonString.trim() === '[DONE]') continue;
+                            try {
+                                const chunk = JSON.parse(jsonString);
+                                const textChunk = chunk.candidates?.[0]?.content?.parts?.[0]?.text;
+                                if (textChunk) fullText += textChunk;
+                            } catch { /* ignore */ }
+                        }
+                    }
+                }
+                return fullText;
             }
 
-            return data.candidates[0].content.parts[0].text;
-            
+            // Non-stream JSON
+            try {
+                const data = await resp.json();
+                return data.text || data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            } catch {
+                return await resp.text();
+            }
         } catch (error: any) {
             clearTimeout(timeoutId);
-            
-            if (error.name === 'AbortError') {
-                throw new Error('Gemini request timed out');
-            }
-            
+            if (error.name === 'AbortError') throw new Error('Gemini request timed out');
             throw error;
         }
     }

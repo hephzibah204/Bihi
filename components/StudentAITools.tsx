@@ -8,6 +8,7 @@ import ChatbotPanel from './ChatbotPanel';
 const PracticeQuiz = lazy(() => import('./PracticeQuiz'));
 const LearningPathways = lazy(() => import('./LearningPathways'));
 const SubjectRecommender = lazy(() => import('./SubjectRecommender'));
+const ELaboratory = lazy(() => import('./ELaboratory'));
 
 interface StudentAIToolsProps {
     setActiveView: (view: StudentView) => void;
@@ -94,11 +95,12 @@ const StudentAITools = ({ setActiveView, demoUserId }: StudentAIToolsProps) => {
             </div>
 
             {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                 <button onClick={() => document.getElementById('practice-quiz')?.scrollIntoView({ behavior: 'smooth' })} className="btn btn-secondary w-full">Start a Quiz</button>
                 <button onClick={() => document.getElementById('learning-pathways')?.scrollIntoView({ behavior: 'smooth' })} className="btn btn-secondary w-full">Explore Pathways</button>
                 <button onClick={() => document.getElementById('subject-recommender')?.scrollIntoView({ behavior: 'smooth' })} className="btn btn-secondary w-full">Get Subject Advice</button>
                 <button onClick={() => setActiveView(STUDENT_VIEWS.AI_TUTOR as StudentView)} className="btn btn-primary w-full">Start Voice Tutor</button>
+                <button onClick={() => document.getElementById('e-laboratory')?.scrollIntoView({ behavior: 'smooth' })} className="btn btn-secondary w-full">Open E-Laboratory</button>
             </div>
 
             {/* Preferences */}
@@ -149,6 +151,15 @@ const StudentAITools = ({ setActiveView, demoUserId }: StudentAIToolsProps) => {
             </div>
             <div id="subject-recommender">
                 <Suspense fallback={<AIToolSkeleton />}><SubjectRecommender userRole={USER_ROLES.STUDENT} studentId={resolvedStudentId} /></Suspense>
+            </div>
+            <div id="e-laboratory">
+                <div className="card p-4 mt-2">
+                    <h3 className="text-lg font-semibold mb-2">E-Laboratory</h3>
+                    <p className="text-sm text-gray-600 mb-3">Search and launch interactive PhET science simulations.</p>
+                    <Suspense fallback={<AIToolSkeleton />}>
+                        <ELaboratory />
+                    </Suspense>
+                </div>
             </div>
         </div>
     );

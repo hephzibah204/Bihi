@@ -20,19 +20,43 @@ const ParentFees = ({ demoUserId }) => {
     const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
     const fetchData = async () => {
-        if (!demoUserId) { setLoading(false); setError("Student profile not selected."); return; }
         setLoading(true);
         setError('');
         try {
             const [invoicesData, studentsData, settingsData] = await Promise.all([apiGetInvoices(), apiGetStudents(), apiGetSchoolSettings()]);
-            const currentStudent = studentsData.find(s => s.id === demoUserId);
-            if (!currentStudent) throw new Error("Student profile not found.");
-            
+            // Resolve effective student id
+            let effectiveId: string | null = demoUserId || null;
+            if (!effectiveId && typeof window !== 'undefined') {
+                try {
+                    const raw = sessionStorage.getItem('activeUser');
+                    const active = raw ? JSON.parse(raw) : null;
+                    if (active?.userId) effectiveId = active.userId;
+                } catch {}
+            }
+            if (!effectiveId && studentsData.length > 0) {
+                effectiveId = studentsData[0].id;
+            }
+            if (!effectiveId) {
+                setLoading(false);
+                setError('Student profile not selected.');
+                return;
+            }
+
+            let currentStudent = studentsData.find(s => s.id === effectiveId);
+            if (!currentStudent && studentsData.length > 0) {
+                currentStudent = studentsData[0];
+            }
+            if (!currentStudent) throw new Error('Student profile not found.');
+
             setStudent(currentStudent);
             setSettings(settingsData);
-            setInvoices(invoicesData.filter(i => i.studentId === demoUserId).sort((a,b) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime()));
+            setInvoices(
+                invoicesData
+                  .filter(i => i.studentId === currentStudent.id)
+                  .sort((a,b) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime())
+            );
         } catch (err) {
-            setError("Could not load fee information.");
+            setError('Could not load fee information.');
         } finally {
             setLoading(false);
         }

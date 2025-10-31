@@ -8,6 +8,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { logger } from '../utils/logger';
 import { buildQuestionFocusContext } from '../services/aiQuestionContext';
 import HtmlContent from './HtmlContent';
+import { getBananaImageService } from '../services/bananaImageService';
+import { getConversationService } from '../services/conversationService';
+import { searchSimulations } from '../services/aiSimulations';
+import Modal from './Modal';
 
 interface ChatbotPanelProps {
     isOpen: boolean;
@@ -19,7 +23,7 @@ interface ChatbotPanelProps {
 }
 
 const ChatbotPanel = ({ isOpen, onClose, userRole, demoUserId, activeView, title }: ChatbotPanelProps) => {
-    const [messages, setMessages] = useState<{ id: string; sender: string; text: string; }[]>([]);
+    const [messages, setMessages] = useState<{ id: string; sender: string; text: string; imageUrl?: string; metadata?: Record<string, any> }[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [performanceContext, setPerformanceContext] = useState('');
@@ -40,7 +44,7 @@ const ChatbotPanel = ({ isOpen, onClose, userRole, demoUserId, activeView, title
     
     const { generateResponseStream, status } = useAI(handleNotification);
 const messagesEndRef = useRef<HTMLDivElement>(null);
-    const [conversationId] = useState(() => {
+    const [conversationId, setConversationId] = useState(() => {
         try {
             const existing = localStorage.getItem('chatpanel_conversation_id');
             if (existing) return existing;
@@ -49,6 +53,39 @@ const messagesEndRef = useRef<HTMLDivElement>(null);
             return id;
         } catch { return `chat-${Date.now()}`; }
     });
+
+    // Simulation modal state
+    const [isSimModalOpen, setIsSimModalOpen] = useState(false);
+    const [simModalTitle, setSimModalTitle] = useState('');
+    const [simModalUrl, setSimModalUrl] = useState('');
+
+    const [simModal, setSimModal] = useState<{ url: string; title: string } | null>(null);
+
+    // Ensure we have a real server-side conversation ID when online
+    const ensureServerConversation = async () => {
+        try {
+            const svc = getConversationService();
+            // Quick heuristic: if id starts with 'chat-' assume not server ID
+            const looksLocal = typeof conversationId === 'string' && conversationId.startsWith('chat-');
+            if (!looksLocal) {
+                return conversationId;
+            }
+            // Create a new conversation with current user
+            const uid = (user as any)?.id || 'anonymous';
+            const created = await svc.createConversation({
+                userId: uid,
+                title: title && title.trim().length ? title : 'Chatbot',
+                type: 'text_chat',
+                metadata: { source: 'chatbot_panel', userRole, activeView }
+            });
+            localStorage.setItem('chatpanel_conversation_id', created.id);
+            setConversationId(created.id);
+            return created.id;
+        } catch (e) {
+            logger.warn('Failed to ensure server conversation; continuing locally');
+            return conversationId;
+        }
+    };
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -381,18 +418,47 @@ await generateResponseStream({
                     <div key={msg.id} className={`flex items-end gap-2 ${msg.sender === 'user' ? 'justify-end' : ''}`}>
                         {msg.sender === 'ai' && <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-500 flex-shrink-0"><SparklesIcon className="w-5 h-5" /></div>}
                         <div className={`max-w-[80%] p-3 rounded-2xl ${msg.sender === 'ai' ? 'bg-gray-100 rounded-bl-lg' : 'bg-indigo-500 text-white rounded-br-lg'}`}>
-                            <div className="text-sm whitespace-pre-wrap break-words prose prose-sm max-w-none" aria-live={msg.sender === 'ai' ? 'polite' : undefined}>
-                                {msg.sender === 'ai' && !msg.text && isLoading ? (
-                                    <div className="flex items-center gap-2 text-gray-600">
-                                        <SpinnerIcon className="w-4 h-4 animate-spin" />
-                                        <span>Thinking…</span>
+                            {msg.metadata?.simulation ? (
+                                <div className="space-y-2">
+                                    {msg.metadata.simulation.image_url && (
+                                        <img src={msg.metadata.simulation.image_url} alt={msg.metadata.simulation.title} className="rounded-lg max-w-full h-auto" />
+                                    )}
+                                    <div className="text-sm">
+                                        <div className="font-semibold">{msg.metadata.simulation.title}</div>
+                                        <div className="text-gray-600">{msg.metadata.simulation.description}</div>
                                     </div>
-                                ) : msg.sender === 'ai' ? (
-<HtmlContent html={msg.text} aria-live={msg.sender === 'ai' ? 'polite' : undefined} />
-                                ) : (
-                                    msg.text
-                                )}
-                            </div>
+                                    <div className="flex gap-2">
+                                        <button className="btn btn-secondary" onClick={() => {
+                                            setSimModalTitle(msg.metadata!.simulation.title);
+                                            setSimModalUrl(msg.metadata!.simulation.url);
+                                            setIsSimModalOpen(true);
+                                        }}>Open Simulation</button>
+                                        <a href={msg.metadata.simulation.url} target="_blank" rel="noreferrer" className="btn">Open in new tab</a>
+                                    </div>
+                                </div>
+                            ) : msg.imageUrl ? (
+                                <div className="space-y-2">
+                                    <img src={msg.imageUrl} alt="Generated" className="rounded-lg max-w-full h-auto" />
+                                    {msg.text && (
+                                        <div className="text-xs text-gray-600">
+                                            <HtmlContent html={msg.text} />
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="text-sm whitespace-pre-wrap break-words prose prose-sm max-w-none" aria-live={msg.sender === 'ai' ? 'polite' : undefined}>
+                                    {msg.sender === 'ai' && !msg.text && isLoading ? (
+                                        <div className="flex items-center gap-2 text-gray-600">
+                                            <SpinnerIcon className="w-4 h-4 animate-spin" />
+                                            <span>Thinking…</span>
+                                        </div>
+                                    ) : msg.sender === 'ai' ? (
+                                        <HtmlContent html={msg.text} aria-live={msg.sender === 'ai' ? 'polite' : undefined} />
+                                    ) : (
+                                        msg.text
+                                    )}
+                                </div>
+                            )}
                         </div>
                         {msg.sender === 'user' && <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 flex-shrink-0"><UserCircleIcon className="w-6 h-6" /></div>}
                     </div>
@@ -455,9 +521,80 @@ await generateResponseStream({
                         placeholder="Type your question or paste multiple paragraphs..."
                         rows={5}
                     />
-                    <button type="submit" className="btn btn-primary ml-2" disabled={isLoading}>Send</button>
+                    <div className="flex flex-col ml-2 gap-2">
+                        <button type="submit" className="btn btn-primary" disabled={isLoading}>Send</button>
+                        <button type="button" className="btn btn-secondary" disabled={isLoading || !input.trim()} onClick={async () => {
+                            const prompt = input.trim();
+                            if (!prompt) return;
+                            setInput('');
+                            // Add user message
+                            const userMsgId = `user_${Date.now()}`;
+                            const userMessage = { id: userMsgId, sender: 'user', text: prompt, metadata: { intent: 'image_generation' } };
+                            setMessages(prev => [...prev, userMessage]);
+
+                            // Placeholder AI message while generating
+                            const aiMsgId = `ai_${Date.now()}`;
+                            setMessages(prev => [...prev, { id: aiMsgId, sender: 'ai', text: 'Generating image…' }]);
+
+                            try {
+                                const convId = await ensureServerConversation();
+                                const imageSvc = getBananaImageService();
+                                const result = await imageSvc.generateImage(prompt, { size: '512x512' });
+                                // Update message with image
+                                setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, text: `Prompt: ${prompt}`, imageUrl: result.imageUrl, metadata: { provider: result.provider, model: result.model } } : m));
+                                // Persist messages to history
+                                try {
+                                    const hist = getConversationService();
+                                    await hist.addMessage({ conversationId: convId, role: 'user', content: prompt, source: 'templates', metadata: { intent: 'image_generation' } });
+                                    await hist.addMessage({ conversationId: convId, role: 'assistant', content: `Image generated for: ${prompt}`, source: result.provider === 'banana' ? 'huggingface' : 'huggingface', metadata: { imageUrl: result.imageUrl, model: result.model, provider: result.provider } });
+                                } catch (persistErr) {
+                                    logger.warn('Failed to persist image messages', { error: (persistErr as any)?.message });
+                                }
+                            } catch (genErr) {
+                                setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, text: `Sorry, could not generate image: ${(genErr as any)?.message || 'Unknown error'}` } : m));
+                            }
+                        }}>Generate Image</button>
+                        <button type="button" className="btn" disabled={isLoading || !input.trim()} onClick={async () => {
+                            const query = input.trim();
+                            if (!query) return;
+                            setInput('');
+                            const userMsgId = `user_${Date.now()}`;
+                            const userMessage = { id: userMsgId, sender: 'user', text: query, metadata: { intent: 'simulation_search' } };
+                            setMessages(prev => [...prev, userMessage]);
+                            const aiMsgId = `ai_${Date.now()}`;
+                            setMessages(prev => [...prev, { id: aiMsgId, sender: 'ai', text: 'Searching for an interactive simulation…' }]);
+                            try {
+                                const convId = await ensureServerConversation();
+                                const results = await searchSimulations(query, { limit: 1 });
+                                if (results.length === 0) {
+                                    setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, text: 'No relevant simulation found.' } : m));
+                                    return;
+                                }
+                                const sim = results[0];
+                                setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, text: '', metadata: { simulation: sim } } : m));
+                                try {
+                                    const hist = getConversationService();
+                                    await hist.addMessage({ conversationId: convId, role: 'user', content: query, source: 'templates', metadata: { intent: 'simulation_search' } });
+                                    await hist.addMessage({ conversationId: convId, role: 'assistant', content: `Recommended simulation: ${sim.title}`, source: 'knowledge_base', metadata: { simulation: sim } });
+                                } catch (persistErr) {
+                                    logger.warn('Failed to persist simulation messages', { error: (persistErr as any)?.message });
+                                }
+                            } catch (err) {
+                                setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, text: `Search error: ${(err as any)?.message || 'Unknown error'}` } : m));
+                            }
+                        }}>Find Simulation</button>
+                    </div>
                 </form>
             </footer>
+            <Modal isOpen={isSimModalOpen} onClose={() => setIsSimModalOpen(false)} title={simModalTitle} size="full">
+                <div className="p-4">
+                    {simModalUrl ? (
+                        <iframe src={simModalUrl} className="w-full h-[70vh] rounded-xl border-0" title={simModalTitle} />
+                    ) : (
+                        <div className="text-gray-600">No simulation URL available.</div>
+                    )}
+                </div>
+            </Modal>
         </div>
     );
 };

@@ -327,8 +327,39 @@ export const useAI = (onNotification?: AINotificationCallback) => {
           setIsLoading(false);
           return;
         } catch (e) {
-          // fall through to offline message
+          // fall through to offline fallback generation
         }
+      }
+
+      // Attempt offline fallback generation even if online attempts failed
+      try {
+        const resp = await generateResponse(
+          prompt,
+          typeof context === 'string' ? context : JSON.stringify(context || {}),
+          type
+        );
+
+        if (!resp.error && resp.content && !resp.content.includes('Sorry, I encountered an error')) {
+          const CHUNK = 256;
+          for (let i = 0; i < resp.content.length; i += CHUNK) {
+            onChunk(resp.content.slice(i, i + CHUNK));
+            await new Promise(r => setTimeout(r, 25));
+          }
+          // Switch mode indicator to offline if we had to fallback
+          setIsOnline(false);
+          setIsLoading(false);
+          showNotification({
+            type: 'warning',
+            title: 'Switched to Offline AI',
+            message: resp.fallbackReason
+              ? `Using offline AI due to: ${resp.fallbackReason}. Responses may be more basic.`
+              : 'Using offline AI mode. Responses may be more basic than premium service.'
+          });
+          return;
+        }
+      } catch (fallbackErr) {
+        // continue to final error messaging
+        logger.captureError(fallbackErr as any, 'Offline fallback generation failed');
       }
 
       setIsLoading(false);

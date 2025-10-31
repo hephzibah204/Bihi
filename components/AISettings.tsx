@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { getAIRouter, type AISettings, type AIProvider } from '../services/aiRouter';
+import { getSupabaseEnv } from '../utils/env';
 
 interface AISettingsProps {
   onSettingsChange?: (settings: AISettings) => void;
@@ -18,6 +19,8 @@ export const AISettingsPanel: React.FC<AISettingsProps> = ({
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
   const [tempApiKey, setTempApiKey] = useState('');
   const [saved, setSaved] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   useEffect(() => {
     setSettings(router.getSettings());
@@ -359,6 +362,52 @@ export const AISettingsPanel: React.FC<AISettingsProps> = ({
             <div className="text-blue-700">$0-9/month</div>
             <div className="text-xs text-blue-600">Maximum savings</div>
           </div>
+        </div>
+      </div>
+
+      {/* E-Laboratory Sync */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <h3 className="text-lg font-semibold mb-2 flex items-center">
+          <span className="mr-2">🧪</span>
+          E‑Laboratory Data
+        </h3>
+        <p className="text-sm text-slate-600 mb-4">
+          Keep PhET simulations in sync with the latest metadata from the source. Run a manual update now or rely on nightly refresh.
+        </p>
+
+        <div className="flex items-center gap-3">
+          <button
+            disabled={isSyncing}
+            onClick={async () => {
+              setIsSyncing(true);
+              setSyncMessage(null);
+              try {
+                const { VITE_SUPABASE_URL } = getSupabaseEnv();
+                const url = `${VITE_SUPABASE_URL}/functions/v1/sync-ai-simulations`;
+                const res = await fetch(url, { method: 'POST' });
+                const json = await res.json();
+                if (!res.ok) throw new Error(json?.error || 'Sync failed');
+                const count = json?.upserted ?? 'OK';
+                setSyncMessage(`Synced successfully (${count} updated).`);
+              } catch (e: any) {
+                setSyncMessage(`Sync failed: ${e?.message || 'Unknown error'}`);
+              } finally {
+                setIsSyncing(false);
+              }
+            }}
+            className={`px-4 py-2 rounded-lg text-white transition-colors ${
+              isSyncing ? 'bg-slate-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+            }`}
+          >
+            {isSyncing ? 'Syncing…' : 'Sync Simulations'}
+          </button>
+          {syncMessage && (
+            <span aria-live="polite" className="text-sm text-slate-700">{syncMessage}</span>
+          )}
+        </div>
+
+        <div className="mt-3 text-xs text-slate-500">
+          Nightly refresh can be scheduled to call this endpoint automatically.
         </div>
       </div>
     </div>

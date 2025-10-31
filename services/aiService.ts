@@ -275,8 +275,34 @@ class AIService {
   /**
    * Call Gemini API with retry logic
    */
+  private async fetchServerGeminiKey(): Promise<string | undefined> {
+    try {
+      const headers: Record<string, string> = { Accept: 'application/json' };
+      if (typeof window !== 'undefined' && (window as any).sessionStorage?.getItem('isDemoMode') === 'true') {
+        headers['X-Demo-Mode'] = 'true';
+      }
+      const resp = await fetch('/api/ai/client-key', { headers });
+      if (resp.ok) {
+        const ct = resp.headers.get('content-type') || '';
+        if (ct.includes('application/json')) {
+          const data = await resp.json().catch(() => ({}));
+          if (data?.key) return String(data.key);
+        } else {
+          await resp.text().catch(() => '');
+        }
+      }
+    } catch { /* ignore */ }
+    return undefined;
+  }
+
   private async callGeminiAPI(prompt: string, _context?: any): Promise<AIResponse> {
-    if (!this.config.geminiApiKey) {
+    // Prefer the same key used by Live Tutor via server endpoint
+    const serverKey = await this.fetchServerGeminiKey();
+    const apiKey = serverKey
+      || this.config.geminiApiKey
+      || (typeof process !== 'undefined' && process.env?.GEMINI_API_KEY)
+      || (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_GEMINI_API_KEY);
+    if (!apiKey) {
       throw new Error('Gemini API key not configured');
     }
 
@@ -291,7 +317,7 @@ class AIService {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'x-goog-api-key': this.config.geminiApiKey!
+              'x-goog-api-key': apiKey as string
             },
             body: JSON.stringify({
               contents: [{
