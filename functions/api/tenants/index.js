@@ -1,7 +1,7 @@
 // functions/api/tenants/index.js
 import { handleCors } from '../../_lib/cors';
 import { requireSuperAdmin } from '../../_lib/auth';
-import { resolveTenantColumns } from '../../_lib/schema';
+import { resolveTenantColumns, resolveTeachersColumns } from '../../_lib/schema';
 
 async function listTenants(env) {
   const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = env;
@@ -59,10 +59,17 @@ async function createTenant(env, body) {
     throw new Error(uData?.msg || 'Failed to create admin user');
   }
 
-  // 3) Create teachers row
+  // 3) Create teachers row (schema-aware)
+  const tcols = await resolveTeachersColumns(env);
+  const tPayload = {};
+  if (tcols.authId) tPayload[tcols.authId] = uData.id;
+  if (tcols.tenantId) tPayload[tcols.tenantId] = slug;
+  if (tcols.name) tPayload[tcols.name] = adminName;
+  if (tcols.email) tPayload[tcols.email] = adminEmail;
+  if (tcols.role) tPayload[tcols.role] = 'Admin';
   const teachRes = await fetch(`${SUPABASE_URL}/rest/v1/teachers`, {
     method: 'POST', headers,
-    body: JSON.stringify({ auth_id: uData.id, tenant_id: slug, name: adminName, email: adminEmail, role: 'Admin' })
+    body: JSON.stringify(tPayload)
   });
   if (!teachRes.ok) {
     await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${uData.id}`, { method: 'DELETE', headers });

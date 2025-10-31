@@ -42,7 +42,8 @@ export async function resolveTenantColumns(env) {
 // Resolve columns for teachers table (authId vs auth_id, tenantId vs tenant_id)
 export async function resolveTeachersColumns(env) {
   const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = env || {};
-  const fallback = { authId: null, tenantId: null, email: null, name: null, role: null };
+  // Prefer safe snake_case defaults when we cannot query pg_meta
+  const fallback = { authId: 'auth_id', tenantId: 'tenant_id', email: 'email', name: 'full_name', role: 'role' };
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return fallback;
 
   const headers = {
