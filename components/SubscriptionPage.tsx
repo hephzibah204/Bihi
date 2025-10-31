@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import SpinnerIcon from './icons/SpinnerIcon';
 import Logo from './icons/Logo';
 import { getPortalUrl, isProductionDomain, getDomainConfiguration } from '../utils/subdomain';
+import { supabase } from '../services/supabaseClient';
 
 const SubscriptionPage = () => {
     const [step, setStep] = useState(1);
@@ -44,11 +45,22 @@ const SubscriptionPage = () => {
                 headers['apikey'] = publishableKey as string;
             }
 
+            // If the user already has a session, include JWT for protected functions
+            if (maybeSupabase && supabase?.auth) {
+                try {
+                    const { data } = await supabase.auth.getSession();
+                    const token = data?.session?.access_token;
+                    if (token) headers['Authorization'] = `Bearer ${token}`;
+                } catch { /* ignore */ }
+            }
+
             const response = await fetch(registerEndpoint, {
                 method: 'POST',
                 headers,
                 body: JSON.stringify({
                     ...formData,
+                    // Align with Supabase function expected field
+                    name: formData.schoolName,
                     // Ensure both slug and subdomain are provided for schema-aware backends
                     slug: formData.subdomain,
                     subdomain: formData.subdomain,
