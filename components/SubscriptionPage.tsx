@@ -54,6 +54,30 @@ const SubscriptionPage = () => {
                 } catch { /* ignore */ }
             }
 
+            // If calling a Supabase function without a session, attempt to sign up to obtain a JWT
+            if (maybeSupabase && supabase?.auth && !headers['Authorization']) {
+                try {
+                    const { data, error } = await supabase.auth.signUp({
+                        email: formData.adminEmail,
+                        password: formData.adminPassword,
+                        options: { emailRedirectTo: portalUrl }
+                    });
+                    if (error && error?.message?.toLowerCase().includes('already')) {
+                        // User exists; try sign in to get a session
+                        const { data: signInData } = await supabase.auth.signInWithPassword({
+                            email: formData.adminEmail,
+                            password: formData.adminPassword,
+                        });
+                        const token = signInData?.session?.access_token;
+                        if (token) headers['Authorization'] = `Bearer ${token}`;
+                    } else {
+                        const token = data?.session?.access_token;
+                        if (token) headers['Authorization'] = `Bearer ${token}`;
+                        // If email confirmation is required, session may be null; proceed unauthenticated with owner_email
+                    }
+                } catch { /* ignore and proceed */ }
+            }
+
             const response = await fetch(registerEndpoint, {
                 method: 'POST',
                 headers,
@@ -64,6 +88,8 @@ const SubscriptionPage = () => {
                     // Ensure both slug and subdomain are provided for schema-aware backends
                     slug: formData.subdomain,
                     subdomain: formData.subdomain,
+                    // Provide owner_email for functions that support unauthenticated registration paths
+                    owner_email: formData.adminEmail,
                     emailRedirectTo: portalUrl,
                 })
             });
@@ -76,8 +102,13 @@ const SubscriptionPage = () => {
                     const errorData = await response.json();
                     errorDetails = errorData.details || errorData.error || `HTTP ${response.status}: ${response.statusText}`;
                 } catch (jsonError) {
-                    // If JSON parsing fails, use status text
-                    errorDetails = `HTTP ${response.status}: ${response.statusText || 'No response body'}`;
+                    // If JSON parsing fails, try plain text; else use status text
+                    try {
+                        const text = await response.text();
+                        errorDetails = text || `HTTP ${response.status}: ${response.statusText || 'No response body'}`;
+                    } catch {
+                        errorDetails = `HTTP ${response.status}: ${response.statusText || 'No response body'}`;
+                    }
                 }
                 throw new Error(errorDetails);
             }
