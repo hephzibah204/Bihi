@@ -33,24 +33,38 @@ const StudentProfile = ({ demoUserId }) => {
     });
 
     useEffect(() => {
-        if (!demoUserId) {
-            setLoading(false);
-            return;
-        }
         const fetchProfile = async () => {
             try {
+                setLoading(true);
+
+                // Resolve effective demo id with robust fallbacks
+                let effectiveId = demoUserId;
+                if (!effectiveId && typeof window !== 'undefined') {
+                    try {
+                        const raw = sessionStorage.getItem('activeUser');
+                        const active = raw ? JSON.parse(raw) : null;
+                        if (active?.userId) effectiveId = active.userId;
+                    } catch {}
+                }
+                if (!effectiveId) {
+                    effectiveId = 'stud_1';
+                }
+
                 const allStudents = await apiGetStudents();
-                const profile = allStudents.find(s => s.id === demoUserId);
+                let profile = allStudents.find(s => s.id === effectiveId);
+                if (!profile && allStudents.length > 0) {
+                    profile = allStudents[0];
+                }
                 setStudent(profile);
-                
+
                 if (profile) {
                     // Fetch student scores and subjects
                     const [studentScores, allSubjects] = await Promise.all([
                         apiGetStudentScores(),
                         apiGetSubjects()
                     ]);
-                    
-                    const studentScoreData = studentScores.filter(score => 
+
+                    const studentScoreData = studentScores.filter(score =>
                         score.studentId === profile.id
                     );
                     setScores(studentScoreData);
