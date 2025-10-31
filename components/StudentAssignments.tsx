@@ -15,21 +15,33 @@ const StudentAssignments = ({ demoUserId }) => {
     const [activeTab, setActiveTab] = useState('upcoming');
 
     useEffect(() => {
-        if (!demoUserId) {
-            setLoading(false);
-            setError("Student profile not found.");
-            return;
-        }
         const fetchData = async () => {
             try {
+                setLoading(true);
+                // Resolve effective demo id with robust fallbacks
+                let effectiveId = demoUserId;
+                if (!effectiveId && typeof window !== 'undefined') {
+                    try {
+                        const raw = sessionStorage.getItem('activeUser');
+                        const active = raw ? JSON.parse(raw) : null;
+                        if (active?.userId) effectiveId = active.userId;
+                    } catch {}
+                }
+                if (!effectiveId) {
+                    effectiveId = 'stud_1';
+                }
+
                 const [asgs, scs, studs, subs] = await Promise.all([
                     apiGetAssignments(),
                     apiGetAssignmentScores(),
                     apiGetStudents(),
                     apiGetSubjects()
                 ]);
-                const currentStudent = studs.find(s => s.id === demoUserId);
-                setStudent(currentStudent);
+                let currentStudent = studs.find(s => s.id === effectiveId);
+                if (!currentStudent && studs.length > 0) {
+                    currentStudent = studs[0];
+                }
+                setStudent(currentStudent || null);
                 setAssignments(asgs);
                 setScores(scs);
                 setSubjects(subs);

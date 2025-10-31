@@ -84,42 +84,75 @@ const SubscriptionPage = () => {
                 } catch { /* ignore and proceed */ }
             }
 
-            const response = await fetch(registerEndpoint, {
-                method: 'POST',
-                headers,
-                body: JSON.stringify({
-                    ...formData,
-                    // Align with Supabase function expected field
-                    name: formData.schoolName,
-                    // Ensure both slug and subdomain are provided for schema-aware backends
-                    slug: formData.subdomain,
-                    subdomain: formData.subdomain,
-                    // Provide owner_email for functions that support unauthenticated registration paths
-                    owner_email: formData.adminEmail,
-                    emailRedirectTo: portalUrl,
-                })
-            });
+            const payload = {
+                ...formData,
+                // Align with Supabase function expected field
+                name: formData.schoolName,
+                // Ensure both slug and subdomain are provided for schema-aware backends
+                slug: formData.subdomain,
+                subdomain: formData.subdomain,
+                // Provide owner_email for functions that support unauthenticated registration paths
+                owner_email: formData.adminEmail,
+                emailRedirectTo: portalUrl,
+            };
 
-            // Check if response is OK before trying to parse JSON
-            if (!response.ok) {
-                // Try to get error details from response, but handle empty responses gracefully
-                let errorDetails = 'Registration failed';
-                try {
-                    const errorData = await response.json();
-                    errorDetails = errorData.details || errorData.error || `HTTP ${response.status}: ${response.statusText}`;
-                } catch (jsonError) {
-                    // If JSON parsing fails, try plain text; else use status text
-                    try {
-                        const text = await response.text();
-                        errorDetails = text || `HTTP ${response.status}: ${response.statusText || 'No response body'}`;
-                    } catch {
-                        errorDetails = `HTTP ${response.status}: ${response.statusText || 'No response body'}`;
+            const tryRequest = async (url: string) => {
+                // Clone headers per attempt to avoid cross-contamination
+                const h: Record<string, string> = { ...headers };
+                const isSupa = /https?:\/\/[^/]*functions\.supabase\.co\//i.test(url)
+                    || /https?:\/\/[^/]*supabase\.co\/functions\/v1\//i.test(url);
+                // For Supabase functions, ensure apikey/Authorization are present
+                if (isSupa) {
+                    const pub = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
+                    if (pub) {
+                        h['apikey'] = pub as string;
+                        if (!h['Authorization']) h['Authorization'] = `Bearer ${pub}`;
                     }
+                } else {
+                    // Do not send Supabase-specific headers to non-Supabase endpoints
+                    delete h['apikey'];
                 }
-                throw new Error(errorDetails);
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: h,
+                    body: JSON.stringify(payload)
+                });
+                return res;
+            };
+
+            const candidates: string[] = [registerEndpoint];
+            // Add Cloudflare worker fallback
+            if (!candidates.includes('/api/register')) candidates.push('/api/register');
+            // Optional local API fallback for dev
+            if ((import.meta.env.VITE_USE_LOCAL_API === 'true' || import.meta.env.VITE_USE_LOCAL_API === true) && import.meta.env.VITE_LOCAL_API_URL) {
+                const localUrl = `${import.meta.env.VITE_LOCAL_API_URL.replace(/\/$/, '')}/api/register`;
+                if (!candidates.includes(localUrl)) candidates.push(localUrl);
             }
 
-            // Only parse JSON if response is successful
+            let response: Response | null = null;
+            let lastError: string | null = null;
+            for (const url of candidates) {
+                try {
+                    const res = await tryRequest(url);
+                    if (res.ok) { response = res; break; }
+                    // Collect detailed error for diagnostics
+                    let details = `HTTP ${res.status}: ${res.statusText}`;
+                    try {
+                        const j = await res.json();
+                        details = j?.details || j?.error || details;
+                    } catch {
+                        try { details = (await res.text()) || details; } catch {}
+                    }
+                    lastError = `${url} -> ${details}`;
+                } catch (e: any) {
+                    lastError = `${url} -> ${e?.message || 'Network error'}`;
+                }
+            }
+
+            if (!response) {
+                throw new Error(lastError || 'Registration failed');
+            }
+
             const data = await response.json();
             
             // Clear any lingering demo session data to ensure the new portal is clean.

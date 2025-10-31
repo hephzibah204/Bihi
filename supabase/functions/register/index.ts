@@ -22,7 +22,7 @@ function handleCors(req: Request) {
   const origin = req.headers.get("Origin") || "";
   const headers: Record<string, string> = {
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, apikey",
   };
   let isAllowed = false;
   if (origin && allowedOriginPatterns.some((p) => p.test(origin))) {

@@ -26,12 +26,6 @@ const StudentResults = ({ demoUserId }) => {
     const [expandedTermKey, setExpandedTermKey] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!demoUserId) {
-            setLoading(false);
-            setError("Student profile not selected.");
-            return;
-        }
-        
         const fetchResults = async () => {
             setLoading(true);
             setError('');
@@ -41,11 +35,27 @@ const StudentResults = ({ demoUserId }) => {
                 ]);
                 setAllData({ scores, subjects, students, settings, attendance, remarks });
 
-                const currentStudent = students.find(s => s.id === demoUserId);
+                // Resolve effective demo id with robust fallbacks
+                let effectiveId = demoUserId;
+                if (!effectiveId && typeof window !== 'undefined') {
+                    try {
+                        const raw = sessionStorage.getItem('activeUser');
+                        const active = raw ? JSON.parse(raw) : null;
+                        if (active?.userId) effectiveId = active.userId;
+                    } catch {}
+                }
+                if (!effectiveId) {
+                    effectiveId = 'stud_1';
+                }
+
+                let currentStudent = students.find(s => s.id === effectiveId);
+                if (!currentStudent && students.length > 0) {
+                    currentStudent = students[0];
+                }
                 if (!currentStudent) throw new Error("Student profile not found.");
                 setStudent(currentStudent);
 
-                const studentScores = scores.filter(score => score.studentId === demoUserId);
+                const studentScores = scores.filter(score => score.studentId === currentStudent.id);
                 
                 // Fix: Explicitly type `allSessions` as `string[]` to resolve the `unknown[]` type error when setting state.
                 const allSessions: string[] = [...new Set<string>(studentScores.map(s => s.session))].sort((a: string, b: string) => b.localeCompare(a));
