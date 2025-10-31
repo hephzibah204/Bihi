@@ -55,8 +55,18 @@ const Broadsheet: React.FC<BroadsheetProps> = ({ setActiveView, userRole = 'Admi
 
         const defaultClass = studentsRes?.[0]?.class || '';
         setSelectedClass(defaultClass);
-        setSession(settingsRes?.session || '');
-        setTerm(settingsRes?.term || '');
+
+        // Robust fallbacks for session and term using available scores
+        const scoreSessions = Array.from(new Set((scoresRes || []).map(s => s.session))).filter(Boolean);
+        const scoreTerms = Array.from(new Set((scoresRes || []).map(s => s.term))).filter(Boolean);
+        const sortedSessions = [...scoreSessions].sort((a, b) => b.localeCompare(a));
+        const knownTermsOrder = ['First Term', 'Second Term', 'Third Term'];
+        const pickTerm = (t?: string) => t && knownTermsOrder.includes(t) ? t : (scoreTerms.find(st => knownTermsOrder.includes(st)) || scoreTerms[0] || 'First Term');
+
+        const effectiveSession = settingsRes?.session || sortedSessions[0] || '';
+        const effectiveTerm = settingsRes?.term || pickTerm(settingsRes?.term);
+        setSession(effectiveSession);
+        setTerm(effectiveTerm);
       } catch (e) {
         console.error('Failed to load broadsheet data', e);
       } finally {
