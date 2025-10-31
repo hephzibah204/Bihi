@@ -67,6 +67,17 @@ export const TEACHER_VIEWS = {
     ENTER_SCORES: 'enter-scores',
     MY_SCHEDULE: 'my-schedule',
     AI_TOOLS: 'ai-tools',
+    // Individual AI Tools
+    AI_CHAT: 'ai-chat',
+    AI_ELABORATORY: 'ai-elaboratory',
+    AI_LESSON_PLANNER: 'ai-lesson-planner',
+    AI_PRACTICE_QUIZ: 'ai-practice-quiz',
+    AI_COMMENT_GENERATOR: 'ai-comment-generator',
+    AI_EARLY_INTERVENTION: 'ai-early-intervention',
+    AI_LEARNING_PATHWAYS: 'ai-learning-pathways',
+    AI_SUBJECT_RECOMMENDER: 'ai-subject-recommender',
+    AI_RUBRIC_GENERATOR: 'ai-rubric-generator',
+    AI_PARENT_MESSAGE_COMPOSER: 'ai-parent-message-composer',
     RESOURCE_HUB: 'resource-hub',
     MY_PAYSLIPS: 'my-payslips',
     HELP: 'help',
@@ -88,10 +99,14 @@ export const STUDENT_VIEWS: { [key: string]: StudentView } = {
     ASSIGNMENTS: 'assignments',
     TIMETABLE: 'timetable',
     AI_TOOLS: 'ai-tools',
+    // Individual AI Tools
+    AI_CHAT: 'ai-chat',
+    AI_ELABORATORY: 'ai-elaboratory',
+    AI_SUBJECT_RECOMMENDER: 'ai-subject-recommender',
+    AI_TUTOR: 'ai-tutor',
     PROFILE: 'profile',
     NOTIFICATIONS: 'notifications',
     TRANSCRIPT: 'transcript',
-    AI_TUTOR: 'ai-tutor',
 };
 
 export const PARENT_VIEWS: { [key: string]: ParentView } = {
@@ -106,6 +121,10 @@ export const PARENT_VIEWS: { [key: string]: ParentView } = {
     EVENTS: 'events',
     REPORT_ABSENCE: 'report-absence',
     AI_TOOLS: 'ai-tools',
+    // Individual AI Tools
+    AI_CHAT: 'ai-chat',
+    AI_ELABORATORY: 'ai-elaboratory',
+    AI_SUBJECT_RECOMMENDER: 'ai-subject-recommender',
 };
 
 export const USER_ROLES: { [key: string]: UserRole } = {

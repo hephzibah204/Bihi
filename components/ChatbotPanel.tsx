@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, KeyboardEvent } from 'react';
 import { useAI } from '../hooks/useAI';
 import SpinnerIcon from './icons/SpinnerIcon';
 import SparklesIcon from './icons/SparklesIcon';
@@ -12,6 +12,7 @@ import { getBananaImageService } from '../services/bananaImageService';
 import { getConversationService } from '../services/conversationService';
 import { searchSimulations } from '../services/aiSimulations';
 import Modal from './Modal';
+import type { UserRole } from '../types';
 
 interface ChatbotPanelProps {
     isOpen: boolean;
@@ -22,15 +23,18 @@ interface ChatbotPanelProps {
     title?: string;
 }
 
+type ChatMessage = { id: string; sender: 'user' | 'ai'; text: string; imageUrl?: string; metadata?: Record<string, any>; createdAt?: number };
+
 const ChatbotPanel = ({ isOpen, onClose, userRole, demoUserId, activeView, title }: ChatbotPanelProps) => {
-    const [messages, setMessages] = useState<{ id: string; sender: string; text: string; imageUrl?: string; metadata?: Record<string, any> }[]>([]);
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [performanceContext, setPerformanceContext] = useState('');
     const [notifications, setNotifications] = useState<{ id: string; type: string; title: string; message: string; }[]>([]);
     const [dashboardContext, setDashboardContext] = useState('');
-    
-    const { user, role } = useAuth();
+    const [showSuggestions, setShowSuggestions] = useState(true);
+
+    const { user } = useAuth();
     
     const handleNotification = (notification: { type: 'info' | 'warning' | 'error'; title: string; message: string }) => {
         const id = `notification_${Date.now()}`;
@@ -43,7 +47,7 @@ const ChatbotPanel = ({ isOpen, onClose, userRole, demoUserId, activeView, title
     };
     
     const { generateResponseStream, status } = useAI(handleNotification);
-const messagesEndRef = useRef<HTMLDivElement>(null);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
     const [conversationId, setConversationId] = useState(() => {
         try {
             const existing = localStorage.getItem('chatpanel_conversation_id');
@@ -151,7 +155,7 @@ const messagesEndRef = useRef<HTMLDivElement>(null);
                         const subjectMap = new Map(subjects.map(s => [s.id, s.name]));
                         
                         // Group scores by class and subject
-                        const classPerformance = {};
+                        const classPerformance: Record<string, any> = {};
                         allTeacherStudents.forEach(student => {
                             if (!classPerformance[student.class]) {
                                 classPerformance[student.class] = {
@@ -289,19 +293,16 @@ const messagesEndRef = useRef<HTMLDivElement>(null);
         fetchContext();
     }, [isOpen, demoUserId, userRole, user, activeView]);
 
+    // Utilities
+    const stripHtml = (html: string) => html.replace(/<[^>]+>/g, '');
+    const formatTime = (ts?: number) => ts ? new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+
     // Unified send logic so chips can submit directly
     const sendMessage = async (text: string) => {
         if (!text.trim() || isLoading) return;
 
-        const userMessage = { id: `user_${Date.now()}`, sender: 'user', text };
-        const tryParse = (s: any) => {
-            if (!s || typeof s !== 'string') return undefined;
-            const idx = s.indexOf('{');
-            if (idx >= 0) {
-                try { return JSON.parse(s.slice(idx)); } catch { return undefined; }
-            }
-            return undefined;
-        };
+        const now = Date.now();
+        const userMessage: ChatMessage = { id: `user_${now}`, sender: 'user', text, createdAt: now };
 
         const baseContext = { 
             userRole, 
@@ -314,24 +315,25 @@ const messagesEndRef = useRef<HTMLDivElement>(null);
 
         // Build query-aware focus context based on current role and available local context
         const focusContext = buildQuestionFocusContext(
-            input,
-            userRole,
+            text,
+            userRole as UserRole,
             baseContext.dashboardContext || '',
             baseContext.performanceContext || ''
         );
 
-const context = { ...baseContext, questionFocusContext: focusContext };
+        const context = { ...baseContext, questionFocusContext: focusContext };
         const userProfile = { userRole, activeView, performanceContext: baseContext.performanceContext, userName: baseContext.userName };
 
         setMessages(prev => [...prev, userMessage]);
         setIsLoading(true);
 
-        const aiMessageId = `ai_${Date.now()}`;
-        setMessages(prev => [...prev, { id: aiMessageId, sender: 'ai', text: '' }]);
+        const aiNow = Date.now();
+        const aiMessageId = `ai_${aiNow}`;
+        setMessages(prev => [...prev, { id: aiMessageId, sender: 'ai', text: '', createdAt: aiNow }]);
 
         try {
             const contextString = JSON.stringify(context);
-await generateResponseStream({
+            await generateResponseStream({
                 prompt: text,
                 context: contextString,
                 conversationId,
@@ -349,7 +351,7 @@ await generateResponseStream({
                     ));
                 }
             });
-        } catch (error) {
+        } catch (error: any) {
             setMessages(prev => prev.map(msg => 
                 msg.id === aiMessageId 
                     ? { ...msg, text: `Sorry, I ran into an error: ${error.message}` } 
@@ -366,6 +368,19 @@ await generateResponseStream({
         setInput('');
         await sendMessage(current);
     };
+
+    const onTextareaKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            if (input.trim() && !isLoading) {
+                const current = input;
+                setInput('');
+                void sendMessage(current);
+            }
+        }
+    };
+
+    const clearChat = () => setMessages([]);
 
     const resolvedTitle = (() => {
         if (title && title.trim().length > 0) return title;
@@ -388,7 +403,7 @@ await generateResponseStream({
     })();
     
     return (
-        <div className={`relative z-[60] w-[90vw] sm:w-96 md:w-[32rem] max-w-[95vw] h-[65vh] sm:h-[70vh] max-h-[80vh] bg-white rounded-lg shadow-xl flex flex-col overflow-hidden transition-all duration-300 ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+        <div className={`relative z-[60] w-[92vw] sm:w-[28rem] md:w-[36rem] lg:w-[38rem] max-w-[95vw] h-[68vh] sm:h-[70vh] max-h-[82vh] bg-white/95 backdrop-blur rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden transition-all duration-300 ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
             {/* Notification container */}
             <div className="absolute -top-20 right-0 z-[70] space-y-2">
                 {notifications.map(notification => (
@@ -406,18 +421,34 @@ await generateResponseStream({
                 ))}
             </div>
             
-            <header className="p-4 border-b flex justify-between items-center flex-shrink-0">
-                <h3 className="font-semibold">{resolvedTitle}</h3>
-                <div className="text-xs text-gray-500 flex items-center">
-                    <span className={`w-2 h-2 rounded-full mr-1.5 ${status === 'gemini' ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
-                    {status === 'gemini' ? 'Online' : 'Offline'}
+            <header className="px-4 py-3 border-b flex justify-between items-center flex-shrink-0 bg-gradient-to-r from-indigo-50 to-white">
+                <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                        <SparklesIcon className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                        <h3 className="font-semibold truncate">{resolvedTitle}</h3>
+                        <div className="text-[11px] text-gray-500 truncate">Ask anything. Shift+Enter for newline.</div>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="text-[11px] text-gray-500 flex items-center">
+                        <span className={`w-2 h-2 rounded-full mr-1.5 ${status === 'gemini' ? 'bg-green-500' : status === 'loading' ? 'bg-yellow-500' : 'bg-gray-400'}`}></span>
+                        {status === 'gemini' ? 'Online' : status === 'loading' ? 'Thinking' : 'Offline'}
+                    </div>
+                    <button onClick={clearChat} title="Clear chat" className="p-2 rounded-md hover:bg-gray-100 text-gray-600">
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 6h18M9 6v12m6-12v12M5 6l1 14a2 2 0 002 2h8a2 2 0 002-2l1-14"/></svg>
+                    </button>
+                    <button onClick={onClose} title="Close" className="p-2 rounded-md hover:bg-gray-100 text-gray-600">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
                 </div>
             </header>
-            <main className="flex-1 min-h-0 p-4 overflow-y-auto space-y-4">
-                 {messages.map((msg, i) => (
-                    <div key={msg.id} className={`flex items-end gap-2 ${msg.sender === 'user' ? 'justify-end' : ''}`}>
-                        {msg.sender === 'ai' && <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-500 flex-shrink-0"><SparklesIcon className="w-5 h-5" /></div>}
-                        <div className={`max-w-[80%] p-3 rounded-2xl ${msg.sender === 'ai' ? 'bg-gray-100 rounded-bl-lg' : 'bg-indigo-500 text-white rounded-br-lg'}`}>
+            <main className="flex-1 min-h-0 p-4 overflow-y-auto space-y-4 bg-[linear-gradient(to_bottom,rgba(99,102,241,0.04),transparent_120px)]">
+                 {messages.map((msg) => (
+                    <div key={msg.id} className={`group relative flex items-start gap-2 ${msg.sender === 'user' ? 'justify-end' : ''}`}>
+                        {msg.sender === 'ai' && <div className="w-8 h-8 mt-1 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-500 flex-shrink-0"><SparklesIcon className="w-5 h-5" /></div>}
+                        <div className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 shadow-sm ${msg.sender === 'ai' ? 'bg-gray-50 border border-gray-100 rounded-bl-md' : 'bg-indigo-600 text-white rounded-br-md'}`}>
                             {msg.metadata?.simulation ? (
                                 <div className="space-y-2">
                                     {msg.metadata.simulation.image_url && (
@@ -440,13 +471,13 @@ await generateResponseStream({
                                 <div className="space-y-2">
                                     <img src={msg.imageUrl} alt="Generated" className="rounded-lg max-w-full h-auto" />
                                     {msg.text && (
-                                        <div className="text-xs text-gray-600">
+                                        <div className={`text-xs ${msg.sender === 'ai' ? 'text-gray-600' : 'text-indigo-100'}`}>
                                             <HtmlContent html={msg.text} />
                                         </div>
                                     )}
                                 </div>
                             ) : (
-                                <div className="text-sm whitespace-pre-wrap break-words prose prose-sm max-w-none" aria-live={msg.sender === 'ai' ? 'polite' : undefined}>
+                                <div className={`text-[13px] leading-6 whitespace-pre-wrap break-words prose prose-sm max-w-none ${msg.sender === 'ai' ? 'text-gray-800' : 'text-white'}`} aria-live={msg.sender === 'ai' ? 'polite' : undefined}>
                                     {msg.sender === 'ai' && !msg.text && isLoading ? (
                                         <div className="flex items-center gap-2 text-gray-600">
                                             <SpinnerIcon className="w-4 h-4 animate-spin" />
@@ -459,82 +490,109 @@ await generateResponseStream({
                                     )}
                                 </div>
                             )}
+                            <div className={`mt-2 flex items-center gap-2 text-[11px] ${msg.sender === 'ai' ? 'text-gray-500' : 'text-indigo-200'}`}>
+                                {msg.createdAt && <span>{formatTime(msg.createdAt)}</span>}
+                                {msg.sender === 'ai' && (
+                                    <button
+                                        className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-0.5 rounded hover:bg-gray-200/70 text-gray-700"
+                                        onClick={() => navigator.clipboard?.writeText(stripHtml(msg.text || ''))}
+                                        title="Copy"
+                                    >
+                                        Copy
+                                    </button>
+                                )}
+                            </div>
                         </div>
-                        {msg.sender === 'user' && <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 flex-shrink-0"><UserCircleIcon className="w-6 h-6" /></div>}
+                        {msg.sender === 'user' && <div className="w-8 h-8 mt-1 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 flex-shrink-0"><UserCircleIcon className="w-6 h-6" /></div>}
                     </div>
                 ))}
                 <div ref={messagesEndRef} />
             </main>
-            <footer className="p-4 border-t space-y-3 bg-white flex-shrink-0">
+            <footer className="p-3 border-t space-y-3 bg-white flex-shrink-0">
                 {/* Role-based sample prompts */}
-                <div className="text-xs text-gray-500">Try these:</div>
-                <div className="flex flex-wrap gap-2 max-h-20 overflow-y-auto pr-1">
-                    {([ 
-                        ...(userRole === 'Admin' || userRole === 'Super Admin' ? [
-                            'What are this term’s attendance trends?',
-                            'Show outstanding fees by class.',
-                            'Summarize school-wide academic performance.',
-                            'List top 5 subjects needing improvement.'
-                        ] : []),
-                        ...(userRole === 'Teacher' ? [
-                            'How are my students doing in Mathematics this term?',
-                            'Which assignments need grading?',
-                            'Generate feedback for class 9A.',
-                            'Suggest interventions for low performers.'
-                        ] : []),
-                        ...(userRole === 'Parent' ? [
-                            'How is my child’s attendance this month?',
-                            'Show recent test scores.',
-                            'What areas should my child focus on?',
-                            'Upcoming events for my child’s class?'
-                        ] : []),
-                        ...(userRole === 'Student' ? [
-                            'Help me plan study schedule for exams.',
-                            'Show my recent scores and weak topics.',
-                            'What assignments are due next?',
-                            'Explain algebra topics I’m struggling with.'
-                        ] : []),
-                        ...(userRole === 'Bursar' ? [
-                            'What are current outstanding fees and collection rate?',
-                            'List overdue invoices.',
-                            'Show payments received in the last 7 days.',
-                            'Which classes have highest fee balances?'
-                        ] : [])
-                    ] as string[]).map((prompt, idx) => (
-                        <button
-                            key={idx}
-                            type="button"
-                            className="px-2 py-1 text-xs rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 whitespace-nowrap"
-                            onClick={() => { setInput(prompt); sendMessage(prompt); }}
-                            aria-label={`Use sample prompt: ${prompt}`}
-                        >
-                            {prompt}
-                        </button>
-                    ))}
+                <div className="flex items-center justify-between">
+                    <div className="text-xs text-gray-500">Suggested prompts</div>
+                    <button className="text-xs text-indigo-600 hover:text-indigo-700" onClick={() => setShowSuggestions(s => !s)}>
+                        {showSuggestions ? 'Hide' : 'Show'}
+                    </button>
                 </div>
+                {showSuggestions && (
+                    <div className="flex flex-wrap gap-2 max-h-20 overflow-y-auto pr-1">
+                        {([ 
+                            ...(userRole === 'Admin' || userRole === 'Super Admin' ? [
+                                'What are this term’s attendance trends?',
+                                'Show outstanding fees by class.',
+                                'Summarize school-wide academic performance.',
+                                'List top 5 subjects needing improvement.'
+                            ] : []),
+                            ...(userRole === 'Teacher' ? [
+                                'How are my students doing in Mathematics this term?',
+                                'Which assignments need grading?',
+                                'Generate feedback for class 9A.',
+                                'Suggest interventions for low performers.'
+                            ] : []),
+                            ...(userRole === 'Parent' ? [
+                                'How is my child’s attendance this month?',
+                                'Show recent test scores.',
+                                'What areas should my child focus on?',
+                                'Upcoming events for my child’s class?'
+                            ] : []),
+                            ...(userRole === 'Student' ? [
+                                'Help me plan study schedule for exams.',
+                                'Show my recent scores and weak topics.',
+                                'What assignments are due next?',
+                                'Explain algebra topics I’m struggling with.'
+                            ] : []),
+                            ...(userRole === 'Bursar' ? [
+                                'What are current outstanding fees and collection rate?',
+                                'List overdue invoices.',
+                                'Show payments received in the last 7 days.',
+                                'Which classes have highest fee balances?'
+                            ] : [])
+                        ] as string[]).map((prompt, idx) => (
+                            <button
+                                key={idx}
+                                type="button"
+                                className="px-2.5 py-1 text-xs rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 whitespace-nowrap"
+                                onClick={() => { setInput(prompt); void sendMessage(prompt); }}
+                                aria-label={`Use sample prompt: ${prompt}`}
+                            >
+                                {prompt}
+                            </button>
+                        ))}
+                    </div>
+                )}
 
-                <form onSubmit={handleSend} className="flex items-start">
+                <form onSubmit={handleSend} className="flex items-end gap-2">
                     <textarea
                         value={input}
                         onChange={e => setInput(e.target.value)}
+                        onKeyDown={onTextareaKeyDown}
                         className="input-field flex-1 h-24 resize-y"
-                        placeholder="Type your question or paste multiple paragraphs..."
-                        rows={5}
+                        placeholder="Type your question… Press Enter to send, Shift+Enter for newline"
+                        rows={4}
                     />
-                    <div className="flex flex-col ml-2 gap-2">
-                        <button type="submit" className="btn btn-primary" disabled={isLoading}>Send</button>
+                    <div className="flex flex-col gap-2">
+                        <button type="submit" className="btn btn-primary" disabled={isLoading || !input.trim()}>
+                            <span className="inline-flex items-center gap-1">
+                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 12h14M12 5l7 7-7 7"/></svg>
+                                Send
+                            </span>
+                        </button>
                         <button type="button" className="btn btn-secondary" disabled={isLoading || !input.trim()} onClick={async () => {
                             const prompt = input.trim();
                             if (!prompt) return;
                             setInput('');
                             // Add user message
-                            const userMsgId = `user_${Date.now()}`;
-                            const userMessage = { id: userMsgId, sender: 'user', text: prompt, metadata: { intent: 'image_generation' } };
+                            const now = Date.now();
+                            const userMsgId = `user_${now}`;
+                            const userMessage: ChatMessage = { id: userMsgId, sender: 'user', text: prompt, metadata: { intent: 'image_generation' }, createdAt: now };
                             setMessages(prev => [...prev, userMessage]);
 
                             // Placeholder AI message while generating
-                            const aiMsgId = `ai_${Date.now()}`;
-                            setMessages(prev => [...prev, { id: aiMsgId, sender: 'ai', text: 'Generating image…' }]);
+                            const aiNow = Date.now();
+                            const aiMsgId = `ai_${aiNow}`;
+                            setMessages(prev => [...prev, { id: aiMsgId, sender: 'ai', text: 'Generating image…', createdAt: aiNow }]);
 
                             try {
                                 const convId = await ensureServerConversation();
@@ -558,11 +616,13 @@ await generateResponseStream({
                             const query = input.trim();
                             if (!query) return;
                             setInput('');
-                            const userMsgId = `user_${Date.now()}`;
-                            const userMessage = { id: userMsgId, sender: 'user', text: query, metadata: { intent: 'simulation_search' } };
+                            const now = Date.now();
+                            const userMsgId = `user_${now}`;
+                            const userMessage: ChatMessage = { id: userMsgId, sender: 'user', text: query, metadata: { intent: 'simulation_search' }, createdAt: now };
                             setMessages(prev => [...prev, userMessage]);
-                            const aiMsgId = `ai_${Date.now()}`;
-                            setMessages(prev => [...prev, { id: aiMsgId, sender: 'ai', text: 'Searching for an interactive simulation…' }]);
+                            const aiNow = Date.now();
+                            const aiMsgId = `ai_${aiNow}`;
+                            setMessages(prev => [...prev, { id: aiMsgId, sender: 'ai', text: 'Searching for an interactive simulation…', createdAt: aiNow }]);
                             try {
                                 const convId = await ensureServerConversation();
                                 const results = await searchSimulations(query, { limit: 1 });
@@ -575,7 +635,7 @@ await generateResponseStream({
                                 try {
                                     const hist = getConversationService();
                                     await hist.addMessage({ conversationId: convId, role: 'user', content: query, source: 'templates', metadata: { intent: 'simulation_search' } });
-                                    await hist.addMessage({ conversationId: convId, role: 'assistant', content: `Recommended simulation: ${sim.title}`, source: 'knowledge_base', metadata: { simulation: sim } });
+                                    await hist.addMessage({ conversationId: convId, role: 'assistant', content: `Recommended simulation: ${sim.title}`, source: 'templates', metadata: { simulation: sim } });
                                 } catch (persistErr) {
                                     logger.warn('Failed to persist simulation messages', { error: (persistErr as any)?.message });
                                 }

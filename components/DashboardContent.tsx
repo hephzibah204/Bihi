@@ -18,7 +18,7 @@ const Attendance = lazy(() => import('./Attendance'));
 const SchoolSettings = lazy(() => import('./SchoolSettings'));
 const Bursary = lazy(() => import('./Bursary'));
 const CommunicationsDashboard = lazy(() => import('./CommunicationsDashboard'));
-const AITools = lazy(() => import('./AITools'));
+const AIToolsNavigation = lazy(() => import('./AIToolsNavigation'));
 const AdvancedAnalytics = lazy(() => import('./AdvancedAnalytics'));
 const AlumniDashboard = lazy(() => import('./AlumniDashboard'));
 const Teachers = lazy(() => import('./Teachers'));
@@ -31,6 +31,18 @@ const ResourceHub = lazy(() => import('./ResourceHub'));
 const DashboardKnowledgeBase = lazy(() => import('./DashboardKnowledgeBase'));
 const BillingDashboard = lazy(() => import('./BillingDashboard'));
 const BursaryDashboard = lazy(() => import('./BursaryDashboard'));
+
+// AI Tool Components
+const AIChatPanel = lazy(() => import('./AIChatPanel'));
+const ELaboratory = lazy(() => import('./ELaboratory'));
+const LessonPlanner = lazy(() => import('./LessonPlanner'));
+const PracticeQuiz = lazy(() => import('./PracticeQuiz'));
+const CommentGenerator = lazy(() => import('./CommentGenerator'));
+const EarlyIntervention = lazy(() => import('./EarlyIntervention'));
+const LearningPathways = lazy(() => import('./LearningPathways'));
+const SubjectRecommender = lazy(() => import('./SubjectRecommender'));
+const RubricGenerator = lazy(() => import('./RubricGenerator'));
+const ParentMessageComposer = lazy(() => import('./ParentMessageComposer'));
 
 interface DashboardContentProps {
     activeView: DashboardView;
@@ -70,7 +82,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ activeView, setActi
         case ADMIN_VIEWS.COMMUNICATIONS:
             return <CommunicationsDashboard setActiveView={setActiveView}/>;
         case ADMIN_VIEWS.AI_TOOLS:
-            return <AITools setActiveView={setActiveView} />;
+            return <AIToolsNavigation setActiveView={setActiveView} />;
         case ADMIN_VIEWS.ANALYTICS:
             return <AdvancedAnalytics />;
         case ADMIN_VIEWS.ALUMNI:
@@ -93,6 +105,31 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ activeView, setActi
             return <ResourceHub />;
         case ADMIN_VIEWS.BILLING:
             return <BillingDashboard />;
+        
+        // Individual AI Tool Views
+                    case ADMIN_VIEWS.AI_CHAT:
+                        return <AIChatPanel />;
+                    case ADMIN_VIEWS.AI_ELABORATORY:
+                        return <ELaboratory setActiveView={setActiveView} />;
+                    case ADMIN_VIEWS.AI_LESSON_PLANNER:
+                        return <LessonPlanner setActiveView={setActiveView} />;
+                    case ADMIN_VIEWS.AI_SUBJECT_RECOMMENDER:
+                        return <SubjectRecommender setActiveView={setActiveView} />;
+        case ADMIN_VIEWS.AI_PRACTICE_QUIZ:
+            return <PracticeQuiz setActiveView={setActiveView} />;
+        case ADMIN_VIEWS.AI_COMMENT_GENERATOR:
+            return <CommentGenerator setActiveView={setActiveView} />;
+        case ADMIN_VIEWS.AI_EARLY_INTERVENTION:
+            return <EarlyIntervention setActiveView={setActiveView} />;
+        case ADMIN_VIEWS.AI_LEARNING_PATHWAYS:
+            return <LearningPathways setActiveView={setActiveView} />;
+        case ADMIN_VIEWS.AI_SUBJECT_RECOMMENDER:
+            return <SubjectRecommender setActiveView={setActiveView} />;
+        case ADMIN_VIEWS.AI_RUBRIC_GENERATOR:
+            return <RubricGenerator setActiveView={setActiveView} />;
+        case ADMIN_VIEWS.AI_PARENT_MESSAGE_COMPOSER:
+            return <ParentMessageComposer setActiveView={setActiveView} />;
+            
         default:
             return <DashboardHome setActiveView={setActiveView} />;
     }

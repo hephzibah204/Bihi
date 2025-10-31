@@ -6,7 +6,7 @@ import SpinnerIcon from './icons/SpinnerIcon';
 // Lazy-loaded components for teacher dashboard
 const Results = lazy(() => import('./Results'));
 const TeacherSchedule = lazy(() => import('./TeacherSchedule'));
-const AITools = lazy(() => import('./AITools'));
+const AIToolsNavigation = lazy(() => import('./AIToolsNavigation'));
 const MyStudents = lazy(() => import('./MyStudents'));
 const ResourceHub = lazy(() => import('./ResourceHub'));
 const DashboardKnowledgeBase = lazy(() => import('./DashboardKnowledgeBase'));
@@ -22,6 +22,17 @@ const StudentProfilePage = lazy(() => import('./StudentProfilePage'));
 const ComprehensiveReportEntry = lazy(() => import('./ComprehensiveReportEntry'));
 const Broadsheet = lazy(() => import('./Broadsheet'));
 
+// AI Tool Components
+const AIChatPanel = lazy(() => import('./AIChatPanel'));
+const ELaboratory = lazy(() => import('./ELaboratory'));
+const LessonPlanner = lazy(() => import('./LessonPlanner'));
+const AIPracticeQuiz = lazy(() => import('./AIPracticeQuiz'));
+const AICommentGenerator = lazy(() => import('./AICommentGenerator'));
+const AIEarlyIntervention = lazy(() => import('./AIEarlyIntervention'));
+const AILearningPathways = lazy(() => import('./AILearningPathways'));
+const AISubjectRecommender = lazy(() => import('./AISubjectRecommender'));
+const AIRubricGenerator = lazy(() => import('./AIRubricGenerator'));
+const AIParentMessageComposer = lazy(() => import('./AIParentMessageComposer'));
 
 interface TeacherDashboardContentProps {
     activeView: TeacherView;
@@ -50,7 +61,7 @@ const TeacherDashboardContent: React.FC<TeacherDashboardContentProps> = ({ activ
                     case TEACHER_VIEWS.MY_SCHEDULE:
                         return <TeacherSchedule />;
                     case TEACHER_VIEWS.AI_TOOLS:
-                        return <AITools setActiveView={setActiveView} />;
+                        return <AIToolsNavigation setActiveView={setActiveView} />;
                     case TEACHER_VIEWS.RESOURCE_HUB:
                         return <ResourceHub />;
                     case TEACHER_VIEWS.HELP:
@@ -75,6 +86,29 @@ const TeacherDashboardContent: React.FC<TeacherDashboardContentProps> = ({ activ
                         return <ComprehensiveReportEntry />;
                     case TEACHER_VIEWS.STUDENT_PROFILE:
                         return <StudentProfilePage studentId={profileStudentId} setActiveView={setActiveView} />;
+                    
+                    // Individual AI Tool Views
+                    case TEACHER_VIEWS.AI_CHAT:
+                        return <AIChatPanel />;
+                    case TEACHER_VIEWS.AI_ELABORATORY:
+                        return <ELaboratory setActiveView={setActiveView} />;
+                    case TEACHER_VIEWS.AI_LESSON_PLANNER:
+                        return <LessonPlanner setActiveView={setActiveView} />;
+                    case TEACHER_VIEWS.AI_PRACTICE_QUIZ:
+                        return <AIPracticeQuiz setActiveView={setActiveView} />;
+                    case TEACHER_VIEWS.AI_COMMENT_GENERATOR:
+                        return <AICommentGenerator setActiveView={setActiveView} />;
+                    case TEACHER_VIEWS.AI_EARLY_INTERVENTION:
+                        return <AIEarlyIntervention setActiveView={setActiveView} />;
+                    case TEACHER_VIEWS.AI_LEARNING_PATHWAYS:
+                        return <AILearningPathways setActiveView={setActiveView} />;
+                    case TEACHER_VIEWS.AI_SUBJECT_RECOMMENDER:
+                        return <AISubjectRecommender setActiveView={setActiveView} />;
+                    case TEACHER_VIEWS.AI_RUBRIC_GENERATOR:
+                        return <AIRubricGenerator setActiveView={setActiveView} />;
+                    case TEACHER_VIEWS.AI_PARENT_MESSAGE_COMPOSER:
+                        return <AIParentMessageComposer setActiveView={setActiveView} />;
+                        
                     default:
                         return <TeacherSchedule />;
             }

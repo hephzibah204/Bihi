@@ -1,10 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, KeyboardEvent } from 'react';
 import { getSupabaseEnv } from '../utils/env';
 import SimulationModal from './SimulationModal';
 import SimulationSuggestionCard, { SimulationSuggestion } from './SimulationSuggestionCard';
 import ImagePreview from './ImagePreview';
 import SparklesIcon from './icons/SparklesIcon';
 import UserCircleIcon from './icons/UserCircleIcon';
+import ChatHistorySidebar from './ChatHistorySidebar';
+import { useAuth } from '../contexts/AuthContext';
 
 type ChatMessage = {
   id: string;
@@ -14,6 +16,7 @@ type ChatMessage = {
   source?: 'gemini' | 'huggingface' | 'gemini-image' | 'unknown';
   image_base64?: string;
   simulation?: SimulationSuggestion;
+  createdAt?: number;
 };
 
 interface ChatProps {
@@ -81,13 +84,16 @@ async function fetchStream(prompt: string, onChunk: (chunk: string | Record<stri
   }
 }
 
-const Chat: React.FC<ChatProps> = ({ title = 'AI Chat (Edge)' }) => {
+const Chat: React.FC<ChatProps> = ({ title = 'AI Chat' }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [isSimOpen, setIsSimOpen] = useState(false);
   const [sim, setSim] = useState<SimulationSuggestion | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(true);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { user, session } = useAuth();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -95,16 +101,18 @@ const Chat: React.FC<ChatProps> = ({ title = 'AI Chat (Edge)' }) => {
 
   const assistantTextRef = useRef('');
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const prompt = input.trim();
+  const stripHtml = (html: string) => html.replace(/<[^>]+>/g, '');
+  const formatTime = (ts?: number) => ts ? new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+
+  const sendPrompt = async (prompt: string) => {
     if (!prompt) return;
-    setInput('');
-    const userMsg: ChatMessage = { id: `u_${Date.now()}`, role: 'user', text: prompt };
+    const now = Date.now();
+    const userMsg: ChatMessage = { id: `u_${now}`, role: 'user', text: prompt, createdAt: now };
     setMessages(prev => [...prev, userMsg]);
 
     const assistantId = `a_${Date.now()}`;
-    setMessages(prev => [...prev, { id: assistantId, role: 'assistant', text: '' }]);
+    const aiNow = Date.now();
+    setMessages(prev => [...prev, { id: assistantId, role: 'assistant', text: '', createdAt: aiNow }]);
 
     try {
       // Prefer streaming
@@ -157,28 +165,76 @@ const Chat: React.FC<ChatProps> = ({ title = 'AI Chat (Edge)' }) => {
     }
   };
 
+  const handleSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const prompt = input.trim();
+    if (!prompt) return;
+    setInput('');
+    await sendPrompt(prompt);
+  };
+
+  const onTextareaKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      const prompt = input.trim();
+      if (prompt && !isStreaming) {
+        setInput('');
+        void sendPrompt(prompt);
+      }
+    }
+  };
+
   const launchSim = (s: SimulationSuggestion) => {
     setSim(s);
     setIsSimOpen(true);
   };
 
+  const clearChat = () => setMessages([]);
+
+  const suggestions: string[] = [
+    'Summarize the following notes:',
+    'Create a study plan for Algebra this week.',
+    'Explain photosynthesis simply.',
+    'Draft 5 quiz questions on fractions.'
+  ];
+
   return (
-    <div className="card p-4">
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <h3 className="text-lg font-semibold">{title}</h3>
-          <p className="text-xs text-gray-500">Gemini/HF text, simulation cues, and images.</p>
+    <div className={`relative w-full max-w-[95vw] bg-white/95 backdrop-blur rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden`}>
+      {/* Header */}
+      <header className="px-4 py-3 border-b flex justify-between items-center flex-shrink-0 bg-gradient-to-r from-indigo-50 to-white">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+            <SparklesIcon className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <h3 className="font-semibold truncate">{title}</h3>
+            <div className="text-[11px] text-gray-500 truncate">Enter to send • Shift+Enter for newline</div>
+          </div>
         </div>
-      </div>
-      <div className="space-y-3 max-h-[50vh] overflow-y-auto">
+        <div className="flex items-center gap-2">
+          <div className="text-[11px] text-gray-500 flex items-center">
+            <span className={`w-2 h-2 rounded-full mr-1.5 ${isStreaming ? 'bg-yellow-500' : 'bg-green-500'}`}></span>
+            {isStreaming ? 'Thinking' : 'Ready'}
+          </div>
+          <button onClick={() => setIsHistoryOpen(true)} title="History" className="p-2 rounded-md hover:bg-gray-100 text-gray-600" disabled={!session?.access_token || !(user as any)?.id}>
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4h16v16H4z M8 8h8v2H8z M8 12h8v2H8z M8 16h5v2H8z"/></svg>
+          </button>
+          <button onClick={clearChat} title="Clear chat" className="p-2 rounded-md hover:bg-gray-100 text-gray-600">
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 6h18M9 6v12m6-12v12M5 6l1 14a2 2 0 002 2h8a2 2 0 002-2l1-14"/></svg>
+          </button>
+        </div>
+      </header>
+
+      {/* Messages */}
+      <div className="flex-1 min-h-0 p-4 overflow-y-auto space-y-4 bg-[linear-gradient(to_bottom,rgba(99,102,241,0.04),transparent_120px)]">
         {messages.map((m) => (
-          <div key={m.id} className={`flex items-end gap-2 ${m.role === 'user' ? 'justify-end' : ''}`}>
+          <div key={m.id} className={`group relative flex items-start gap-2 ${m.role === 'user' ? 'justify-end' : ''}`}>
             {m.role === 'assistant' && (
-              <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-500 flex-shrink-0">
+              <div className="w-8 h-8 mt-1 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-500 flex-shrink-0">
                 <SparklesIcon className="w-5 h-5" />
               </div>
             )}
-            <div className={`max-w-[80%] p-3 rounded-2xl ${m.role === 'assistant' ? 'bg-gray-100 rounded-bl-lg' : 'bg-indigo-500 text-white rounded-br-lg'}`}>
+            <div className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 shadow-sm ${m.role === 'assistant' ? 'bg-gray-50 border border-gray-100 rounded-bl-md' : 'bg-indigo-600 text-white rounded-br-md'}`}>
               {m.simulation ? (
                 <SimulationSuggestionCard simulation={m.simulation} onLaunch={launchSim} />
               ) : m.source === 'gemini-image' || m.image_base64 || m.html ? (
@@ -186,11 +242,23 @@ const Chat: React.FC<ChatProps> = ({ title = 'AI Chat (Edge)' }) => {
               ) : m.html ? (
                 <div className="prose prose-sm max-w-none"><div dangerouslySetInnerHTML={{ __html: m.html }} /></div>
               ) : (
-                <div className="text-sm whitespace-pre-wrap break-words">{m.text}</div>
+                <div className={`text-[13px] leading-6 whitespace-pre-wrap break-words ${m.role === 'assistant' ? 'text-gray-800' : 'text-white'}`}>{m.text}</div>
               )}
+              <div className={`mt-2 flex items-center gap-2 text-[11px] ${m.role === 'assistant' ? 'text-gray-500' : 'text-indigo-200'}`}>
+                {m.createdAt && <span>{formatTime(m.createdAt)}</span>}
+                {m.role === 'assistant' && (
+                  <button
+                    className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-0.5 rounded hover:bg-gray-200/70 text-gray-700"
+                    onClick={() => navigator.clipboard?.writeText(stripHtml(m.text || ''))}
+                    title="Copy"
+                  >
+                    Copy
+                  </button>
+                )}
+              </div>
             </div>
             {m.role === 'user' && (
-              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 flex-shrink-0">
+              <div className="w-8 h-8 mt-1 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 flex-shrink-0">
                 <UserCircleIcon className="w-6 h-6" />
               </div>
             )}
@@ -198,21 +266,65 @@ const Chat: React.FC<ChatProps> = ({ title = 'AI Chat (Edge)' }) => {
         ))}
         <div ref={messagesEndRef} />
       </div>
-      <form onSubmit={handleSend} className="mt-3 flex items-start">
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask anything…"
-          className="input-field flex-1 h-24 resize-y"
-          rows={4}
-        />
-        <div className="ml-2 flex flex-col gap-2">
-          <button type="submit" className="btn btn-primary" disabled={isStreaming || !input.trim()}>Send</button>
-        </div>
-      </form>
 
+      {/* Footer */}
+      <footer className="p-3 border-t space-y-3 bg-white flex-shrink-0">
+        <div className="flex items-center justify-between">
+          <div className="text-xs text-gray-500">Suggested prompts</div>
+          <button className="text-xs text-indigo-600 hover:text-indigo-700" onClick={() => setShowSuggestions(s => !s)}>
+            {showSuggestions ? 'Hide' : 'Show'}
+          </button>
+        </div>
+        {showSuggestions && (
+          <div className="flex flex-wrap gap-2 max-h-20 overflow-y-auto pr-1">
+            {suggestions.map((prompt, idx) => (
+              <button
+                key={idx}
+                type="button"
+                className="px-2.5 py-1 text-xs rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 whitespace-nowrap"
+                onClick={() => { setInput(prompt); }}
+                aria-label={`Use sample prompt: ${prompt}`}
+              >
+                {prompt}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <form onSubmit={handleSend} className="flex items-end gap-2">
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={onTextareaKeyDown}
+            placeholder="Ask anything… Enter to send • Shift+Enter newline"
+            className="input-field flex-1 h-24 resize-y"
+            rows={4}
+          />
+          <div className="flex flex-col gap-2">
+            <button type="submit" className="btn btn-primary" disabled={isStreaming || !input.trim()}>
+              <span className="inline-flex items-center gap-1">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 12h14M12 5l7 7-7 7"/></svg>
+                Send
+              </span>
+            </button>
+          </div>
+        </form>
+      </footer>
+
+      {/* Modals */}
       {sim && (
         <SimulationModal isOpen={isSimOpen} onClose={() => setIsSimOpen(false)} title={sim.title} url={sim.url} />
+      )}
+
+      {isHistoryOpen && session?.access_token && (user as any)?.id && (
+        <ChatHistorySidebar
+          isOpen={isHistoryOpen}
+          onClose={() => setIsHistoryOpen(false)}
+          userId={(user as any).id}
+          authToken={session.access_token}
+          filterType="text_chat"
+          onLoadConversation={() => setIsHistoryOpen(false)}
+        />
       )}
     </div>
   );

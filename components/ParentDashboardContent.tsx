@@ -13,7 +13,12 @@ const DirectMessages = lazy(() => import('./DirectMessages'));
 const ParentProfile = lazy(() => import('./ParentProfile'));
 const ParentEvents = lazy(() => import('./ParentEvents'));
 const ParentAbsenceReport = lazy(() => import('./ParentAbsenceReport'));
-const ParentAITools = lazy(() => import('./ParentAITools'));
+const AIToolsNavigation = lazy(() => import('./AIToolsNavigation'));
+
+// AI Tool Components
+const AIChatPanel = lazy(() => import('./AIChatPanel'));
+const ELaboratory = lazy(() => import('./ELaboratory'));
+const SubjectRecommender = lazy(() => import('./SubjectRecommender'));
 
 const ContentLoader = () => (
     <div className="flex items-center justify-center p-8">
@@ -53,7 +58,16 @@ const ParentDashboardContent: React.FC<ParentDashboardContentProps> = ({ activeV
                     case PARENT_VIEWS.REPORT_ABSENCE:
                         return <ParentAbsenceReport demoUserId={demoUserId}/>;
                     case PARENT_VIEWS.AI_TOOLS:
-                        return <ParentAITools demoUserId={demoUserId} />;
+                        return <AIToolsNavigation setActiveView={setActiveView} />;
+                    
+                    // Individual AI Tool Views
+                    case PARENT_VIEWS.AI_CHAT:
+                        return <AIChatPanel />;
+                    case PARENT_VIEWS.AI_ELABORATORY:
+                        return <ELaboratory setActiveView={setActiveView} />;
+                    case PARENT_VIEWS.AI_SUBJECT_RECOMMENDER:
+                        return <SubjectRecommender setActiveView={setActiveView} />;
+                        
                     default:
                         return <ParentHome setActiveView={setActiveView} demoUserId={demoUserId} />;
                 }

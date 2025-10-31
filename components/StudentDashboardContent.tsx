@@ -2,7 +2,7 @@ import React, { lazy, Suspense } from 'react';
 import { StudentView } from '../types';
 import { STUDENT_VIEWS, USER_ROLES } from '../utils/constants';
 import HeadsetIcon from './icons/HeadsetIcon';
-const StudentAITools = lazy(() => import('./StudentAITools'));
+const AIToolsNavigation = lazy(() => import('./AIToolsNavigation'));
 
 // Lazy-loaded components
 const StudentHome = lazy(() => import('./StudentHome'));
@@ -16,6 +16,11 @@ const PracticeQuiz = lazy(() => import('./PracticeQuiz'));
 const LearningPathways = lazy(() => import('./LearningPathways'));
 const SubjectRecommender = lazy(() => import('./SubjectRecommender'));
 const StudentReportCardViewer = lazy(() => import('./StudentReportCardViewer'));
+
+// AI Tool Components
+const AIChatPanel = lazy(() => import('./AIChatPanel'));
+const ELaboratory = lazy(() => import('./ELaboratory'));
+const SubjectRecommender = lazy(() => import('./SubjectRecommender'));
 
 interface StudentDashboardContentProps {
     activeView: StudentView;
@@ -42,7 +47,16 @@ const StudentDashboardContent = ({ activeView, setActiveView, demoUserId }: Stud
         case STUDENT_VIEWS.AI_TUTOR:
             return <AIAcademicTutor demoUserId={demoUserId} />;
         case STUDENT_VIEWS.AI_TOOLS:
-            return <Suspense fallback={<div className="card p-4">Loading...</div>}><StudentAITools setActiveView={setActiveView} demoUserId={demoUserId} /></Suspense>;
+            return <Suspense fallback={<div className="card p-4">Loading...</div>}><AIToolsNavigation setActiveView={setActiveView} /></Suspense>;
+        
+        // Individual AI Tool Views
+                    case STUDENT_VIEWS.AI_CHAT:
+                        return <AIChatPanel />;
+                    case STUDENT_VIEWS.AI_ELABORATORY:
+                        return <ELaboratory setActiveView={setActiveView} />;
+                    case STUDENT_VIEWS.AI_SUBJECT_RECOMMENDER:
+                        return <SubjectRecommender setActiveView={setActiveView} />;
+            
         default:
             return <StudentHome setActiveView={setActiveView} demoUserId={demoUserId} />;
     }
