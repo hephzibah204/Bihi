@@ -46,6 +46,8 @@ async function getAuthenticatedUser(request, env) {
     return null;
 }
 
+import { resolveTenantColumns } from '../_lib/schema';
+
 async function handlePost(request, env) {
     try {
         const user = await getAuthenticatedUser(request, env);
@@ -72,12 +74,11 @@ async function handlePost(request, env) {
         else if (cycle === 'termly') expiryDate.setMonth(now.getMonth() + 3);
         else if (cycle === 'yearly') expiryDate.setFullYear(now.getFullYear() + 1);
 
-        const updatePayload = {
-            planId,
-            subscriptionStatus: 'active',
-            // If your schema has subscriptionExpiryDate, you can add it back; keeping minimal fields for compatibility
-            trialEndDate: null,
-        };
+        const columns = await resolveTenantColumns(env);
+        const updatePayload = {};
+        if (columns.planId) updatePayload[columns.planId] = planId;
+        if (columns.subscriptionStatus) updatePayload[columns.subscriptionStatus] = 'active';
+        if (columns.trialEndDate) updatePayload[columns.trialEndDate] = null;
 
         const updateRes = await fetch(`${SUPABASE_URL}/rest/v1/tenants?id=eq.${tenantId}`, {
             method: 'PATCH',

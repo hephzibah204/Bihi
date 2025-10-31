@@ -1,6 +1,7 @@
 // functions/api/tenants/index.js
 import { handleCors } from '../../_lib/cors';
 import { requireSuperAdmin } from '../../_lib/auth';
+import { resolveTenantColumns } from '../../_lib/schema';
 
 async function listTenants(env) {
   const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = env;
@@ -29,8 +30,12 @@ async function createTenant(env, body) {
 
   // 1) Create tenant
   const trialExpiry = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+  const columns = await resolveTenantColumns(env);
+  const tenantPayload = { id: slug, name: schoolName };
+  if (columns.subscriptionStatus) tenantPayload[columns.subscriptionStatus] = 'trial';
+  if (columns.trialEndDate) tenantPayload[columns.trialEndDate] = trialExpiry;
   const tRes = await fetch(`${SUPABASE_URL}/rest/v1/tenants`, {
-    method: 'POST', headers, body: JSON.stringify({ id: slug, name: schoolName, subscriptionStatus: 'trial', trialEndDate: trialExpiry })
+    method: 'POST', headers, body: JSON.stringify(tenantPayload)
   });
   if (!tRes.ok) {
     const text = await tRes.text();

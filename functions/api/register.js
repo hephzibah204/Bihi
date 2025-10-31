@@ -76,6 +76,8 @@ const defaultSettings = {
     }
 };
 
+import { resolveTenantColumns } from '../_lib/schema';
+
 async function handlePost(request, env) {
     try {
         const { schoolName, subdomain, adminEmail, adminPassword, adminName, schoolType, emailRedirectTo } = await request.json();
@@ -99,9 +101,14 @@ async function handlePost(request, env) {
         const trialExpiry = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
 
         // Step 1: Create Tenant
+        const columns = await resolveTenantColumns(env);
+        const tenantPayload = { id: subdomain, name: schoolName };
+        if (columns.subscriptionStatus) tenantPayload[columns.subscriptionStatus] = 'trial';
+        if (columns.trialEndDate) tenantPayload[columns.trialEndDate] = trialExpiry;
+
         const tenantRes = await fetch(`${SUPABASE_URL}/rest/v1/tenants`, {
             method: 'POST', headers: adminHeaders,
-            body: JSON.stringify({ id: subdomain, name: schoolName, subscriptionStatus: 'trial', trialEndDate: trialExpiry })
+            body: JSON.stringify(tenantPayload)
         });
 
         if (!tenantRes.ok) {

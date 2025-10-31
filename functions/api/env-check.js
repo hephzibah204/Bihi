@@ -1,5 +1,6 @@
 // functions/api/env-check.js
 import { handleCors } from '../_lib/cors';
+import { resolveTenantColumns } from '../_lib/schema';
 
 async function checkSupabase(env) {
   const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY } = env || {};
@@ -38,16 +39,24 @@ async function checkSupabase(env) {
     result.checks.tenantsBasic = { ok: false, status: 0, error: err?.message };
   }
 
-  // Schema / column presence check: subscriptionStatus and trialEndDate
+  // Schema / column presence check with fallback to snake_case
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/tenants?select=id,subscriptionStatus,trialEndDate&limit=1`, { headers: adminHeaders });
+    const cols = await resolveTenantColumns(env);
+    const selectParts = ['id'];
+    if (cols.subscriptionStatus) selectParts.push(cols.subscriptionStatus);
+    if (cols.trialEndDate) selectParts.push(cols.trialEndDate);
+    const select = encodeURIComponent(selectParts.join(','));
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/tenants?select=${select}&limit=1`, { headers: adminHeaders });
     result.checks.tenantsColumns = {
       ok: res.ok,
       status: res.status,
+      using: selectParts,
       error: res.ok ? null : (await res.text()).slice(0, 500)
     };
+    result.checks.tenantsMeta = cols;
   } catch (err) {
     result.checks.tenantsColumns = { ok: false, status: 0, error: err?.message };
+    result.checks.tenantsMeta = { error: err?.message };
   }
 
   return result;
