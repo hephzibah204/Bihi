@@ -39,13 +39,19 @@ const SubscriptionPage = () => {
         try {
             const registerEndpoint = import.meta.env.VITE_SUPABASE_FUNCTION_REGISTER_URL || '/api/register';
             const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-            const maybeSupabase = registerEndpoint.includes('.supabase.co/functions/v1');
+            // Detect Supabase Functions (new domain or legacy /functions/v1 path)
+            const maybeSupabase = /https?:\/\/[^/]*functions\.supabase\.co\//i.test(registerEndpoint)
+                || /https?:\/\/[^/]*supabase\.co\/functions\/v1\//i.test(registerEndpoint);
             const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
             if (maybeSupabase && publishableKey) {
+                // Supabase Functions commonly expect Authorization with anon key; apikey is also accepted
                 headers['apikey'] = publishableKey as string;
+                if (!headers['Authorization']) {
+                    headers['Authorization'] = `Bearer ${publishableKey}`;
+                }
             }
 
-            // If the user already has a session, include JWT for protected functions
+            // If the user already has a session, prefer JWT over anon key for Authorization
             if (maybeSupabase && supabase?.auth) {
                 try {
                     const { data } = await supabase.auth.getSession();

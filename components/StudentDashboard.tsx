@@ -47,6 +47,20 @@ const StudentDashboard = ({ onLogout, demoUserId }) => {
         }
     };
 
+    // Resolve a reliable demo student id to pass to content
+    let resolvedDemoId: string | undefined = demoUserId;
+    if (!resolvedDemoId && typeof window !== 'undefined') {
+        try {
+            const raw = sessionStorage.getItem('activeUser');
+            const active = raw ? JSON.parse(raw) : null;
+            if (active?.userId) resolvedDemoId = active.userId;
+        } catch {}
+    }
+    // Final fallback: default seeded demo student id
+    if (!resolvedDemoId) {
+        resolvedDemoId = 'stud_1';
+    }
+
     return (
         <div className="flex h-screen bg-gray-100">
             <StudentSidebar isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} activeView={activeView} setActiveView={handleViewChange} />
@@ -55,7 +69,7 @@ const StudentDashboard = ({ onLogout, demoUserId }) => {
                 <main className="flex-1 overflow-x-hidden overflow-y-auto">
                     <div className="container mx-auto px-6 py-8">
                         <Suspense fallback={<ContentLoader />}>
-                            <StudentDashboardContent activeView={activeView} setActiveView={handleViewChange} demoUserId={demoUserId} />
+                            <StudentDashboardContent activeView={activeView} setActiveView={handleViewChange} demoUserId={resolvedDemoId} />
                         </Suspense>
                     </div>
                 </main>

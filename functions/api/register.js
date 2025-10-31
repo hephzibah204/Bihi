@@ -17,7 +17,7 @@ function handleCors(request) {
     const origin = request.headers.get("Origin");
     const headers = {
         "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization, apikey",
     };
     let isAllowed = false;
 

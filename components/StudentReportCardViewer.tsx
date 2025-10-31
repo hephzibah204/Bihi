@@ -218,7 +218,7 @@ const StudentReportCardViewer = ({ demoUserId }) => {
             </div>
 
             {/* A4-like preview container */}
-            <div className="w-full px-2">
+            <div className="w-full px-2 report-card-wrapper">
                 <div className="printable-content mx-auto bg-white shadow-lg report-card-page rounded-md md:rounded-lg">
                     <ReportCardComponent
                         {...reportData}

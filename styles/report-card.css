@@ -1,10 +1,9 @@
 /* Report card responsive and print styles */
 
-/* Base container for report pages */
+/* Base container for report pages (fixed A4 width on screen) */
 .report-card-page,
 .report-card-layout {
-  width: 100%;
-  max-width: 210mm; /* A4 width */
+  width: 210mm; /* A4 width for screen */
   margin-left: auto;
   margin-right: auto;
   background: #fff;
@@ -23,21 +22,17 @@
   table-layout: fixed;
 }
 
-/* Mobile adjustments */
+/* Mobile: allow horizontal scrolling without shrinking the page */
 @media screen and (max-width: 640px) {
   .report-card-layout,
   .report-card-page {
     padding: 1rem !important;
-    font-size: 1rem; /* keep base text readable on mobile */
-    line-height: 1.5;
   }
 
-  .report-card-layout table th,
-  .report-card-layout table td,
-  .report-card-page table th,
-  .report-card-page table td {
-    padding: 0.5rem;
-    font-size: 0.9rem;
+  /* Ensure the viewport can scroll to view the full A4 width */
+  .report-card-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 }
 
