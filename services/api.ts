@@ -6,7 +6,6 @@ import { parseSupabaseError, DatabaseError, NotFoundError } from '../utils/error
 import { 
   validateInput, 
   studentSchema, 
-  teacherSchema, 
   parentSchema, 
   messageSchema, 
   communicationSchema,
@@ -351,14 +350,29 @@ export const apiGetTeachers = async (options: { limit?: number, offset?: number 
         return data || [];
     });
 };
-export const apiUpsertTeacher = (teacher: Partial<Teacher>) => {
-    // Validate and sanitize input
-    const validatedTeacher = validateInput(teacherSchema.partial(), teacher);
-    
-    const actionType = validatedTeacher.id ? 'TEACHER_UPDATE' : 'TEACHER_ADD';
-    const description = validatedTeacher.id ? `Updated details for ${validatedTeacher.firstName} ${validatedTeacher.lastName}` : `Added new staff ${validatedTeacher.firstName} ${validatedTeacher.lastName}`;
+export const apiUpsertTeacher = (teacher: Partial<Teacher> & { firstName?: string; lastName?: string }) => {
+    // Construct a schema-aware payload aligned with DB columns
+    const tenant_id = getTenantId() || undefined;
+    const resolvedName = (teacher.name && teacher.name.trim())
+      || [teacher.firstName, teacher.lastName].filter(Boolean).join(' ').trim()
+      || undefined;
+
+    const payload: any = {};
+    if (teacher.id) payload.id = teacher.id;
+    if (tenant_id) payload.tenant_id = tenant_id;
+    if (teacher.email) payload.email = teacher.email;
+    if (teacher.role) payload.role = teacher.role as any;
+    if (resolvedName) payload.full_name = resolvedName; // canonical name column
+    if (teacher.classTeacherOf !== undefined) payload.classTeacherOf = teacher.classTeacherOf;
+    if (teacher.subjects !== undefined) payload.subjects = teacher.subjects;
+    if (teacher.baseSalary !== undefined) payload.baseSalary = teacher.baseSalary;
+
+    const actionType = teacher.id ? 'TEACHER_UPDATE' : 'TEACHER_ADD';
+    const description = teacher.id
+      ? `Updated details for ${resolvedName || teacher.email || teacher.id}`
+      : `Added new staff ${resolvedName || teacher.email || 'Unnamed'}`;
     apiLogActivity(actionType, description);
-    return upsert('teachers', validatedTeacher);
+    return upsert('teachers', payload);
 };
 export const apiDeleteTeacher = (teacherId: string) => {
     apiLogActivity('TEACHER_DELETE', `Deleted teacher with ID ${teacherId}`);
