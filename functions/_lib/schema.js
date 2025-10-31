@@ -42,7 +42,7 @@ export async function resolveTenantColumns(env) {
 // Resolve columns for teachers table (authId vs auth_id, tenantId vs tenant_id)
 export async function resolveTeachersColumns(env) {
   const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = env || {};
-  const fallback = { authId: null, tenantId: null };
+  const fallback = { authId: null, tenantId: null, email: null, name: null, role: null };
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return fallback;
 
   const headers = {
@@ -57,10 +57,18 @@ export async function resolveTeachersColumns(env) {
     if (!res.ok) return fallback;
     const cols = await res.json();
     const names = new Set((cols || []).map(c => c.name));
-    const pick = (camel, snake) => (names.has(camel) ? camel : (names.has(snake) ? snake : null));
+    const pick = (camel, snake, alt) => {
+      if (names.has(camel)) return camel;
+      if (names.has(snake)) return snake;
+      if (alt && names.has(alt)) return alt;
+      return null;
+    };
     return {
       authId: pick('authId', 'auth_id'),
       tenantId: pick('tenantId', 'tenant_id'),
+      email: pick('email', 'email_address', 'emailAddress'),
+      name: pick('name', 'full_name', 'display_name'),
+      role: pick('role', 'user_role'),
     };
   } catch (err) {
     return fallback;

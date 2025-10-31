@@ -136,7 +136,10 @@ async function handlePost(request, env) {
 
         // Step 3: Create Teacher Profile (schema-aware)
         const teacherCols = await resolveTeachersColumns(env);
-        const teacherPayload = { name: adminName, email: adminEmail, role: 'Admin' };
+        const teacherPayload = {};
+        if (teacherCols.name) teacherPayload[teacherCols.name] = adminName;
+        if (teacherCols.email) teacherPayload[teacherCols.email] = adminEmail;
+        if (teacherCols.role) teacherPayload[teacherCols.role] = 'Admin';
         if (teacherCols.authId) teacherPayload[teacherCols.authId] = userData.id;
         if (teacherCols.tenantId) teacherPayload[teacherCols.tenantId] = subdomain;
         const teacherRes = await fetch(`${SUPABASE_URL}/rest/v1/teachers`, {

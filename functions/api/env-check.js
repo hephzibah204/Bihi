@@ -59,12 +59,14 @@ async function checkSupabase(env) {
     result.checks.tenantsMeta = { error: err?.message };
   }
 
-  // Teachers column presence check (authId vs auth_id)
+  // Teachers column presence check (authId vs auth_id, tenantId, email)
   try {
     const tcols = await resolveTeachersColumns(env);
     const tSelectParts = ['id'];
     if (tcols.authId) tSelectParts.push(tcols.authId);
     if (tcols.tenantId) tSelectParts.push(tcols.tenantId);
+    if (tcols.email) tSelectParts.push(tcols.email);
+    if (tcols.name) tSelectParts.push(tcols.name);
     const tSelect = encodeURIComponent(tSelectParts.join(','));
     const tres = await fetch(`${SUPABASE_URL}/rest/v1/teachers?select=${tSelect}&limit=1`, { headers: adminHeaders });
     result.checks.teachersColumns = {
