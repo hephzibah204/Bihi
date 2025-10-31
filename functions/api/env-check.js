@@ -1,6 +1,6 @@
 // functions/api/env-check.js
 import { handleCors } from '../_lib/cors';
-import { resolveTenantColumns } from '../_lib/schema';
+import { resolveTenantColumns, resolveTeachersColumns } from '../_lib/schema';
 
 async function checkSupabase(env) {
   const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY } = env || {};
@@ -57,6 +57,26 @@ async function checkSupabase(env) {
   } catch (err) {
     result.checks.tenantsColumns = { ok: false, status: 0, error: err?.message };
     result.checks.tenantsMeta = { error: err?.message };
+  }
+
+  // Teachers column presence check (authId vs auth_id)
+  try {
+    const tcols = await resolveTeachersColumns(env);
+    const tSelectParts = ['id'];
+    if (tcols.authId) tSelectParts.push(tcols.authId);
+    if (tcols.tenantId) tSelectParts.push(tcols.tenantId);
+    const tSelect = encodeURIComponent(tSelectParts.join(','));
+    const tres = await fetch(`${SUPABASE_URL}/rest/v1/teachers?select=${tSelect}&limit=1`, { headers: adminHeaders });
+    result.checks.teachersColumns = {
+      ok: tres.ok,
+      status: tres.status,
+      using: tSelectParts,
+      error: tres.ok ? null : (await tres.text()).slice(0, 500)
+    };
+    result.checks.teachersMeta = tcols;
+  } catch (err) {
+    result.checks.teachersColumns = { ok: false, status: 0, error: err?.message };
+    result.checks.teachersMeta = { error: err?.message };
   }
 
   return result;

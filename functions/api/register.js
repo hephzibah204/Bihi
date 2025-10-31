@@ -76,7 +76,7 @@ const defaultSettings = {
     }
 };
 
-import { resolveTenantColumns } from '../_lib/schema';
+import { resolveTenantColumns, resolveTeachersColumns } from '../_lib/schema';
 
 async function handlePost(request, env) {
     try {
@@ -134,10 +134,14 @@ async function handlePost(request, env) {
             throw new Error(raw);
         }
 
-        // Step 3: Create Teacher Profile
+        // Step 3: Create Teacher Profile (schema-aware)
+        const teacherCols = await resolveTeachersColumns(env);
+        const teacherPayload = { name: adminName, email: adminEmail, role: 'Admin' };
+        if (teacherCols.authId) teacherPayload[teacherCols.authId] = userData.id;
+        if (teacherCols.tenantId) teacherPayload[teacherCols.tenantId] = subdomain;
         const teacherRes = await fetch(`${SUPABASE_URL}/rest/v1/teachers`, {
             method: 'POST', headers: adminHeaders,
-            body: JSON.stringify({ auth_id: userData.id, tenant_id: subdomain, name: adminName, email: adminEmail, role: 'Admin' })
+            body: JSON.stringify(teacherPayload)
         });
         if (!teacherRes.ok) {
             await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userData.id}`, { method: 'DELETE', headers: adminHeaders });
