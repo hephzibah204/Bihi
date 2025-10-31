@@ -103,6 +103,9 @@ async function handlePost(request, env) {
         // Step 1: Create Tenant
         const columns = await resolveTenantColumns(env);
         const tenantPayload = { id: subdomain, name: schoolName };
+        // Populate optional routing fields if they exist in schema
+        if (columns.slug) tenantPayload[columns.slug] = subdomain;
+        if (columns.subdomain) tenantPayload[columns.subdomain] = subdomain;
         if (columns.subscriptionStatus) tenantPayload[columns.subscriptionStatus] = 'trial';
         if (columns.trialEndDate) tenantPayload[columns.trialEndDate] = trialExpiry;
 
@@ -146,13 +149,14 @@ async function handlePost(request, env) {
             method: 'POST', headers: adminHeaders,
             body: JSON.stringify(teacherPayload)
         });
+        let teacherCreationWarning = null;
         if (!teacherRes.ok) {
-            await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userData.id}`, { method: 'DELETE', headers: adminHeaders });
-            await fetch(`${SUPABASE_URL}/rest/v1/tenants?id=eq.${subdomain}`, { method: 'DELETE', headers: adminHeaders });
+            // Do NOT rollback tenant or auth user on teacher creation failure.
+            // Some deployments use alternate schemas that may temporarily block teacher creation.
+            // We keep the tenant and auth user so the portal exists and can be accessed.
             let raw = '';
             try { raw = await teacherRes.text(); } catch {}
-            const msg = raw || `Failed to create admin profile (status ${teacherRes.status}).`;
-            throw new Error(msg);
+            teacherCreationWarning = raw || `Admin profile creation failed (status ${teacherRes.status}). Please complete admin setup after signing in.`;
         }
 
         // Step 4: Seed Data
@@ -161,7 +165,7 @@ async function handlePost(request, env) {
              fetch(`${SUPABASE_URL}/rest/v1/subjects`, { method: 'POST', headers: adminHeaders, body: JSON.stringify(defaultSubjects.map(s => ({ ...s, tenant_id: subdomain }))) })
         ]);
 
-        return new Response(JSON.stringify({ message: "Registration successful!" }), { status: 201 });
+        return new Response(JSON.stringify({ message: "Registration successful!", teacherProfileCreated: !teacherCreationWarning, warning: teacherCreationWarning || undefined }), { status: 201 });
     } catch (err) {
         return new Response(JSON.stringify({ error: "Registration failed", details: err.message }), { status: 500 });
     }

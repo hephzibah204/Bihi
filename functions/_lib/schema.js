@@ -8,6 +8,8 @@ export async function resolveTenantColumns(env) {
     subscriptionStatus: null,
     trialEndDate: null,
     planId: null,
+    slug: null,
+    subdomain: null,
   };
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -28,11 +30,15 @@ export async function resolveTenantColumns(env) {
     const names = new Set((cols || []).map(c => c.name));
 
     const pick = (camel, snake) => (names.has(camel) ? camel : (names.has(snake) ? snake : null));
+    const pickAny = (...variants) => variants.find(v => names.has(v)) || null;
 
     return {
       subscriptionStatus: pick('subscriptionStatus', 'subscription_status'),
       trialEndDate: pick('trialEndDate', 'trial_end_date'),
       planId: pick('planId', 'plan_id'),
+      // Optional routing/identity helpers if present in schema
+      slug: pickAny('slug'),
+      subdomain: pickAny('subdomain', 'sub_domain', 'domain'),
     };
   } catch (err) {
     return fallback;
@@ -43,7 +49,9 @@ export async function resolveTenantColumns(env) {
 export async function resolveTeachersColumns(env) {
   const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = env || {};
   // Prefer safe snake_case defaults when we cannot query pg_meta
-  const fallback = { authId: 'auth_id', tenantId: 'tenant_id', email: 'email', name: 'full_name', role: 'role' };
+  // Fallbacks should only include columns we are confident exist universally.
+  // Avoid defaulting authId to 'auth_id' to prevent PostgREST cache errors when it doesn't exist.
+  const fallback = { authId: null, tenantId: 'tenant_id', email: 'email', name: 'full_name', role: 'role' };
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return fallback;
 
   const headers = {
@@ -65,7 +73,7 @@ export async function resolveTeachersColumns(env) {
       return null;
     };
     return {
-      authId: pick('authId', 'auth_id'),
+      authId: pick('authId', 'auth_id', 'user_id'),
       tenantId: pick('tenantId', 'tenant_id'),
       email: pick('email', 'email_address', 'emailAddress'),
       name: pick('name', 'full_name', 'display_name'),

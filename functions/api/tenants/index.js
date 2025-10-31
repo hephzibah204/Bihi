@@ -32,6 +32,9 @@ async function createTenant(env, body) {
   const trialExpiry = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
   const columns = await resolveTenantColumns(env);
   const tenantPayload = { id: slug, name: schoolName };
+  // Populate optional routing fields if present in schema
+  if (columns.slug) tenantPayload[columns.slug] = slug;
+  if (columns.subdomain) tenantPayload[columns.subdomain] = slug;
   if (columns.subscriptionStatus) tenantPayload[columns.subscriptionStatus] = 'trial';
   if (columns.trialEndDate) tenantPayload[columns.trialEndDate] = trialExpiry;
   const tRes = await fetch(`${SUPABASE_URL}/rest/v1/tenants`, {

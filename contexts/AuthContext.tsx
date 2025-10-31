@@ -77,9 +77,23 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
                                 }
                             } catch { /* noop */ }
                         } else {
-                            setIsValidTenant(false);
-                            setLoading(false);
-                            return;
+                            // New: fallback for recently registered portals to avoid "Portal Not Found" immediately after signup.
+                            try {
+                                const markerRaw = localStorage.getItem('recentlyRegisteredTenant');
+                                const marker = markerRaw ? JSON.parse(markerRaw) : null;
+                                const withinGrace = marker && marker.id === sd && (Date.now() - marker.ts) < (15 * 60 * 1000);
+                                if (withinGrace) {
+                                    setIsValidTenant(true);
+                                } else {
+                                    setIsValidTenant(false);
+                                    setLoading(false);
+                                    return;
+                                }
+                            } catch {
+                                setIsValidTenant(false);
+                                setLoading(false);
+                                return;
+                            }
                         }
                     } else {
                         setIsValidTenant(true);

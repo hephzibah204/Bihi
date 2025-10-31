@@ -36,10 +36,24 @@ const SubscriptionPage = () => {
         setError('');
 
         try {
-            const response = await fetch('/api/register', {
+            const registerEndpoint = import.meta.env.VITE_SUPABASE_FUNCTION_REGISTER_URL || '/api/register';
+            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+            const maybeSupabase = registerEndpoint.includes('.supabase.co/functions/v1');
+            const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
+            if (maybeSupabase && publishableKey) {
+                headers['apikey'] = publishableKey as string;
+            }
+
+            const response = await fetch(registerEndpoint, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...formData, emailRedirectTo: portalUrl })
+                headers,
+                body: JSON.stringify({
+                    ...formData,
+                    // Ensure both slug and subdomain are provided for schema-aware backends
+                    slug: formData.subdomain,
+                    subdomain: formData.subdomain,
+                    emailRedirectTo: portalUrl,
+                })
             });
 
             // Check if response is OK before trying to parse JSON
@@ -73,6 +87,12 @@ const SubscriptionPage = () => {
                 } else if (!list.some((t: any) => t.id === entry.id)) {
                     localStorage.setItem('dev_tenants', JSON.stringify([...list, entry]));
                 }
+            } catch {}
+
+            // Record recent registration marker for tenant validation fallback (expires after 15 minutes)
+            try {
+                const marker = { id: formData.subdomain, ts: Date.now() };
+                localStorage.setItem('recentlyRegisteredTenant', JSON.stringify(marker));
             } catch {}
 
             setStep(3);
