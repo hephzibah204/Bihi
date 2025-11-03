@@ -32,6 +32,13 @@ const LessonPlanner = () => {
     const [period, setPeriod] = useState('');
     const [duration, setDuration] = useState('');
 
+    // Pedagogical toggles
+    const [usePBL, setUsePBL] = useState(true);
+    const [useInquiry, setUseInquiry] = useState(true);
+    const [useExperiential, setUseExperiential] = useState(true);
+    const [includeMultimedia, setIncludeMultimedia] = useState(true);
+    const [includeRealWorld, setIncludeRealWorld] = useState(true);
+
     // AI & UI State
     const [generatedPlan, setGeneratedPlan] = useState('');
     const { generateResponse, status } = useAI();
@@ -87,8 +94,9 @@ const LessonPlanner = () => {
         const schoolName = settings?.schoolName || 'The School';
 
         try {
+            const isEarlyYears = /nursery|pre[- ]?kg|\bkg\b|kindergarten|primary(\s*[1-3])?|lower\s*basic|basic\s*[1-3]/i.test(classLevel);
             const prompt = `
-You are an expert Nigerian educator and curriculum designer. Create a deeply detailed, 21st‑century compliant lesson document grounded in the Nigerian context (NERDC, WAEC/NECO orientation) with practical, classroom‑ready specificity.
+You are an expert Nigerian educator and curriculum designer. Create a deeply detailed, 21st‑century compliant lesson document grounded in the Nigerian context (NERDC, WAEC/NECO orientation; include ECCDE and Lower/Middle Basic considerations where relevant) with practical, classroom‑ready specificity.
 
 <strong>Context</strong>
 • School: ${schoolName}
@@ -100,6 +108,9 @@ You are an expert Nigerian educator and curriculum designer. Create a deeply det
 • Duration: ${duration || 'N/A'} minutes
 • Curriculum: ${curriculum === 'Other' ? otherCurriculum : curriculum} (default to NERDC if unclear)
 • Output Type: "${outputType}" (plan | note | combined)
+• Pedagogies to emphasize: ${[usePBL ? 'Project‑Based Learning' : null, useInquiry ? 'Inquiry‑Based Learning' : null, useExperiential ? 'Experiential Learning' : null].filter(Boolean).join(', ') || 'Teacher discretion'}
+• Include Multimedia: ${includeMultimedia ? 'Yes' : 'No'}
+• Emphasize Real‑World Applications: ${includeRealWorld ? 'Yes' : 'No'}
 • Custom Instructions: ${customPrompt || 'None'}
 • Uploaded Scheme of Work (PRIORITIZE if present):
 """
@@ -110,17 +121,28 @@ ${uploadedScheme || 'None provided.'}
 • Return a single valid HTML string only (no external CSS).
 • Use <h2> for main sections (“Lesson Plan”, “Lesson Note”).
 • Use <h3> for sub‑sections; use <strong>, <ul>, <li> for clarity.
+• Where tables are requested, output semantic HTML tables (<table>, <thead>, <tbody>, <tr>, <th>, <td>).
 • Write extensively (aim 1200–2000 words total for plan+note where applicable).
+${isEarlyYears ? '• Tone: age‑appropriate, simple sentences, visual/kinesthetic cues.' : ''}
 
+${isEarlyYears ? `<strong>Early Years Guidance (Nursery/Primary 1–3)</strong>
+• Use play‑based, active learning; short activities (5–10 mins) with brain breaks.
+• Emphasize phonics/oral language (for Literacy) and manipulatives/sensory (for Numeracy/Science).
+• Classroom management with routines, songs, TPR; use pictorial schedules and call‑and‑response.
+• Assessment via observation checklists, quick demonstrations, and portfolio artifacts.
+• Family connection: simple take‑home tasks using household items.
+` : ''}
 <strong>If Output Type = plan</strong> (Teacher‑facing):
 Include ALL of the following, tailored to Nigeria’s classroom realities and resources:
 1) <h3>Standards & Alignment</h3>
-   • Map to NERDC strands and WAEC/NECO objectives relevant to the topic.
+   • Map to NERDC strands and WAEC/NECO objectives relevant to the topic. If exact codes are known, include them; otherwise include best‑fit strand/objective names.
 2) <h3>Specific Learning Objectives</h3>
    • SMART objectives across Bloom’s domains (Cognitive, Psychomotor, Affective).
-   • Success criteria students can demonstrate.
+   • Provide a <strong>Bloom’s Taxonomy Alignment Table</strong> with levels (Remember, Understand, Apply, Analyze, Evaluate, Create), sample objective statements using appropriate verbs, and suggested assessments for each level.
+   • Provide a <strong>21st‑Century Competencies Matrix</strong> mapping objectives to skills: Critical Thinking, Communication, Collaboration, Creativity, Digital Literacy, Citizenship/Global Awareness.
 3) <h3>Materials & Resources</h3>
    • Low‑resource and local alternatives (chalkboard, locally available materials), plus digital tools if available.
+   • ${includeMultimedia ? 'List multimedia options (videos, simulations, interactive apps) with at least one offline‑friendly alternative and guidance for use in low‑bandwidth settings.' : 'Focus on non‑digital materials and print‑friendly resources.'}
 4) <h3>Prior Knowledge & Misconceptions</h3>
    • Common misconceptions Nigerian learners have; strategies to address them.
 5) <h3>Differentiation & Inclusion</h3>
@@ -129,30 +151,35 @@ Include ALL of the following, tailored to Nigeria’s classroom realities and re
    • Use 5E (Engage–Explore–Explain–Elaborate–Evaluate) OR Gradual Release (I Do–We Do–You Do).
    • For each phase: teacher actions, student activities, probing questions, expected responses, and exact timing.
    • Embed 21st‑century skills: critical thinking, collaboration, communication, creativity.
-7) <h3>Assessment</h3>
+7) <h3>Pedagogical Enhancements</h3>
+   ${usePBL ? '• <strong>Project‑Based Learning:</strong> Provide a project brief with driving question, deliverables, roles, assessment rubric, and a 1–2 week mini‑timeline adapted to Nigerian school schedules; include low‑cost materials alternatives.' : ''}
+   ${useInquiry ? '• <strong>Inquiry‑Based Learning:</strong> Provide a structured inquiry flow (questioning, hypothesis, investigation, evidence, conclusions) with sample prompts and checkpoints.' : ''}
+   ${useExperiential ? '• <strong>Experiential Learning:</strong> Propose a fieldwork/lab/community activity with safety plan, consent considerations, and reflection prompts (Kolb cycle).' : ''}
+8) <h3>Assessment</h3>
    • Formative checks (exit tickets, peer assessment, oral questioning) during the lesson.
    • Summative task aligned to objectives; marking guide.
-8) <h3>Real‑World Nigerian Context</h3>
-   • Concrete examples tied to local environment, economy, culture; community/household connections.
-9) <h3>Homework/Extension & Remediation</h3>
-   • Tasks for high‑flyers; remediation plan for learners needing support.
-10) <h3>Cross‑Curricular Links</h3>
+9) <h3>Real‑World Nigerian Context</h3>
+   • ${includeRealWorld ? 'Concrete, localized examples tied to environment/economy/culture; suggest community or household applications and home‑based alternatives.' : 'General examples acceptable; minimize locale specificity.'}
+10) <h3>Homework/Extension & Remediation</h3>
+    • Tasks for high‑flyers; remediation plan for learners needing support.
+11) <h3>Cross‑Curricular Links</h3>
     • Relevant ties to other subjects (Maths, English, Civic Education, etc.).
-11) <h3>Safety & Ethics</h3>
+12) <h3>Safety & Ethics</h3>
     • Any safety notes (labs/fieldwork); academic honesty.
-12) <h3>Teacher Reflection Notes</h3>
+13) <h3>Teacher Reflection Notes</h3>
     • What to observe, adapt next time, data to collect.
-13) <h3>Assessment Rubric (Table)</h3>
+14) <h3>Assessment Rubric (Table)</h3>
     • Criteria with performance levels A–D/E for the main summative task.
 
 <strong>If Output Type = note</strong> (Student‑facing):
 • Produce clear, board‑ready notes: definitions, explanations, worked examples, diagrams (describe), key points, practice questions, and a short summary.
 • Use simple language suitable for the specified class level; emphasize exam‑style clarity.
+• Where relevant, include short QR‑style references or titles for videos/simulations that students can search (no external links required).
 
 <strong>If Output Type = combined</strong>
 • First output the complete Lesson Plan, then the complete Lesson Note.
 
-Incorporate the uploaded scheme of work strictly where applicable (topic sequencing, period/duration) and reflect local realities (power/internet availability, classroom size). Use evidence‑based pedagogy and Nigeria‑specific examples throughout. Ensure the result is thorough, practical, and immediately usable.
+Ensure strict integration of the uploaded scheme of work (topic sequencing, period/duration) and reflect local realities (power/internet availability, classroom size). Use evidence‑based pedagogy and Nigeria‑specific examples throughout. Ensure the result is thorough, practical, and immediately usable.
 `;
             const result = await aiGenerateResponse(prompt);
             setGeneratedPlan(normalizeAIText(result));
@@ -205,10 +232,41 @@ Incorporate the uploaded scheme of work strictly where applicable (topic sequenc
                 <div className="mt-4"><button onClick={() => setShowAdvanced(!showAdvanced)} className="text-sm text-indigo-600">{showAdvanced ? 'Hide' : 'Show'} Advanced Options</button></div>
                 {showAdvanced && (
                     <div className="mt-2 p-4 border rounded-md bg-gray-50 grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><label className="label">Curriculum</label><select className="input-field" value={curriculum} onChange={e => setCurriculum(e.target.value)}><option>NERDC</option><option>British</option><option>Lagos State Scheme</option><option>Ogun State Scheme</option><option>NAPPS Scheme</option><option>Other</option></select></div>
-                        {curriculum === 'Other' && <div><label className="label">Specify Curriculum</label><input type="text" className="input-field" value={otherCurriculum} onChange={e => setOtherCurriculum(e.target.value)} /></div>}
-                        <div><label className="label">Upload Scheme of Work (.txt)</label><input type="file" className="input-field" accept=".txt" onChange={handleFileChange} /></div>
-                        <div className="md:col-span-2"><label className="label">Custom Instructions</label><textarea className="input-field" value={customPrompt} onChange={e => setCustomPrompt(e.target.value)} rows={2} placeholder="e.g., 'Focus on practical examples for rural students'"></textarea></div>
+                        <div>
+                            <label className="label">Curriculum</label>
+                            <select className="input-field" value={curriculum} onChange={e => setCurriculum(e.target.value)}>
+                                <option>NERDC</option>
+                                <option>British</option>
+                                <option>Lagos State Scheme</option>
+                                <option>Ogun State Scheme</option>
+                                <option>NAPPS Scheme</option>
+                                <option>Other</option>
+                            </select>
+                        </div>
+                        {curriculum === 'Other' && (
+                            <div>
+                                <label className="label">Specify Curriculum</label>
+                                <input type="text" className="input-field" value={otherCurriculum} onChange={e => setOtherCurriculum(e.target.value)} />
+                            </div>
+                        )}
+                        <div>
+                            <label className="label">Upload Scheme of Work (.txt)</label>
+                            <input type="file" className="input-field" accept=".txt" onChange={handleFileChange} />
+                        </div>
+                        <div className="md:col-span-2">
+                            <label className="label">Pedagogies & Enhancements</label>
+                            <div className="flex flex-wrap gap-4 text-sm">
+                                <label className="inline-flex items-center gap-2"><input type="checkbox" checked={usePBL} onChange={e => setUsePBL(e.target.checked)} /> Project‑Based</label>
+                                <label className="inline-flex items-center gap-2"><input type="checkbox" checked={useInquiry} onChange={e => setUseInquiry(e.target.checked)} /> Inquiry‑Based</label>
+                                <label className="inline-flex items-center gap-2"><input type="checkbox" checked={useExperiential} onChange={e => setUseExperiential(e.target.checked)} /> Experiential</label>
+                                <label className="inline-flex items-center gap-2"><input type="checkbox" checked={includeMultimedia} onChange={e => setIncludeMultimedia(e.target.checked)} /> Include Multimedia</label>
+                                <label className="inline-flex items-center gap-2"><input type="checkbox" checked={includeRealWorld} onChange={e => setIncludeRealWorld(e.target.checked)} /> Emphasize Real‑World</label>
+                            </div>
+                        </div>
+                        <div className="md:col-span-2">
+                            <label className="label">Custom Instructions</label>
+                            <textarea className="input-field" value={customPrompt} onChange={e => setCustomPrompt(e.target.value)} rows={2} placeholder="e.g., 'Focus on practical examples for rural students'"></textarea>
+                        </div>
                     </div>
                 )}
                  <button onClick={handleGenerate} className="btn btn-primary mt-4" disabled={isLoading || !topic}>

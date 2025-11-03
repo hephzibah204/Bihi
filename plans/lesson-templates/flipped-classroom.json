@@ -1,0 +1,39 @@
+{
+  "id": "flipped-classroom",
+  "title": "Flipped Classroom Template",
+  "description": "Students learn foundational content at home and use class time for practice, discussion, and projects.",
+  "pillars": {
+    "collaboration": true,
+    "creativity": true,
+    "technology": true
+  },
+  "steps": [
+    {
+      "id": "prework",
+      "title": "Pre-work (Home)",
+      "guidance": "Assign video or reading with embedded questions using a learning platform.",
+      "requiredPillars": ["technology"]
+    },
+    {
+      "id": "check-understanding",
+      "title": "Check Understanding",
+      "guidance": "Quick formative assessment; address misconceptions.",
+      "requiredPillars": ["technology"]
+    },
+    {
+      "id": "collaborative-activity",
+      "title": "Collaborative Activity",
+      "guidance": "Group work to apply concepts; use shared docs or whiteboards.",
+      "requiredPillars": ["collaboration", "technology"]
+    },
+    {
+      "id": "creative-application",
+      "title": "Creative Application",
+      "guidance": "Students create artifacts (presentations, prototypes, visualizations).",
+      "requiredPillars": ["creativity", "technology"]
+    }
+  ],
+  "suggestedDurationMinutes": 60,
+  "subjects": ["Math", "Languages", "Science"],
+  "gradeLevels": ["Middle", "High"]
+}

@@ -20,7 +20,6 @@ const StudentReportCardViewer = lazy(() => import('./StudentReportCardViewer'));
 // AI Tool Components
 const AIChatPanel = lazy(() => import('./AIChatPanel'));
 const ELaboratory = lazy(() => import('./ELaboratory'));
-const SubjectRecommender = lazy(() => import('./SubjectRecommender'));
 
 interface StudentDashboardContentProps {
     activeView: StudentView;

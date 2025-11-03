@@ -66,6 +66,7 @@ export const TEACHER_VIEWS = {
     MY_STUDENTS: 'my-students',
     ENTER_SCORES: 'enter-scores',
     MY_SCHEDULE: 'my-schedule',
+    LESSON_TEMPLATES: 'lesson-templates',
     AI_TOOLS: 'ai-tools',
     // Individual AI Tools
     AI_CHAT: 'ai-chat',
@@ -206,6 +207,14 @@ export const CONTROLLABLE_FEATURES = [
         description: 'Real-time chat between teachers, parents, and students',
         applicableRoles: ['admin', 'teacher', 'parent', 'student'],
         category: 'Communication'
+    }
+    ,
+    { 
+        key: 'lesson-templates', 
+        name: '21st-Century Classroom Templates',
+        description: 'Schema-driven lesson templates emphasizing collaboration, creativity, and technology',
+        applicableRoles: ['admin', 'teacher'],
+        category: 'Academic'
     }
 ];
 

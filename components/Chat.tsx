@@ -7,6 +7,7 @@ import SparklesIcon from './icons/SparklesIcon';
 import UserCircleIcon from './icons/UserCircleIcon';
 import ChatHistorySidebar from './ChatHistorySidebar';
 import { useAuth } from '../contexts/AuthContext';
+import { getConversationService } from '../services/conversationService';
 
 type ChatMessage = {
   id: string;
@@ -198,6 +199,23 @@ const Chat: React.FC<ChatProps> = ({ title = 'AI Chat' }) => {
     'Draft 5 quiz questions on fractions.'
   ];
 
+  const handleLoadConversation = async (conversationId: string) => {
+    try {
+      const svc = getConversationService();
+      const msgs = await svc.getMessages(conversationId);
+      const mapped: ChatMessage[] = (msgs || []).map(m => ({
+        id: m.id,
+        role: m.role === 'assistant' ? 'assistant' : 'user',
+        text: m.content,
+        createdAt: m.created_at ? new Date(m.created_at).getTime() : undefined
+      }));
+      setMessages(mapped);
+      setIsHistoryOpen(false);
+    } catch {
+      setIsHistoryOpen(false);
+    }
+  };
+
   return (
     <div className={`relative w-full max-w-[95vw] bg-white/95 backdrop-blur rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden`}>
       {/* Header */}
@@ -323,7 +341,7 @@ const Chat: React.FC<ChatProps> = ({ title = 'AI Chat' }) => {
           userId={(user as any).id}
           authToken={session.access_token}
           filterType="text_chat"
-          onLoadConversation={() => setIsHistoryOpen(false)}
+          onLoadConversation={handleLoadConversation}
         />
       )}
     </div>

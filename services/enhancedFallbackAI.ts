@@ -970,31 +970,112 @@ export class EnhancedFallbackAI {
                 .replace(/{number}/g, 'X.X')
                 .replace(/{essayType}/g, context.essayType || 'Argumentative');
         } else {
-            // Generic fallback
+            // Early Years specialized fallback if Nursery/Primary detected
+            const isEarly = /nursery|kg|kindergarten|primary(\s*[1-3])?|lower\s*basic|basic\s*[1-3]/i.test(classLevel);
+            if (isEarly) {
+                template = `**LESSON PLAN (Early Years): ${topic}**
+**Stage:** Nursery/Lower Basic
+**Class:** ${classLevel}
+**Duration:** 30–40 minutes (flexible blocks)
+**Curriculum:** NERDC ECCDE/Lower Basic (generic)
+
+**AIMS & DEVELOPMENTAL FOCUS:**
+• Language, early literacy/phonics, numeracy sense, social‑emotional skills, fine/gross motor
+
+**PLAY‑BASED OBJECTIVES (SMART):**
+1. Identify/produce sounds/words related to ${topic}
+2. Sort, match, count or manipulate materials related to ${topic}
+3. Follow simple instructions and share materials cooperatively
+
+**MATERIALS (LOW‑COST):**
+• Bottle tops, sticks, paper cutouts, picture cards, sand/beans trays, crayons
+
+**ROUTINE & FLOW:**
+1. Warm‑up (5 min): Song/rhyme with TPR linked to ${topic}
+2. Explore (10 min): Hands‑on centers with manipulatives (teacher circulates)
+3. Focused Mini‑Lesson (8 min): Short explicit teaching with visuals
+4. Practice (10 min): Guided activity; pair talk; show‑and‑tell
+5. Review (5 min): Circle time; quick checks (thumbs up/down)
+
+**DIFFERENTIATION & INCLUSION:**
+• Visual cues, gestures; peer buddy; choice of tasks; extra practice bin
+
+**ASSESSMENT (OBSERVATIONAL):**
+• Checklist of target behaviors; quick demonstrations; portfolio samples
+
+**HOME‑SCHOOL LINK:**
+• Simple home task using household items; family prompt in plain language
+
+**TEACHER NOTES:**
+• Keep transitions short; build predictable routines; celebrate small wins`;
+                confidence = 0.6;
+            } else {
+            // Generic fallback (offline) with Bloom's & 21st-century alignment
             template = `**LESSON PLAN: ${topic}**
 **Subject:** ${subject}
 **Class:** ${classLevel}
 **Duration:** 45 minutes
-**Curriculum:** WAEC/NECO Aligned
+**Curriculum:** NERDC/WAEC/NECO aligned (generic)
 
-**LEARNING OBJECTIVES:**
+**STANDARDS & ALIGNMENT:**
+• Link to relevant NERDC strand(s) and WAEC/NECO objectives (best fit)
+
+**LEARNING OBJECTIVES (SMART):**
 By the end of this lesson, students will be able to:
-1. Understand key concepts of ${topic}
-2. Apply knowledge in practical situations
-3. Prepare for WAEC/NECO examinations on this topic
+1. Define core terms related to ${topic}
+2. Explain key ideas in their own words
+3. Apply concepts to solve routine problems
+4. Analyze scenarios and justify solutions
 
-**LESSON STRUCTURE:**
-1. Introduction (10 min) - Review and introduce ${topic}
-2. Direct Instruction (20 min) - Teach core concepts
-3. Guided Practice (15 min) - Work through examples together
-4. Assessment (5 min) - Quick check for understanding
+**Bloom’s Taxonomy Alignment Table:**
+| Level | Sample Objective (using verbs) | Quick Assessment |
+|---|---|---|
+| Remember | Define, list, label ${topic} terms | Oral checks, flashcards |
+| Understand | Explain, summarize ${topic} ideas | Exit ticket (2 Qs) |
+| Apply | Solve, compute, demonstrate procedures | Short practice set |
+| Analyze | Compare, differentiate, categorize | Error analysis task |
+| Evaluate | Justify, critique solution strategies | Peer review discussion |
+| Create | Design, develop a product related to ${topic} | Mini‑project brief |
 
-**MATERIALS:** Textbooks, whiteboard, worksheets
+**21st‑Century Competencies Matrix:**
+• Critical Thinking: Non‑routine problem
+• Communication: Pair share + board explanations
+• Collaboration: Small group task with roles
+• Creativity: Real‑world mini‑design challenge
+• Digital Literacy: Optional use of phone calculator/docs (if allowed)
+• Citizenship: Tie to Nigeria/community context
 
-**HOMEWORK:** Practice exercises on ${topic}
+**MATERIALS & RESOURCES:**
+• Whiteboard/chalkboard, markers/chalk, printed worksheets
+• Low‑cost/local materials; if available: projector/phone for media
 
-**NOTE:** This is a basic template generated in offline mode. For comprehensive, curriculum-aligned lesson plans with Nigerian context, please connect to the internet for full AI capabilities.`;
+**LESSON FLOW (5E):**
+1. Engage (5 min): Context hook from Nigerian life
+2. Explore (10 min): Hands‑on/paper activity in groups
+3. Explain (15 min): Direct teaching + guided examples
+4. Elaborate (10 min): Apply to new, real‑world case
+5. Evaluate (5 min): Exit ticket + quick misconceptions fix
+
+**DIFFERENTIATION & INCLUSION:**
+• Tiered questions; sentence starters; peer tutoring; extra challenge items
+
+**ASSESSMENT:**
+• Formative: questioning, thumbs‑up/down, exit ticket
+• Summative: 5–10 item quiz or short task aligned to objectives
+• Rubric levels A–D for accuracy, reasoning, presentation
+
+**REAL‑WORLD NIGERIAN CONTEXT:**
+• Integrate examples from markets, transport, environment, civic life
+
+**HOMEWORK/EXTENSION:**
+• Practice questions; household observation or journal task
+
+**TEACHER REFLECTION:**
+• What worked? Evidence of learning? What to adjust next time?
+
+**NOTE:** Offline template. For richer plans (PBL/inquiry/experiential, multimedia lists, detailed rubrics), connect to the internet.`;
             confidence = 0.5;
+            }
         }
         
         return {

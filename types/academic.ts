@@ -80,3 +80,43 @@ export interface AbsenceReport {
   details?: string;
   status: 'Pending' | 'Acknowledged';
 }
+
+// 21st-Century Classroom Templates
+export interface LessonTemplate {
+  id: string;
+  title: string;
+  description: string;
+  pillars: {
+    collaboration: boolean;
+    creativity: boolean;
+    technology: boolean;
+  };
+  steps: Array<{
+    id: string;
+    title: string;
+    guidance: string;
+    requiredPillars?: Array<'collaboration' | 'creativity' | 'technology'>;
+  }>;
+  suggestedDurationMinutes?: number;
+  subjects?: string[];
+  gradeLevels?: string[];
+}
+
+export interface LessonPlan {
+  id: string;
+  templateId: string;
+  title: string;
+  subjectId?: string;
+  gradeLevel?: string;
+  objectives: string[];
+  steps: Array<{
+    id: string;
+    notes?: string;
+    completed?: boolean;
+  }>;
+  resources?: string[];
+  assessments?: string[];
+  createdByTeacherId: string;
+  createdAt: string;
+  updatedAt?: string;
+}

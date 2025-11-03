@@ -26,13 +26,13 @@ const Broadsheet = lazy(() => import('./Broadsheet'));
 const AIChatPanel = lazy(() => import('./AIChatPanel'));
 const ELaboratory = lazy(() => import('./ELaboratory'));
 const LessonPlanner = lazy(() => import('./LessonPlanner'));
-const AIPracticeQuiz = lazy(() => import('./AIPracticeQuiz'));
-const AICommentGenerator = lazy(() => import('./AICommentGenerator'));
-const AIEarlyIntervention = lazy(() => import('./AIEarlyIntervention'));
-const AILearningPathways = lazy(() => import('./AILearningPathways'));
-const AISubjectRecommender = lazy(() => import('./AISubjectRecommender'));
-const AIRubricGenerator = lazy(() => import('./AIRubricGenerator'));
-const AIParentMessageComposer = lazy(() => import('./AIParentMessageComposer'));
+const PracticeQuiz = lazy(() => import('./PracticeQuiz'));
+const CommentGenerator = lazy(() => import('./CommentGenerator'));
+const EarlyIntervention = lazy(() => import('./EarlyIntervention'));
+const LearningPathways = lazy(() => import('./LearningPathways'));
+const SubjectRecommender = lazy(() => import('./SubjectRecommender'));
+const RubricGenerator = lazy(() => import('./RubricGenerator'));
+const ParentMessageComposer = lazy(() => import('./ParentMessageComposer'));
 
 interface TeacherDashboardContentProps {
     activeView: TeacherView;
@@ -95,19 +95,19 @@ const TeacherDashboardContent: React.FC<TeacherDashboardContentProps> = ({ activ
                     case TEACHER_VIEWS.AI_LESSON_PLANNER:
                         return <LessonPlanner setActiveView={setActiveView} />;
                     case TEACHER_VIEWS.AI_PRACTICE_QUIZ:
-                        return <AIPracticeQuiz setActiveView={setActiveView} />;
+                        return <PracticeQuiz setActiveView={setActiveView} />;
                     case TEACHER_VIEWS.AI_COMMENT_GENERATOR:
-                        return <AICommentGenerator setActiveView={setActiveView} />;
+                        return <CommentGenerator setActiveView={setActiveView} />;
                     case TEACHER_VIEWS.AI_EARLY_INTERVENTION:
-                        return <AIEarlyIntervention setActiveView={setActiveView} />;
+                        return <EarlyIntervention setActiveView={setActiveView} />;
                     case TEACHER_VIEWS.AI_LEARNING_PATHWAYS:
-                        return <AILearningPathways setActiveView={setActiveView} />;
+                        return <LearningPathways setActiveView={setActiveView} />;
                     case TEACHER_VIEWS.AI_SUBJECT_RECOMMENDER:
-                        return <AISubjectRecommender setActiveView={setActiveView} />;
+                        return <SubjectRecommender setActiveView={setActiveView} />;
                     case TEACHER_VIEWS.AI_RUBRIC_GENERATOR:
-                        return <AIRubricGenerator setActiveView={setActiveView} />;
+                        return <RubricGenerator setActiveView={setActiveView} />;
                     case TEACHER_VIEWS.AI_PARENT_MESSAGE_COMPOSER:
-                        return <AIParentMessageComposer setActiveView={setActiveView} />;
+                        return <ParentMessageComposer setActiveView={setActiveView} />;
                         
                     default:
                         return <TeacherSchedule />;

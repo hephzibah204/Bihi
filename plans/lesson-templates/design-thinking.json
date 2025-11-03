@@ -1,0 +1,45 @@
+{
+  "id": "design-thinking",
+  "title": "Design Thinking Lesson",
+  "description": "Guide students through empathize, define, ideate, prototype, and test steps to solve a real problem.",
+  "pillars": {
+    "collaboration": true,
+    "creativity": true,
+    "technology": true
+  },
+  "steps": [
+    {
+      "id": "empathize",
+      "title": "Empathize",
+      "guidance": "Students research user needs via interviews, surveys, or observations.",
+      "requiredPillars": ["collaboration", "technology"]
+    },
+    {
+      "id": "define",
+      "title": "Define",
+      "guidance": "Teams synthesize findings and write a clear problem statement.",
+      "requiredPillars": ["collaboration"]
+    },
+    {
+      "id": "ideate",
+      "title": "Ideate",
+      "guidance": "Brainstorm multiple solutions; encourage divergent thinking and sketching.",
+      "requiredPillars": ["creativity"]
+    },
+    {
+      "id": "prototype",
+      "title": "Prototype",
+      "guidance": "Build low-fidelity prototypes using available materials or digital tools.",
+      "requiredPillars": ["technology", "creativity"]
+    },
+    {
+      "id": "test",
+      "title": "Test",
+      "guidance": "Gather feedback, reflect, and iterate on prototypes.",
+      "requiredPillars": ["collaboration"]
+    }
+  ],
+  "suggestedDurationMinutes": 90,
+  "subjects": ["Science", "Social Studies"],
+  "gradeLevels": ["Middle", "High"]
+}

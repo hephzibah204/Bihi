@@ -13,6 +13,7 @@ import { getConversationService } from '../services/conversationService';
 import { searchSimulations } from '../services/aiSimulations';
 import Modal from './Modal';
 import type { UserRole } from '../types';
+import ChatHistorySidebar from './ChatHistorySidebar';
 
 interface ChatbotPanelProps {
     isOpen: boolean;
@@ -33,8 +34,9 @@ const ChatbotPanel = ({ isOpen, onClose, userRole, demoUserId, activeView, title
     const [notifications, setNotifications] = useState<{ id: string; type: string; title: string; message: string; }[]>([]);
     const [dashboardContext, setDashboardContext] = useState('');
     const [showSuggestions, setShowSuggestions] = useState(true);
+    const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
-    const { user } = useAuth();
+    const { user, session } = useAuth();
     
     const handleNotification = (notification: { type: 'info' | 'warning' | 'error'; title: string; message: string }) => {
         const id = `notification_${Date.now()}`;
@@ -382,6 +384,24 @@ const ChatbotPanel = ({ isOpen, onClose, userRole, demoUserId, activeView, title
 
     const clearChat = () => setMessages([]);
 
+    const handleLoadConversation = async (id: string) => {
+        try {
+            const svc = getConversationService();
+            const msgs = await svc.getMessages(id);
+            const mapped = (msgs || []).map(m => ({
+                id: m.id,
+                sender: m.role === 'assistant' ? 'ai' : 'user',
+                text: m.content,
+                metadata: m.metadata,
+            }));
+            setConversationId(id);
+            setMessages(mapped);
+            setIsHistoryOpen(false);
+        } catch {
+            setIsHistoryOpen(false);
+        }
+    };
+
     const resolvedTitle = (() => {
         if (title && title.trim().length > 0) return title;
         switch (userRole) {
@@ -436,6 +456,9 @@ const ChatbotPanel = ({ isOpen, onClose, userRole, demoUserId, activeView, title
                         <span className={`w-2 h-2 rounded-full mr-1.5 ${status === 'gemini' ? 'bg-green-500' : status === 'loading' ? 'bg-yellow-500' : 'bg-gray-400'}`}></span>
                         {status === 'gemini' ? 'Online' : status === 'loading' ? 'Thinking' : 'Offline'}
                     </div>
+                    <button onClick={() => setIsHistoryOpen(true)} title="History" className="p-2 rounded-md hover:bg-gray-100 text-gray-600">
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4h16v16H4z M8 8h8v2H8z M8 12h8v2H8z M8 16h5v2H8z"/></svg>
+                    </button>
                     <button onClick={clearChat} title="Clear chat" className="p-2 rounded-md hover:bg-gray-100 text-gray-600">
                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 6h18M9 6v12m6-12v12M5 6l1 14a2 2 0 002 2h8a2 2 0 002-2l1-14"/></svg>
                     </button>
@@ -655,6 +678,16 @@ const ChatbotPanel = ({ isOpen, onClose, userRole, demoUserId, activeView, title
                     )}
                 </div>
             </Modal>
+            {isHistoryOpen && session?.access_token && (user as any)?.id && (
+                <ChatHistorySidebar
+                    isOpen={isHistoryOpen}
+                    onClose={() => setIsHistoryOpen(false)}
+                    userId={(user as any).id}
+                    authToken={session.access_token}
+                    filterType="text_chat"
+                    onLoadConversation={handleLoadConversation}
+                />
+            )}
         </div>
     );
 };

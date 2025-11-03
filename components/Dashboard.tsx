@@ -146,10 +146,26 @@ const Dashboard = () => {
                 );
             }
             if (demoRole === USER_ROLES.STUDENT) {
-                return <Suspense fallback={<ContentLoader />}><StudentDashboard onLogout={logout} demoUserId={effectiveDemoStudentId} /></Suspense>;
+                return (
+                    <TenantProvider>
+                        <PlanFeaturesProvider>
+                            <Suspense fallback={<ContentLoader />}>
+                                <StudentDashboard onLogout={logout} demoUserId={effectiveDemoStudentId} />
+                            </Suspense>
+                        </PlanFeaturesProvider>
+                    </TenantProvider>
+                );
             }
             if (demoRole === USER_ROLES.PARENT) {
-                return <Suspense fallback={<ContentLoader />}><ParentDashboard onLogout={logout} demoUserId={effectiveDemoStudentId} /></Suspense>;
+                return (
+                    <TenantProvider>
+                        <PlanFeaturesProvider>
+                            <Suspense fallback={<ContentLoader />}>
+                                <ParentDashboard onLogout={logout} demoUserId={effectiveDemoStudentId} />
+                            </Suspense>
+                        </PlanFeaturesProvider>
+                    </TenantProvider>
+                );
             }
             // Default to admin dashboard for other roles
             return (
@@ -215,10 +231,26 @@ const Dashboard = () => {
         );
     }
     if (role === USER_ROLES.STUDENT) {
-        return <Suspense fallback={<ContentLoader />}><StudentDashboard onLogout={logout} demoUserId={user?.id} /></Suspense>;
+        return (
+            <TenantProvider>
+                <PlanFeaturesProvider>
+                    <Suspense fallback={<ContentLoader />}>
+                        <StudentDashboard onLogout={logout} demoUserId={user?.id} />
+                    </Suspense>
+                </PlanFeaturesProvider>
+            </TenantProvider>
+        );
     }
     if (role === USER_ROLES.PARENT) {
-        return <Suspense fallback={<ContentLoader />}><ParentDashboard onLogout={logout} demoUserId={user?.id} /></Suspense>;
+        return (
+            <TenantProvider>
+                <PlanFeaturesProvider>
+                    <Suspense fallback={<ContentLoader />}>
+                        <ParentDashboard onLogout={logout} demoUserId={user?.id} />
+                    </Suspense>
+                </PlanFeaturesProvider>
+            </TenantProvider>
+        );
     }
 
     return (

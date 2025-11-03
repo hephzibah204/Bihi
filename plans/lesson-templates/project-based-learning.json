@@ -1,0 +1,39 @@
+{
+  "id": "project-based-learning",
+  "title": "Project-Based Learning",
+  "description": "Students work on an extended project solving an authentic problem with multiple deliverables.",
+  "pillars": {
+    "collaboration": true,
+    "creativity": true,
+    "technology": true
+  },
+  "steps": [
+    {
+      "id": "launch",
+      "title": "Project Launch",
+      "guidance": "Introduce driving question; form teams; define roles and norms.",
+      "requiredPillars": ["collaboration"]
+    },
+    {
+      "id": "research-plan",
+      "title": "Research Plan",
+      "guidance": "Plan research tasks; identify sources; set milestones using digital tools.",
+      "requiredPillars": ["technology", "collaboration"]
+    },
+    {
+      "id": "create",
+      "title": "Create",
+      "guidance": "Develop artifacts or solutions; iterate based on feedback.",
+      "requiredPillars": ["creativity", "collaboration"]
+    },
+    {
+      "id": "present",
+      "title": "Present",
+      "guidance": "Share outcomes with audience; reflect on process and learning.",
+      "requiredPillars": ["technology", "collaboration"]
+    }
+  ],
+  "suggestedDurationMinutes": 120,
+  "subjects": ["Science", "Social Studies", "Arts"],
+  "gradeLevels": ["Upper Primary", "Middle", "High"]
+}
