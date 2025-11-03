@@ -194,9 +194,18 @@ cache.cacheResponse(actualPrompt, text, 'gemini', opts.context);
     }
     
   } catch (error) {
-    // Rethrow a more user-friendly and specific error for the useAI hook to catch.
+    // If the server proxy endpoint is unreachable, try direct Gemini fallback
     if ((error as any).message?.includes('Failed to fetch')) {
-        throw new Error('Network connection failed. Could not reach AI service.');
+      try {
+        const text = await directGeminiGenerate(actualPrompt);
+        if (text) {
+cache.cacheResponse(actualPrompt, text, 'gemini', opts.context);
+          return text;
+        }
+      } catch (_) {
+        // ignore and fall through to user-friendly error
+      }
+      throw new Error('Network connection failed. Could not reach AI service.');
     }
     throw new Error(`The AI service is currently unavailable. ${error instanceof Error ? error.message : String(error)}`);
   }
@@ -323,7 +332,14 @@ export const callGeminiApiStream = async (
 
   } catch (error) {
     if ((error as any).message?.includes('Failed to fetch')) {
-        throw new Error('Network connection failed. Could not reach AI service.');
+      // Try direct stream as a fallback if server endpoint is unreachable
+      try {
+        await directGeminiStream(actualPrompt, onChunk);
+        return;
+      } catch (_) {
+        // fall through to friendly error
+      }
+      throw new Error('Network connection failed. Could not reach AI service.');
     }
     throw new Error(`The AI service is currently unavailable. ${error instanceof Error ? error.message : String(error)}`);
   }
