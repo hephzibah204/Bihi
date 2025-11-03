@@ -49,12 +49,13 @@ export const callGeminiApi = async (
   try {
     // Ensure Supabase is initialized before use (handles lazy init race in dev)
     try { if (!supabase) { await initSupabase(); } } catch { /* ignore */ }
-    if (!supabase) {
+    // Allow demo mode to proceed even if Supabase client failed to initialize
+    const isDemo = (typeof window !== 'undefined' && sessionStorage.getItem('isDemoMode') === 'true');
+    if (!supabase && !isDemo) {
         throw new Error("Authentication service is not available.");
     }
 
-    const { data: { session } } = await supabase.auth.getSession();
-    const isDemo = sessionStorage.getItem('isDemoMode') === 'true';
+    const { data: { session } } = supabase ? await supabase.auth.getSession() : { data: { session: null } } as any;
 
     if (!session && !isDemo) {
         throw new Error("User not authenticated.");
@@ -62,14 +63,23 @@ export const callGeminiApi = async (
     
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
-    };
+    } as any;
     
     // Prioritize demo mode check to prevent lingering sessions from interfering.
     if (isDemo) {
-        headers['X-Demo-Mode'] = 'true';
+        (headers as any)['X-Demo-Mode'] = 'true';
     } else if (session) {
-        headers['Authorization'] = `Bearer ${session.access_token}`;
+        (headers as any)['Authorization'] = `Bearer ${session.access_token}`;
     }
+
+    // If calling a Supabase Edge Function and no user token present, attach anon key for public access
+    try {
+      const isSupabaseFunction = typeof AI_ENDPOINT === 'string' && AI_ENDPOINT.includes('.supabase.co/functions/v1');
+      const anonKey = (typeof window !== 'undefined' ? (window as any).process?.env?.VITE_SUPABASE_ANON_KEY : undefined) || (import.meta as any)?.env?.VITE_SUPABASE_ANON_KEY;
+      if (isSupabaseFunction && !(headers as any)['Authorization'] && anonKey) {
+        (headers as any)['Authorization'] = `Bearer ${anonKey}`;
+      }
+    } catch { /* noop */ }
 
     // Get tenant context for API key resolution
     const tenantId = opts.tenantId || getTenantId();
@@ -217,24 +227,33 @@ export const callGeminiApiStream = async (
   try {
     // Ensure Supabase is initialized before use (handles lazy init race in dev)
     try { if (!supabase) { await initSupabase(); } } catch { /* ignore */ }
-    if (!supabase) {
+    const isDemo = (typeof window !== 'undefined' && sessionStorage.getItem('isDemoMode') === 'true');
+    if (!supabase && !isDemo) {
         throw new Error("Authentication service is not available.");
     }
 
-    const { data: { session } } = await supabase.auth.getSession();
-    const isDemo = sessionStorage.getItem('isDemoMode') === 'true';
+    const { data: { session } } = supabase ? await supabase.auth.getSession() : { data: { session: null } } as any;
 
     if (!session && !isDemo) {
         throw new Error("User not authenticated.");
     }
     
-    const headers: HeadersInit = { 'Content-Type': 'application/json' };
+    const headers: HeadersInit = { 'Content-Type': 'application/json' } as any;
     
     if (isDemo) {
-        headers['X-Demo-Mode'] = 'true';
+        (headers as any)['X-Demo-Mode'] = 'true';
     } else if (session) {
-        headers['Authorization'] = `Bearer ${session.access_token}`;
+        (headers as any)['Authorization'] = `Bearer ${session.access_token}`;
     }
+
+    // If calling a Supabase Edge Function and no user token present, attach anon key for public access (stream)
+    try {
+      const isSupabaseFunction = typeof AI_ENDPOINT === 'string' && AI_ENDPOINT.includes('.supabase.co/functions/v1');
+      const anonKey = (typeof window !== 'undefined' ? (window as any).process?.env?.VITE_SUPABASE_ANON_KEY : undefined) || (import.meta as any)?.env?.VITE_SUPABASE_ANON_KEY;
+      if (isSupabaseFunction && !(headers as any)['Authorization'] && anonKey) {
+        (headers as any)['Authorization'] = `Bearer ${anonKey}`;
+      }
+    } catch { /* noop */ }
 
     // Get tenant context for API key resolution
     const tenantId = opts.tenantId || getTenantId();
