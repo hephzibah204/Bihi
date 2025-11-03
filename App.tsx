@@ -6,11 +6,13 @@ import GlobalNotification from './components/GlobalNotification';
 import GlobalBroadcast from './components/GlobalBroadcast';
 import { applyThemeToDocument, defaultTheme, ThemeSettings } from './hooks/useTheme';
 import { getConnectionManager } from './utils/connectionManager';
+import { DEFAULT_LANDING_PAGE_CONTENT, DEFAULT_MENU_ITEMS } from './utils/landingPageContent';
 
 // Load Dashboard eagerly to avoid intermittent dynamic import fetch errors
 import Dashboard from './components/Dashboard';
 const LandingPage = lazy(() => import('./components/LandingPage'));
 const SuperAdminDashboard = lazy(() => import('./components/SuperAdminDashboard'));
+const NotFoundPage = lazy(() => import('./components/NotFoundPage'));
 const DemoPage = lazy(() => import('./components/DemoPage'));
 const SubscriptionPage = lazy(() => import('./components/SubscriptionPage'));
 const PublicResultViewer = lazy(() => import('./components/PublicResultViewer'));
@@ -106,7 +108,7 @@ const AppRouter = () => {
     return (
         <Suspense fallback={<FullPageLoader />}>
             <Routes>
-                <Route path="/" element={<LandingPage content={platformSettings?.landingPageContent} menuItems={platformSettings?.menus?.header} />} />
+                <Route path="/" element={<LandingPage content={platformSettings?.landingPageContent || DEFAULT_LANDING_PAGE_CONTENT} menuItems={platformSettings?.menus?.header || DEFAULT_MENU_ITEMS} />} />
                 <Route path="/demo" element={<DemoPage />} />
                 <Route path="/signup" element={<SubscriptionPage />} />
                 <Route path="/signin" element={<CentralLoginPage />} />
@@ -114,6 +116,8 @@ const AppRouter = () => {
                 <Route path="/controlhub" element={<SuperAdminDashboard />} />
                 {/* Path-based tenant routing */}
                 <Route path="/:tenantSlug/*" element={<TenantRouter />} />
+                {/* Catch-all route for unknown paths (non-tenant) */}
+                <Route path="*" element={<NotFoundPage />} />
             </Routes>
         </Suspense>
     );

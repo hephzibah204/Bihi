@@ -12,6 +12,7 @@ import SelectChildModal from './SelectChildModal';
 const PortalLogin = ({ onStudentLoginSuccess }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [profileError, setProfileError] = useState('');
     const [schoolSettings, setSchoolSettings] = useState(null);
     const [activeTab, setActiveTab] = useState('student');
 
@@ -38,6 +39,13 @@ const PortalLogin = ({ onStudentLoginSuccess }) => {
             }
         };
         fetchSettings();
+        
+        // Check for stored profile error
+        const storedError = sessionStorage.getItem('authProfileError');
+        if (storedError) {
+            setProfileError(storedError);
+            sessionStorage.removeItem('authProfileError');
+        }
     }, []);
 
     const handleStaffLogin = async (e) => {
@@ -171,6 +179,19 @@ const PortalLogin = ({ onStudentLoginSuccess }) => {
                         </h1>
                         <p className="mt-2 text-gray-600">Please sign in to your portal.</p>
                     </div>
+                    
+                    {profileError && (
+                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                            <p className="text-sm text-amber-800 font-medium">Profile Error</p>
+                            <p className="text-sm text-amber-700 mt-1">{profileError}</p>
+                            <button 
+                                onClick={() => setProfileError('')}
+                                className="mt-2 text-sm text-amber-600 hover:text-amber-800 underline"
+                            >
+                                Dismiss
+                            </button>
+                        </div>
+                    )}
 
                     <div className="border-b border-gray-200">
                         <div className="flex -mb-px">

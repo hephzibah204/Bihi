@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { usePlanFeatures } from '../contexts/PlanFeaturesContext';
 import type { LessonTemplate, LessonPlan } from '../types/academic';
 import { DocumentTextIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { emitPracticeEvent } from '../services/telemetry';
 
 type PillarKey = 'collaboration' | 'creativity' | 'technology';
 
@@ -115,6 +116,7 @@ export default function LessonTemplates() {
       const existing = JSON.parse(localStorage.getItem(key) || '[]');
       existing.push(plan);
       localStorage.setItem(key, JSON.stringify(existing));
+      emitPracticeEvent('lesson_plan_saved', { templateId: activeTemplate.id, title: plan.title });
       setSavedMessage('Lesson plan saved locally.');
       setError(null);
     } catch (e) {

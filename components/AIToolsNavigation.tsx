@@ -23,6 +23,14 @@ interface AITool {
 
 const aiTools: AITool[] = [
     {
+        id: 'ai-coach',
+        title: 'AI Coach & Training',
+        description: 'Micro-courses, recommendations, and badges to strengthen pedagogy.',
+        icon: <DocumentTextIcon className="h-8 w-8" />,
+        view: 'AI_COACH',
+        roles: [USER_ROLES.ADMIN, USER_ROLES.TEACHER]
+    },
+    {
         id: 'ai-chat',
         title: 'AI Assistant',
         description: 'Chat with your role-tailored AI assistant for personalized help and guidance.',

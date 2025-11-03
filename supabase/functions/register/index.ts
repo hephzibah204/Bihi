@@ -213,6 +213,7 @@ serve(async (req: Request) => {
       headers: adminHeaders,
       body: JSON.stringify(tenantPayload),
     });
+    console.log('Tenant creation result:', { ok: tenantRes.ok, status: tenantRes.status });
     if (!tenantRes.ok) {
       let raw = "";
       try {
@@ -243,6 +244,7 @@ serve(async (req: Request) => {
     try {
       userData = await userRes.json();
     } catch {}
+    console.log('Auth user creation result:', { ok: userRes.ok, userId: userData?.id });
     if (!userRes.ok) {
       await fetch(`${env.SUPABASE_URL}/rest/v1/tenants?id=eq.${subdomain}`, { method: "DELETE", headers: adminHeaders });
       const raw = userData?.msg || `Failed to create admin user (status ${userRes.status}).`;
@@ -259,20 +261,106 @@ serve(async (req: Request) => {
     if (teacherCols.role) teacherPayload[teacherCols.role] = "Admin";
     if (teacherCols.authId) teacherPayload[teacherCols.authId] = userData.id;
     if (teacherCols.tenantId) teacherPayload[teacherCols.tenantId] = subdomain;
-    const teacherRes = await fetch(`${env.SUPABASE_URL}/rest/v1/teachers`, {
-      method: "POST",
-      headers: adminHeaders,
-      body: JSON.stringify(teacherPayload),
-    });
-    let teacherCreationWarning: string | null = null;
-    if (!teacherRes.ok) {
-      let raw = "";
+    
+    console.log('Creating teacher profile with payload:', teacherPayload);
+    console.log('Teacher columns detected:', teacherCols);
+    
+    // Retry mechanism for teacher profile creation
+    const teacherUrl = `${env.SUPABASE_URL}/rest/v1/teachers`;
+    const maxAttempts = 3;
+    let teacherRes: Response | null = null;
+    let attempt = 0;
+    let lastErrorDetails = '';
+    while (attempt < maxAttempts) {
+      attempt++;
+      teacherRes = await fetch(teacherUrl, { method: 'POST', headers: adminHeaders, body: JSON.stringify(teacherPayload) });
+      console.log('Teacher profile creation attempt', attempt, 'result:', { ok: teacherRes.ok, status: teacherRes.status });
+      if (teacherRes.ok) break;
       try {
-        raw = await teacherRes.text();
-      } catch {}
-      teacherCreationWarning = raw || `Admin profile creation failed (status ${teacherRes.status}). Please complete admin setup after signing in.`;
-      // Do NOT rollback tenant or auth user on teacher creation failure.
+        const errorJson = await teacherRes.clone().json();
+        // deno-lint-ignore no-explicit-any
+        lastErrorDetails = (errorJson as any).message || (errorJson as any).hint || JSON.stringify(errorJson);
+      } catch {
+        try { lastErrorDetails = await teacherRes.text(); } catch {}
+      }
+      // backoff
+      await new Promise((r) => setTimeout(r, 400 * attempt));
     }
+
+    if (!teacherRes || !teacherRes.ok) {
+      // Teacher creation is CRITICAL - rollback everything if it fails
+      let errorDetails = "";
+      try {
+        const errorJson = await teacherRes.json();
+        errorDetails = errorJson.message || errorJson.hint || JSON.stringify(errorJson);
+      } catch {
+        try {
+          errorDetails = await teacherRes.text();
+        } catch {}
+      }
+      
+      console.error('Teacher profile creation failed:', errorDetails);
+      
+      // Rollback: Delete the auth user we just created
+      try {
+        await fetch(`${env.SUPABASE_URL}/auth/v1/admin/users/${userData.id}`, {
+          method: "DELETE",
+          headers: adminHeaders,
+        });
+        console.log('Rolled back auth user:', userData.id);
+      } catch (rollbackErr) {
+        console.error('Failed to rollback auth user:', rollbackErr);
+      }
+      
+      // Rollback: Delete the tenant we just created
+      try {
+        await fetch(`${env.SUPABASE_URL}/rest/v1/tenants?id=eq.${subdomain}`, {
+          method: "DELETE",
+          headers: adminHeaders,
+        });
+        console.log('Rolled back tenant:', subdomain);
+      } catch (rollbackErr) {
+        console.error('Failed to rollback tenant:', rollbackErr);
+      }
+      
+      throw new Error(`Failed to create admin profile: ${errorDetails}. Registration has been rolled back. Please try again or contact support if the issue persists.`);
+    }
+    
+    // Verify teacher was actually created by fetching it
+    const verifyRes = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/teachers?${teacherCols.email}=eq.${adminEmail}&${teacherCols.tenantId}=eq.${subdomain}`,
+      { headers: adminHeaders }
+    );
+    console.log('Teacher verification request status:', verifyRes.status);
+    
+    if (!verifyRes.ok) {
+      console.error('Teacher verification request failed:', verifyRes.status);
+      throw new Error('Failed to verify admin profile creation.');
+    }
+    
+    const teachers = await verifyRes.json();
+    if (!Array.isArray(teachers) || teachers.length === 0) {
+      console.error('Teacher verification failed: No teacher record found');
+      
+      // Rollback everything
+      try {
+        await fetch(`${env.SUPABASE_URL}/auth/v1/admin/users/${userData.id}`, {
+          method: "DELETE",
+          headers: adminHeaders,
+        });
+        await fetch(`${env.SUPABASE_URL}/rest/v1/tenants?id=eq.${subdomain}`, {
+          method: "DELETE",
+          headers: adminHeaders,
+        });
+        console.log('Rolled back due to verification failure');
+      } catch (rollbackErr) {
+        console.error('Failed to rollback after verification failure:', rollbackErr);
+      }
+      
+      throw new Error('Admin profile creation verification failed. Registration has been rolled back. Please try again.');
+    }
+    
+    console.log('Teacher profile verified successfully:', teachers[0]);
 
     // Step 4: Seed Data
     await Promise.all([
@@ -288,8 +376,10 @@ serve(async (req: Request) => {
       }),
     ]);
 
+    console.log('Registration completed successfully for:', subdomain);
+    
     const res = new Response(
-      JSON.stringify({ message: "Registration successful!", teacherProfileCreated: !teacherCreationWarning, warning: teacherCreationWarning || undefined }),
+      JSON.stringify({ message: "Registration successful!", teacherProfileCreated: true }),
       { status: 201 },
     );
     Object.entries(corsHeaders).forEach(([k, v]) => res.headers.set(k, v));

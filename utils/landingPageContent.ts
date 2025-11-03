@@ -9,63 +9,81 @@ export const DEFAULT_MENU_ITEMS: MenuItem[] = [
 
 export const DEFAULT_LANDING_PAGE_CONTENT: LandingPageContent = {
   hero: {
-    title: "Unlock Your School's Potential. The All-in-One AI Platform.",
-    subtitle: "Automate results, generate insightful reports, and empower your teachers with cutting-edge AI tools. Go from tedious paperwork to data-driven excellence in minutes."
+    title: "Nigeria’s First AI-Powered School Performance & Finance Suite — Now 21st-Century Compliant.",
+    subtitle: "Dossier.ng transforms ordinary schools into innovation hubs. It doesn’t just manage your school — it modernizes how you teach, learn, and grow.<br/>From classrooms to cashflows, Dossier.ng empowers teachers, delights parents, and drives student performance through intelligence, not infrastructure."
   },
   problem: {
-    title: "Buried in Paperwork? There's a Smarter Way.",
+    title: "The Hidden Truth About Education in the 21st Century.",
     points: [
-      "Countless hours spent manually calculating results and typing comments.",
-      "Inconsistent report cards that fail to impress parents.",
-      "No clear view of student performance trends across terms.",
-      "Communication with parents is slow, expensive, and ineffective."
+      "Most classrooms still teach like it’s 1980.",
+      "Parents are frustrated with poor feedback and late results.",
+      "Teachers are drowning in paperwork instead of creativity.",
+      "Students memorize facts instead of building skills.",
+      "School owners chase debt and data instead of innovation."
     ],
-    extraText: "Traditional school management is holding you back. It's time-consuming, prone to errors, and keeps you from focusing on what truly matters: your students' success."
+    extraText: "You’ve tried portals. You’ve tried spreadsheets. Now, it’s time to try intelligence that transforms mindsets."
   },
   solution: {
-    title: "Welcome to ReportSheet: Your School's AI Co-Pilot",
+    title: "The Future of Smart, 21st-Century Schooling Has Arrived.",
     features: [
-      { icon: 'ClockIcon', title: 'Instant Result Automation', desc: 'Enter scores once. ReportSheet handles all calculations, grading, class positions, and subject averages in the blink of an eye. Free your teachers from manual work.' },
-      { icon: 'SparklesIcon', title: 'AI-Powered Comments', desc: 'Generate unique, insightful, and personalized report card comments for every student in seconds, reflecting their actual performance.' },
-      { icon: 'ChartBarIcon', title: 'Deep Performance Analytics', desc: 'Visualize academic trends, identify at-risk students, and spot your star performers with beautiful, easy-to-understand charts.' },
-      { icon: 'DocumentArrowDownIcon', title: 'Professional Report Cards', desc: 'Design and generate stunning, professional report cards for your entire school with a single click. Print-ready and parent-approved.' },
-      { icon: 'BrainCircuitIcon', title: 'Teacher Empowerment Suite', desc: 'Equip your teachers with AI tools to create lesson plans, practice quizzes, and personalized learning pathways for students.' },
-      { icon: 'ChatBubbleLeftRightIcon', title: 'Effortless Parent Communication', desc: 'Keep parents informed with integrated SMS/Email announcements, automated fee reminders, and secure direct messaging.' }
+      // Financial Intelligence
+      { icon: 'WalletIcon', title: 'Smart Fee Management', desc: 'Automates billing, receipts, and reminders. <em>→ Frees administrators to focus on learning, not chasing payments.</em>' },
+      { icon: 'ChartBarIcon', title: 'AI-Powered Debt Prediction', desc: 'Detects risky accounts early and recommends action. <em>→ Promotes data-driven leadership and accountability.</em>' },
+      { icon: 'DocumentArrowDownIcon', title: 'Bank Reconciliation', desc: 'Syncs effortlessly with accounts and ledgers.' },
+      { icon: 'BriefcaseIcon', title: 'Payroll Management', desc: 'Track staff payments and performance incentives.' },
+      // Academic Intelligence
+      { icon: 'ClockIcon', title: 'Automated Grading & Reporting', desc: 'Reduce teacher stress with one-click precision. <em>→ Encourages formative feedback, not just final scores.</em>' },
+      { icon: 'BrainCircuitIcon', title: 'AI Lesson Planner', desc: 'Aligns objectives with Bloom’s Taxonomy and 21st-century competencies. <em>→ Transforms rote teaching into project-based learning.</em>' },
+      { icon: 'ChartBarIcon', title: 'Performance Analytics', desc: 'Visualize trends and identify at-risk students early.' },
+      { icon: 'AcademicCapIcon', title: 'Class & Subject Trends', desc: 'Discover where your learners excel or need intervention.' },
+      // AI Insights & Leadership
+      { icon: 'SparklesIcon', title: 'Real-Time Analytics Dashboard', desc: 'See everything that matters in one place.' },
+      { icon: 'ChatBubbleLeftRightIcon', title: 'AI Chat Assistant', desc: 'Ask “How can we improve STEM results this term?” and get intelligent answers.' },
+      { icon: 'BeakerIcon', title: 'Automated Action Suggestions', desc: 'Turns insights into concrete next steps.' },
+      { icon: 'ChartPieIcon', title: 'Predictive Leadership Reports', desc: 'Track growth, engagement, and 21st-century readiness.' },
+      // Communication & Engagement
+      { icon: 'UsersIcon', title: 'Parent Portal', desc: 'Parents get live academic and behavioral updates. <em>→ Builds partnership, not tension.</em>' },
+      { icon: 'MegaphoneIcon', title: 'Targeted SMS & Email Reminders', desc: 'Communicate smarter, faster.' },
+      { icon: 'EnvelopeIcon', title: 'AI-Generated Announcements', desc: 'Save time with intelligent communication templates.' },
+      { icon: 'MicrophoneIcon', title: 'Student Portfolios & Voice Submissions', desc: 'Let students showcase creativity and communication skills digitally.' }
     ]
   },
   testimonials: {
-    title: "Why School Leaders in Nigeria Love ReportSheet",
+    title: "Schools Across Nigeria Are Seeing Real Results",
     items: [
-        { id: 'test_1', quote: "ReportSheet cut our result processing time by over 80%. The AI comments are a lifesaver, and our parents are more engaged than ever. It's a total game-changer for us.", avatar: 'https://i.pravatar.cc/150?img=1', name: 'Mrs. Funke Adebayo', role: 'Proprietress', school: 'Bright Minds Academy, Lagos' },
-        { id: 'test_2', quote: "As an admin, the analytics dashboard is my favorite feature. I can see a complete overview of the school's performance at a glance. We're making smarter decisions now.", avatar: 'https://i.pravatar.cc/150?img=2', name: 'Mr. Chinedu Eze', role: 'Head of School', school: 'Innovate Scholars, Abuja' },
-        { id: 'test_3', quote: "My teachers are happier and more productive. They spend less time on admin and more time teaching. The parent communication tools have been invaluable.", avatar: 'https://i.pravatar.cc/150?img=3', name: 'Hajia Aisha Bello', role: 'Principal', school: 'Crestview International, Port Harcourt' }
+        { id: 'test_1', quote: "We recovered ₦1.2m in unpaid fees within one term using Dossier. But more importantly, our teachers now think differently — lessons are creative, data is alive.", avatar: 'https://i.pravatar.cc/150?img=12', name: 'Mr. Femi Adeboye', role: 'Principal', school: 'Gracefield High School' },
+        { id: 'test_2', quote: "Before Dossier, we focused on grades. Now we measure engagement, collaboration, and confidence.", avatar: 'https://i.pravatar.cc/150?img=22', name: 'Mrs. Uche Nwosu', role: 'Director', school: 'Brilliance Academy' },
+        { id: 'test_3', quote: "Parents say our reports finally make sense. Dossier helps them see growth, not just numbers.", avatar: 'https://i.pravatar.cc/150?img=32', name: 'Mr. Yusuf Bamidele', role: 'Headteacher', school: 'OliveSpring Schools' }
     ]
   },
   pricing: {
-    title: "Simple, Transparent Pricing for Every School Size",
-    subtitle: "No hidden fees. No long-term contracts. Just powerful features that fit your budget. Start with a 14-day free trial on any plan."
+    title: "Affordable. Scalable. Revolutionary.",
+    subtitle: "Monthly · Termly · Yearly (Save 20%)"
   },
   comparison: {
-      title: "The ReportSheet Advantage",
+      title: "Why Dossier.ng is in a Class of Its Own",
       features: [
-          { name: "AI-Powered Insights", regular: "Manual Data Entry", reportsheet: "Automated Analytics & Comments" },
-          { name: "Result Processing", regular: "Days of Spreadsheet Hell", reportsheet: "Instant & Error-Free" },
-          { name: "Parent Engagement", regular: "Occasional Newsletters", reportsheet: "Real-time Communication & Portal" },
-          { name: "Teacher Workflow", regular: "Overloaded with Admin Tasks", reportsheet: "Streamlined & AI-Assisted" }
+          { name: "Focus", regular: "Record & Store Data", reportsheet: "Predict, Analyze & Optimize" },
+          { name: "21st-Century Learning", regular: "Not Supported", reportsheet: "Built into Every Module" },
+          { name: "AI-Powered", regular: "No", reportsheet: "Deep AI Core" },
+          { name: "Debt Recovery", regular: "Manual Follow-up", reportsheet: "Automated AI Nudging" },
+          { name: "Academic + Financial Link", regular: "Disconnected", reportsheet: "Unified Intelligence" },
+          { name: "Teacher Development", regular: "Optional", reportsheet: "Built-in Micro-Learning" },
+          { name: "Reporting", regular: "Static", reportsheet: "Smart, Auto-Narrated Insights" },
+          { name: "Leadership Dashboard", regular: "Absent", reportsheet: "Visionary & Predictive" }
       ]
   },
   faq: {
-    title: "Your Questions, Answered",
+    title: "Security & Setup",
     items: [
-      { q: "Is our school's data secure with ReportSheet?", a: "Absolutely. We use bank-grade encryption and best-in-class security protocols. Your data is yours alone, and we are committed to keeping it safe." },
-      { q: "How long does it take to set up?", a: "You can create your school portal and be ready to go in less than 5 minutes. Our intuitive interface and bulk import tools make migrating your data a breeze." },
-      { q: "Can we try it before committing?", a: "Yes! Every new school gets a 14-day free trial with full access to all features. No credit card required to get started." },
-      { q: "Is it suitable for my school type?", a: "ReportSheet is built to be flexible. It's perfect for nursery, primary, and secondary schools, and can be customized to fit your specific academic structure." }
+      { q: "Is our school's data secure with Dossier.ng?", a: "Yes. Your data stays encrypted, backed up, and protected with enterprise-grade security — built on Supabase and Cloudflare infrastructure." },
+      { q: "Do we need an IT department?", a: "No. Launch your 21st-century classroom suite in minutes — guided onboarding included." }
     ]
   },
   finalCta: {
-    title: "Ready to Upgrade Your School's Operating System?",
-    subtitle: "Join the growing community of forward-thinking schools in Nigeria. Give your teachers the tools they deserve and give your parents the experience they expect."
+    title: "Join the Next Generation of Smart, 21st-Century Schools.",
+    subtitle: "Over 2,000 Nigerian schools are transforming academic and financial performance with Dossier.ng. You don’t need expensive classrooms — just a smarter way to teach and lead.",
+    tagline: "Dossier.ng by Hephzibah Edutech — AI-Powered Performance Suite for 21st-Century Schools"
   },
   promoBanner: {
       enabled: false,

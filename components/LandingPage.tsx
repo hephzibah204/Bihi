@@ -12,6 +12,7 @@ import BrainCircuitIcon from './icons/BrainCircuitIcon';
 import Bars3Icon from './icons/Bars3Icon';
 import XIcon from './icons/XIcon';
 import FAQ from './FAQ';
+import { DEFAULT_LANDING_PAGE_CONTENT, DEFAULT_MENU_ITEMS } from '../utils/landingPageContent';
 
 // --- Icon Mapping ---
 const icons: { [key: string]: React.FC<any> } = {
@@ -36,9 +37,9 @@ const Header = ({ menuItems }: { menuItems?: MenuItem[] }) => {
     return (
         <header className="sticky top-0 left-0 right-0 z-30 bg-white/80 backdrop-blur-sm shadow-sm">
             <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-                <Link to="/" className="flex items-center space-x-2">
+<Link to="/" className="flex items-center space-x-2">
                     <Logo className="h-8 w-8" />
-                    <span className="text-2xl font-bold text-gray-800">ReportSheet</span>
+                    <span className="text-2xl font-bold text-gray-800">Dossier.ng</span>
                 </Link>
                 <nav className="hidden md:flex items-center space-x-6">
                     {navLinks}
@@ -168,7 +169,7 @@ const Comparison = ({ content }: { content: LandingPageContent['comparison'] }) 
                         <tr>
                             <th className="th">Feature</th>
                             <th className="th">Manual Methods</th>
-                            <th className="th text-indigo-600">ReportSheet</th>
+                            <th className="th text-indigo-600">Dossier.ng</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -233,7 +234,7 @@ const Footer = () => (
                 </div>
             </div>
             <div className="mt-12 border-t border-gray-700 pt-8 text-center text-gray-400">
-                <p>&copy; {new Date().getFullYear()} ReportSheet by Hephzibah Edutech. All rights reserved.</p>
+                <p>&copy; {new Date().getFullYear()} Dossier.ng by Hephzibah Edutech. All rights reserved.</p>
             </div>
         </div>
     </footer>
@@ -243,39 +244,21 @@ const Footer = () => (
 // --- Main Landing Page Component ---
 
 const LandingPage = ({ content, menuItems }: { content: LandingPageContent, menuItems: MenuItem[] }) => {
-    if (!content) {
-        return (
-            <div className="bg-gray-50 text-gray-800">
-                <Header menuItems={menuItems} />
-                <main>
-                    <section className="pt-32 pb-20">
-                        <div className="container mx-auto px-6 animate-pulse">
-                            <div className="h-10 w-2/3 bg-gray-200 rounded" />
-                            <div className="mt-4 h-6 w-1/2 bg-gray-200 rounded" />
-                            <div className="mt-8 flex justify-center gap-4">
-                                <div className="h-12 w-40 bg-gray-200 rounded" />
-                                <div className="h-12 w-40 bg-gray-200 rounded" />
-                            </div>
-                        </div>
-                    </section>
-                </main>
-                <Footer />
-            </div>
-        );
-    }
+    const effectiveContent = { ...DEFAULT_LANDING_PAGE_CONTENT, ...(content || {}) } as LandingPageContent;
+    const effectiveMenu = menuItems || DEFAULT_MENU_ITEMS;
 
     return (
         <div className="bg-gray-50 text-gray-800">
-            <Header menuItems={menuItems} />
+            <Header menuItems={effectiveMenu} />
             <main>
-                <Hero content={content.hero} />
-                <Problem content={content.problem} />
-                <Solution content={content.solution} />
-                <Testimonials content={content.testimonials} />
-                <Pricing content={content.pricing} />
-                <Comparison content={content.comparison} />
-                <FAQ content={content.faq} />
-                <FinalCTA content={content.finalCta} />
+                <Hero content={effectiveContent.hero} />
+                <Problem content={effectiveContent.problem} />
+                <Solution content={effectiveContent.solution} />
+                <Testimonials content={effectiveContent.testimonials} />
+                <Pricing content={effectiveContent.pricing} />
+                <Comparison content={effectiveContent.comparison} />
+                <FAQ content={effectiveContent.faq} />
+                <FinalCTA content={effectiveContent.finalCta} />
             </main>
             <Footer />
         </div>

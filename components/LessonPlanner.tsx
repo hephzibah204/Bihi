@@ -13,6 +13,7 @@ import { generateClassNames } from '../utils/classManager';
 import { supabase } from '../services/supabaseClient';
 import { normalizeAIText } from '../utils/aiNormalize';
 import HtmlContent from './HtmlContent';
+import { getMappings, getPhonicsPlan, getStageFromClassLevel } from '../utils/nerdcMappings';
 
 const LessonPlanner = () => {
     const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -92,6 +93,9 @@ const LessonPlanner = () => {
         const subjectName = subjects.find(s => s.id === selectedSubject)?.name || '';
         const teacherName = currentUser?.name || 'The Teacher';
         const schoolName = settings?.schoolName || 'The School';
+        const stage = getStageFromClassLevel(classLevel) || 'N/A';
+        const nerdd = getMappings(subjectName, classLevel, curriculum === 'Other' ? otherCurriculum : curriculum);
+        const phonics = /english|literacy|language/i.test(subjectName) ? getPhonicsPlan(classLevel) : null;
 
         try {
             const isEarlyYears = /nursery|pre[- ]?kg|\bkg\b|kindergarten|primary(\s*[1-3])?|lower\s*basic|basic\s*[1-3]/i.test(classLevel);
@@ -107,6 +111,7 @@ You are an expert Nigerian educator and curriculum designer. Create a deeply det
 • Period: ${period || 'N/A'}
 • Duration: ${duration || 'N/A'} minutes
 • Curriculum: ${curriculum === 'Other' ? otherCurriculum : curriculum} (default to NERDC if unclear)
+• Detected Stage: ${stage}
 • Output Type: "${outputType}" (plan | note | combined)
 • Pedagogies to emphasize: ${[usePBL ? 'Project‑Based Learning' : null, useInquiry ? 'Inquiry‑Based Learning' : null, useExperiential ? 'Experiential Learning' : null].filter(Boolean).join(', ') || 'Teacher discretion'}
 • Include Multimedia: ${includeMultimedia ? 'Yes' : 'No'}
@@ -136,6 +141,7 @@ ${isEarlyYears ? `<strong>Early Years Guidance (Nursery/Primary 1–3)</strong>
 Include ALL of the following, tailored to Nigeria’s classroom realities and resources:
 1) <h3>Standards & Alignment</h3>
    • Map to NERDC strands and WAEC/NECO objectives relevant to the topic. If exact codes are known, include them; otherwise include best‑fit strand/objective names.
+   ${nerdd ? `<div><strong>NERDC Curriculum Map (Auto):</strong><ul>${nerdd.strands.map((s:any)=>`<li>${s.code}: ${s.name}</li>`).join('')}</ul><p><strong>Sample Objectives:</strong> ${nerdd.sampleObjectives.join('; ')}</p><p><strong>Suggested Bloom Verbs:</strong> ${nerdd.bloomVerbs.join(', ')}</p></div>` : ''}
 2) <h3>Specific Learning Objectives</h3>
    • SMART objectives across Bloom’s domains (Cognitive, Psychomotor, Affective).
    • Provide a <strong>Bloom’s Taxonomy Alignment Table</strong> with levels (Remember, Understand, Apply, Analyze, Evaluate, Create), sample objective statements using appropriate verbs, and suggested assessments for each level.
@@ -175,6 +181,7 @@ Include ALL of the following, tailored to Nigeria’s classroom realities and re
 • Produce clear, board‑ready notes: definitions, explanations, worked examples, diagrams (describe), key points, practice questions, and a short summary.
 • Use simple language suitable for the specified class level; emphasize exam‑style clarity.
 • Where relevant, include short QR‑style references or titles for videos/simulations that students can search (no external links required).
+${phonics ? `<h3>Phonics Scope (Auto)</h3><p><strong>Focus/Graphemes:</strong> ${(phonics.graphemes||phonics.focus||[]).toString()}</p><p><strong>Strategies/Activities:</strong> ${((phonics.strategies||phonics.activities)||[]).join('; ')}</p>` : ''}
 
 <strong>If Output Type = combined</strong>
 • First output the complete Lesson Plan, then the complete Lesson Note.

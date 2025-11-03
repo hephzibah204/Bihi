@@ -28,6 +28,7 @@ export const ADMIN_VIEWS: { [key: string]: DashboardView } = {
     BURSARY: 'bursary',
     COMMUNICATIONS: 'communications',
     AI_TOOLS: 'ai-tools',
+    AI_COACH_MANAGER: 'ai-coach-manager',
     // Individual AI Tools
     AI_CHAT: 'ai-chat',
     AI_ELABORATORY: 'ai-elaboratory',
@@ -67,6 +68,7 @@ export const TEACHER_VIEWS = {
     ENTER_SCORES: 'enter-scores',
     MY_SCHEDULE: 'my-schedule',
     LESSON_TEMPLATES: 'lesson-templates',
+    AI_COACH: 'ai-coach',
     AI_TOOLS: 'ai-tools',
     // Individual AI Tools
     AI_CHAT: 'ai-chat',
@@ -215,6 +217,14 @@ export const CONTROLLABLE_FEATURES = [
         description: 'Schema-driven lesson templates emphasizing collaboration, creativity, and technology',
         applicableRoles: ['admin', 'teacher'],
         category: 'Academic'
+    }
+    ,
+    { 
+        key: 'ai-coach', 
+        name: 'AI Coach & Teacher Training',
+        description: 'Personalized coaching and micro-courses for 21st-century skills',
+        applicableRoles: ['admin', 'teacher'],
+        category: 'Professional Development'
     }
 ];
 

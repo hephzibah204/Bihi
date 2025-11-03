@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { searchSimulations } from '../services/aiSimulations';
+import { searchSimulations, listSimulations } from '../services/aiSimulations';
 import Modal from './Modal';
 import type { AiSimulationSearchResult } from '../types/ai';
 
@@ -79,9 +79,31 @@ const ELaboratory: React.FC = () => {
         if (res.ok) {
           const data: PhETSlim[] = await res.json();
           setBrowseList(Array.isArray(data) ? data : []);
+          return;
         }
+        // Fallback to local/supabase sims list
+        const local = await listSimulations({ limit: 8 });
+        const mapped: PhETSlim[] = local.map((s) => ({
+          title: s.title,
+          subject: s.subject,
+          keywords: s.keywords,
+          simulations: [{ id: s.id, url: s.url }],
+        }));
+        setBrowseList(mapped);
       } catch {
-        setBrowseList([]);
+        // Final fallback: local/supabase sims list
+        try {
+          const local = await listSimulations({ limit: 8 });
+          const mapped: PhETSlim[] = local.map((s) => ({
+            title: s.title,
+            subject: s.subject,
+            keywords: s.keywords,
+            simulations: [{ id: s.id, url: s.url }],
+          }));
+          setBrowseList(mapped);
+        } catch {
+          setBrowseList([]);
+        }
       }
     };
     loadBrowse();

@@ -118,11 +118,34 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
                         setRole(null);
                     }
                 } else {
-                    const teachers = await apiGetTeachers();
-                    const currentUser = teachers.find(t => t.email.toLowerCase() === session.user.email.toLowerCase());
-                    if (currentUser) {
-                        setUser(currentUser);
-                        setRole(currentUser.role);
+                    try {
+                        const teachers = await apiGetTeachers();
+                        const currentUser = teachers.find(t => t.email.toLowerCase() === session.user.email.toLowerCase());
+                        
+                        if (currentUser) {
+                            setUser(currentUser);
+                            setRole(currentUser.role);
+                            console.log('User authenticated successfully:', currentUser.email);
+                        } else {
+                            // Auth user exists but no teacher profile - this is a data integrity issue
+                            console.error('Authentication succeeded but no teacher profile found for:', session.user.email);
+                            console.log('Teachers found:', teachers.length);
+                            console.log('Session user metadata:', session.user.user_metadata);
+                            
+                            // Store error for display
+                            const errorMessage = 
+                                'Your account exists but your profile is incomplete. ' +
+                                'Please contact support with this email: ' + session.user.email;
+                            sessionStorage.setItem('authProfileError', errorMessage);
+                            
+                            // Sign out the user to prevent stuck state
+                            await supabase.auth.signOut();
+                            setUser(null);
+                            setRole(null);
+                        }
+                    } catch (error) {
+                        console.error('Error loading teacher profile:', error);
+                        // Don't sign out on network errors - allow retry
                     }
                 }
             });
@@ -138,11 +161,30 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
                     setRole(parsedUser.role);
                 }
             } else {
-                const teachers = await apiGetTeachers();
-                const currentUser = teachers.find(t => t.email.toLowerCase() === initialSession.user.email.toLowerCase());
-                if (currentUser) {
-                    setUser(currentUser);
-                    setRole(currentUser.role);
+                try {
+                    const teachers = await apiGetTeachers();
+                    const currentUser = teachers.find(t => t.email.toLowerCase() === initialSession.user.email.toLowerCase());
+                    
+                    if (currentUser) {
+                        setUser(currentUser);
+                        setRole(currentUser.role);
+                        console.log('Initial session: User authenticated successfully:', currentUser.email);
+                    } else {
+                        // Auth user exists but no teacher profile
+                        console.error('Initial session: No teacher profile found for:', initialSession.user.email);
+                        console.log('Teachers found:', teachers.length);
+                        
+                        const errorMessage = 
+                            'Your account exists but your profile is incomplete. ' +
+                            'Please contact support with this email: ' + initialSession.user.email;
+                        sessionStorage.setItem('authProfileError', errorMessage);
+                        
+                        await supabase.auth.signOut();
+                        setUser(null);
+                        setRole(null);
+                    }
+                } catch (error) {
+                    console.error('Error loading teacher profile during initial session:', error);
                 }
             }
 
@@ -212,7 +254,9 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
         settings, platformSettings, logout, isSmsConfigured, isPaymentConfigured
     };
 
-    return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
+    // Always render children so routers and loaders inside can react to `loading`.
+    // AppRouter already displays a full-page loader when `loading` is true.
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
