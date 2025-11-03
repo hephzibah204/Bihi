@@ -2,7 +2,7 @@
 // Back-compat shim that re-exports tolerant AI functions
 export { generateResponse, generateReport, generateAnnouncement, generateLessonPlan, normalizePrompt } from './geminiAIService';
 
-import { supabase } from './supabaseClient';
+import { supabase, initSupabase } from './supabaseClient';
 import { getTenantId } from './api';
 import { getAIResponseCache } from './aiResponseCache';
 import { logger } from '../utils/logger';
@@ -47,6 +47,8 @@ export const callGeminiApi = async (
   }
   
   try {
+    // Ensure Supabase is initialized before use (handles lazy init race in dev)
+    try { if (!supabase) { await initSupabase(); } } catch { /* ignore */ }
     if (!supabase) {
         throw new Error("Authentication service is not available.");
     }
@@ -213,6 +215,8 @@ export const callGeminiApiStream = async (
   const actualPrompt = typeof prompt === 'string' ? prompt : prompt.prompt;
   const opts = options || {};
   try {
+    // Ensure Supabase is initialized before use (handles lazy init race in dev)
+    try { if (!supabase) { await initSupabase(); } } catch { /* ignore */ }
     if (!supabase) {
         throw new Error("Authentication service is not available.");
     }

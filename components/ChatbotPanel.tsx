@@ -423,7 +423,7 @@ const ChatbotPanel = ({ isOpen, onClose, userRole, demoUserId, activeView, title
     })();
     
     return (
-        <div className={`relative z-[60] w-[92vw] sm:w-[28rem] md:w-[36rem] lg:w-[38rem] max-w-[95vw] h-[68vh] sm:h-[70vh] max-h-[82vh] bg-white/95 backdrop-blur rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden transition-all duration-300 ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+        <div className={`relative z-[60] w-[92vw] sm:w-[24rem] md:w-[28rem] lg:w-[30rem] xl:w-[32rem] max-w-[95vw] h-[56vh] sm:h-[58vh] md:h-[56vh] lg:h-[54vh] max-h-[80vh] bg-white/95 backdrop-blur rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden transition-all duration-300 ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
             {/* Notification container */}
             <div className="absolute -top-20 right-0 z-[70] space-y-2">
                 {notifications.map(notification => (
@@ -467,11 +467,11 @@ const ChatbotPanel = ({ isOpen, onClose, userRole, demoUserId, activeView, title
                     </button>
                 </div>
             </header>
-            <main className="flex-1 min-h-0 p-4 overflow-y-auto space-y-4 bg-[linear-gradient(to_bottom,rgba(99,102,241,0.04),transparent_120px)]">
+            <main className="flex-1 min-h-0 p-3 overflow-y-auto space-y-3 bg-[linear-gradient(to_bottom,rgba(99,102,241,0.04),transparent_120px)]">
                  {messages.map((msg) => (
                     <div key={msg.id} className={`group relative flex items-start gap-2 ${msg.sender === 'user' ? 'justify-end' : ''}`}>
                         {msg.sender === 'ai' && <div className="w-8 h-8 mt-1 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-500 flex-shrink-0"><SparklesIcon className="w-5 h-5" /></div>}
-                        <div className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 shadow-sm ${msg.sender === 'ai' ? 'bg-gray-50 border border-gray-100 rounded-bl-md' : 'bg-indigo-600 text-white rounded-br-md'}`}>
+                        <div className={`max-w-[75%] rounded-2xl px-3 py-2 shadow-sm ${msg.sender === 'ai' ? 'bg-gray-50 border border-gray-100 rounded-bl-md' : 'bg-indigo-600 text-white rounded-br-md'}`}>            
                             {msg.metadata?.simulation ? (
                                 <div className="space-y-2">
                                     {msg.metadata.simulation.image_url && (
@@ -531,7 +531,7 @@ const ChatbotPanel = ({ isOpen, onClose, userRole, demoUserId, activeView, title
                 ))}
                 <div ref={messagesEndRef} />
             </main>
-            <footer className="p-3 border-t space-y-3 bg-white flex-shrink-0">
+            <footer className="p-2.5 border-t space-y-3 bg-white flex-shrink-0">
                 {/* Role-based sample prompts */}
                 <div className="flex items-center justify-between">
                     <div className="text-xs text-gray-500">Suggested prompts</div>
@@ -540,7 +540,7 @@ const ChatbotPanel = ({ isOpen, onClose, userRole, demoUserId, activeView, title
                     </button>
                 </div>
                 {showSuggestions && (
-                    <div className="flex flex-wrap gap-2 max-h-20 overflow-y-auto pr-1">
+                    <div className="flex flex-wrap gap-2 max-h-16 overflow-y-auto pr-1">
                         {([ 
                             ...(userRole === 'Admin' || userRole === 'Super Admin' ? [
                                 'What are this term’s attendance trends?',
@@ -591,7 +591,7 @@ const ChatbotPanel = ({ isOpen, onClose, userRole, demoUserId, activeView, title
                         value={input}
                         onChange={e => setInput(e.target.value)}
                         onKeyDown={onTextareaKeyDown}
-                        className="input-field flex-1 h-24 resize-y"
+                        className="input-field flex-1 h-20 resize-y"
                         placeholder="Type your question… Press Enter to send, Shift+Enter for newline"
                         rows={4}
                     />
