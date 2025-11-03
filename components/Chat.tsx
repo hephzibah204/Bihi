@@ -5,6 +5,7 @@ import SimulationModal from './SimulationModal';
 import SimulationSuggestionCard, { SimulationSuggestion } from './SimulationSuggestionCard';
 import ImagePreview from './ImagePreview';
 import SparklesIcon from './icons/SparklesIcon';
+import { callGeminiApi } from '../services/geminiService';
 import UserCircleIcon from './icons/UserCircleIcon';
 import ChatHistorySidebar from './ChatHistorySidebar';
 import { useAuth } from '../contexts/AuthContext';
@@ -133,11 +134,14 @@ const Chat: React.FC<ChatProps> = ({ title = 'AI Chat' }) => {
           setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, text: (m.text || '') + chunk } : m));
           return;
         }
-        // JSON chunk
-        const { text, html, source, image_base64, simulation } = chunk as any;
-        if (text) {
-          assistantTextRef.current += text;
-        }
+        // JSON chunk (Gemini SSE format): extract text from candidates
+        const data = chunk as any;
+        const text = data?.text ?? data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+        const html = data?.html;
+        const source = data?.source;
+        const image_base64 = data?.image_base64;
+        const simulation = data?.simulation;
+        if (text) assistantTextRef.current += text;
         setMessages(prev => prev.map(m => {
           if (m.id !== assistantId) return m;
           return {
@@ -153,13 +157,8 @@ const Chat: React.FC<ChatProps> = ({ title = 'AI Chat' }) => {
     } catch (err) {
       // Fallback to non-stream
       try {
-        const data = await fetchNonStream(prompt, session?.access_token);
-        const msg: ChatMessage = { id: assistantId, role: 'assistant' } as ChatMessage;
-        msg.source = data?.source || 'unknown';
-        if (data?.html) msg.html = data.html;
-        if (data?.text) msg.text = data.text;
-        if (data?.image_base64) msg.image_base64 = data.image_base64;
-        if (data?.simulation) msg.simulation = data.simulation as SimulationSuggestion;
+        const text = await callGeminiApi(prompt);
+        const msg: ChatMessage = { id: assistantId, role: 'assistant', text } as ChatMessage;
         setMessages(prev => prev.map(m => m.id === assistantId ? msg : m));
       } catch (err2) {
         setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, text: `Error: ${(err2 as any)?.message || 'Unknown error'}` } : m));

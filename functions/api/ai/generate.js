@@ -128,8 +128,8 @@ async function handlePost(request, env) {
         const body = await request.json();
         const { prompt, tenantId, conversationId, context, conversationHistory, userProfile, responseMimeType, expectedSchema } = body;
         if (!prompt) return new Response(JSON.stringify({ error: "Prompt is required." }), { status: 400 });
-        // Default to HTML output if not explicitly requesting JSON
-        const effectiveMime = responseMimeType || 'text/html';
+        // Default to plain text output; HTML is instructed in prompt
+        const effectiveMime = responseMimeType || 'text/plain';
 
         // ----- Compute permissions and sanitize inputs -----
         const role = getRole(userContext);
