@@ -121,7 +121,8 @@ async function tryGemini(prompt: string, options?: AnalysisOptions): Promise<str
   ]) || (typeof window !== 'undefined' ? localStorage.getItem('gemini_api_key') || undefined : undefined);
   if (!apiKey) throw new Error('Missing Gemini API key');
 
-  const modelName = options?.model || 'gemini-2.5-flash';
+  const primaryModel = (options?.model || 'gemini-1.5-flash');
+  const secondaryModel = primaryModel === 'gemini-1.5-flash' ? 'gemini-2.5-flash' : 'gemini-1.5-flash';
 
   let mod: any = null;
   try { mod = await import('@google/genai'); } catch { /* noop */ }
@@ -129,12 +130,24 @@ async function tryGemini(prompt: string, options?: AnalysisOptions): Promise<str
   if (!Ctor) throw new Error('Gemini SDK unavailable');
 
   const genAI = new Ctor(apiKey);
-  const model = genAI.getGenerativeModel({ model: modelName });
 
-  const result = await model.generateContent(prompt);
-  const text = extractAIText(result);
-  if (!text || !text.trim()) throw new Error('Empty Gemini response');
-  return text;
+  const tryModel = async (m: string) => {
+    const model = genAI.getGenerativeModel({ model: m });
+    const result = await model.generateContent(prompt);
+    const text = extractAIText(result);
+    if (!text || !text.trim()) throw new Error('Empty Gemini response');
+    return text;
+  };
+
+  try {
+    return await tryModel(primaryModel);
+  } catch (e: any) {
+    const msg = String(e?.message || '').toLowerCase();
+    if (msg.includes('404') || msg.includes('not_found') || msg.includes('unsupported') || msg.includes('model') && msg.includes('not')) {
+      return await tryModel(secondaryModel);
+    }
+    throw e;
+  }
 }
 
 async function tryHuggingFace(prompt: string, options?: AnalysisOptions): Promise<string> {

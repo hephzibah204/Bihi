@@ -343,14 +343,14 @@ const getGeminiEnv = () => {
         ? (window.process?.env?.VITE_GEMINI_API_KEY || import.meta.env?.VITE_GEMINI_API_KEY)
         : process.env.VITE_GEMINI_API_KEY;
     const model = typeof window !== 'undefined'
-        ? (window.process?.env?.VITE_GEMINI_MODEL || import.meta.env?.VITE_GEMINI_MODEL || 'gemini-2.5-flash')
-        : (process.env.VITE_GEMINI_MODEL || 'gemini-2.5-flash');
+        ? (window.process?.env?.VITE_GEMINI_MODEL || import.meta.env?.VITE_GEMINI_MODEL || 'gemini-1.5-flash')
+        : (process.env.VITE_GEMINI_MODEL || 'gemini-1.5-flash');
     if (!apiKey) throw new Error('Gemini API key not configured');
     return { apiKey, model };
 };
 
 async function listAvailableModels(apiKey: string): Promise<any[]> {
-    const url = `https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
     const resp = await fetch(url);
     if (!resp.ok) return [];
     const data = await resp.json().catch(() => ({ models: [] }));
@@ -367,7 +367,7 @@ async function pickUsableModel(apiKey: string, preferred: string): Promise<strin
         const models = await listAvailableModels(apiKey);
         const preferredExists = models.find((m: any) => m.name?.includes(preferred) && supportsGenerateContent(m));
         if (preferredExists) return preferred;
-        const candidates = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-1.5-pro'];
+        const candidates = ['gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash-8b', 'gemini-1.5-pro'];
         for (const name of candidates) {
             const m = models.find((mm: any) => mm.name?.includes(name) && supportsGenerateContent(mm));
             if (m) return name;
@@ -381,7 +381,7 @@ async function directGeminiGenerate(prompt: string): Promise<string> {
     let chosen = model;
 
     async function tryGenerate(modelName: string): Promise<string> {
-        const url = `https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent?key=${apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
         const body = { contents: [{ role: 'user', parts: [{ text: prompt }] }] };
         const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
         if (!resp.ok) {
@@ -406,7 +406,7 @@ async function directGeminiGenerate(prompt: string): Promise<string> {
 async function directGeminiStream(prompt: string, onChunk: (chunk: string) => void): Promise<void> {
     const { apiKey, model } = getGeminiEnv();
     const chosen = await pickUsableModel(apiKey, model);
-    const url = `https://generativelanguage.googleapis.com/v1/models/${chosen}:streamGenerateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${chosen}:streamGenerateContent?key=${apiKey}`;
     const body = { contents: [{ role: 'user', parts: [{ text: prompt }] }] };
     const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     if (!resp.ok) {

@@ -258,39 +258,55 @@ async function handlePost(request, env) {
 
         contents.push({ role: 'user', parts: [{ text: prompt }] });
 
-        const aiRes = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${apiKey}&alt=sse`,
-            {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ 
-                    contents,
-                    generationConfig: safeMime ? { response_mime_type: safeMime } : undefined
-                }),
-            }
-        );
+        const DEFAULT_MODEL = 'gemini-1.5-flash';
+        const EXPERIMENTAL_MODEL = 'gemini-2.5-flash';
+        const preferred = (env.GEMINI_MODEL || env.VITE_GEMINI_MODEL || DEFAULT_MODEL).toLowerCase();
+        const order = preferred === DEFAULT_MODEL ? [preferred, EXPERIMENTAL_MODEL] : [preferred, DEFAULT_MODEL];
 
-        if (!aiRes.ok) {
-            const errText = await aiRes.text();
-            let errorMessage = `AI service responded with status: ${aiRes.status}`;
-            try {
-                const errorJson = JSON.parse(errText);
-                errorMessage = errorJson.error?.message || errText;
-            } catch(e) {
-                errorMessage = errText;
-            }
-            return new Response(JSON.stringify({ error: errorMessage }), { status: aiRes.status });
-        }
-        
-        // Return the streaming response directly
-        return new Response(aiRes.body, {
-            status: 200,
-            headers: {
-                'Content-Type': 'text/event-stream',
-                'Cache-Control': 'no-cache',
-                'Connection': 'keep-alive',
-            }
+        const makeUrl = (m) => `https://generativelanguage.googleapis.com/v1beta/models/${m}:streamGenerateContent?key=${apiKey}&alt=sse`;
+        const payload = JSON.stringify({
+            contents,
+            generationConfig: safeMime ? { response_mime_type: safeMime } : undefined
         });
+
+        let lastErrorBody = '';
+        let lastStatus = 500;
+        for (const m of order) {
+            const aiRes = await fetch(makeUrl(m), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: payload,
+            });
+
+            if (aiRes.ok) {
+                return new Response(aiRes.body, {
+                    status: 200,
+                    headers: {
+                        'Content-Type': 'text/event-stream',
+                        'Cache-Control': 'no-cache',
+                        'Connection': 'keep-alive',
+                    }
+                });
+            }
+
+            lastStatus = aiRes.status;
+            try { lastErrorBody = await aiRes.text(); } catch { lastErrorBody = ''; }
+            if (aiRes.status === 404) {
+                // Try next model
+                continue;
+            }
+            // For non-404 errors, break and return
+            break;
+        }
+
+        let errorMessage = `AI service responded with status: ${lastStatus}`;
+        try {
+            const errorJson = JSON.parse(lastErrorBody);
+            errorMessage = errorJson.error?.message || lastErrorBody;
+        } catch (e) {
+            if (lastErrorBody) errorMessage = lastErrorBody;
+        }
+        return new Response(JSON.stringify({ error: errorMessage }), { status: lastStatus });
 
     } catch (err) {
         return new Response(JSON.stringify({ error: "Internal Server Error", details: err.message }), { status: 500 });

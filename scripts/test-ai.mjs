@@ -18,7 +18,7 @@ const withTimeout = async (promise, ms, label) => {
 
 const getEnv = () => ({
   GEMINI_KEY: process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY,
-  GEMINI_MODEL: process.env.VITE_GEMINI_MODEL || process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+  GEMINI_MODEL: process.env.VITE_GEMINI_MODEL || process.env.GEMINI_MODEL || 'gemini-1.5-flash',
   HF_KEY: process.env.VITE_HUGGINGFACE_API_KEY || process.env.HUGGINGFACE_API_KEY || process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY,
   HF_MODEL: process.env.HF_MODEL || 'google/flan-t5-base'
 });

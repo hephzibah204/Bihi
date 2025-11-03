@@ -190,7 +190,7 @@ class AIService {
     const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
 
     try {
-      const response = await fetch('https://generativelanguage.googleapis.com/v1/models', {
+      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models', {
         method: 'GET',
         headers: {
           'x-goog-api-key': this.config.geminiApiKey
@@ -312,32 +312,47 @@ class AIService {
         const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
 
         try {
-          const model = this.getGeminiModel() || 'gemini-1.5-pro';
-          const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/${model}:generateContent`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-goog-api-key': apiKey as string
-            },
-            body: JSON.stringify({
-              contents: [{
-                parts: [{ text: prompt }]
-              }]
-            }),
-            signal: controller.signal
-          });
+          const primary = this.getGeminiModel() || 'gemini-1.5-flash';
+          const secondary = primary === 'gemini-1.5-flash' ? 'gemini-2.5-flash' : 'gemini-1.5-flash';
+          const modelsToTry = [primary, secondary];
 
-          if (!response.ok) {
-            throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+          let lastError: any = null;
+          for (const model of modelsToTry) {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-goog-api-key': apiKey as string
+              },
+              body: JSON.stringify({
+                contents: [{
+                  parts: [{ text: prompt }]
+                }]
+              }),
+              signal: controller.signal
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              const content = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response generated';
+              return { content, source: 'gemini' as const };
+            }
+
+            // If model not found, try the fallback model
+            if (response.status === 404) {
+              lastError = new Error(`Gemini model ${model} not found (404)`);
+              this.logger.warn(`Gemini model ${model} returned 404, trying fallback`);
+              continue;
+            }
+
+            // For other errors, throw immediately
+            const errTxt = await response.text().catch(() => '');
+            lastError = new Error(`Gemini API error (${model}): ${response.status} ${response.statusText} ${errTxt}`);
+            break;
           }
 
-          const data = await response.json();
-          const content = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response generated';
-
-          return {
-            content,
-            source: 'gemini' as const
-          };
+          if (lastError) throw lastError;
+          throw new Error('Gemini request failed with no additional details');
         } finally {
           clearTimeout(timeoutId);
         }
