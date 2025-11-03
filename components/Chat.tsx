@@ -8,6 +8,7 @@ import SimulationSuggestionCard, { SimulationSuggestion } from './SimulationSugg
 import ImagePreview from './ImagePreview';
 import SparklesIcon from './icons/SparklesIcon';
 import { callGeminiApi, callGeminiApiStream } from '../services/geminiService';
+import { getBananaImageService } from '../services/bananaImageService';
 import UserCircleIcon from './icons/UserCircleIcon';
 import ChatHistorySidebar from './ChatHistorySidebar';
 import { useAuth } from '../contexts/AuthContext';
@@ -114,6 +115,11 @@ const Chat: React.FC<ChatProps> = ({ title = 'AI Chat' }) => {
 
   const assistantTextRef = useRef('');
 
+  const isImageRequest = (p: string) => {
+    const s = (p || '').toLowerCase();
+    return /(generate|create|draw|make|produce|design).*(image|picture|logo|icon|banner|illustration|art)|\b(image|picture|logo|icon|illustration|art)\b/.test(s);
+  };
+
   const stripHtml = (html: string) => html.replace(/<[^>]+>/g, '');
   const formatTime = (ts?: number) => ts ? new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
@@ -128,7 +134,23 @@ const Chat: React.FC<ChatProps> = ({ title = 'AI Chat' }) => {
     setMessages(prev => [...prev, { id: assistantId, role: 'assistant', text: '', createdAt: aiNow }]);
 
     try {
-      // Prefer streaming
+      // If user asks for an image, route to Banana image generator (with HF fallback)
+      if (isImageRequest(prompt)) {
+        setIsStreaming(true);
+        const svc = getBananaImageService();
+        try {
+          const { imageUrl } = await svc.generateImage(prompt, { size: '768x768' });
+          const html = `<img src=\"${imageUrl}\" alt=\"Generated image\" class=\"rounded-lg max-w-full h-auto\"/>`;
+          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, html, source: 'gemini-image' } : m));
+        } catch (e: any) {
+          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, text: `Image generation failed: ${e?.message || 'Unknown error'}` } : m));
+        } finally {
+          setIsStreaming(false);
+        }
+        return;
+      }
+
+      // Prefer streaming text generation
       setIsStreaming(true);
       await callGeminiApiStream(prompt, (chunk) => {
         const text = String(chunk || '');
