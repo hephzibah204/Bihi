@@ -128,8 +128,11 @@ async function handlePost(request, env) {
         const body = await request.json();
         const { prompt, tenantId, conversationId, context, conversationHistory, userProfile, responseMimeType, expectedSchema } = body;
         if (!prompt) return new Response(JSON.stringify({ error: "Prompt is required." }), { status: 400 });
-        // Default to plain text output; HTML is instructed in prompt
-        const effectiveMime = responseMimeType || 'text/plain';
+        // Gemini only allows specific response_mime_type values; HTML is NOT allowed.
+        // We still prompt for HTML formatting, but we do not set response_mime_type for HTML.
+        const allowedMimes = new Set(['text/plain','application/json','application/xml','application/yaml','text/x.enum']);
+        // If a JSON schema is provided, force application/json; else only allow explicitly provided allowed types.
+        const safeMime = expectedSchema ? 'application/json' : (allowedMimes.has(responseMimeType) ? responseMimeType : undefined);
 
         // ----- Compute permissions and sanitize inputs -----
         const role = getRole(userContext);
@@ -262,7 +265,7 @@ async function handlePost(request, env) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ 
                     contents,
-                    generationConfig: effectiveMime ? { response_mime_type: effectiveMime } : undefined
+                    generationConfig: safeMime ? { response_mime_type: safeMime } : undefined
                 }),
             }
         );
