@@ -250,7 +250,7 @@ export const callGeminiApiStream = async (
         throw new Error("User not authenticated.");
     }
     
-    const headers: HeadersInit = { 'Content-Type': 'application/json' } as any;
+    const headers: HeadersInit = { 'Content-Type': 'application/json', 'Accept': 'text/event-stream', 'Cache-Control': 'no-store' } as any;
     
     if (isDemo) {
         (headers as any)['X-Demo-Mode'] = 'true';
@@ -270,6 +270,7 @@ export const callGeminiApiStream = async (
     // Get tenant context for API key resolution
     const tenantId = opts.tenantId || getTenantId();
     
+    const controller = new AbortController();
     const response = await fetch(AI_ENDPOINT, {
       method: 'POST',
       headers: headers,
@@ -284,6 +285,7 @@ export const callGeminiApiStream = async (
         expectedSchema: opts.expectedSchema,
         stream: true
       }),
+      signal: controller.signal,
     });
 
     if (!response.ok) {
@@ -307,12 +309,22 @@ export const callGeminiApiStream = async (
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
+    let gotFirstChunk = false;
+
+    // Fallback to direct streaming if no chunk in first 1.8s (proxy buffering)
+    const firstChunkTimer = setTimeout(async () => {
+      if (!gotFirstChunk) {
+        try { await reader.cancel(); } catch { /* ignore */ }
+        controller.abort();
+        try { await directGeminiStream(actualPrompt, onChunk); } catch (e) { logger.captureError(e as any, 'Direct stream fallback failed'); }
+      }
+    }, 1800);
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-
+        
         buffer += decoder.decode(value, { stream: true });
         
         const lines = buffer.split('\n\n');
@@ -326,6 +338,7 @@ export const callGeminiApiStream = async (
                     const data = JSON.parse(jsonString);
                     const textChunk = data.candidates?.[0]?.content?.parts?.[0]?.text;
                     if (textChunk) {
+                        gotFirstChunk = true;
                         onChunk(textChunk);
                     }
                 } catch (e) {
@@ -334,6 +347,8 @@ export const callGeminiApiStream = async (
             }
         }
     }
+
+    clearTimeout(firstChunkTimer);
 
   } catch (error) {
     if ((error as any).message?.includes('Failed to fetch')) {
