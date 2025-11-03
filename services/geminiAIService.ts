@@ -102,6 +102,18 @@ export class GeminiAIService {
         fallbackAvailable: true,
         lastGeminiCheck: 0
     };
+    // Resolve AI proxy endpoint: prefer Supabase Function URL if provided
+    private getAiEndpoint(): string {
+        try {
+            const fromClient = (typeof window !== 'undefined')
+                ? ((window as any).process?.env?.VITE_SUPABASE_AI_CHAT_URL || (import.meta as any)?.env?.VITE_SUPABASE_AI_CHAT_URL)
+                : undefined;
+            const fromServer = process.env.VITE_SUPABASE_AI_CHAT_URL;
+            return (fromClient || fromServer || '/api/ai/generate') as string;
+        } catch {
+            return '/api/ai/generate';
+        }
+    }
     private conversationService: { addMessage: (params: { conversationId: string; role: 'user' | 'assistant'; content: string; source: 'gemini' | 'semantic-cache' | 'huggingface' | 'templates'; isFallback: boolean; metadata?: Record<string, unknown> }) => Promise<unknown>; getContextMessages?: (id: string, n: number) => Promise<Array<{ role: 'user' | 'assistant' | 'system'; content: string }>> } | null = null;
 
     constructor(apiKey?: string) {
@@ -315,7 +327,19 @@ export class GeminiAIService {
                 }
             } catch { /* ignore auth header errors */ }
 
-            const resp = await fetch('/api/ai/generate', {
+            // Resolve endpoint and attach headers
+            const endpoint = this.getAiEndpoint();
+
+            // If calling Supabase Function without Authorization, attach anon key for public access
+            try {
+                const isSupabaseFn = typeof endpoint === 'string' && endpoint.includes('.supabase.co/functions/v1');
+                const anonKey = (typeof window !== 'undefined' ? (window as any).process?.env?.VITE_SUPABASE_ANON_KEY : undefined) || (import.meta as any)?.env?.VITE_SUPABASE_ANON_KEY;
+                if (isSupabaseFn && !('Authorization' in headers) && anonKey) {
+                    (headers as any)['Authorization'] = `Bearer ${anonKey}`;
+                }
+            } catch { /* noop */ }
+
+            const resp = await fetch(endpoint, {
                 method: 'POST',
                 headers,
                 body: JSON.stringify({

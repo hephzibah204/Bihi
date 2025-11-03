@@ -113,8 +113,10 @@ export const callGeminiApi = async (
             }
         }
         
-        // If proxy endpoint is missing, attempt direct Gemini fallback
-        if (response.status === 404) {
+        // If proxy endpoint is missing or not usable, attempt direct Gemini fallback
+        const shouldDirectFallback = [401, 403, 404, 405, 500].includes(response.status)
+          || /not\s*found|method\s*not\s*allowed|unauthorized|forbidden|api[_\s-]?key/i.test(errorMessage);
+        if (shouldDirectFallback) {
             try {
                 const text = await directGeminiGenerate(actualPrompt);
                 if (text) {
@@ -196,16 +198,17 @@ cache.cacheResponse(actualPrompt, text, 'gemini', opts.context);
   } catch (error) {
     // If the server proxy endpoint is unreachable, try direct Gemini fallback
     if ((error as any).message?.includes('Failed to fetch')) {
+      let fallbackErr: any = null;
       try {
         const text = await directGeminiGenerate(actualPrompt);
         if (text) {
 cache.cacheResponse(actualPrompt, text, 'gemini', opts.context);
           return text;
         }
-      } catch (_) {
-        // ignore and fall through to user-friendly error
+      } catch (e: any) {
+        fallbackErr = e;
       }
-      throw new Error('Network connection failed. Could not reach AI service.');
+      throw new Error(fallbackErr?.message || 'Network connection failed. Could not reach AI service.');
     }
     throw new Error(`The AI service is currently unavailable. ${error instanceof Error ? error.message : String(error)}`);
   }
@@ -287,7 +290,9 @@ export const callGeminiApiStream = async (
         const errorText = await response.text();
         let errorMessage = `Server responded with status: ${response.status}`;
         try { const errorJson = JSON.parse(errorText); errorMessage = errorJson.error || errorText; } catch (e) { errorMessage = errorText; }
-        if (response.status === 404) {
+        const shouldDirectFallback = [401, 403, 404, 405, 500].includes(response.status)
+          || /not\s*found|method\s*not\s*allowed|unauthorized|forbidden|api[_\s-]?key/i.test(errorMessage);
+        if (shouldDirectFallback) {
             // Try direct streaming from Gemini
             await directGeminiStream(actualPrompt, onChunk);
             return;
@@ -333,13 +338,14 @@ export const callGeminiApiStream = async (
   } catch (error) {
     if ((error as any).message?.includes('Failed to fetch')) {
       // Try direct stream as a fallback if server endpoint is unreachable
+      let fallbackErr: any = null;
       try {
         await directGeminiStream(actualPrompt, onChunk);
         return;
-      } catch (_) {
-        // fall through to friendly error
+      } catch (e: any) {
+        fallbackErr = e;
       }
-      throw new Error('Network connection failed. Could not reach AI service.');
+      throw new Error(fallbackErr?.message || 'Network connection failed. Could not reach AI service.');
     }
     throw new Error(`The AI service is currently unavailable. ${error instanceof Error ? error.message : String(error)}`);
   }
