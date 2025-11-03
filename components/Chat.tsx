@@ -2,10 +2,12 @@ import React, { useEffect, useRef, useState, KeyboardEvent } from 'react';
 // Switch Chat to use Cloudflare Pages Functions instead of Supabase Edge Functions
 // This avoids 405 errors from missing ai-chat function and aligns with /api/ai/generate
 import SimulationModal from './SimulationModal';
+import HtmlContent from './HtmlContent';
+import { geminiToHtml } from '../utils/geminiFormat';
 import SimulationSuggestionCard, { SimulationSuggestion } from './SimulationSuggestionCard';
 import ImagePreview from './ImagePreview';
 import SparklesIcon from './icons/SparklesIcon';
-import { callGeminiApi } from '../services/geminiService';
+import { callGeminiApi, callGeminiApiStream } from '../services/geminiService';
 import UserCircleIcon from './icons/UserCircleIcon';
 import ChatHistorySidebar from './ChatHistorySidebar';
 import { useAuth } from '../contexts/AuthContext';
@@ -128,37 +130,18 @@ const Chat: React.FC<ChatProps> = ({ title = 'AI Chat' }) => {
     try {
       // Prefer streaming
       setIsStreaming(true);
-      await fetchStream(prompt, (chunk) => {
-        if (typeof chunk === 'string') {
-          assistantTextRef.current += chunk;
-          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, text: (m.text || '') + chunk } : m));
-          return;
-        }
-        // JSON chunk (Gemini SSE format): extract text from candidates
-        const data = chunk as any;
-        const text = data?.text ?? data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-        const html = data?.html;
-        const source = data?.source;
-        const image_base64 = data?.image_base64;
-        const simulation = data?.simulation;
-        if (text) assistantTextRef.current += text;
-        setMessages(prev => prev.map(m => {
-          if (m.id !== assistantId) return m;
-          return {
-            ...m,
-            text: text ? ((m.text || '') + text) : m.text,
-            html: html ?? m.html,
-            source: source ?? m.source,
-            image_base64: image_base64 ?? m.image_base64,
-            simulation: simulation ?? m.simulation,
-          };
-        }));
-      }, session?.access_token);
+      await callGeminiApiStream(prompt, (chunk) => {
+        const text = String(chunk || '');
+        if (!text) return;
+        assistantTextRef.current += text;
+        setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, text: (m.text || '') + text } : m));
+      });
     } catch (err) {
       // Fallback to non-stream
       try {
         const text = await callGeminiApi(prompt);
-        const msg: ChatMessage = { id: assistantId, role: 'assistant', text } as ChatMessage;
+        const html = geminiToHtml(text);
+        const msg: ChatMessage = { id: assistantId, role: 'assistant', html } as ChatMessage;
         setMessages(prev => prev.map(m => m.id === assistantId ? msg : m));
       } catch (err2) {
         setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, text: `Error: ${(err2 as any)?.message || 'Unknown error'}` } : m));
@@ -170,6 +153,11 @@ const Chat: React.FC<ChatProps> = ({ title = 'AI Chat' }) => {
       const simParsed = parseSimulationFromText(text);
       if (simParsed) {
         setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, simulation: simParsed } : m));
+      }
+      // After stream completes, upgrade to formatted HTML if no explicit HTML provided
+      if (text) {
+        const html = geminiToHtml(text);
+        setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, html, text: '' } : m));
       }
     }
   };
@@ -263,10 +251,10 @@ const Chat: React.FC<ChatProps> = ({ title = 'AI Chat' }) => {
             <div className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 shadow-sm ${m.role === 'assistant' ? 'bg-gray-50 border border-gray-100 rounded-bl-md' : 'bg-indigo-600 text-white rounded-br-md'}`}>
               {m.simulation ? (
                 <SimulationSuggestionCard simulation={m.simulation} onLaunch={launchSim} />
-              ) : m.source === 'gemini-image' || m.image_base64 || m.html ? (
+              ) : m.source === 'gemini-image' || m.image_base64 ? (
                 <ImagePreview html={m.html} base64={m.image_base64} />
               ) : m.html ? (
-                <div className="prose prose-sm max-w-none"><div dangerouslySetInnerHTML={{ __html: m.html }} /></div>
+                <HtmlContent html={m.html} className="prose-sm max-w-none" aria-live="polite" />
               ) : (
                 <div className={`text-[13px] leading-6 whitespace-pre-wrap break-words ${m.role === 'assistant' ? 'text-gray-800' : 'text-white'}`}>{m.text}</div>
               )}
@@ -275,7 +263,7 @@ const Chat: React.FC<ChatProps> = ({ title = 'AI Chat' }) => {
                 {m.role === 'assistant' && (
                   <button
                     className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-0.5 rounded hover:bg-gray-200/70 text-gray-700"
-                    onClick={() => navigator.clipboard?.writeText(stripHtml(m.text || ''))}
+                    onClick={() => navigator.clipboard?.writeText(stripHtml((m.text || '') + (m.html || '')))}
                     title="Copy"
                   >
                     Copy
