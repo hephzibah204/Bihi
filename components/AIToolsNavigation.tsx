@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import SparklesIcon from './icons/SparklesIcon';
 import { BeakerIcon, DocumentTextIcon, AcademicCapIcon, ChatBubbleLeftRightIcon, 
          LightBulbIcon, ChartBarIcon, BookOpenIcon, PencilSquareIcon, EnvelopeIcon } from '@heroicons/react/24/outline';
+import HeadsetIcon from './icons/HeadsetIcon';
 
 interface AIToolsNavigationProps {
     setActiveView: (view: DashboardView | TeacherView | StudentView | ParentView) => void;
@@ -56,11 +57,11 @@ const aiTools: AITool[] = [
     },
     {
         id: 'ai-practice-quiz',
-        title: 'Practice Quiz Generator',
-        description: 'Generate customized quizzes and assessments for your students.',
+        title: 'Practice Quiz',
+        description: 'Generate customized quizzes and self-practice tests quickly.',
         icon: <AcademicCapIcon className="h-8 w-8" />,
         view: 'AI_PRACTICE_QUIZ',
-        roles: [USER_ROLES.ADMIN, USER_ROLES.TEACHER]
+        roles: [USER_ROLES.ADMIN, USER_ROLES.TEACHER, USER_ROLES.STUDENT]
     },
     {
         id: 'ai-comment-generator',
@@ -81,18 +82,26 @@ const aiTools: AITool[] = [
     {
         id: 'ai-learning-pathways',
         title: 'Learning Pathways',
-        description: 'Create personalized learning paths based on student performance and needs.',
+        description: 'Personalized step-by-step plans to master any topic.',
         icon: <ChartBarIcon className="h-8 w-8" />,
         view: 'AI_LEARNING_PATHWAYS',
-        roles: [USER_ROLES.ADMIN, USER_ROLES.TEACHER]
+        roles: [USER_ROLES.ADMIN, USER_ROLES.TEACHER, USER_ROLES.STUDENT]
     },
     {
         id: 'ai-subject-recommender',
         title: 'Subject Recommender',
-        description: 'Get AI-powered recommendations for subject selection and academic planning.',
+        description: 'Get AI-powered subject suggestions tailored to performance and interests.',
         icon: <BookOpenIcon className="h-8 w-8" />,
         view: 'AI_SUBJECT_RECOMMENDER',
         roles: [USER_ROLES.ADMIN, USER_ROLES.TEACHER, USER_ROLES.STUDENT, USER_ROLES.PARENT]
+    },
+    {
+        id: 'ai-tutor',
+        title: 'Live Tutor',
+        description: 'Have a real-time voice conversation about any topic.',
+        icon: <HeadsetIcon className="h-8 w-8" />,
+        view: 'AI_TUTOR',
+        roles: [USER_ROLES.STUDENT, USER_ROLES.PARENT]
     },
     {
         id: 'ai-rubric-generator',

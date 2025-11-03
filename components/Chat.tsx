@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, KeyboardEvent } from 'react';
-import { getSupabaseEnv } from '../utils/env';
+// Switch Chat to use Cloudflare Pages Functions instead of Supabase Edge Functions
+// This avoids 405 errors from missing ai-chat function and aligns with /api/ai/generate
 import SimulationModal from './SimulationModal';
 import SimulationSuggestionCard, { SimulationSuggestion } from './SimulationSuggestionCard';
 import ImagePreview from './ImagePreview';
@@ -36,28 +37,36 @@ function parseSimulationFromText(text: string): SimulationSuggestion | null {
   return { title, url };
 }
 
-async function fetchNonStream(prompt: string): Promise<any> {
-  const { VITE_SUPABASE_URL } = getSupabaseEnv();
-  const url = `${VITE_SUPABASE_URL}/functions/v1/ai-chat`;
+async function fetchNonStream(prompt: string, authToken?: string): Promise<any> {
+  const url = `/api/ai/generate`;
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+  else headers['X-Demo-Mode'] = 'true';
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt, stream: false })
+    headers,
+    body: JSON.stringify({ prompt })
   });
-  if (!res.ok) throw new Error(`ai-chat failed: ${res.status}`);
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`AI generate failed: ${res.status}${text ? ` - ${text}` : ''}`);
+  }
   return res.json();
 }
 
-async function fetchStream(prompt: string, onChunk: (chunk: string | Record<string, any>) => void): Promise<void> {
-  const { VITE_SUPABASE_URL } = getSupabaseEnv();
-  const url = `${VITE_SUPABASE_URL}/functions/v1/ai-chat`;
+async function fetchStream(prompt: string, onChunk: (chunk: string | Record<string, any>) => void, authToken?: string): Promise<void> {
+  const url = `/api/ai/generate`;
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+  else headers['X-Demo-Mode'] = 'true';
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt, stream: true })
+    headers,
+    // Cloudflare generate may not support streaming; Chat will fallback automatically
+    body: JSON.stringify({ prompt })
   });
   if (!res.ok || !res.body) {
-    throw new Error(`ai-chat stream failed: ${res.status}`);
+    throw new Error(`AI generate stream failed: ${res.status}`);
   }
   const reader = res.body.getReader();
   const decoder = new TextDecoder('utf-8');
@@ -140,11 +149,11 @@ const Chat: React.FC<ChatProps> = ({ title = 'AI Chat' }) => {
             simulation: simulation ?? m.simulation,
           };
         }));
-      });
+      }, session?.access_token);
     } catch (err) {
       // Fallback to non-stream
       try {
-        const data = await fetchNonStream(prompt);
+        const data = await fetchNonStream(prompt, session?.access_token);
         const msg: ChatMessage = { id: assistantId, role: 'assistant' } as ChatMessage;
         msg.source = data?.source || 'unknown';
         if (data?.html) msg.html = data.html;

@@ -107,6 +107,8 @@ export const STUDENT_VIEWS: { [key: string]: StudentView } = {
     AI_ELABORATORY: 'ai-elaboratory',
     AI_SUBJECT_RECOMMENDER: 'ai-subject-recommender',
     AI_TUTOR: 'ai-tutor',
+    AI_PRACTICE_QUIZ: 'ai-practice-quiz',
+    AI_LEARNING_PATHWAYS: 'ai-learning-pathways',
     PROFILE: 'profile',
     NOTIFICATIONS: 'notifications',
     TRANSCRIPT: 'transcript',
