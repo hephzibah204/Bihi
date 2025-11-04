@@ -60,6 +60,7 @@ export const ADMIN_VIEWS: { [key: string]: DashboardView } = {
     MENUS: 'menus',
     BLOG_ARTICLES: 'blog-articles',
     KB_ARTICLES: 'kb-articles',
+    PRINT_CENTER: 'print-center',
 };
 
 export const TEACHER_VIEWS = {

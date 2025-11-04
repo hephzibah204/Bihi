@@ -57,14 +57,14 @@ const Broadsheet: React.FC<BroadsheetProps> = ({ setActiveView, userRole = 'Admi
         setSelectedClass(defaultClass);
 
         // Robust fallbacks for session and term using available scores
-        const scoreSessions = Array.from(new Set((scoresRes || []).map(s => s.session))).filter(Boolean);
-        const scoreTerms = Array.from(new Set((scoresRes || []).map(s => s.term))).filter(Boolean);
-        const sortedSessions = [...scoreSessions].sort((a, b) => b.localeCompare(a));
+        const scoreSessions = Array.from(new Set((scoresRes || []).map(s => String(s.session || '')).filter(Boolean)));
+        const scoreTerms = Array.from(new Set((scoresRes || []).map(s => String(s.term || '')).filter(Boolean)));
+        const sortedSessions = [...scoreSessions].sort((a, b) => String(b).localeCompare(String(a)));
         const knownTermsOrder = ['First Term', 'Second Term', 'Third Term'];
-        const pickTerm = (t?: string) => t && knownTermsOrder.includes(t) ? t : (scoreTerms.find(st => knownTermsOrder.includes(st)) || scoreTerms[0] || 'First Term');
+        const pickTerm = (t?: string) => t && knownTermsOrder.includes(t) ? t : (scoreTerms.find(st => knownTermsOrder.includes(String(st))) || scoreTerms[0] || 'First Term');
 
-        const effectiveSession = settingsRes?.session || sortedSessions[0] || '';
-        const effectiveTerm = settingsRes?.term || pickTerm(settingsRes?.term);
+        const effectiveSession = (settingsRes?.session as string) || sortedSessions[0] || '';
+        const effectiveTerm = (settingsRes?.term as string) || pickTerm(settingsRes?.term as string);
         setSession(effectiveSession);
         setTerm(effectiveTerm);
       } catch (e) {
@@ -89,6 +89,25 @@ const Broadsheet: React.FC<BroadsheetProps> = ({ setActiveView, userRole = 'Admi
     filteredRemarks.forEach(r => map.set(r.studentId, r));
     return map;
   }, [filteredRemarks]);
+
+  // Build subject columns present in selected class
+  const classSubjectIds = useMemo(() => {
+    const classSubs = subjects
+      .filter(sub => !selectedClass || (sub.classes || []).includes(selectedClass))
+      .map(s => s.id);
+    return classSubs as string[];
+  }, [subjects, selectedClass]);
+
+  // Precompute totals by student and subject
+  const studentSubjectTotals: Record<string, Record<string, number>> = useMemo(() => {
+    const map: Record<string, Record<string, number>> = {};
+    for (const sc of filteredScores) {
+      const total = (sc.ca1 || 0) + (sc.ca2 || 0) + (sc.exam || 0);
+      if (!map[sc.studentId]) map[sc.studentId] = {};
+      map[sc.studentId][sc.subjectId] = Math.max(map[sc.studentId][sc.subjectId] || 0, total);
+    }
+    return map;
+  }, [filteredScores]);
 
   // Compute totals, averages, and positions for the class
   const perf = useMemo(() => {
@@ -128,21 +147,6 @@ const Broadsheet: React.FC<BroadsheetProps> = ({ setActiveView, userRole = 'Admi
     return summary;
   }, [attendance, selectedClass, classStudents]);
 
-  // Build subject columns present in selected class
-  const classSubjectIds = useMemo(() => {
-    const classSubs = subjects.filter(sub => !selectedClass || sub.classes.includes(selectedClass)).map(s => s.id);
-    return classSubs;
-  }, [subjects, selectedClass]);
-
-  const studentSubjectTotals: Record<string, Record<string, number>> = useMemo(() => {
-    const map: Record<string, Record<string, number>> = {};
-    for (const sc of filteredScores) {
-      const total = (sc.ca1 || 0) + (sc.ca2 || 0) + (sc.exam || 0);
-      if (!map[sc.studentId]) map[sc.studentId] = {};
-      map[sc.studentId][sc.subjectId] = Math.max(map[sc.studentId][sc.subjectId] || 0, total);
-    }
-    return map;
-  }, [filteredScores]);
 
   const saveRemark = async (studentId: string, generalComment: string) => {
     const payload: Partial<Remark> = { studentId, session, term, generalComment };

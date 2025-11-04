@@ -216,6 +216,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView, use
                 { view: ADMIN_VIEWS.AI_TOOLS, label: 'AI Tools', icon: <BrainCircuitIcon className="h-5 w-5" /> },
                 { view: ADMIN_VIEWS.AI_COACH_MANAGER, label: 'AI Coach Manager', icon: <DocumentTextIcon className="h-5 w-5" /> },
                 { view: ADMIN_VIEWS.ANALYTICS, label: 'Analytics', icon: <ChartBarIcon className="h-5 w-5" /> },
+                { view: ADMIN_VIEWS.PRINT_CENTER, label: 'Print Center', icon: <PrinterIcon className="h-5 w-5" /> },
                 { view: ADMIN_VIEWS.ID_CARDS, label: 'ID Cards', icon: <IdentificationIcon className="h-5 w-5" /> },
                 { view: ADMIN_VIEWS.ALUMNI, label: 'Alumni', icon: <GraduationCapIcon className="h-5 w-5" /> },
             ]

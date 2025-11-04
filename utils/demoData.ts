@@ -1,4 +1,4 @@
-import { Tenant, Student, Subject, SchoolSettings, Score, Teacher, Parent, Invoice, FeeStructure, BehavioralLogEntry, Remark, AttendanceRecord, Assignment, AssignmentScore } from '../types';
+import { Tenant, Student, Subject, SchoolSettings, Score, Teacher, Parent, Invoice, FeeStructure, BehavioralLogEntry, Remark, AttendanceRecord, Assignment, AssignmentScore, Expense, Income } from '../types';
 
 export const DEMO_TENANT_ID = 'demo';
 
@@ -61,6 +61,8 @@ export const CORE_DEMO_DATA = {
     remarks: [] as Remark[],
     behavioralRecords: [] as BehavioralLogEntry[],
     attendance: [] as AttendanceRecord[],
+    expenses: [] as Expense[],
+    income: [] as Income[],
     assignments: [] as Assignment[],
     assignment_scores: [] as AssignmentScore[],
     settings: {
@@ -688,3 +690,121 @@ const backfillJss1AScores = () => {
 };
 
 backfillJss1AScores();
+
+// --- Finance Demo Data: Income & Expenses ---
+(() => {
+  const today = new Date();
+  const fmt = (d: Date) => d.toISOString().split('T')[0];
+  const daysAgo = (n: number) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() - n);
+    return d;
+  };
+
+  // Seed Income records (recent 60 days)
+  const incomeSeed: Income[] = [
+    { id: 'inc_001', date: fmt(daysAgo(3)), description: 'PTA Fundraising Gala', category: 'Fundraising', amount: 850000 },
+    { id: 'inc_002', date: fmt(daysAgo(7)), description: 'Alumni Donation (Batch 2012)', category: 'Donation', amount: 350000 },
+    { id: 'inc_003', date: fmt(daysAgo(10)), description: 'Local Government Education Grant', category: 'Grant', amount: 1200000 },
+    { id: 'inc_004', date: fmt(daysAgo(14)), description: 'Community Development Fund', category: 'Grant', amount: 500000 },
+    { id: 'inc_005', date: fmt(daysAgo(18)), description: 'Staff Cooperative Donation', category: 'Donation', amount: 150000 },
+    { id: 'inc_006', date: fmt(daysAgo(22)), description: 'Sports Day Fundraiser', category: 'Fundraising', amount: 210000 },
+    { id: 'inc_007', date: fmt(daysAgo(26)), description: 'Book Fair Proceeds', category: 'Fundraising', amount: 175000 },
+    { id: 'inc_008', date: fmt(daysAgo(32)), description: 'NGO STEM Program Support', category: 'Grant', amount: 400000 },
+    { id: 'inc_009', date: fmt(daysAgo(41)), description: 'Parents Anonymous Donation', category: 'Donation', amount: 90000 },
+    { id: 'inc_010', date: fmt(daysAgo(55)), description: 'General Support', category: 'Other', amount: 60000 },
+  ];
+
+  CORE_DEMO_DATA.income.push(...incomeSeed);
+
+  // Seed Expense records (recent 60 days)
+  const expenseSeed: Expense[] = [
+    { id: 'exp_001', date: fmt(daysAgo(2)), description: 'Generator diesel (2 weeks)', category: 'Utilities', amount: 280000 },
+    { id: 'exp_002', date: fmt(daysAgo(5)), description: 'Science lab reagents', category: 'Supplies', amount: 145000 },
+    { id: 'exp_003', date: fmt(daysAgo(9)), description: 'Roof leak repair (Block B)', category: 'Maintenance', amount: 320000 },
+    { id: 'exp_004', date: fmt(daysAgo(12)), description: 'Internet subscription (monthly)', category: 'Utilities', amount: 95000 },
+    { id: 'exp_005', date: fmt(daysAgo(16)), description: 'Classroom whiteboards (4 units)', category: 'Operational', amount: 210000 },
+    { id: 'exp_006', date: fmt(daysAgo(20)), description: 'Printing exam papers', category: 'Operational', amount: 125000 },
+    { id: 'exp_007', date: fmt(daysAgo(24)), description: 'Textbooks for JSS 1', category: 'Supplies', amount: 380000 },
+    { id: 'exp_008', date: fmt(daysAgo(28)), description: 'Staff payroll (October)', category: 'payroll', amount: 6400000 },
+    { id: 'exp_009', date: fmt(daysAgo(35)), description: 'Library AC servicing', category: 'Maintenance', amount: 85000 },
+    { id: 'exp_010', date: fmt(daysAgo(50)), description: 'Security services (monthly)', category: 'Operational', amount: 300000 },
+  ];
+
+  CORE_DEMO_DATA.expenses.push(...expenseSeed);
+})();
+
+// --- Attendance Demo Data ---
+(() => {
+  // Generate attendance for last 14 school days across key classes
+  const classes = ['JSS 1A', 'SSS 2A', 'Primary 4A', 'Nursery 1A', 'Primary 5A', 'SSS 1B'];
+  const today = new Date();
+
+  const fmt = (d: Date) => d.toISOString().split('T')[0];
+  const minusDays = (base: Date, n: number) => {
+    const d = new Date(base);
+    d.setDate(d.getDate() - n);
+    return d;
+  };
+
+  const isWeekend = (d: Date) => {
+    const day = d.getDay();
+    return day === 0 || day === 6; // Sunday/Saturday
+  };
+
+  const pickStatus = (): 'present' | 'absent' | 'late' => {
+    const r = Math.random();
+    if (r < 0.88) return 'present';
+    if (r < 0.94) return 'late';
+    return 'absent';
+  };
+
+  // Create 14 recent weekdays of attendance
+  let createdDays = 0;
+  let offset = 1;
+  while (createdDays < 14) {
+    const date = minusDays(today, offset);
+    offset++;
+    if (isWeekend(date)) continue;
+    createdDays++;
+
+    classes.forEach(cls => {
+      const students = CORE_DEMO_DATA.students.filter(s => s.class === cls);
+      if (!students.length) return;
+      const statuses: Record<string, 'present' | 'absent' | 'late'> = {};
+      students.forEach(s => {
+        statuses[s.id] = pickStatus();
+      });
+      const record: AttendanceRecord = {
+        date: fmt(date),
+        class: cls,
+        statuses
+      };
+      CORE_DEMO_DATA.attendance.push(record);
+    });
+  }
+})();
+
+// --- Extra Assignments Top-up (ensure broader coverage) ---
+CORE_DEMO_DATA.assignments.push(
+  {
+    id: 'asg_sss1b_chem_practical',
+    class: 'SSS 1B',
+    title: 'Chemistry Practical: Separation Techniques',
+    description: 'Perform filtration and distillation; submit lab notes and conclusions.',
+    subjectId: 'subj_7',
+    dueDate: '2025-11-12',
+    maxScore: 20,
+    type: 'Lab Report'
+  },
+  {
+    id: 'asg_pri5_english_comprehension',
+    class: 'Primary 5A',
+    title: 'English Comprehension Passage',
+    description: 'Read the passage and answer 10 questions clearly and neatly.',
+    subjectId: 'subj_2',
+    dueDate: '2025-11-09',
+    maxScore: 10,
+    type: 'Classwork'
+  }
+);

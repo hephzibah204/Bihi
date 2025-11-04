@@ -32,6 +32,7 @@ const DashboardKnowledgeBase = lazy(() => import('./DashboardKnowledgeBase'));
 const BillingDashboard = lazy(() => import('./BillingDashboard'));
 const BursaryDashboard = lazy(() => import('./BursaryDashboard'));
 const AdminAiCoachManager = lazy(() => import('./AdminAiCoachManager'));
+const PrintCenter = lazy(() => import('./PrintCenter'));
 
 // AI Tool Components
 const AIChatPanel = lazy(() => import('./AIChatPanel'));
@@ -88,6 +89,8 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ activeView, setActi
             return <AdminAiCoachManager />;
         case ADMIN_VIEWS.ANALYTICS:
             return <AdvancedAnalytics />;
+        case ADMIN_VIEWS.PRINT_CENTER:
+            return <PrintCenter setActiveView={setActiveView} />;
         case ADMIN_VIEWS.ALUMNI:
             return <AlumniDashboard />;
         case ADMIN_VIEWS.STAFF:
