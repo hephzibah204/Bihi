@@ -6,6 +6,7 @@ import PrinterIcon from './icons/PrinterIcon';
 import ArrowDownTrayIcon from './icons/ArrowDownTrayIcon';
 import { downloadElementAsPdf } from '../utils/pdfUtils';
 import '../styles/report-card.css';
+import ZoomablePreview from './ZoomablePreview';
 import { USER_ROLES } from '../utils/constants';
 
 const StudentReportCardViewer = ({ demoUserId }) => {
@@ -217,15 +218,32 @@ const StudentReportCardViewer = ({ demoUserId }) => {
                 </div>
             </div>
 
-            {/* A4-like preview container */}
+            {/* A4-like preview container with zoom for mobile */}
             <div className="w-full px-2 report-card-wrapper">
-                <div className="printable-content mx-auto bg-white shadow-lg report-card-page rounded-md md:rounded-lg">
-                    <ReportCardComponent
-                        {...reportData}
-                        student={{ ...reportData.student, class: effectiveClass }}
-                        term={selectedTerm || reportData.term}
-                        session={selectedSession || reportData.session}
-                    />
+                <div className="mx-auto max-w-full md:max-w-4xl">
+                    <div className="no-print block md:hidden mb-2 text-xs text-gray-500 text-center">Pinch or use buttons to zoom</div>
+                    <div className="block md:hidden">
+                        <ZoomablePreview>
+                            <div className="printable-content mx-auto bg-white shadow-lg report-card-page rounded-md">
+                                <ReportCardComponent
+                                    {...reportData}
+                                    student={{ ...reportData.student, class: effectiveClass }}
+                                    term={selectedTerm || reportData.term}
+                                    session={selectedSession || reportData.session}
+                                />
+                            </div>
+                        </ZoomablePreview>
+                    </div>
+                    <div className="hidden md:block">
+                        <div className="printable-content mx-auto bg-white shadow-lg report-card-page rounded-md md:rounded-lg">
+                            <ReportCardComponent
+                                {...reportData}
+                                student={{ ...reportData.student, class: effectiveClass }}
+                                term={selectedTerm || reportData.term}
+                                session={selectedSession || reportData.session}
+                            />
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
