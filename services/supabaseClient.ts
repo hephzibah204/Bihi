@@ -64,6 +64,13 @@ export async function initSupabase() {
     return supabase;
   }
 
+  // 3️⃣b Guard against empty envs (utils/env returns empty strings when unset)
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    logger.error('[Supabase] Missing SUPABASE_URL or KEY. Switching to offline mode.');
+    supabase = createOfflineClient();
+    return supabase;
+  }
+
   // 4️⃣ Check if client library is available
   if (!createClient) {
     logger.error('[Supabase] Client library not available. Running in offline mode.');
@@ -111,12 +118,20 @@ export async function initSupabase() {
 }
 
 function createOfflineClient() {
-  return { 
+  return {
     _offline: true,
     auth: {
       getUser: async () => ({ data: { user: null }, error: new Error('Offline') }),
       getSession: async () => ({ data: { session: null }, error: null }),
-      signOut: async () => ({ error: null })
+      signOut: async () => ({ error: null }),
+      onAuthStateChange: (callback: (event: string, session: any) => void) => {
+        const subscription = { unsubscribe: () => {} } as any;
+        try {
+          // Simulate an initial signed-out state in offline mode
+          callback('SIGNED_OUT', null);
+        } catch { /* noop */ }
+        return { data: { subscription }, error: null } as any;
+      }
     }
   };
 }

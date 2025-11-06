@@ -128,7 +128,7 @@ const ReportCardDashboard: React.FC<ReportCardDashboardProps> = ({ onBack }) => 
                         <div>
                             <label className="label">Select Class</label>
                             <select value={selectedClass} onChange={e => setSelectedClass(e.target.value)} className="input-field">
-                                {allData.subjects && [...new Set<string>(allData.subjects.flatMap(s => s.classes))].sort().map(c => <option key={c} value={c}>{c}</option>)}
+                                {allData.subjects && [...new Set<string>(allData.subjects.flatMap(s => (s.classes || [])))].sort().map(c => <option key={c} value={c}>{c}</option>)}
                             </select>
                         </div>
                         <div>
