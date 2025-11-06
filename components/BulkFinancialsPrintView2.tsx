@@ -3,6 +3,7 @@ import { Invoice, Payment, Student, SchoolSettings } from '../types';
 import ArrowLeftIcon from './icons/ArrowLeftIcon';
 import PrinterIcon from './icons/PrinterIcon';
 import SimpleReceipt from './SimpleReceipt';
+import SimpleInvoice from './SimpleInvoice';
 import AnimatedCheckbox from './AnimatedCheckbox';
 
 interface BulkFinancialsPrintViewProps {
@@ -17,7 +18,12 @@ interface BulkFinancialsPrintViewProps {
 const BulkFinancialsPrintView2: React.FC<BulkFinancialsPrintViewProps> = ({ type, items, students, invoices, settings, onClose }) => {
     const [compact, setCompact] = useState(false);
     useEffect(() => {
-        const timer = setTimeout(() => window.print(), 600);
+        const timer = setTimeout(() => {
+            // Only print if component is still mounted and visible
+            if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+                window.print();
+            }
+        }, 600);
         return () => clearTimeout(timer);
     }, []);
 
@@ -29,7 +35,11 @@ const BulkFinancialsPrintView2: React.FC<BulkFinancialsPrintViewProps> = ({ type
             if (!invoice || !student) return null;
             return <SimpleReceipt settings={settings} invoice={invoice} payment={payment} student={student} compact={compact} />;
         }
-        // TODO: Implement invoice print template if required
+        if (type === 'invoice') {
+            const invoice = item as Invoice;
+            if (!invoice) return null;
+            return <SimpleInvoice settings={settings} invoice={invoice} compact={compact} />;
+        }
         return null;
     };
 

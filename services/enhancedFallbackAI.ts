@@ -15,7 +15,8 @@ interface AIResponse {
 }
 
 // Learning: access Gemini cache to reuse high-quality responses offline
-import { getAIResponseCache } from './aiResponseCache';import { getMappings as getNERDCMappings, getStageFromClassLevel as getStage } from '../utils/nerdcMappings';
+import { getAIResponseCache } from './aiResponseCache';
+import { getMappings as getNERDCMappings, getStageFromClassLevel as getStage } from '../utils/nerdcMappings';
 
 // Nigerian Education Knowledge Base
 const NIGERIAN_CURRICULUM = {
@@ -958,7 +959,12 @@ export class EnhancedFallbackAI {
             }
         }
         
-        // Fill in template variables        const stage = getStage(classLevel) || 'N/A';        const mapping = getNERDCMappings(subject, classLevel) as any;        const curriculumBlock = mapping ? `\n\n**CURRICULUM LINKS (Auto):**\n• Stage: ${stage}\n• Strands: ${mapping.strands.map((s:any)=>`${s.code} ${s.name}`).join('; ')}\n• Sample Objectives: ${mapping.sampleObjectives.join('; ')}` : '';        if (template) {
+        // Fill in template variables
+        const stage = getStage(classLevel) || 'N/A';
+        const mapping = getNERDCMappings(subject, classLevel) as any;
+        const curriculumBlock = mapping ? `\n\n**CURRICULUM LINKS (Auto):**\n• Stage: ${stage}\n• Strands: ${mapping.strands.map((s:any)=>`${s.code} ${s.name}`).join('; ')}\n• Sample Objectives: ${mapping.sampleObjectives.join('; ')}` : '';
+
+        if (template) {
             template = template
                 .replace(/{topic}/g, topic)
                 .replace(/{class}/g, classLevel)

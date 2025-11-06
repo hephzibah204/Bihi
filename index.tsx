@@ -8,6 +8,7 @@ import { DEMO_TENANT_ID } from './utils/demoData';
 import { getAIService } from './services/aiService';
 import { initializeSemanticCache } from './services/semanticSearchUtils';
 import { logger } from './utils/logger';
+import './styles/tailwind.css';
 
 const main = async () => {
 

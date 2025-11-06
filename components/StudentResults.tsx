@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { apiGetScores, apiGetSubjects, apiGetStudents, apiGetSchoolSettings, apiGetAttendance, apiGetRemarks } from '../services/api';
 import { calculateGrade, getReportCardTemplate, calculateOverallPerformance } from '../utils/reportCardHelper';
+import { downloadElementAsPdf } from '../utils/pdfUtils';
+import '../styles/report-card.css';
 import Modal from './Modal';
 import PrinterIcon from './icons/PrinterIcon';
 import ChevronDownIcon from './icons/ChevronDownIcon';
@@ -15,6 +17,7 @@ const StudentResults = ({ demoUserId }) => {
     const [error, setError] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedTermData, setSelectedTermData] = useState(null);
+    const [isMobile, setIsMobile] = useState(false);
 
     // Filter states
     const [sessions, setSessions] = useState<string[]>([]);
@@ -64,7 +67,10 @@ const StudentResults = ({ demoUserId }) => {
                 setTerms(allTerms);
 
                 if (allSessions.length > 0) {
-                    setSelectedSession(settings.session || allSessions[0]);
+                    const initialSession = allSessions.includes(settings.session as string) ? (settings.session as string) : allSessions[0];
+                    setSelectedSession(initialSession);
+                } else {
+                    setSelectedSession('');
                 }
                 setSelectedTerm(settings.term || '');
                 
@@ -95,6 +101,13 @@ const StudentResults = ({ demoUserId }) => {
 
         fetchResults();
     }, [demoUserId]);
+
+    useEffect(() => {
+        const check = () => setIsMobile(window.innerWidth < 768);
+        check();
+        window.addEventListener('resize', check);
+        return () => window.removeEventListener('resize', check);
+    }, []);
     
     const handleViewReport = (termKey) => {
         const [session, term] = termKey.split(' - ');
@@ -176,6 +189,12 @@ const StudentResults = ({ demoUserId }) => {
             </div>
 
             <div className="space-y-4">
+                {filteredTerms.length === 0 && (
+                    <div className="card p-6 text-center text-gray-500">
+                        No results found for the selected session/term.
+                        <div className="mt-2 text-xs md:hidden">Try picking a different session or term above.</div>
+                    </div>
+                )}
                 {filteredTerms.map(termKey => {
                     const isOpen = expandedTermKey === termKey;
                     const summary = termSummaries[termKey];
@@ -218,8 +237,9 @@ const StudentResults = ({ demoUserId }) => {
 
             {isModalOpen && selectedTermData && ReportCardComponent && (
                 <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={`Report Card`} size="full">
-                     <div className="bg-gray-100 p-4 md:p-8 flex flex-col items-center printable-content">
-                        <div id="report-card-modal" className="bg-white shadow-lg">
+                     <div className="bg-gray-100 p-4 md:p-8 flex flex-col items-center">
+                        {/* Offscreen on mobile to avoid heavy preview rendering */}
+                        <div id="report-card-modal" className={`printable-content bg-white shadow-lg ${isMobile ? 'offscreen' : ''}`}>
                             <ReportCardComponent
                                 student={student}
                                 {...allData}
@@ -227,12 +247,25 @@ const StudentResults = ({ demoUserId }) => {
                                 term={selectedTermData.term}
                             />
                         </div>
-                         <div className="no-print mt-8">
+                         <div className="no-print mt-8 flex gap-2">
+                            <button onClick={async () => {
+                                const el = document.querySelector('#report-card-modal') as HTMLElement | null;
+                                const hadOffscreen = !!el && el.classList.contains('offscreen');
+                                if (hadOffscreen) el.classList.remove('offscreen');
+                                try {
+                                    await downloadElementAsPdf('#report-card-modal', student?.name || 'report-card');
+                                } finally {
+                                    if (hadOffscreen && el) el.classList.add('offscreen');
+                                }
+                            }} className="btn btn-secondary">
+                                Download PDF
+                            </button>
                             <button onClick={() => window.print()} className="btn btn-primary">
                                 <PrinterIcon className="w-5 h-5 mr-2" />
                                 Print Report
                             </button>
                         </div>
+                        <div className="no-print text-xs text-gray-500 text-center mt-2 md:hidden">Preview disabled on mobile. Use Download/Print.</div>
                     </div>
                 </Modal>
             )}

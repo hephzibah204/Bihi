@@ -1,0 +1,153 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --brand-color-primary: #4f46e5; /* default indigo-600 */
+    --brand-color-secondary: #8b5cf6; /* default violet-500 */
+    --brand-color-accent: #10b981; /* default emerald-500 */
+    --brand-font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Ubuntu, Cantarell, 'Noto Sans', sans-serif;
+  }
+  body { font-family: var(--brand-font-family); }
+  /* Dark mode hook */
+  body[data-theme='dark'] {
+    background-color: #0b1220;
+    color: #e5e7eb;
+  }
+}
+
+@layer components {
+  .input-field {
+    @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply text-white hover:brightness-95 focus:ring-indigo-500;
+    background-color: var(--brand-color-primary);
+  }
+  .btn-secondary {
+    @apply text-white hover:brightness-95 focus:ring-indigo-500;
+    background-color: var(--brand-color-secondary);
+  }
+  .btn-accent {
+    @apply text-white hover:brightness-95 focus:ring-indigo-500;
+    background-color: var(--brand-color-accent);
+  }
+  .card {
+    @apply bg-white rounded-lg shadow;
+  }
+  .label {
+    @apply block text-sm font-medium text-gray-700 mb-1;
+  }
+  .table-container {
+    @apply overflow-x-auto border border-gray-200 rounded-lg;
+  }
+  .table {
+    @apply min-w-full divide-y divide-gray-200;
+  }
+  .th {
+    @apply px-4 py-3 bg-white text-left text-xs font-semibold text-gray-700 uppercase tracking-wider;
+  }
+  .td {
+    @apply px-4 py-3 whitespace-nowrap text-sm text-gray-800;
+  }
+  .icon-button {
+    @apply p-1 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors;
+  }
+  .bottom-nav {
+    @apply flex md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40;
+  }
+  .main-content-mobile-padding {
+    @apply pb-16 md:pb-0;
+  }
+  .prose-content h1, .prose-content h2, .prose-content h3 { @apply font-bold; }
+  .prose-content p { @apply my-4; }
+  .prose-content a { color: var(--brand-color-primary); }
+  .prose-content ul { @apply list-disc pl-5 my-4; }
+  .prose-content ol { @apply list-decimal pl-5 my-4; }
+  .prose-content blockquote { @apply border-l-4 border-gray-300 pl-4 italic my-4; }
+  .prose-content table { @apply w-full my-4 border-collapse border border-gray-300; }
+  .prose-content th, .prose-content td { @apply border border-gray-300 p-2 text-left; }
+  .prose-content th { @apply bg-gray-100 font-semibold; }
+  .toggle-switch {
+    @apply relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 bg-gray-200;
+  }
+  .toggle-switch:checked {
+    @apply bg-indigo-600;
+  }
+  .toggle-switch:checked::before {
+    @apply translate-x-5;
+  }
+  .toggle-switch::before {
+    @apply inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200;
+    content: '';
+  }
+  .pricing-toggle {
+    @apply inline-flex items-center rounded-full bg-gray-200 p-1;
+  }
+  .pricing-toggle button {
+    @apply px-4 py-1.5 text-sm font-semibold rounded-full focus:outline-none;
+  }
+  .pricing-toggle button[aria-pressed='true'] {
+    @apply bg-white shadow;
+  }
+  .faq-item .faq-question { @apply w-full flex justify-between items-center text-left py-4 border-b font-semibold; }
+  .faq-item .faq-answer { @apply grid transition-all duration-300 ease-in-out; }
+  .faq-item[data-open='true'] .faq-answer { @apply grid-rows-[1fr] py-4; }
+  .faq-item[data-open='false'] .faq-answer { @apply grid-rows-[0fr]; }
+  .faq-item .faq-answer > * { @apply overflow-hidden; }
+
+  .animated-checkbox {
+    @apply w-5 h-5 flex items-center justify-center border-2 border-gray-300 rounded-md cursor-pointer transition-colors duration-200 bg-white;
+  }
+  .animated-checkbox.checked {
+    @apply bg-indigo-600 border-indigo-600;
+  }
+  .animated-checkbox svg {
+    @apply w-4 h-4 text-white;
+  }
+  .animated-checkbox .checkmark__path {
+    stroke-dasharray: 48;
+    stroke-dashoffset: 48;
+    transition: none; /* No transition when hiding */
+  }
+  .animated-checkbox.checked .checkmark__path {
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 0.3s ease-in-out;
+  }
+
+  .countdown-timer { @apply flex items-center justify-center gap-2 text-center; }
+  .countdown-timer .value { @apply font-bold text-2xl bg-white/20 px-2 py-1 rounded; }
+  .countdown-timer .label { @apply text-xs mt-1; }
+}
+
+@layer utilities {
+  /* Print utilities and report card theming */
+  .no-print { @apply hidden print:hidden; }
+  .printable-content { @apply w-[210mm] mx-auto my-6 p-6 bg-white shadow-xl rounded-xl; }
+  .report-card-a4-size { width: 210mm; min-height: 297mm; }
+  .report-card-layout { @apply relative bg-white rounded-xl ring-1 ring-gray-200; }
+  .report-card-layout::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 8px solid rgba(79,70,229,0.08);
+    border-radius: 12px;
+    pointer-events: none;
+  }
+  .report-card-layout table { border-collapse: collapse; }
+  .report-card-layout thead { background-color: rgba(79,70,229,0.08); }
+  .report-card-layout th, .report-card-layout td { border: 1px solid rgba(148,163,184,0.5); }
+  .report-card-layout tbody tr:nth-child(even) { background-color: rgba(99,102,241,0.04); }
+  .report-card-layout h1, .report-card-layout h2, .report-card-layout h3 { @apply tracking-wide; }
+  .prose-content { @apply leading-relaxed text-gray-700; }
+
+  @media print {
+    .no-print { display: none !important; }
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    @page { size: A4; margin: 12mm; }
+    .printable-content { box-shadow: none !important; margin: 0 auto !important; }
+    .page-break { break-after: page; page-break-after: always; }
+  }
+}

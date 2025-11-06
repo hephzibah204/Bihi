@@ -68,13 +68,6 @@ const SecondaryReportCard = ({ student, students, scores, subjects, settings, te
     }, {} as Record<string, number>);
 
     const gradeScale = settings?.gradingSystem || [];
-    const ratingLegend = [
-        { score: 5, label: 'Excellent' },
-        { score: 4, label: 'Very Good' },
-        { score: 3, label: 'Good' },
-        { score: 2, label: 'Fair' },
-        { score: 1, label: 'Poor' },
-    ];
 
     return (
         <div className="report-card-layout report-card-a4-size p-8 relative">
@@ -182,26 +175,7 @@ const SecondaryReportCard = ({ student, students, scores, subjects, settings, te
                 </div>
             )}
 
-            {/* Rating Indices */}
-            <div className="mt-6">
-                <h3 className="font-bold text-sm mb-2">Rating Indices</h3>
-                <table className="w-full text-xs">
-                    <thead>
-                        <tr className="bg-gray-100">
-                            <th className="p-1 border">Score</th>
-                            <th className="p-1 border">Meaning</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {ratingLegend.map(item => (
-                            <tr key={item.score}>
-                                <td className="p-1 border text-center font-semibold">{item.score}</td>
-                                <td className="p-1 border">{item.label}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+            {/* Rating Indices removed as requested */}
             {/* Skills Section */}
             <div className="mt-6">
                 <h3 className="font-bold text-md mb-2">Skills</h3>

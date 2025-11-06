@@ -54,5 +54,24 @@
   }
 
   .printable-content { page-break-inside: avoid; }
-  .page-break { page-break-after: always; }
+.page-break { page-break-after: always; }
+}
+
+/* Keep printable content offscreen on mobile to avoid heavy preview */
+.offscreen {
+  position: absolute;
+  left: -10000px;
+  top: -10000px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media print {
+  .offscreen {
+    position: static !important;
+    left: 0 !important;
+    top: 0 !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
 }

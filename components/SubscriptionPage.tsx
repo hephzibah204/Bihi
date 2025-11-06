@@ -171,6 +171,25 @@ const SubscriptionPage = () => {
                 }
             } catch {}
 
+            // Dev/local: seed the admin teacher profile so login can proceed without a backend
+            try {
+                const raw = localStorage.getItem('dev_teachers');
+                const teachers = raw ? JSON.parse(raw) : [];
+                const adminTeacher = {
+                    id: `teacher_${formData.subdomain}_admin`,
+                    name: formData.adminName || formData.adminEmail,
+                    email: formData.adminEmail,
+                    role: 'Administrator',
+                    tenant_id: formData.subdomain
+                };
+                let next = Array.isArray(teachers) ? teachers : [];
+                const exists = next.some((t: any) => String(t.email).toLowerCase() === String(adminTeacher.email).toLowerCase());
+                if (!exists) {
+                    next = [...next, adminTeacher];
+                    localStorage.setItem('dev_teachers', JSON.stringify(next));
+                }
+            } catch { /* noop */ }
+
             // Record recent registration marker for tenant validation fallback (expires after 15 minutes)
             try {
                 const marker = { id: formData.subdomain, ts: Date.now() };

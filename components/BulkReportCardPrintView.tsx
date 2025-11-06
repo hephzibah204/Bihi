@@ -10,11 +10,18 @@ import MinimalistReportCard from './report-templates/MinimalistReportCard';
 import SpinnerIcon from './icons/SpinnerIcon';
 import '../styles/report-card.css';
 
-const BulkReportCardPrintView = ({ studentIds, allData, onClose, action, templateKey = 'auto' }) => {
+const BulkReportCardPrintView = ({ studentIds, allData, onClose, action, templateKey = 'auto', sessionOverride, termOverride }) => {
     const [isProcessing, setIsProcessing] = useState(false);
+    const isMobile = typeof window !== 'undefined' ? window.matchMedia('(max-width: 640px)').matches : false;
     
     const handleDownload = async () => {
         setIsProcessing(true);
+        // Ensure offscreen content is temporarily visible for capture
+        const container = document.querySelector('.printable-content') as HTMLElement | null;
+        const hadOffscreen = !!container && container.classList.contains('offscreen');
+        if (hadOffscreen) {
+            container.classList.remove('offscreen');
+        }
         const { html2canvas, jspdf } = window;
         if (!html2canvas || !jspdf) {
             alert("PDF export library not loaded. Please try again.");
@@ -43,6 +50,10 @@ const BulkReportCardPrintView = ({ studentIds, allData, onClose, action, templat
         const uniqueClasses = Array.from(new Set(studentsToPrint.map(s => s.class))).filter(Boolean);
         const baseName = uniqueClasses.length === 1 ? uniqueClasses[0] : 'report-cards';
         pdf.save(baseName + '.pdf');
+        // Restore offscreen state
+        if (hadOffscreen && container) {
+            container.classList.add('offscreen');
+        }
         setIsProcessing(false);
         onClose();
     };
@@ -59,6 +70,8 @@ const BulkReportCardPrintView = ({ studentIds, allData, onClose, action, templat
     }, [action]);
 
     const studentsToPrint = allData.allStudents.filter(s => studentIds.includes(s.id));
+    const effectiveSession = sessionOverride || allData?.settings?.session;
+    const effectiveTerm = termOverride || allData?.settings?.term;
 
     const getTemplateForStudent = (student) => {
         if (templateKey && templateKey !== 'auto') {
@@ -92,7 +105,23 @@ const BulkReportCardPrintView = ({ studentIds, allData, onClose, action, templat
                 </button>
             </div>
             
-            <div className="printable-content">
+            {/* Mobile hint: we disable visible preview but keep print/download working */}
+            {isMobile && (
+                <div className="no-print p-3 text-center text-xs text-gray-600">
+                    Preview disabled on mobile. Use Download/Print buttons above.
+                </div>
+            )}
+            {/* Empty-state and validation */}
+            {studentsToPrint.length === 0 ? (
+                <div className="card m-4 p-6 text-center text-gray-600">
+                    No students selected. Go back and pick at least one student.
+                </div>
+            ) : (!effectiveSession || !effectiveTerm) ? (
+                <div className="card m-4 p-6 text-center text-gray-600">
+                    Missing session or term. Please set both before printing.
+                </div>
+            ) : (
+            <div className={isMobile ? "printable-content offscreen" : "printable-content"}>
                 {studentsToPrint.map((student) => {
                     const ReportCardComponent = getTemplateForStudent(student);
                     return (
@@ -103,8 +132,8 @@ const BulkReportCardPrintView = ({ studentIds, allData, onClose, action, templat
                                 scores={allData.scores}
                                 subjects={allData.subjects}
                                 settings={allData.settings}
-                                term={allData.settings.term}
-                                session={allData.settings.session}
+                                term={effectiveTerm}
+                                session={effectiveSession}
                                 remarks={allData.remarks}
                                 attendance={allData.attendance}
                             />}
@@ -112,6 +141,7 @@ const BulkReportCardPrintView = ({ studentIds, allData, onClose, action, templat
                     );
                 })}
             </div>
+            )}
         </div>
     );
 };

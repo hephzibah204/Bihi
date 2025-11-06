@@ -24,6 +24,8 @@ const ReportCardDashboard: React.FC<ReportCardDashboardProps> = ({ onBack }) => 
     
     const [loading, setLoading] = useState(true);
     const [selectedClass, setSelectedClass] = useState('');
+    const [selectedSession, setSelectedSession] = useState<string>('');
+    const [selectedTerm, setSelectedTerm] = useState<string>('');
     const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
     const [printAction, setPrintAction] = useState<'print' | 'download' | null>(null);
     const [templateKey, setTemplateKey] = useState<'auto' | 'classic' | 'modern' | 'minimalist'>('auto');
@@ -35,12 +37,24 @@ const ReportCardDashboard: React.FC<ReportCardDashboardProps> = ({ onBack }) => 
                 apiGetStudents(), apiGetSubjects(), apiGetScores(), apiGetRemarks(), apiGetAttendance(), apiGetSchoolSettings()
             ]);
             setAllData({ allStudents: students, subjects, scores, remarks, attendance, settings });
-            if (subjects.length > 0) {
-                const allClasses = [...new Set<string>(subjects.flatMap(s => s.classes))].sort();
-                if (allClasses.length > 0) {
-                    setSelectedClass(allClasses[0]);
-                }
+            // Class fallback: prefer subjects; if none, derive from students
+            const subjectClasses = [...new Set<string>(subjects.flatMap(s => s.classes || []))].sort();
+            const studentClasses = [...new Set<string>(students.map(s => s.class).filter(Boolean))].sort();
+            const allClasses = subjectClasses.length ? subjectClasses : studentClasses;
+            if (allClasses.length > 0) {
+                setSelectedClass(allClasses[0]);
             }
+            // Robust session/term initialization using available data, with settings fallback
+            const availableSess = [...new Set<string>(scores.map(s => s.session).filter(Boolean))].sort();
+            const availableTrm = [...new Set<string>(scores.map(s => s.term).filter(Boolean))].sort();
+            const initialSession = settings?.session && availableSess.includes(settings.session)
+                ? settings.session
+                : (availableSess[0] || settings?.session || '');
+            const initialTerm = settings?.term && availableTrm.includes(settings.term)
+                ? settings.term
+                : (availableTrm[0] || settings?.term || '');
+            setSelectedSession(initialSession || '');
+            setSelectedTerm(initialTerm || '');
         } catch (e) {
             console.error("Failed to load data for report card generation", e);
         } finally {
@@ -76,6 +90,14 @@ const ReportCardDashboard: React.FC<ReportCardDashboardProps> = ({ onBack }) => 
         }
     };
 
+    // Build selectable sessions/terms from available scores
+    const availableSessions = useMemo(() => (
+        [...new Set(allData.scores.map(s => s.session))].filter(Boolean)
+    ), [allData.scores]);
+    const availableTerms = useMemo(() => (
+        [...new Set(allData.scores.map(s => s.term))].filter(Boolean)
+    ), [allData.scores]);
+
     if (printAction) {
         return (
             <BulkReportCardPrintView
@@ -84,6 +106,8 @@ const ReportCardDashboard: React.FC<ReportCardDashboardProps> = ({ onBack }) => 
                 onClose={() => setPrintAction(null)}
                 action={printAction}
                 templateKey={templateKey}
+                sessionOverride={selectedSession}
+                termOverride={selectedTerm}
             />
         );
     }
@@ -100,11 +124,27 @@ const ReportCardDashboard: React.FC<ReportCardDashboardProps> = ({ onBack }) => 
 
             <div className="card">
                 <div className="p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                         <div>
                             <label className="label">Select Class</label>
                             <select value={selectedClass} onChange={e => setSelectedClass(e.target.value)} className="input-field">
                                 {allData.subjects && [...new Set<string>(allData.subjects.flatMap(s => s.classes))].sort().map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="label">Session</label>
+                            <select value={selectedSession} onChange={e => setSelectedSession(e.target.value)} className="input-field">
+                                {availableSessions.length ? availableSessions.map(s => <option key={s} value={s}>{s}</option>) : (
+                                    allData.settings?.session ? <option value={allData.settings.session}>{allData.settings.session}</option> : null
+                                )}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="label">Term</label>
+                            <select value={selectedTerm} onChange={e => setSelectedTerm(e.target.value)} className="input-field">
+                                {availableTerms.length ? availableTerms.map(t => <option key={t} value={t}>{t}</option>) : (
+                                    allData.settings?.term ? <option value={allData.settings.term}>{allData.settings.term}</option> : null
+                                )}
                             </select>
                         </div>
                         <div>

@@ -48,6 +48,49 @@ export const CORE_DEMO_DATA = {
         // Chinedu Okoro - average
         { studentId: 'stud_3', subjectId: 'subj_1', session: '2023/2024', term: 'First Term', ca1: 15, ca2: 14, exam: 40 },
         { studentId: 'stud_3', subjectId: 'subj_3', session: '2023/2024', term: 'First Term', ca1: 16, ca2: 15, exam: 45 },
+
+        // SECOND TERM 2023/2024 DATA
+        // Adekunle Gold - Second Term (slight improvement)
+        { studentId: 'stud_1', subjectId: 'subj_1', session: '2023/2024', term: 'Second Term', ca1: 19, ca2: 18, exam: 58 },
+        { studentId: 'stud_1', subjectId: 'subj_2', session: '2023/2024', term: 'Second Term', ca1: 20, ca2: 19, exam: 59 },
+        { studentId: 'stud_1', subjectId: 'subj_4', session: '2023/2024', term: 'Second Term', ca1: 18, ca2: 20, exam: 52 },
+        // Bisiola Adebayo - Second Term (showing improvement)
+        { studentId: 'stud_2', subjectId: 'subj_1', session: '2023/2024', term: 'Second Term', ca1: 8, ca2: 12, exam: 28 },
+        { studentId: 'stud_2', subjectId: 'subj_2', session: '2023/2024', term: 'Second Term', ca1: 13, ca2: 14, exam: 35 },
+        { studentId: 'stud_2', subjectId: 'subj_4', session: '2023/2024', term: 'Second Term', ca1: 10, ca2: 11, exam: 30 },
+        // Chinedu Okoro - Second Term (steady performance)
+        { studentId: 'stud_3', subjectId: 'subj_1', session: '2023/2024', term: 'Second Term', ca1: 16, ca2: 15, exam: 42 },
+        { studentId: 'stud_3', subjectId: 'subj_3', session: '2023/2024', term: 'Second Term', ca1: 17, ca2: 16, exam: 47 },
+        // Damilola Fashola - Second Term
+        { studentId: 'stud_4', subjectId: 'subj_1', session: '2023/2024', term: 'Second Term', ca1: 17, ca2: 16, exam: 50 },
+        { studentId: 'stud_4', subjectId: 'subj_3', session: '2023/2024', term: 'Second Term', ca1: 18, ca2: 17, exam: 52 },
+        // Emeka Nwosu - Second Term (Primary 4A)
+        { studentId: 'stud_5', subjectId: 'subj_1', session: '2023/2024', term: 'Second Term', ca1: 16, ca2: 17, exam: 48 },
+        { studentId: 'stud_5', subjectId: 'subj_2', session: '2023/2024', term: 'Second Term', ca1: 18, ca2: 16, exam: 50 },
+        { studentId: 'stud_5', subjectId: 'subj_6', session: '2023/2024', term: 'Second Term', ca1: 15, ca2: 17, exam: 45 },
+        // Fatima Bello - Second Term (Nursery 1A)
+        { studentId: 'stud_6', subjectId: 'subj_2', session: '2023/2024', term: 'Second Term', ca1: 18, ca2: 19, exam: 56 },
+        { studentId: 'stud_6', subjectId: 'subj_5', session: '2023/2024', term: 'Second Term', ca1: 19, ca2: 18, exam: 54 },
+
+        // THIRD TERM 2023/2024 DATA
+        // Adekunle Gold - Third Term (consistent excellence)
+        { studentId: 'stud_1', subjectId: 'subj_1', session: '2023/2024', term: 'Third Term', ca1: 20, ca2: 19, exam: 60 },
+        { studentId: 'stud_1', subjectId: 'subj_2', session: '2023/2024', term: 'Third Term', ca1: 19, ca2: 20, exam: 58 },
+        { studentId: 'stud_1', subjectId: 'subj_4', session: '2023/2024', term: 'Third Term', ca1: 19, ca2: 18, exam: 55 },
+        // Bisiola Adebayo - Third Term (continued improvement)
+        { studentId: 'stud_2', subjectId: 'subj_1', session: '2023/2024', term: 'Third Term', ca1: 12, ca2: 15, exam: 32 },
+        { studentId: 'stud_2', subjectId: 'subj_2', session: '2023/2024', term: 'Third Term', ca1: 15, ca2: 16, exam: 38 },
+        { studentId: 'stud_2', subjectId: 'subj_4', session: '2023/2024', term: 'Third Term', ca1: 13, ca2: 14, exam: 35 },
+
+        // PREVIOUS SESSION 2022/2023 DATA
+        // Adekunle Gold - Third Term Previous Session (showing growth over time)
+        { studentId: 'stud_1', subjectId: 'subj_1', session: '2022/2023', term: 'Third Term', ca1: 16, ca2: 17, exam: 52 },
+        { studentId: 'stud_1', subjectId: 'subj_2', session: '2022/2023', term: 'Third Term', ca1: 18, ca2: 16, exam: 54 },
+        { studentId: 'stud_1', subjectId: 'subj_4', session: '2022/2023', term: 'Third Term', ca1: 15, ca2: 18, exam: 48 },
+        // Bisiola Adebayo - Previous Session (showing she struggled earlier too)
+        { studentId: 'stud_2', subjectId: 'subj_1', session: '2022/2023', term: 'Third Term', ca1: 4, ca2: 6, exam: 18 },
+        { studentId: 'stud_2', subjectId: 'subj_2', session: '2022/2023', term: 'Third Term', ca1: 8, ca2: 10, exam: 25 },
+        { studentId: 'stud_2', subjectId: 'subj_4', session: '2022/2023', term: 'Third Term', ca1: 6, ca2: 8, exam: 22 },
     ] as Score[],
     teachers: [
         { id: 'teacher_1', auth_id: 'auth_admin', tenant_id: DEMO_TENANT_ID, name: 'Mrs. Adebayo (Admin)', email: 'admin@demo.com', role: 'Admin', classTeacherOf: 'SSS 2A' },
@@ -58,7 +101,32 @@ export const CORE_DEMO_DATA = {
         { id: 'inv_2', studentId: 'stud_2', class: 'JSS 1A', session: '2023/2024', term: 'First Term', issueDate: '2023-09-01', dueDate: '2023-09-30', totalAmount: 75000, amountPaid: 0, status: 'unpaid', items: [{ description: 'School Fees', amount: 75000 }] },
         { id: 'inv_3', studentId: 'stud_3', class: 'SSS 2A', session: '2023/2024', term: 'First Term', issueDate: '2023-09-01', dueDate: '2023-09-30', totalAmount: 100000, amountPaid: 50000, status: 'partially-paid', items: [{ description: 'School Fees', amount: 100000 }] },
     ] as Invoice[],
-    remarks: [] as Remark[],
+    remarks: [
+        // FIRST TERM 2023/2024
+        { studentId: 'stud_1', session: '2023/2024', term: 'First Term', generalComment: 'Adekunle demonstrates excellent performance and leadership in class.' },
+        { studentId: 'stud_2', session: '2023/2024', term: 'First Term', generalComment: 'Bisiola needs significant improvement; targeted support advised.' },
+        { studentId: 'stud_3', session: '2023/2024', term: 'First Term', generalComment: 'Chinedu is making steady progress; more practice recommended.' },
+        { studentId: 'stud_4', session: '2023/2024', term: 'First Term', generalComment: 'Damilola has good understanding; continued effort will yield excellent results.' },
+        { studentId: 'stud_5', session: '2023/2024', term: 'First Term', generalComment: 'Emeka has good grasp of concepts and performs well.' },
+        { studentId: 'stud_6', session: '2023/2024', term: 'First Term', generalComment: 'Fatima demonstrates excellent performance and leadership in class.' },
+
+        // SECOND TERM 2023/2024
+        { studentId: 'stud_1', session: '2023/2024', term: 'Second Term', generalComment: 'Adekunle continues to show exceptional performance with consistent excellence across subjects.' },
+        { studentId: 'stud_2', session: '2023/2024', term: 'Second Term', generalComment: 'Bisiola shows marked improvement this term; continue with targeted intervention programs.' },
+        { studentId: 'stud_3', session: '2023/2024', term: 'Second Term', generalComment: 'Chinedu maintains steady progress; encouragement to pursue more challenging materials.' },
+        { studentId: 'stud_4', session: '2023/2024', term: 'Second Term', generalComment: 'Damilola demonstrates good performance and positive attitude toward learning.' },
+        { studentId: 'stud_5', session: '2023/2024', term: 'Second Term', generalComment: 'Emeka displays improved focus and better grasp of fundamental concepts.' },
+        { studentId: 'stud_6', session: '2023/2024', term: 'Second Term', generalComment: 'Fatima maintains excellent performance with great participation in class activities.' },
+
+        // THIRD TERM 2023/2024
+        { studentId: 'stud_1', session: '2023/2024', term: 'Third Term', generalComment: 'Adekunle achieves outstanding results with perfect consistency; an exemplary student.' },
+        { studentId: 'stud_2', session: '2023/2024', term: 'Third Term', generalComment: 'Bisiola continues improving trajectory; with sustained effort, will achieve average performance.' },
+        { studentId: 'stud_3', session: '2023/2024', term: 'Third Term', generalComment: 'Chinedu demonstrates consistent average performance; more determination needed for excellence.' },
+
+        // PREVIOUS SESSION 2022/2023
+        { studentId: 'stud_1', session: '2022/2023', term: 'Third Term', generalComment: 'Adekunle showed very good performance with strong fundamentals and dedication.' },
+        { studentId: 'stud_2', session: '2022/2023', term: 'Third Term', generalComment: 'Bisiola struggled significantly this term; requires comprehensive academic support.' },
+    ] as Remark[],
     behavioralRecords: [] as BehavioralLogEntry[],
     attendance: [] as AttendanceRecord[],
     expenses: [] as Expense[],

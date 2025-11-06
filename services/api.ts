@@ -123,7 +123,8 @@ const isDemo = () => {
 
 const get = async <T>(table: string, options: { filter?: string, select?: string } = {}): Promise<T[]> => {
     if (isDemo()) {
-        return (CORE_DEMO_DATA[table] || []) as any;
+        const demoData = (CORE_DEMO_DATA[table] as T[]) || ([] as T[]);
+        return Array.isArray(demoData) ? demoData : ([] as T[]);
     }
     if (!supabase) return [];
     
@@ -136,7 +137,7 @@ const get = async <T>(table: string, options: { filter?: string, select?: string
         }
         const { data, error } = await query;
         if (error) throw error;
-        return data as T[];
+        return (Array.isArray(data) ? data : []) as T[];
     });
 };
 
@@ -152,13 +153,18 @@ const upsert = async (table: string, record: any) => {
 };
 
 const batchUpsert = async (table: string, records: any[]) => {
+    // Validate input
+    if (!Array.isArray(records) || records.length === 0) {
+        return [];
+    }
+    
     if (isDemo()) return records;
     if (!supabase) return null;
     
     return withRetry(async () => {
         const { data, error } = await supabase.from(table).upsert(records).select();
         if (error) throw error;
-        return data;
+        return (Array.isArray(data) ? data : []);
     });
 }
 
@@ -233,17 +239,51 @@ export const apiGetStudents = async (options: { classFilter?: string, studentIds
     });
 };
 
-export const apiUpsertStudent = (student: Partial<Student>) => {
+export const apiUpsertStudent = async (student: Partial<Student>) => {
     // Validate and sanitize input
     const validatedStudent = validateInput(studentSchema.partial(), student);
     
     const actionType = validatedStudent.id ? 'STUDENT_UPDATE' : 'STUDENT_ADD';
     const description = validatedStudent.id ? `Updated details for ${validatedStudent.firstName} ${validatedStudent.lastName}` : `Added new student ${validatedStudent.firstName} ${validatedStudent.lastName}`;
     apiLogActivity(actionType, description);
+    
+    // In demo mode, persist to CORE_DEMO_DATA for realistic experience
+    if (isDemo()) {
+        const index = CORE_DEMO_DATA.students.findIndex(s => s.id === validatedStudent.id);
+        if (index >= 0) {
+            // Update existing student
+            CORE_DEMO_DATA.students[index] = { ...CORE_DEMO_DATA.students[index], ...validatedStudent } as Student;
+        } else {
+            // Add new student with auto-generated ID if not provided
+            const newStudent: Student = {
+                id: validatedStudent.id || `stud_${Date.now()}`,
+                name: validatedStudent.name || 'New Student',
+                admissionNo: validatedStudent.admissionNo || `ADM-${Date.now()}`,
+                class: validatedStudent.class || '',
+                gender: validatedStudent.gender || '',
+                status: validatedStudent.status || 'active',
+                created_at: new Date().toISOString(),
+                ...validatedStudent
+            };
+            CORE_DEMO_DATA.students.push(newStudent);
+        }
+        return validatedStudent;
+    }
+    
     return upsert('students', validatedStudent);
 };
 export const apiDeleteStudent = (studentId: string) => {
     apiLogActivity('STUDENT_DELETE', `Deleted student with ID ${studentId}`);
+    
+    // In demo mode, remove from CORE_DEMO_DATA
+    if (isDemo()) {
+        const index = CORE_DEMO_DATA.students.findIndex(s => s.id === studentId);
+        if (index >= 0) {
+            CORE_DEMO_DATA.students.splice(index, 1);
+        }
+        return { id: studentId };
+    }
+    
     return del('students', studentId);
 };
 export const apiBatchUpdateStudents = (students: Partial<Student>[]) => {
@@ -300,12 +340,43 @@ export const apiGetParents = async (options: { limit?: number, offset?: number }
         return data || [];
     });
 };
-export const apiUpsertParent = (parent: Partial<Parent>) => {
+export const apiUpsertParent = async (parent: Partial<Parent>) => {
     // Validate and sanitize input
     const validatedParent = validateInput(parentSchema.partial(), parent);
+    
+    // In demo mode, persist to CORE_DEMO_DATA
+    if (isDemo()) {
+        const index = CORE_DEMO_DATA.parents.findIndex(p => p.id === validatedParent.id);
+        if (index >= 0) {
+            // Update existing parent
+            CORE_DEMO_DATA.parents[index] = { ...CORE_DEMO_DATA.parents[index], ...validatedParent } as Parent;
+        } else {
+            // Add new parent
+            const newParent: Parent = {
+                id: validatedParent.id || `parent_${Date.now()}`,
+                name: validatedParent.name || 'New Parent',
+                email: validatedParent.email || `parent_${Date.now()}@example.com`,
+                ...validatedParent
+            };
+            CORE_DEMO_DATA.parents.push(newParent);
+        }
+        return validatedParent;
+    }
+    
     return upsert('parents', validatedParent);
 };
-export const apiDeleteParent = (parentId: string) => del('parents', parentId);
+export const apiDeleteParent = (parentId: string) => {
+    // In demo mode, remove from CORE_DEMO_DATA
+    if (isDemo()) {
+        const index = CORE_DEMO_DATA.parents.findIndex(p => p.id === parentId);
+        if (index >= 0) {
+            CORE_DEMO_DATA.parents.splice(index, 1);
+        }
+        return { id: parentId };
+    }
+    
+    return del('parents', parentId);
+};
 export const apiInviteParent = async (studentId: string) => {
     if (isDemo()) {
         window.dispatchEvent(new CustomEvent('show-global-success', { detail: { message: 'Invitation sent (simulated).' } }));
@@ -339,7 +410,20 @@ export const apiGetTeachers = async (options: { limit?: number, offset?: number 
         if (limit !== undefined) teachers = teachers.slice(offset, offset + limit);
         return teachers;
     }
-    if (!supabase) return [];
+    // Local/dev fallback when Supabase is not available
+    if (!supabase) {
+        try {
+            const raw = typeof window !== 'undefined' ? localStorage.getItem('dev_teachers') : null;
+            const list = raw ? JSON.parse(raw) : [];
+            let teachers: Teacher[] = Array.isArray(list) ? list : [];
+            const limit = options.limit ?? undefined;
+            const offset = options.offset ?? 0;
+            if (limit !== undefined) teachers = teachers.slice(offset, offset + limit);
+            return teachers;
+        } catch {
+            return [];
+        }
+    }
     return withRetry(async () => {
         let query = supabase.from('teachers').select('*');
         const limit = options.limit ?? undefined;
@@ -350,7 +434,7 @@ export const apiGetTeachers = async (options: { limit?: number, offset?: number 
         return data || [];
     });
 };
-export const apiUpsertTeacher = (teacher: Partial<Teacher> & { firstName?: string; lastName?: string }) => {
+export const apiUpsertTeacher = async (teacher: Partial<Teacher> & { firstName?: string; lastName?: string }) => {
     // Construct a schema-aware payload aligned with DB columns
     const tenant_id = getTenantId() || undefined;
     const resolvedName = (teacher.name && teacher.name.trim())
@@ -372,10 +456,43 @@ export const apiUpsertTeacher = (teacher: Partial<Teacher> & { firstName?: strin
       ? `Updated details for ${resolvedName || teacher.email || teacher.id}`
       : `Added new staff ${resolvedName || teacher.email || 'Unnamed'}`;
     apiLogActivity(actionType, description);
+    
+    // In demo mode, persist to CORE_DEMO_DATA for realistic experience
+    if (isDemo()) {
+        const index = CORE_DEMO_DATA.teachers.findIndex(t => t.id === payload.id);
+        if (index >= 0) {
+            // Update existing teacher
+            CORE_DEMO_DATA.teachers[index] = { ...CORE_DEMO_DATA.teachers[index], ...payload } as Teacher;
+        } else {
+            // Add new teacher with auto-generated ID if not provided
+            const newTeacher: Teacher = {
+                id: payload.id || `teacher_${Date.now()}`,
+                name: resolvedName || 'New Teacher',
+                email: payload.email || `teacher_${Date.now()}@school.com`,
+                role: payload.role || 'Teacher',
+                auth_id: payload.auth_id || `auth_${Date.now()}`,
+                tenant_id: tenant_id || DEMO_TENANT_ID,
+                ...payload
+            };
+            CORE_DEMO_DATA.teachers.push(newTeacher);
+        }
+        return payload;
+    }
+    
     return upsert('teachers', payload);
 };
 export const apiDeleteTeacher = (teacherId: string) => {
     apiLogActivity('TEACHER_DELETE', `Deleted teacher with ID ${teacherId}`);
+    
+    // In demo mode, remove from CORE_DEMO_DATA
+    if (isDemo()) {
+        const index = CORE_DEMO_DATA.teachers.findIndex(t => t.id === teacherId);
+        if (index >= 0) {
+            CORE_DEMO_DATA.teachers.splice(index, 1);
+        }
+        return { id: teacherId };
+    }
+    
     return del('teachers', teacherId);
 };
 

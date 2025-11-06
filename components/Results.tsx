@@ -17,6 +17,8 @@ const Results = () => {
     const [subjects, setSubjects] = useState<Subject[]>([]);
     const [scores, setScores] = useState<Score[]>([]);
     const [settings, setSettings] = useState<Partial<SchoolSettings>>({});
+    const [selectedSession, setSelectedSession] = useState('');
+    const [selectedTerm, setSelectedTerm] = useState('');
     const [loading, setLoading] = useState(true);
     const [selectedClass, setSelectedClass] = useState('');
     const [selectedSubjectId, setSelectedSubjectId] = useState('');
@@ -44,6 +46,19 @@ const Results = () => {
             setScores(scoresData);
             setSettings(settingsData || {});
             if (classNames.length > 0 && !selectedClass) setSelectedClass(classNames[0]);
+            // Initialize session/term with fallbacks to available data
+            const sessions = Array.from(new Set([
+                ...scoresData.map(s => s.session).filter(Boolean),
+                settingsData?.session
+            ].filter(Boolean)));
+            const initialSession = sessions.includes(settingsData?.session) ? (settingsData?.session as string) : (sessions[0] || '');
+            const termsForSession = Array.from(new Set([
+                ...scoresData.filter(s => s.session === initialSession).map(s => s.term).filter(Boolean),
+                settingsData?.term
+            ].filter(Boolean)));
+            const initialTerm = termsForSession.includes(settingsData?.term) ? (settingsData?.term as string) : (termsForSession[0] || '');
+            setSelectedSession(initialSession || '');
+            setSelectedTerm(initialTerm || '');
         } catch(e) {
             console.error("Failed to load data for results entry", e);
         } finally {
@@ -93,24 +108,51 @@ const Results = () => {
         return students.filter(s => s.class === selectedClass);
     }, [students, selectedClass]);
 
+    // Lock sessions/terms to available values and auto-correct selections
+    const sessionOptions = useMemo(() => {
+        return Array.from(new Set([
+            ...scores.map(s => s.session).filter(Boolean),
+            settings.session
+        ].filter(Boolean)));
+    }, [scores, settings.session]);
+
+    const termOptions = useMemo(() => {
+        return Array.from(new Set([
+            ...scores.filter(s => !selectedSession || s.session === selectedSession).map(s => s.term).filter(Boolean),
+            settings.term
+        ].filter(Boolean)));
+    }, [scores, selectedSession, settings.term]);
+
+    useEffect(() => {
+        if (selectedSession && !sessionOptions.includes(selectedSession)) {
+            setSelectedSession(sessionOptions[0] || '');
+        }
+    }, [sessionOptions]);
+
+    useEffect(() => {
+        if (selectedTerm && !termOptions.includes(selectedTerm)) {
+            setSelectedTerm(termOptions[0] || '');
+        }
+    }, [termOptions]);
+
     const debouncedSave = useCallback(debounce((studentId: string, field: keyof Score, value: string | number) => {
-        const existingScore = scores.find(s => s.studentId === studentId && s.subjectId === selectedSubjectId && s.session === settings.session && s.term === settings.term);
+        const existingScore = scores.find(s => s.studentId === studentId && s.subjectId === selectedSubjectId && s.session === selectedSession && s.term === selectedTerm);
         const scoreData = {
-            ...(existingScore || { studentId, subjectId: selectedSubjectId, session: settings.session, term: settings.term }),
+            ...(existingScore || { studentId, subjectId: selectedSubjectId, session: selectedSession, term: selectedTerm }),
             [field]: value
         };
         apiUpsertScore(scoreData);
-    }, 500), [scores, selectedSubjectId, settings]);
+    }, 500), [scores, selectedSubjectId, selectedSession, selectedTerm]);
     
     const handleScoreChange = (studentId: string, field: keyof Score, value: string | number) => {
         setScores(prevScores => {
-            const index = prevScores.findIndex(s => s.studentId === studentId && s.subjectId === selectedSubjectId && s.session === settings.session && s.term === settings.term);
+            const index = prevScores.findIndex(s => s.studentId === studentId && s.subjectId === selectedSubjectId && s.session === selectedSession && s.term === selectedTerm);
             if (index !== -1) {
                 const newScores = [...prevScores];
                 newScores[index] = { ...newScores[index], [field]: value };
                 return newScores;
             } else {
-                return [...prevScores, { studentId, subjectId: selectedSubjectId, session: settings.session, term: settings.term, [field]: value } as Score];
+                return [...prevScores, { studentId, subjectId: selectedSubjectId, session: selectedSession, term: selectedTerm, [field]: value } as Score];
             }
         });
         debouncedSave(studentId, field, value);
@@ -124,7 +166,7 @@ const Results = () => {
             const scoresToUpdate: Partial<Score>[] = [];
             for (const student of studentsInClass) {
                 // FIX: Explicitly type `score` as Partial<Score> to avoid type errors on properties like `ca1`.
-                const score: Partial<Score> = scores.find(s => s.studentId === student.id && s.subjectId === selectedSubjectId && s.session === settings.session && s.term === settings.term) || {};
+                const score: Partial<Score> = scores.find(s => s.studentId === student.id && s.subjectId === selectedSubjectId && s.session === selectedSession && s.term === selectedTerm) || {};
                 const total = (score.ca1 || 0) + (score.ca2 || 0) + (score.exam || 0);
                 
                 const prompt = `Generate a short, insightful report card comment (1 sentence) for a student's performance in a subject. Use simple HTML for emphasis (e.g., <strong>).
@@ -139,8 +181,8 @@ Comment on their strength or a key area for improvement based on this score.`;
                     ...score,
                     studentId: student.id,
                     subjectId: selectedSubjectId,
-                    session: settings.session,
-                    term: settings.term,
+                    session: selectedSession,
+                    term: selectedTerm,
                     comment: String(comment).trim(),
                 };
                 scoresToUpdate.push(scoreData);
@@ -168,6 +210,20 @@ Comment on their strength or a key area for improvement based on this score.`;
                     <select value={selectedSubjectId} onChange={e => setSelectedSubjectId(e.target.value)} className="input-field">
                         {filteredSubjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
+                    <select value={selectedSession} onChange={e => setSelectedSession(e.target.value)} className="input-field">
+                        {sessionOptions.length === 0 ? (
+                            <option value="">Select session</option>
+                        ) : (
+                            sessionOptions.map(s => <option key={s} value={s}>{s}</option>)
+                        )}
+                    </select>
+                    <select value={selectedTerm} onChange={e => setSelectedTerm(e.target.value)} className="input-field">
+                        {termOptions.length === 0 ? (
+                            <option value="">Select term</option>
+                        ) : (
+                            termOptions.map(t => <option key={t} value={t}>{t}</option>)
+                        )}
+                    </select>
                 </div>
                 <div className="flex gap-2 w-full md:w-auto">
                     <button onClick={() => setImportModalOpen(true)} className="btn btn-secondary flex-1"><ArrowUpTrayIcon className="w-5 h-5 mr-2"/> Import</button>
@@ -191,7 +247,7 @@ Comment on their strength or a key area for improvement based on this score.`;
                     <tbody>
                         {studentsInClass.map((student, index) => {
                             // FIX: Explicitly type `score` as Partial<Score> to avoid type errors on properties like `ca1`.
-                            const score: Partial<Score> = scores.find(s => s.studentId === student.id && s.subjectId === selectedSubjectId && s.session === settings.session && s.term === settings.term) || {};
+                            const score: Partial<Score> = scores.find(s => s.studentId === student.id && s.subjectId === selectedSubjectId && s.session === selectedSession && s.term === selectedTerm) || {};
                             const total = (score.ca1 || 0) + (score.ca2 || 0) + (score.exam || 0);
                             return (
                                 <tr key={student.id} onClick={() => setEditingStudentIndex(index)} className="cursor-pointer hover:bg-gray-50">

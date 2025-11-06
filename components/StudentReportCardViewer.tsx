@@ -19,14 +19,38 @@ const StudentReportCardViewer = ({ demoUserId }) => {
     const [selectedTerm, setSelectedTerm] = useState('');
     const [selectedClass, setSelectedClass] = useState('');
 
+    // Detect mobile to render preview offscreen while keeping content printable/downloadable
+    const [isMobile, setIsMobile] = useState(false);
+    const [showMobilePreview, setShowMobilePreview] = useState(false);
+    useEffect(() => {
+        const check = () => setIsMobile(window.innerWidth < 768);
+        check();
+        window.addEventListener('resize', check);
+        return () => window.removeEventListener('resize', check);
+    }, []);
+
     useEffect(() => {
         const fetchReportData = async () => {
             setLoading(true);
             setError('');
             try {
-                const [scores, subjects, students, settings, attendance, remarks] = await Promise.all([
-                    apiGetScores(), apiGetSubjects(), apiGetStudents(), apiGetSchoolSettings(), apiGetAttendance(), apiGetRemarks()
+                // Use Promise.allSettled() for graceful degradation if one API fails
+                const results = await Promise.allSettled([
+                    apiGetScores(),
+                    apiGetSubjects(),
+                    apiGetStudents(),
+                    apiGetSchoolSettings(),
+                    apiGetAttendance(),
+                    apiGetRemarks()
                 ]);
+
+                // Extract values, defaulting to empty arrays on failure
+                const scores = results[0].status === 'fulfilled' ? results[0].value : [];
+                const subjects = results[1].status === 'fulfilled' ? results[1].value : [];
+                const students = results[2].status === 'fulfilled' ? results[2].value : [];
+                const settings = results[3].status === 'fulfilled' ? results[3].value : null;
+                const attendance = results[4].status === 'fulfilled' ? results[4].value : [];
+                const remarks = results[5].status === 'fulfilled' ? results[5].value : [];
 
                 // Resolve a student to show: prefer prop; otherwise try activeUser; else fall back to first student; finally hardcode demo id.
                 let effectiveId = demoUserId as string | undefined;
@@ -45,8 +69,20 @@ const StudentReportCardViewer = ({ demoUserId }) => {
                     // Last resort demo fallback
                     currentStudent = { id: 'stud_1', class: '' } as any;
                 }
+                if (!students || students.length === 0) {
+                    throw new Error('No student data available.');
+                }
+
                 if (!currentStudent || !currentStudent.id) {
                     throw new Error('Student profile not selected.');
+                }
+
+                // Log warnings if critical data is missing
+                if (!subjects || subjects.length === 0) {
+                    console.warn('Warning: No subject data available');
+                }
+                if (!settings) {
+                    console.warn('Warning: No school settings available');
                 }
 
                 // Initialize filters
@@ -97,26 +133,54 @@ const StudentReportCardViewer = ({ demoUserId }) => {
         fetchReportData();
     }, [demoUserId]);
 
-    // Options recomputed when data or selected session changes
+    // Lock options to only values available for the current student and effective class
     const sessionOptions = useMemo(() => {
         if (!reportData) return [] as string[];
-        const { scores, remarks, settings } = reportData;
-        return Array.from(new Set([
-            ...scores.map(s => s.session).filter(Boolean),
-            ...remarks.map(r => r.session).filter(Boolean),
-            settings?.session
-        ].filter(Boolean)));
-    }, [reportData]);
+        const { scores, subjects } = reportData as any;
+        const studentId = reportData.student?.id;
+        const effectiveClass = (reportData.student?.classHistory || [])
+            .find((h: any) => (!selectedSession || h.session === selectedSession) && (!selectedTerm || h.term === selectedTerm))?.class
+            || selectedClass
+            || reportData.student?.class;
+        const subjectIdsForClass = new Set(
+            (subjects || []).filter((sub: any) => (sub.classes || []).includes(effectiveClass)).map((s: any) => s.id)
+        );
+        const sessions = scores
+            .filter((s: any) => s.studentId === studentId && subjectIdsForClass.has(s.subjectId))
+            .map((s: any) => s.session)
+            .filter(Boolean);
+        return Array.from(new Set(sessions));
+    }, [reportData, selectedClass, selectedTerm, selectedSession]);
 
     const termOptions = useMemo(() => {
         if (!reportData) return [] as string[];
-        const { scores, remarks, settings } = reportData;
-        return Array.from(new Set([
-            ...scores.filter(s => !selectedSession || s.session === selectedSession).map(s => s.term).filter(Boolean),
-            ...remarks.filter(r => !selectedSession || r.session === selectedSession).map(r => r.term).filter(Boolean),
-            settings?.term
-        ].filter(Boolean)));
-    }, [reportData, selectedSession]);
+        const { scores, subjects } = reportData as any;
+        const studentId = reportData.student?.id;
+        const effectiveClass = (reportData.student?.classHistory || [])
+            .find((h: any) => (!selectedSession || h.session === selectedSession) && (!selectedTerm || h.term === selectedTerm))?.class
+            || selectedClass
+            || reportData.student?.class;
+        const subjectIdsForClass = new Set(
+            (subjects || []).filter((sub: any) => (sub.classes || []).includes(effectiveClass)).map((s: any) => s.id)
+        );
+        const terms = scores
+            .filter((s: any) => s.studentId === studentId && (!!selectedSession ? s.session === selectedSession : true) && subjectIdsForClass.has(s.subjectId))
+            .map((s: any) => s.term)
+            .filter(Boolean);
+        return Array.from(new Set(terms));
+    }, [reportData, selectedClass, selectedSession, selectedTerm]);
+
+    // Keep selected session/term valid when options change
+    useEffect(() => {
+        if (selectedSession && !sessionOptions.includes(selectedSession)) {
+            setSelectedSession(sessionOptions[0] || '');
+        }
+    }, [sessionOptions]);
+    useEffect(() => {
+        if (selectedTerm && !termOptions.includes(selectedTerm)) {
+            setSelectedTerm(termOptions[0] || '');
+        }
+    }, [termOptions]);
 
     const classOptions = useMemo(() => {
         if (!reportData) return [] as string[];
@@ -177,13 +241,21 @@ const StudentReportCardViewer = ({ demoUserId }) => {
                         <div>
                             <label className="label">Session</label>
                             <select className="input-field" value={selectedSession} onChange={e => setSelectedSession(e.target.value)}>
-                                {sessionOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                                {sessionOptions.length === 0 ? (
+                                    <option value="">Select session</option>
+                                ) : (
+                                    sessionOptions.map(s => <option key={s} value={s}>{s}</option>)
+                                )}
                             </select>
                         </div>
                         <div>
                             <label className="label">Term</label>
                             <select className="input-field" value={selectedTerm} onChange={e => setSelectedTerm(e.target.value)}>
-                                {termOptions.map(t => <option key={t} value={t}>{t}</option>)}
+                                {termOptions.length === 0 ? (
+                                    <option value="">Select term</option>
+                                ) : (
+                                    termOptions.map(t => <option key={t} value={t}>{t}</option>)
+                                )}
                             </select>
                         </div>
                         {/* Class: if history has a match for selected session/term, lock to history; else allow manual selection */}
@@ -201,8 +273,27 @@ const StudentReportCardViewer = ({ demoUserId }) => {
                             </div>
                         )}
                         <div className="flex items-end gap-2 justify-end">
+                            {/* Mobile: Toggle visible preview */}
+                            {isMobile && (
+                                <button
+                                    onClick={() => setShowMobilePreview(prev => !prev)}
+                                    className="btn btn-secondary flex-1 md:flex-none"
+                                    title="Toggle mobile preview"
+                                >
+                                    {showMobilePreview ? 'Hide Preview' : 'Show Preview'}
+                                </button>
+                            )}
                             <button
-                                onClick={() => downloadElementAsPdf('.printable-content', reportData?.student?.name || 'report-card')}
+                                onClick={async () => {
+                                    const el = document.querySelector('.printable-content') as HTMLElement | null;
+                                    const hadOffscreen = !!el && el.classList.contains('offscreen');
+                                    if (hadOffscreen) el.classList.remove('offscreen');
+                                    try {
+                                        await downloadElementAsPdf('.printable-content', reportData?.student?.name || 'report-card');
+                                    } finally {
+                                        if (hadOffscreen && el) el.classList.add('offscreen');
+                                    }
+                                }}
                                 className="btn btn-secondary flex-1 md:flex-none"
                                 title="Download as PDF"
                             >
@@ -218,22 +309,24 @@ const StudentReportCardViewer = ({ demoUserId }) => {
                 </div>
             </div>
 
-            {/* A4-like preview container with zoom for mobile */}
+            {/* A4-like preview container; hide visible preview on mobile */}
             <div className="w-full px-2 report-card-wrapper">
                 <div className="mx-auto max-w-full md:max-w-4xl">
-                    <div className="no-print block md:hidden mb-2 text-xs text-gray-500 text-center">Pinch or use buttons to zoom</div>
+                    {/* Mobile: render content offscreen to avoid heavy preview while keeping print/download working */}
                     <div className="block md:hidden">
-                        <ZoomablePreview>
-                            <div className="printable-content mx-auto bg-white shadow-lg report-card-page rounded-md">
-                                <ReportCardComponent
-                                    {...reportData}
-                                    student={{ ...reportData.student, class: effectiveClass }}
-                                    term={selectedTerm || reportData.term}
-                                    session={selectedSession || reportData.session}
-                                />
-                            </div>
-                        </ZoomablePreview>
+                        <div className={`printable-content mx-auto bg-white shadow-lg report-card-page rounded-md ${isMobile && !showMobilePreview ? 'offscreen' : ''}`}>
+                            <ReportCardComponent
+                                {...reportData}
+                                student={{ ...reportData.student, class: effectiveClass }}
+                                term={selectedTerm || reportData.term}
+                                session={selectedSession || reportData.session}
+                            />
+                        </div>
+                        {!showMobilePreview && (
+                            <div className="no-print text-xs text-gray-500 text-center mt-2">Preview disabled on mobile. Tap "Show Preview" to view.</div>
+                        )}
                     </div>
+                    {/* Desktop: normal visible preview */}
                     <div className="hidden md:block">
                         <div className="printable-content mx-auto bg-white shadow-lg report-card-page rounded-md md:rounded-lg">
                             <ReportCardComponent
