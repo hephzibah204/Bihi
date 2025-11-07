@@ -31,6 +31,10 @@ export const getReportCardTemplate = (className: string, settings?: any) => {
         return NurseryReportCard;
     }
     if (lowerClassName.includes('jss') || lowerClassName.includes('sss')) {
+        const secondaryChoice = settings?.reportCardSettings?.secondaryTemplate || 'secondary_default';
+        if (secondaryChoice === 'modern') return ModernReportCard;
+        if (secondaryChoice === 'classic') return ClassicReportCard;
+        if (secondaryChoice === 'minimalist') return MinimalistReportCard;
         return SecondaryReportCard;
     }
     // Primary-level selection driven by settings

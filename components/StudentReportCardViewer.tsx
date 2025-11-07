@@ -21,7 +21,7 @@ const StudentReportCardViewer = ({ demoUserId }) => {
 
     // Detect mobile to render preview offscreen while keeping content printable/downloadable
     const [isMobile, setIsMobile] = useState(false);
-    const [showMobilePreview, setShowMobilePreview] = useState(false);
+    const [showMobilePreview, setShowMobilePreview] = useState(true);
     useEffect(() => {
         const check = () => setIsMobile(window.innerWidth < 768);
         check();
@@ -149,8 +149,11 @@ const StudentReportCardViewer = ({ demoUserId }) => {
             .filter((s: any) => s.studentId === studentId && subjectIdsForClass.has(s.subjectId))
             .map((s: any) => s.session)
             .filter(Boolean);
-        return Array.from(new Set(sessions));
-    }, [reportData, selectedClass, selectedTerm, selectedSession]);
+        const set = new Set<string>(sessions);
+        if (reportData?.session) set.add(reportData.session as string);
+        if (reportData?.settings?.session) set.add((reportData.settings as any).session as string);
+        return Array.from(set);
+    }, [reportData, selectedClass, selectedTerm, selectedSession, reportData?.session, reportData?.settings?.session]);
 
     const termOptions = useMemo(() => {
         if (!reportData) return [] as string[];
@@ -167,8 +170,11 @@ const StudentReportCardViewer = ({ demoUserId }) => {
             .filter((s: any) => s.studentId === studentId && (!!selectedSession ? s.session === selectedSession : true) && subjectIdsForClass.has(s.subjectId))
             .map((s: any) => s.term)
             .filter(Boolean);
-        return Array.from(new Set(terms));
-    }, [reportData, selectedClass, selectedSession, selectedTerm]);
+        const set = new Set<string>(terms);
+        if (reportData?.term) set.add(reportData.term as string);
+        if (reportData?.settings?.term) set.add((reportData.settings as any).term as string);
+        return Array.from(set);
+    }, [reportData, selectedClass, selectedSession, selectedTerm, reportData?.term, reportData?.settings?.term]);
 
     // Keep selected session/term valid when options change
     useEffect(() => {
@@ -235,7 +241,7 @@ const StudentReportCardViewer = ({ demoUserId }) => {
     return (
         <div className="w-full bg-gray-50 min-h-[60vh] flex flex-col items-center py-4">
             {/* Controls */}
-            <div className="no-print w-full max-w-4xl mb-4">
+            <div className="no-print w-full max-w-4xl mb-4 sticky top-0 z-40 bg-white/95 backdrop-blur supports-backdrop-blur:bg-white shadow-sm">
                 <div className="card p-4">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                         <div>
