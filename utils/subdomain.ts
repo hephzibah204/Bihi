@@ -171,3 +171,29 @@ export const isProductionDomain = (): boolean => {
 
 // Export domain config for other components to use
 export const getDomainConfiguration = getDomainConfig;
+
+// Normalize subdomain input to a safe slug
+export const normalizeSubdomain = (input: string): string => {
+  const trimmed = String(input || '').trim().toLowerCase();
+  // Replace invalid characters with hyphen and collapse repeats
+  const sanitized = trimmed.replace(/[^a-z0-9-]/g, '-').replace(/-{2,}/g, '-');
+  // Remove leading/trailing hyphens
+  return sanitized.replace(/^-+/, '').replace(/-+$/, '');
+};
+
+// Validate subdomain against routing rules
+export const isValidSubdomain = (sub: string): boolean => {
+  const s = normalizeSubdomain(sub);
+  if (!s) return false;
+  // Length constraints
+  if (s.length < 3 || s.length > 63) return false;
+  // Must start with letter or number
+  if (!/^[a-z0-9]/.test(s)) return false;
+  // No consecutive dots (not used) or invalid patterns
+  if (/\.\./.test(s)) return false;
+  // Disallow reserved names
+  const reserved = new Set(['www', 'admin', 'api']);
+  if (reserved.has(s)) return false;
+  // Valid character set already enforced in normalize
+  return /^[a-z0-9-]+$/.test(s);
+};

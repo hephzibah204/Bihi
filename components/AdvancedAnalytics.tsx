@@ -311,11 +311,12 @@ const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#6366F1', '#8B5CF6'
 const processClassSubjectAverages = (students: Student[], subjects: Subject[], scores: Score[], className: string, session: string, term: string) => {
     if (!className) return { labels: [], datasets: [] };
     const studentsInClass = students.filter(s => s.class === className);
+    const classStudentIds = new Set(studentsInClass.map(s => s.id));
     const subjectsForClass = subjects.filter(s => s.classes.includes(className));
     const labels = subjectsForClass.map(s => s.name);
     const data = labels.map(subjectName => {
         const subject = subjects.find(s => s.name === subjectName); if (!subject) return 0;
-        const relevantScores = scores.filter(score => studentsInClass.some(s => s.id === score.studentId) && score.subjectId === subject.id && (!session || score.session === session) && (term === 'All Terms' || score.term === term));
+        const relevantScores = scores.filter(score => classStudentIds.has(score.studentId) && score.subjectId === subject.id && (!session || score.session === session) && (term === 'All Terms' || score.term === term));
         if (relevantScores.length === 0) return 0;
         const total = relevantScores.reduce((sum, s) => sum + (s.ca1 || 0) + (s.ca2 || 0) + (s.exam || 0), 0);
         return (total / relevantScores.length).toFixed(2);
@@ -328,9 +329,10 @@ const processSubjectHotspotData = (students: Student[], subjects: Subject[], sco
     const labels = [...new Set(subjects.map(s => s.name))].sort();
     const datasets = Object.keys(classGroups).sort().map((className, index) => {
         const studentIdsInClass = classGroups[className];
+        const idSet = new Set(studentIdsInClass);
         const data = labels.map(subjectName => {
             const subject = subjects.find(s => s.name === subjectName); if (!subject) return 0;
-            const relevantScores = scores.filter(score => studentIdsInClass.includes(score.studentId) && score.subjectId === subject.id && (!session || score.session === session) && (term === 'All Terms' || score.term === term));
+            const relevantScores = scores.filter(score => idSet.has(score.studentId) && score.subjectId === subject.id && (!session || score.session === session) && (term === 'All Terms' || score.term === term));
             if (relevantScores.length === 0) return 0;
             const total = relevantScores.reduce((sum, s) => sum + (s.ca1 || 0) + (s.ca2 || 0) + (s.exam || 0), 0);
             return (total / relevantScores.length).toFixed(2);

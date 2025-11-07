@@ -100,6 +100,13 @@ const BursaryFees = () => {
 
     if (loading) return <div>Loading fee structures...</div>;
 
+    const sessionOptions = useMemo(() => {
+        const fromStructures = Array.from(new Set(structures.map(s => s.session).filter(Boolean)));
+        const fromSettings = settings?.session ? [settings.session] : [];
+        const merged = Array.from(new Set([...fromSettings, ...fromStructures]));
+        return merged.length ? merged : ['2023/2024', '2024/2025'];
+    }, [structures, settings]);
+
     return (
         <div>
             <div className="flex justify-end mb-4">
@@ -127,13 +134,13 @@ const BursaryFees = () => {
                     </tbody>
                 </table>
             </div>
-            {isModalOpen && <FeeStructureFormModal structure={editingStructure} all_classes={allClasses} settings={settings} onSave={handleSave} onClose={() => setModalOpen(false)} />}
+            {isModalOpen && <FeeStructureFormModal structure={editingStructure} all_classes={allClasses} settings={settings} sessions={sessionOptions} onSave={handleSave} onClose={() => setModalOpen(false)} />}
             <ConfirmationModal isOpen={isDeleteModalOpen} onClose={() => setDeleteModalOpen(false)} onConfirm={handleDelete} title="Delete Fee Structure" message={`Are you sure you want to delete "${structureToDelete?.name}"? This cannot be undone.`} />
         </div>
     );
 };
 
-const FeeStructureFormModal = ({ structure, all_classes, settings, onSave, onClose }) => {
+const FeeStructureFormModal = ({ structure, all_classes, settings, sessions, onSave, onClose }) => {
     const [formData, setFormData] = useState({
         name: '',
         session: settings?.session || '',
@@ -172,7 +179,7 @@ const FeeStructureFormModal = ({ structure, all_classes, settings, onSave, onClo
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
                 <div><label className="label">Structure Name</label><input name="name" value={formData.name} onChange={handleChange} className="input-field" required /></div>
                 <div className="grid grid-cols-2 gap-4">
-                    <div><label className="label">Session</label><input name="session" value={formData.session} onChange={handleChange} className="input-field" required /></div>
+                    <div><label className="label">Session</label><select name="session" value={formData.session} onChange={handleChange} className="input-field" required>{sessions.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
                     <div><label className="label">Term</label><select name="term" value={formData.term} onChange={handleChange} className="input-field"><option>First Term</option><option>Second Term</option><option>Third Term</option></select></div>
                 </div>
                 <div><label className="label">Applicable Classes (hold Ctrl/Cmd to select multiple)</label><select multiple value={formData.applicableClasses} onChange={handleClassChange} className="input-field h-32"><option value="all">All Classes</option>{all_classes.map(c => <option key={c} value={c}>{c}</option>)}</select></div>

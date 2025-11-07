@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import SpinnerIcon from './icons/SpinnerIcon';
 import Logo from './icons/Logo';
-import { getPortalUrl, isProductionDomain, getDomainConfiguration } from '../utils/subdomain';
+import { getPortalUrl, isProductionDomain, getDomainConfiguration, normalizeSubdomain } from '../utils/subdomain';
 import { supabase } from '../services/supabaseClient';
 
 const SubscriptionPage = () => {
@@ -23,7 +23,7 @@ const SubscriptionPage = () => {
         const { name, value } = e.target;
         let processedValue = value;
         if (name === 'subdomain') {
-            processedValue = value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+            processedValue = normalizeSubdomain(value);
         }
         setFormData(prev => ({ ...prev, [name]: processedValue }));
     };
@@ -120,13 +120,24 @@ const SubscriptionPage = () => {
                 return res;
             };
 
-            const candidates: string[] = [registerEndpoint];
-            // Add Cloudflare worker fallback
-            if (!candidates.includes('/api/register')) candidates.push('/api/register');
-            // Optional local API fallback for dev
-            if ((import.meta.env.VITE_USE_LOCAL_API === 'true' || import.meta.env.VITE_USE_LOCAL_API === true) && import.meta.env.VITE_LOCAL_API_URL) {
+            // Endpoint selection: strict in production, multi-fallbacks only in development
+            const isDev = window.location.hostname === 'localhost';
+            let candidates: string[] = [];
+            if (import.meta.env.VITE_SUPABASE_FUNCTION_REGISTER_URL) {
+                candidates.push(import.meta.env.VITE_SUPABASE_FUNCTION_REGISTER_URL);
+            } else {
+                // Use the canonical production handler if functions URL isn’t set
+                candidates.push('/api/register');
+            }
+
+            // In development, optionally add local API fallback
+            if (isDev && import.meta.env.VITE_LOCAL_API_URL) {
                 const localUrl = `${import.meta.env.VITE_LOCAL_API_URL.replace(/\/$/, '')}/api/register`;
-                if (!candidates.includes(localUrl)) candidates.push(localUrl);
+                candidates.push(localUrl);
+            }
+
+            if (!candidates.length) {
+                throw new Error('No registration endpoint configured.');
             }
 
             let response: Response | null = null;
@@ -153,8 +164,23 @@ const SubscriptionPage = () => {
                 throw new Error(lastError || 'Registration failed');
             }
 
-            const data = await response.json();
-            
+            const data: any = await response.json();
+
+            // Validate response before showing success
+            if (!data || data.error) {
+                throw new Error(data?.error || 'Registration failed on server.');
+            }
+            const okFlags = [
+                data.success,
+                data.tenantCreated,
+                data.tenantId,
+                data.teacherProfileCreated,
+                data.userCreated,
+            ].filter(Boolean);
+            if (okFlags.length === 0) {
+                throw new Error('Registration endpoint did not confirm portal creation.');
+            }
+
             // Clear any lingering demo session data to ensure the new portal is clean.
             sessionStorage.removeItem('isDemoMode');
             sessionStorage.removeItem('activeUser');
@@ -196,10 +222,10 @@ const SubscriptionPage = () => {
                 localStorage.setItem('recentlyRegisteredTenant', JSON.stringify(marker));
             } catch {}
 
-            setStep(3);
-        } catch (err) {
-            let errorMessage = err.message;
-            if (err.message.toLowerCase().includes('failed to fetch')) {
+            setStep(3); // Show "Success" only now
+        } catch (err: any) {
+            let errorMessage = String(err?.message || 'Registration failed');
+            if (String(err?.message || '').toLowerCase().includes('failed to fetch')) {
                 errorMessage = "A network error occurred. Please check your connection and try again.";
             }
             setError(errorMessage);

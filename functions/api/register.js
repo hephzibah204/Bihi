@@ -260,10 +260,44 @@ async function handlePost(request, env) {
         ]);
         console.log('Seeding complete for:', subdomain);
 
+        // Final verification: ensure tenant row exists before returning success
+        const tenantVerifyRes = await fetch(
+            `${SUPABASE_URL}/rest/v1/tenants?id=eq.${subdomain}&select=id`,
+            { headers: adminHeaders }
+        );
+        if (!tenantVerifyRes.ok) {
+            console.error('Tenant verification request failed:', tenantVerifyRes.status);
+            // Rollback defensively
+            try { await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userData.id}`, { method: 'DELETE', headers: adminHeaders }); } catch {}
+            try { await fetch(`${SUPABASE_URL}/rest/v1/tenants?id=eq.${subdomain}`, { method: 'DELETE', headers: adminHeaders }); } catch {}
+            throw new Error('Tenant verification failed. Registration has been rolled back. Please try again.');
+        }
+        const tenantRows = await tenantVerifyRes.json();
+        if (!Array.isArray(tenantRows) || tenantRows.length === 0) {
+            console.error('Tenant verification failed: No tenant record found');
+            // Rollback defensively
+            try { await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userData.id}`, { method: 'DELETE', headers: adminHeaders }); } catch {}
+            try { await fetch(`${SUPABASE_URL}/rest/v1/tenants?id=eq.${subdomain}`, { method: 'DELETE', headers: adminHeaders }); } catch {}
+            throw new Error('Tenant verification failed. Registration has been rolled back. Please try again.');
+        }
+
         console.log('Registration completed successfully for:', subdomain);
-        return new Response(JSON.stringify({ message: "Registration successful!", teacherProfileCreated: true }), { status: 201 });
+        // Return explicit success flags so frontend only shows success when tenant truly exists
+        return new Response(
+            JSON.stringify({
+                success: true,
+                tenantId: subdomain,
+                tenantCreated: true,
+                teacherProfileCreated: true,
+                userCreated: true,
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } }
+        );
     } catch (err) {
-        return new Response(JSON.stringify({ error: "Registration failed", details: err.message }), { status: 500 });
+        return new Response(
+            JSON.stringify({ success: false, error: "Registration failed", details: err.message }),
+            { status: 500, headers: { 'Content-Type': 'application/json' } }
+        );
     }
 }
 

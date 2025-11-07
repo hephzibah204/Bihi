@@ -376,16 +376,50 @@ serve(async (req: Request) => {
       }),
     ]);
 
+    // Final verification: ensure tenant row exists before returning success
+    const tenantVerifyRes = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/tenants?id=eq.${subdomain}&select=id`,
+      { headers: adminHeaders }
+    );
+    if (!tenantVerifyRes.ok) {
+      console.error('Tenant verification request failed:', tenantVerifyRes.status);
+      // Rollback defensively
+      try { await fetch(`${env.SUPABASE_URL}/auth/v1/admin/users/${userData.id}`, { method: 'DELETE', headers: adminHeaders }); } catch {}
+      try { await fetch(`${env.SUPABASE_URL}/rest/v1/tenants?id=eq.${subdomain}`, { method: 'DELETE', headers: adminHeaders }); } catch {}
+      const res = new Response(JSON.stringify({ error: 'Tenant verification failed. Registration has been rolled back. Please try again.' }), { status: 500 });
+      Object.entries(corsHeaders).forEach(([k, v]) => res.headers.set(k, v));
+      return res;
+    }
+    const tenantRows = await tenantVerifyRes.json();
+    if (!Array.isArray(tenantRows) || tenantRows.length === 0) {
+      console.error('Tenant verification failed: No tenant record found');
+      // Rollback defensively
+      try { await fetch(`${env.SUPABASE_URL}/auth/v1/admin/users/${userData.id}`, { method: 'DELETE', headers: adminHeaders }); } catch {}
+      try { await fetch(`${env.SUPABASE_URL}/rest/v1/tenants?id=eq.${subdomain}`, { method: 'DELETE', headers: adminHeaders }); } catch {}
+      const res = new Response(JSON.stringify({ error: 'Tenant verification failed. Registration has been rolled back. Please try again.' }), { status: 500 });
+      Object.entries(corsHeaders).forEach(([k, v]) => res.headers.set(k, v));
+      return res;
+    }
+
     console.log('Registration completed successfully for:', subdomain);
     
     const res = new Response(
-      JSON.stringify({ message: "Registration successful!", teacherProfileCreated: true }),
-      { status: 201 },
+      JSON.stringify({
+        success: true,
+        tenantId: subdomain,
+        tenantCreated: true,
+        teacherProfileCreated: true,
+        userCreated: true,
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
     );
     Object.entries(corsHeaders).forEach(([k, v]) => res.headers.set(k, v));
     return res;
   } catch (err: any) {
-    const res = new Response(JSON.stringify({ error: "Registration failed", details: err?.message || String(err) }), { status: 500 });
+    const res = new Response(
+      JSON.stringify({ success: false, error: "Registration failed", details: err?.message || String(err) }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } },
+    );
     // Add CORS headers to the error response too
     const { corsHeaders } = handleCors(req);
     Object.entries(corsHeaders).forEach(([k, v]) => res.headers.set(k, v));

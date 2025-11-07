@@ -5,6 +5,7 @@ dotenv.config({ path: '.env.local' });
 
 const app = express();
 const PORT = 3001;
+const createdTenants = new Set();
 
 // Middleware
 app.use(cors());
@@ -49,12 +50,14 @@ app.post('/api/register', async (req, res) => {
 
     // Simulate successful registration for demo purposes
     // In a real implementation, you would make actual Supabase API calls here
+    const tenantId = req.body?.subdomain || (email ? email.split('@')[0] : `tenant_${Date.now()}`);
+    createdTenants.add(tenantId);
     const mockResponse = {
-      id: 'mock-user-id-' + Date.now(),
-      email,
-      schoolName,
-      plan,
-      message: 'Registration successful (local simulation)',
+      success: true,
+      tenantId,
+      tenantCreated: true,
+      teacherProfileCreated: true,
+      userCreated: true,
       redirectUrl: emailRedirectTo || '/portal'
     };
 
@@ -70,11 +73,17 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
-// Other API endpoints can be added here as needed
+// Tenant existence check
+app.get('/api/tenant-exists', (req, res) => {
+  const tenant = req.query.tenant || req.query.id;
+  const exists = tenant ? createdTenants.has(String(tenant)) : false;
+  res.status(200).json({ exists, tenantId: tenant || '' });
+});
 
 app.listen(PORT, () => {
   console.log(`Local API server running on http://localhost:${PORT}`);
   console.log('Available endpoints:');
   console.log(`  GET  http://localhost:${PORT}/api/health`);
+  console.log(`  GET  http://localhost:${PORT}/api/tenant-exists?tenant=<id>`);
   console.log(`  POST http://localhost:${PORT}/api/register`);
 });

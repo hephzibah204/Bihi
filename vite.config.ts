@@ -57,6 +57,7 @@ export default defineConfig(({ mode }) => {
       config.plugins.push({
         name: 'mock-api-endpoints',
         configureServer(server) {
+          const createdTenants = new Set<string>();
           // Simple mock for /api/webviewClick
           server.middlewares.use('/api/webviewClick', (req, res) => {
             const method = req.method || 'GET';
@@ -95,16 +96,40 @@ export default defineConfig(({ mode }) => {
                   res.end(JSON.stringify({ error: 'Missing required fields', details: missing.join(', ') }));
                   return;
                 }
-                // Simulate success response
-                res.statusCode = 201;
+                // Simulate structured success flags response for frontend validation
+                res.statusCode = 200;
                 res.setHeader('Content-Type', 'application/json');
-                res.end(JSON.stringify({ message: 'Registration successful! (dev mock)' }));
+                const tenantId = data.subdomain;
+                createdTenants.add(tenantId);
+                res.end(JSON.stringify({
+                  success: true,
+                  tenantId,
+                  tenantCreated: true,
+                  teacherProfileCreated: true,
+                  userCreated: true,
+                }));
               } catch (e) {
                 res.statusCode = 400;
                 res.setHeader('Content-Type', 'application/json');
                 res.end(JSON.stringify({ error: 'Invalid JSON' }));
               }
             });
+          });
+
+          // Dev-only tenant existence check
+          server.middlewares.use('/api/tenant-exists', (req, res) => {
+            const method = req.method || 'GET';
+            const url = new URL((req as any).originalUrl || req.url, `http://localhost:${server.config.server?.port || 3000}`);
+            const tenant = url.searchParams.get('tenant') || url.searchParams.get('id') || '';
+            const exists = tenant ? createdTenants.has(tenant) : false;
+            if (method === 'HEAD') {
+              res.statusCode = exists ? 200 : 404;
+              res.end();
+              return;
+            }
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ exists, tenantId: tenant }));
           });
         }
       });
