@@ -28,24 +28,30 @@ const SuperAdminLoginPage = () => {
 
     const handleLogin = async (e) => {
         e.preventDefault();
-        
-        if (!supabase) {
-            setError("Authentication service is not available.");
-            return;
-        }
-
         setError('');
         setLoading(true);
-        const { error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-        });
-
-        if (error) {
-            setError(error.message);
+        try {
+            if (!supabase) {
+                throw new Error('Authentication service not initialized.');
+            }
+            const { error } = await supabase.auth.signInWithPassword({
+                email: String(email || '').trim(),
+                password,
+            });
+            if (error) {
+                setError(error.message || 'Invalid email or password.');
+                return;
+            }
+            // onAuthStateChange in SuperAdminDashboard.tsx will handle the UI update.
+        } catch (err) {
+            console.error('Super Admin sign-in failed', err);
+            setError(
+                (err && (err.message || err.toString())) ||
+                'Unable to sign in at the moment. Please try again or contact support.'
+            );
+        } finally {
+            setLoading(false);
         }
-        // onAuthStateChange in SuperAdminDashboard.tsx will handle the UI update.
-        setLoading(false);
     };
 
     return (

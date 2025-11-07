@@ -6,11 +6,20 @@ import ClassicReportCard from '../components/report-templates/ClassicReportCard'
 import MinimalistReportCard from '../components/report-templates/MinimalistReportCard';
 
 // A helper function to calculate grade and remark based on score
+// Clamp helper: keep numeric scores within 0..100 defensively
+export const clampScore100 = (value: any): number => {
+    const n = Number(value);
+    if (isNaN(n)) return 0;
+    return Math.max(0, Math.min(100, n));
+};
+
+// A helper function to calculate grade and remark based on clamped 0–100 score
 export const calculateGrade = (score, gradingSystem) => {
-    if (typeof score !== 'number' || !Array.isArray(gradingSystem)) {
+    if (!Array.isArray(gradingSystem)) {
         return { grade: 'N/A', remark: 'N/A' };
     }
-    const gradeInfo = gradingSystem.find(g => score >= g.from && score <= g.to);
+    const safe = clampScore100(score);
+    const gradeInfo = gradingSystem.find(g => safe >= g.from && safe <= g.to);
     if (gradeInfo) {
         return { grade: gradeInfo.grade, remark: gradeInfo.remark };
     }
@@ -62,7 +71,10 @@ export const calculateOverallPerformance = (studentId, studentClass, allStudents
 
     const classAverages = classStudents.map(s => {
         const studentScoresForTerm = scoresByStudent[s.id] || [];
-        const total = studentScoresForTerm.reduce((acc, score) => acc + (score?.ca1 || 0) + (score?.ca2 || 0) + (score?.exam || 0), 0);
+        const total = studentScoresForTerm.reduce((acc, score) => {
+            const subTotal = clampScore100((score?.ca1 || 0) + (score?.ca2 || 0) + (score?.exam || 0));
+            return acc + subTotal;
+        }, 0);
         return { studentId: s.id, total, average: subjectsForClass.length > 0 ? total / subjectsForClass.length : 0 };
     });
 

@@ -50,15 +50,30 @@ const PortalLogin = ({ onStudentLoginSuccess }) => {
 
     const handleStaffLogin = async (e) => {
         e.preventDefault();
-        if (!supabase) {
-            setError("Authentication service is not available.");
-            return;
-        }
         setError('');
         setLoading(true);
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) setError(error.message);
-        setLoading(false);
+        try {
+            if (!supabase) {
+                throw new Error('Authentication service not initialized.');
+            }
+            const { error } = await supabase.auth.signInWithPassword({
+                email: String(email || '').trim(),
+                password,
+            });
+            if (error) {
+                setError(error.message || 'Invalid email or password.');
+                return;
+            }
+            // AuthContext will detect session and update UI/redirects.
+        } catch (err) {
+            console.error('Sign-in failed', err);
+            setError(
+                (err && (err.message || err.toString())) ||
+                'Unable to sign in at the moment. Please try again or contact support.'
+            );
+        } finally {
+            setLoading(false);
+        }
     };
     
     const handleStudentParentLogin = async (e) => {
@@ -93,52 +108,56 @@ const PortalLogin = ({ onStudentLoginSuccess }) => {
     
     const handleParentEmailLogin = async (e) => {
         e.preventDefault();
-        if (!supabase) { setError("Auth service is not available."); return; }
         setError('');
         setLoading(true);
-
-        const { data: sessionData, error: signInError } = await supabase.auth.signInWithPassword({
-            email: parentEmail,
-            password: parentPassword,
-        });
-
-        if (signInError) {
-            setError(signInError.message);
-            setLoading(false);
-            return;
-        }
-
-        if (sessionData.user) {
-            try {
-                const allParents = await apiGetParents();
-                const parent = allParents.find(p => p.email.toLowerCase() === sessionData.user.email.toLowerCase());
-                
-                if (!parent) {
-                    setError("Parent profile not found for this account.");
-                    await supabase.auth.signOut();
-                    setLoading(false);
-                    return;
-                }
-
-                const allStudents = await apiGetStudents();
-                const children = allStudents.filter(s => s.parentId === parent.id);
-
-                if (children.length === 0) {
-                    setError("No students are linked to this parent account.");
-                    await supabase.auth.signOut();
-                } else if (children.length === 1) {
-                    const sessionData = { role: USER_ROLES.PARENT, userId: children[0].id, studentName: children[0].name };
-                    sessionStorage.setItem('activeUser', JSON.stringify(sessionData));
-                    if(onStudentLoginSuccess) onStudentLoginSuccess(sessionData);
-                } else {
-                    setChildrenToSelect(children);
-                }
-            } catch (err) {
-                setError("An error occurred after login. Please try again.");
-                await supabase.auth.signOut();
+        try {
+            if (!supabase) {
+                throw new Error('Authentication service not initialized.');
             }
+            const { data: sessionData, error: signInError } = await supabase.auth.signInWithPassword({
+                email: String(parentEmail || '').trim(),
+                password: parentPassword,
+            });
+            if (signInError) {
+                setError(signInError.message || 'Invalid email or password.');
+                return;
+            }
+            if (sessionData?.user) {
+                try {
+                    const allParents = await apiGetParents();
+                    const parent = allParents.find(p => p.email.toLowerCase() === sessionData.user.email.toLowerCase());
+                    if (!parent) {
+                        setError('Parent profile not found for this account.');
+                        await supabase.auth.signOut();
+                        return;
+                    }
+                    const allStudents = await apiGetStudents();
+                    const children = allStudents.filter(s => s.parentId === parent.id);
+                    if (children.length === 0) {
+                        setError('No students are linked to this parent account.');
+                        await supabase.auth.signOut();
+                    } else if (children.length === 1) {
+                        const sessionData = { role: USER_ROLES.PARENT, userId: children[0].id, studentName: children[0].name };
+                        sessionStorage.setItem('activeUser', JSON.stringify(sessionData));
+                        if(onStudentLoginSuccess) onStudentLoginSuccess(sessionData);
+                    } else {
+                        setChildrenToSelect(children);
+                    }
+                } catch (postErr) {
+                    console.error('Post-login error', postErr);
+                    setError('An error occurred after login. Please try again.');
+                    await supabase.auth.signOut();
+                }
+            }
+        } catch (err) {
+            console.error('Parent sign-in failed', err);
+            setError(
+                (err && (err.message || err.toString())) ||
+                'Unable to sign in at the moment. Please try again or contact support.'
+            );
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     const handleSelectChild = (child) => {
