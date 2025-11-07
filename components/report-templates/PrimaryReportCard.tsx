@@ -1,4 +1,5 @@
 import React from 'react';
+import sanitizeHtml from '../../utils/sanitizeHtml';
 import { calculateGrade, calculateOverallPerformance } from '../../utils/reportCardHelper';
 import ReportCardHeader from './ReportCardHeader';
 import ReportCardFooter from './ReportCardFooter';
@@ -86,7 +87,10 @@ const PrimaryReportCard = ({ student, students, scores, subjects, settings, term
             </div>
              <div className="mt-6">
                 <h3 className="font-bold text-md mb-2">General Comment</h3>
-                <div className="text-sm p-2 border rounded-md min-h-[40px] prose-content" dangerouslySetInnerHTML={{ __html: generalRemark || '' }} />
+                <div
+                  className="text-sm p-2 border rounded-md min-h-[40px] prose-content"
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(generalRemark || '') }}
+                />
             </div>
             <div className="mt-auto pt-8">
                 <ReportCardFooter principalName={settings.reportCardSettings.principalName} />

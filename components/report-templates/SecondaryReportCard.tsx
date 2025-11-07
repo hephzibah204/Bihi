@@ -1,4 +1,5 @@
 import React from 'react';
+import sanitizeHtml from '../../utils/sanitizeHtml';
 import { calculateGrade, calculateOverallPerformance, summarizeAttendance } from '../../utils/reportCardHelper';
 import ReportCardHeader from './ReportCardHeader';
 import ReportCardFooter from './ReportCardFooter';
@@ -111,7 +112,10 @@ const SecondaryReportCard = ({ student, students, scores, subjects, settings, te
                             <td className="p-2 border text-center font-semibold">{res.total}</td>
                             <td className="p-2 border text-center font-semibold">{res.grade}</td>
                             <td className="p-2 border text-center">{classSubjectAverages[res.subjectName] ?? '-'}</td>
-                            <td className="p-2 border" dangerouslySetInnerHTML={{ __html: res.comment }} />
+                            <td
+                              className="p-2 border"
+                              dangerouslySetInnerHTML={{ __html: sanitizeHtml(res.comment || '') }}
+                            />
                         </tr>
                     ))}
                 </tbody>
@@ -206,7 +210,10 @@ const SecondaryReportCard = ({ student, students, scores, subjects, settings, te
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <h3 className="font-bold text-md mb-2">Class Teacher's Remark</h3>
-                    <div className="text-sm p-2 border rounded-md min-h-[40px] prose-content" dangerouslySetInnerHTML={{ __html: generalRemark || '' }} />
+                    <div
+                      className="text-sm p-2 border rounded-md min-h-[40px] prose-content"
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(generalRemark || '') }}
+                    />
                 </div>
                 <div>
                     <h3 className="font-bold text-md mb-2">Head Teacher's Remark</h3>

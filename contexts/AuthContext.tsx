@@ -22,6 +22,16 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Safely read from localStorage, guarding against cross-origin and SSR issues
+function safeLocalStorageGet(key: string): string | null {
+    try {
+        if (typeof window === 'undefined') return null;
+        return window.localStorage.getItem(key);
+    } catch {
+        return null;
+    }
+}
+
 // FIX: Made children optional to satisfy the compiler for usages where it incorrectly reports it as missing.
 export const AuthProvider = ({ children }: { children?: ReactNode }) => {
     const [user, setUser] = useState<Teacher | Student | Parent | null>(null);
@@ -63,7 +73,9 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
                     if (!isValid) {
                         // Dev convenience: if running on localhost and tenant list is empty/missing,
                         // treat the current subdomain as valid and seed a local dev tenant so flows continue.
-                        const isLocalhost = typeof window !== 'undefined' && window.location.hostname.includes('localhost');
+                        const isLocalhost =
+                            typeof window !== 'undefined' &&
+                            (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
                         if (isLocalhost) {
                             setIsValidTenant(true);
                             try {
@@ -78,18 +90,26 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
                             } catch { /* noop */ }
                         } else {
                             // New: fallback for recently registered portals to avoid "Portal Not Found" immediately after signup.
-                            try {
-                                const markerRaw = localStorage.getItem('recentlyRegisteredTenant');
-                                const marker = markerRaw ? JSON.parse(markerRaw) : null;
-                                const withinGrace = marker && marker.id === sd && (Date.now() - marker.ts) < (15 * 60 * 1000);
-                                if (withinGrace) {
-                                    setIsValidTenant(true);
-                                } else {
+                            const markerRaw = safeLocalStorageGet('recentlyRegisteredTenant');
+                            if (markerRaw) {
+                                try {
+                                    const marker = JSON.parse(markerRaw);
+                                    const tooOld = Date.now() - marker.ts > 15 * 60 * 1000;
+                                    if (!tooOld && marker.id === sd) {
+                                        console.info('Treating recently registered tenant as temporarily valid', marker.id);
+                                        setIsValidTenant(true);
+                                        // Continue through; do not return early so subsequent flows proceed
+                                    } else {
+                                        setIsValidTenant(false);
+                                        setLoading(false);
+                                        return;
+                                    }
+                                } catch {
                                     setIsValidTenant(false);
                                     setLoading(false);
                                     return;
                                 }
-                            } catch {
+                            } else {
                                 setIsValidTenant(false);
                                 setLoading(false);
                                 return;
@@ -99,8 +119,12 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
                         setIsValidTenant(true);
                     }
                 } catch (e) {
-                    // Assume valid in local/offline to avoid blocking development
-                    setIsValidTenant(true);
+                    console.error('Failed to load tenants', e);
+                    const isLocalhost =
+                        typeof window !== 'undefined' &&
+                        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+                    // In dev, fail-open; in prod, fail-closed
+                    setIsValidTenant(isLocalhost);
                 }
             }
 

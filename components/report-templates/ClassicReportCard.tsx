@@ -1,4 +1,5 @@
 import React from 'react';
+import sanitizeHtml from '../../utils/sanitizeHtml';
 import {
   calculateGrade,
   calculateOverallPerformance,
@@ -528,7 +529,7 @@ const ClassicReportCard = ({
                   </td>
                   <td
                     className="border border-black px-1 py-0.5 text-left"
-                    dangerouslySetInnerHTML={{ __html: res.remark }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(res.remark || '') }}
                   />
                   <td className="border border-black px-1 py-0.5 text-center">
                     {classSubjectAverages[res.subjectName] ?? '-'}
@@ -645,7 +646,7 @@ const ClassicReportCard = ({
           </div>
           <div
             className="border border-black min-h-[22px] px-1 py-0.5"
-            dangerouslySetInnerHTML={{ __html: generalRemark }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(generalRemark || '') }}
           />
         </div>
         <div className="col-span-4">

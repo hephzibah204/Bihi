@@ -356,7 +356,7 @@ const MinimalistReportCard = ({
                 </span>
                 <span
                   dangerouslySetInnerHTML={{
-                    __html: generalRemark,
+                    __html: require('../../utils/sanitizeHtml').default(generalRemark || ''),
                   }}
                 />
               </p>

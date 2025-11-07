@@ -19,6 +19,22 @@ const SubscriptionPage = () => {
 
     const portalUrl = getPortalUrl(formData.subdomain);
 
+    const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    function getRegisterCandidates() {
+        const explicit = import.meta.env.VITE_SUPABASE_FUNCTION_REGISTER_URL;
+        if (!isLocalhost) {
+            if (explicit) return [explicit];
+            return ['/api/register'];
+        }
+        const urls = new Set<string>();
+        if (explicit) urls.add(explicit);
+        urls.add('/api/register');
+        if (import.meta.env.VITE_LOCAL_API_URL) {
+            urls.add(`${import.meta.env.VITE_LOCAL_API_URL.replace(/\/$/, '')}/api/register`);
+        }
+        return Array.from(urls);
+    }
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         let processedValue = value;
@@ -37,7 +53,11 @@ const SubscriptionPage = () => {
         setError('');
 
         try {
-            const registerEndpoint = import.meta.env.VITE_SUPABASE_FUNCTION_REGISTER_URL || '/api/register';
+            const candidates = getRegisterCandidates();
+            if (!candidates.length) {
+                throw new Error('No registration endpoint configured.');
+            }
+            const registerEndpoint = candidates[0];
             const headers: Record<string, string> = { 'Content-Type': 'application/json' };
             // Detect Supabase Functions (new domain or legacy /functions/v1 path)
             const maybeSupabase = /https?:\/\/[^/]*functions\.supabase\.co\//i.test(registerEndpoint)
@@ -120,25 +140,7 @@ const SubscriptionPage = () => {
                 return res;
             };
 
-            // Endpoint selection: strict in production, multi-fallbacks only in development
-            const isDev = window.location.hostname === 'localhost';
-            let candidates: string[] = [];
-            if (import.meta.env.VITE_SUPABASE_FUNCTION_REGISTER_URL) {
-                candidates.push(import.meta.env.VITE_SUPABASE_FUNCTION_REGISTER_URL);
-            } else {
-                // Use the canonical production handler if functions URL isn’t set
-                candidates.push('/api/register');
-            }
-
-            // In development, optionally add local API fallback
-            if (isDev && import.meta.env.VITE_LOCAL_API_URL) {
-                const localUrl = `${import.meta.env.VITE_LOCAL_API_URL.replace(/\/$/, '')}/api/register`;
-                candidates.push(localUrl);
-            }
-
-            if (!candidates.length) {
-                throw new Error('No registration endpoint configured.');
-            }
+            // Endpoint selection: use helper; prod will have only explicit or canonical
 
             let response: Response | null = null;
             let lastError: string | null = null;
@@ -164,21 +166,18 @@ const SubscriptionPage = () => {
                 throw new Error(lastError || 'Registration failed');
             }
 
-            const data: any = await response.json();
+            const data: any = await response.json().catch(() => ({} as any));
 
-            // Validate response before showing success
+            // Strictly validate server response before showing success
             if (!data || data.error) {
-                throw new Error(data?.error || 'Registration failed on server.');
+                throw new Error(data?.error || 'Registration failed: server returned an error.');
             }
-            const okFlags = [
-                data.success,
-                data.tenantCreated,
-                data.tenantId,
-                data.teacherProfileCreated,
-                data.userCreated,
-            ].filter(Boolean);
-            if (okFlags.length === 0) {
-                throw new Error('Registration endpoint did not confirm portal creation.');
+            const ok = !!data.success || !!data.tenantCreated || !!data.tenantId;
+            if (!ok) {
+                throw new Error('Registration failed: portal was not confirmed as created.');
+            }
+            if (data.tenantId && data.tenantId !== formData.subdomain) {
+                throw new Error(`Registration mismatch: expected tenant "${formData.subdomain}", got "${data.tenantId}".`);
             }
 
             // Clear any lingering demo session data to ensure the new portal is clean.
@@ -222,7 +221,7 @@ const SubscriptionPage = () => {
                 localStorage.setItem('recentlyRegisteredTenant', JSON.stringify(marker));
             } catch {}
 
-            setStep(3); // Show "Success" only now
+            setStep(3); // Show "Success! Your Portal is Ready!"
         } catch (err: any) {
             let errorMessage = String(err?.message || 'Registration failed');
             if (String(err?.message || '').toLowerCase().includes('failed to fetch')) {
