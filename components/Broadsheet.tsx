@@ -1,7 +1,24 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { DashboardView, TeacherView, UserRole, Student, Subject, Score, Remark, AttendanceRecord } from '../types';
+import {
+  DashboardView,
+  TeacherView,
+  UserRole,
+  Student,
+  Subject,
+  Score,
+  Remark,
+  AttendanceRecord,
+} from '../types';
 import { ADMIN_VIEWS, TEACHER_VIEWS } from '../utils/constants';
-import { apiGetStudents, apiGetSubjects, apiGetScores, apiGetSchoolSettings, apiGetAttendance, apiGetRemarks, apiUpsertRemark } from '../services/api';
+import {
+  apiGetStudents,
+  apiGetSubjects,
+  apiGetScores,
+  apiGetSchoolSettings,
+  apiGetAttendance,
+  apiGetRemarks,
+  apiUpsertRemark,
+} from '../services/api';
 import { generateClassNames } from '../utils/classManager';
 import SpinnerIcon from './icons/SpinnerIcon';
 import PencilSquareIcon from './icons/PencilSquareIcon';
@@ -19,7 +36,10 @@ const Loader = () => (
   </div>
 );
 
-const Broadsheet: React.FC<BroadsheetProps> = ({ setActiveView, userRole = 'Admin' }) => {
+const Broadsheet: React.FC<BroadsheetProps> = ({
+  setActiveView,
+  userRole = 'Admin',
+}) => {
   const [isLoading, setIsLoading] = useState(true);
   const [students, setStudents] = useState<Student[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -27,16 +47,25 @@ const Broadsheet: React.FC<BroadsheetProps> = ({ setActiveView, userRole = 'Admi
   const [remarks, setRemarks] = useState<Remark[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [settings, setSettings] = useState<any>(null);
+
   const [selectedClass, setSelectedClass] = useState<string>('');
   const [session, setSession] = useState<string>('');
   const [term, setTerm] = useState<string>('');
 
   useEffect(() => {
     let mounted = true;
+
     (async () => {
       setIsLoading(true);
       try {
-        const [settingsRes, subjectsRes, studentsRes, scoresRes, attendanceRes, remarksRes] = await Promise.all([
+        const [
+          settingsRes,
+          subjectsRes,
+          studentsRes,
+          scoresRes,
+          attendanceRes,
+          remarksRes,
+        ] = await Promise.all([
           apiGetSchoolSettings(),
           apiGetSubjects(),
           apiGetStudents(),
@@ -46,25 +75,51 @@ const Broadsheet: React.FC<BroadsheetProps> = ({ setActiveView, userRole = 'Admi
         ]);
 
         if (!mounted) return;
-        setSettings(settingsRes);
+
+        setSettings(settingsRes || null);
         setSubjects(subjectsRes || []);
         setStudents(studentsRes || []);
         setScores(scoresRes || []);
         setAttendance(attendanceRes || []);
         setRemarks(remarksRes || []);
 
+        // Default class: first student's class if available
         const defaultClass = studentsRes?.[0]?.class || '';
         setSelectedClass(defaultClass);
 
-        // Robust fallbacks for session and term using available scores
-        const scoreSessions = Array.from(new Set((scoresRes || []).map(s => String(s.session || '')).filter(Boolean)));
-        const scoreTerms = Array.from(new Set((scoresRes || []).map(s => String(s.term || '')).filter(Boolean)));
-        const sortedSessions = [...scoreSessions].sort((a, b) => String(b).localeCompare(String(a)));
-        const knownTermsOrder = ['First Term', 'Second Term', 'Third Term'];
-        const pickTerm = (t?: string) => t && knownTermsOrder.includes(t) ? t : (scoreTerms.find(st => knownTermsOrder.includes(String(st))) || scoreTerms[0] || 'First Term');
+        // Build robust defaults for session/term from settings + scores
+        const scoreSessions = Array.from(
+          new Set(
+            (scoresRes || [])
+              .map((s) => String(s.session || '').trim())
+              .filter(Boolean)
+          )
+        );
+        const scoreTerms = Array.from(
+          new Set(
+            (scoresRes || [])
+              .map((s) => String(s.term || '').trim())
+              .filter(Boolean)
+          )
+        );
 
-        const effectiveSession = (settingsRes?.session as string) || sortedSessions[0] || '';
-        const effectiveTerm = (settingsRes?.term as string) || pickTerm(settingsRes?.term as string);
+        const sortedSessions = [...scoreSessions].sort((a, b) =>
+          String(b).localeCompare(String(a))
+        );
+
+        const knownTermsOrder = ['First Term', 'Second Term', 'Third Term'];
+        const normalizeTerm = (t?: string) =>
+          knownTermsOrder.includes(String(t))
+            ? String(t)
+            : scoreTerms.find((st) => knownTermsOrder.includes(st)) ||
+              scoreTerms[0] ||
+              'First Term';
+
+        const effectiveSession =
+          (settingsRes?.session as string) || sortedSessions[0] || '';
+        const effectiveTerm =
+          normalizeTerm(settingsRes?.term as string) || 'First Term';
+
         setSession(effectiveSession);
         setTerm(effectiveTerm);
       } catch (e) {
@@ -73,115 +128,281 @@ const Broadsheet: React.FC<BroadsheetProps> = ({ setActiveView, userRole = 'Admi
         if (mounted) setIsLoading(false);
       }
     })();
-    return () => { mounted = false; };
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  const classOptions = useMemo(() => generateClassNames(settings), [settings]);
+  // Class options
+  const classOptions = useMemo(
+    () => generateClassNames(settings),
+    [settings]
+  );
 
-  const classStudents = useMemo(() => students.filter(s => !selectedClass || s.class === selectedClass), [students, selectedClass]);
+  // Students in selected class
+  const classStudents = useMemo(
+    () =>
+      students.filter(
+        (s) => !selectedClass || s.class === selectedClass
+      ),
+    [students, selectedClass]
+  );
 
-  const filteredScores = useMemo(() => scores.filter(s => (!selectedClass || classStudents.some(cs => cs.id === s.studentId)) && s.session === session && s.term === term), [scores, classStudents, session, term, selectedClass]);
+  // Fast lookup for class students
+  const classStudentIds = useMemo(
+    () => new Set(classStudents.map((s) => s.id)),
+    [classStudents]
+  );
 
-  const filteredRemarks = useMemo(() => remarks.filter(r => (!selectedClass || classStudents.some(cs => cs.id === r.studentId)) && r.session === session && r.term === term), [remarks, classStudents, session, term, selectedClass]);
+  // Session & term options (read from data + settings)
+  const sessionOptions = useMemo(() => {
+    const set = new Set<string>();
+    if (settings?.session) set.add(String(settings.session));
+    scores.forEach((s) => {
+      if (s.session) set.add(String(s.session));
+    });
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, [scores, settings]);
 
+  const termOptions = useMemo(() => {
+    const known = ['First Term', 'Second Term', 'Third Term'];
+    const set = new Set<string>();
+    if (settings?.term) set.add(String(settings.term));
+    scores.forEach((s) => {
+      if (s.term) set.add(String(s.term));
+    });
+
+    const values = Array.from(set);
+    const knownSorted = known.filter((k) => values.includes(k));
+    const others = values.filter((v) => !known.includes(v)).sort();
+
+    return [...knownSorted, ...others];
+  }, [scores, settings]);
+
+  // Filter scores/remarks for selected class + session + term
+  const filteredScores = useMemo(
+    () =>
+      scores.filter(
+        (s) =>
+          (!selectedClass || classStudentIds.has(s.studentId)) &&
+          (!session || String(s.session) === String(session)) &&
+          (!term || String(s.term) === String(term))
+      ),
+    [scores, classStudentIds, selectedClass, session, term]
+  );
+
+  const filteredRemarks = useMemo(
+    () =>
+      remarks.filter(
+        (r) =>
+          (!selectedClass || classStudentIds.has(r.studentId)) &&
+          (!session || String(r.session) === String(session)) &&
+          (!term || String(r.term) === String(term))
+      ),
+    [remarks, classStudentIds, selectedClass, session, term]
+  );
+
+  // Remark lookup
   const remarkByStudent = useMemo(() => {
     const map = new Map<string, Remark>();
-    filteredRemarks.forEach(r => map.set(r.studentId, r));
+    filteredRemarks.forEach((r) => map.set(r.studentId, r));
     return map;
   }, [filteredRemarks]);
 
-  // Build subject columns present in selected class
+  // Subjects taught in selected class
   const classSubjectIds = useMemo(() => {
-    const classSubs = subjects
-      .filter(sub => !selectedClass || (sub.classes || []).includes(selectedClass))
-      .map(s => s.id);
-    return classSubs as string[];
+    return subjects
+      .filter(
+        (sub) =>
+          !selectedClass ||
+          (sub.classes || []).includes(selectedClass)
+      )
+      .map((s) => s.id as string);
   }, [subjects, selectedClass]);
 
-  // Precompute totals by student and subject
-  const studentSubjectTotals: Record<string, Record<string, number>> = useMemo(() => {
+  // Precompute totals by student & subject (current term/session)
+  const studentSubjectTotals: Record<
+    string,
+    Record<string, number>
+  > = useMemo(() => {
     const map: Record<string, Record<string, number>> = {};
     for (const sc of filteredScores) {
-      const total = (sc.ca1 || 0) + (sc.ca2 || 0) + (sc.exam || 0);
+      const total =
+        (sc.ca1 || 0) + (sc.ca2 || 0) + (sc.exam || 0);
+
       if (!map[sc.studentId]) map[sc.studentId] = {};
-      map[sc.studentId][sc.subjectId] = Math.max(map[sc.studentId][sc.subjectId] || 0, total);
+
+      // Business rule: if multiple rows exist, keep the highest total
+      // (adjust to "last in" or "sum" if your domain requires)
+      map[sc.studentId][sc.subjectId] = Math.max(
+        map[sc.studentId][sc.subjectId] || 0,
+        total
+      );
     }
     return map;
   }, [filteredScores]);
 
-  // Compute totals, averages, and positions for the class
+  // Compute totals, averages & positions (class-level)
   const perf = useMemo(() => {
     const subjectIds = classSubjectIds;
-    const totalsByStudent: Record<string, { total: number; average: number }> = {};
-    classStudents.forEach(st => {
+    const totalsByStudent: Record<
+      string,
+      { total: number; average: number }
+    > = {};
+
+    classStudents.forEach((st) => {
       let total = 0;
-      subjectIds.forEach(subId => {
+      subjectIds.forEach((subId) => {
         total += studentSubjectTotals[st.id]?.[subId] ?? 0;
       });
-      const average = subjectIds.length > 0 ? total / subjectIds.length : 0;
+      const average =
+        subjectIds.length > 0
+          ? total / subjectIds.length
+          : 0;
       totalsByStudent[st.id] = { total, average };
     });
-    const ranking = [...classStudents]
-      .map(st => ({ studentId: st.id, avg: totalsByStudent[st.id]?.average ?? 0 }))
+
+    // Ranking with tie handling:
+    // same average => same position; next position based on index.
+    const sorted = [...classStudents]
+      .map((st) => ({
+        studentId: st.id,
+        avg: totalsByStudent[st.id]?.average ?? 0,
+      }))
       .sort((a, b) => b.avg - a.avg);
+
     const positions: Record<string, number> = {};
-    ranking.forEach((r, idx) => { positions[r.studentId] = idx + 1; });
+    let lastAvg: number | null = null;
+    let lastRank = 0;
+    sorted.forEach((entry, index) => {
+      if (lastAvg === null || entry.avg !== lastAvg) {
+        lastRank = index + 1;
+        lastAvg = entry.avg;
+      }
+      positions[entry.studentId] = lastRank;
+    });
+
     return { studentTotals: totalsByStudent, positions };
   }, [classStudents, classSubjectIds, studentSubjectTotals]);
 
-  // Summarize attendance per student within selected class
+  // Summarize attendance per student
   const attnSummary = useMemo(() => {
-    const classRecords = attendance.filter(rec => !selectedClass || rec.class === selectedClass);
-    const summary: Record<string, { presentDays: number; absentDays: number; lateDays: number }> = {};
-    classStudents.forEach(st => {
-      summary[st.id] = { presentDays: 0, absentDays: 0, lateDays: 0 };
+    const summary: Record<
+      string,
+      { presentDays: number; absentDays: number; lateDays: number }
+    > = {};
+
+    classStudents.forEach((st) => {
+      summary[st.id] = {
+        presentDays: 0,
+        absentDays: 0,
+        lateDays: 0,
+      };
     });
-    classRecords.forEach(rec => {
-      for (const [sid, status] of Object.entries(rec.statuses || {})) {
-        if (!summary[sid]) continue;
-        if (status === 'present') summary[sid].presentDays++;
-        else if (status === 'absent') summary[sid].absentDays++;
-        else if (status === 'late') summary[sid].lateDays++;
-      }
+
+    const relevantRecords = attendance.filter(
+      (rec) =>
+        !selectedClass || rec.class === selectedClass
+    );
+
+    relevantRecords.forEach((rec) => {
+      Object.entries(rec.statuses || {}).forEach(
+        ([sid, status]) => {
+          if (!summary[sid]) return;
+          if (status === 'present')
+            summary[sid].presentDays += 1;
+          else if (status === 'absent')
+            summary[sid].absentDays += 1;
+          else if (status === 'late')
+            summary[sid].lateDays += 1;
+        }
+      );
     });
+
     return summary;
-  }, [attendance, selectedClass, classStudents]);
+  }, [attendance, classStudents, selectedClass]);
 
+  // Save remark (optimistic)
+  const saveRemark = async (
+    studentId: string,
+    generalComment: string
+  ) => {
+    const payload: Partial<Remark> = {
+      studentId,
+      session,
+      term,
+      generalComment,
+    };
 
-  const saveRemark = async (studentId: string, generalComment: string) => {
-    const payload: Partial<Remark> = { studentId, session, term, generalComment };
-    setRemarks(prev => {
-      const idx = prev.findIndex(r => r.studentId === studentId && r.session === session && r.term === term);
+    setRemarks((prev) => {
+      const idx = prev.findIndex(
+        (r) =>
+          r.studentId === studentId &&
+          String(r.session) === String(session) &&
+          String(r.term) === String(term)
+      );
       if (idx >= 0) {
         const next = [...prev];
-        next[idx] = { ...next[idx], generalComment };
+        next[idx] = {
+          ...next[idx],
+          generalComment,
+        };
         return next;
       }
       return [...prev, payload as Remark];
     });
+
     try {
       await apiUpsertRemark(payload);
-      window.dispatchEvent(new CustomEvent('show-global-success', { detail: { message: 'Remark saved.' } }));
+      window.dispatchEvent(
+        new CustomEvent('show-global-success', {
+          detail: { message: 'Remark saved.' },
+        })
+      );
     } catch (e) {
       console.error('Failed saving remark', e);
-      window.dispatchEvent(new CustomEvent('show-global-error', { detail: { message: 'Could not save remark.' } }));
+      window.dispatchEvent(
+        new CustomEvent('show-global-error', {
+          detail: {
+            message: 'Could not save remark.',
+          },
+        })
+      );
     }
   };
 
   const goToScores = () => {
-    try { localStorage.setItem('results_preselect_class', selectedClass); } catch (e) { /* noop */ }
+    try {
+      localStorage.setItem(
+        'results_preselect_class',
+        selectedClass
+      );
+    } catch {
+      /* no-op */
+    }
     if (userRole === 'Teacher') {
-      setActiveView(TEACHER_VIEWS.ENTER_SCORES as unknown as TeacherView);
+      setActiveView(
+        TEACHER_VIEWS.ENTER_SCORES as unknown as TeacherView
+      );
     } else {
-      setActiveView(ADMIN_VIEWS.RESULTS as DashboardView);
+      setActiveView(
+        ADMIN_VIEWS.RESULTS as DashboardView
+      );
     }
   };
 
   const goToDossier = () => {
     if (userRole === 'Teacher') {
-      setActiveView(TEACHER_VIEWS.COMPREHENSIVE_ENTRY as unknown as TeacherView);
+      setActiveView(
+        TEACHER_VIEWS
+          .COMPREHENSIVE_ENTRY as unknown as TeacherView
+      );
     } else {
-      setActiveView(ADMIN_VIEWS.COMPREHENSIVE_ENTRY as DashboardView);
+      setActiveView(
+        ADMIN_VIEWS
+          .COMPREHENSIVE_ENTRY as DashboardView
+      );
     }
   };
 
@@ -189,77 +410,218 @@ const Broadsheet: React.FC<BroadsheetProps> = ({ setActiveView, userRole = 'Admi
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Broadsheet / Transcript</h1>
-          <p className="text-gray-600">View class-wide subject totals, averages, positions, attendance, and remarks.</p>
+          <h1 className="text-2xl font-semibold">
+            Broadsheet / Transcript
+          </h1>
+          <p className="text-gray-600 text-sm">
+            Class-wide overview of subject totals, averages,
+            positions, attendance, and remarks.
+          </p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="btn-secondary" onClick={goToScores}><ClipboardListIcon className="w-5 h-5 mr-2" /> Enter Scores</button>
-          <button className="btn" onClick={goToDossier}><PencilSquareIcon className="w-5 h-5 mr-2" /> Dossier</button>
+          <button
+            className="btn-secondary"
+            onClick={goToScores}
+          >
+            <ClipboardListIcon className="w-5 h-5 mr-2" />
+            Enter Scores
+          </button>
+          <button className="btn" onClick={goToDossier}>
+            <PencilSquareIcon className="w-5 h-5 mr-2" />
+            Dossier
+          </button>
         </div>
       </div>
 
+      {/* Filters */}
       <div className="card p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
           <label className="label">Class</label>
-          <select className="input" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
-            {[selectedClass && !classOptions.includes(selectedClass) ? selectedClass : null, ...classOptions]
+          <select
+            className="input"
+            value={selectedClass}
+            onChange={(e) =>
+              setSelectedClass(e.target.value)
+            }
+          >
+            {[selectedClass &&
+            !classOptions.includes(selectedClass)
+              ? selectedClass
+              : null,
+            ...classOptions]
               .filter(Boolean)
-              .map(cls => (
-                <option key={cls as string} value={cls as string}>{cls as string}</option>
+              .map((cls) => (
+                <option
+                  key={cls as string}
+                  value={cls as string}
+                >
+                  {cls as string}
+                </option>
               ))}
           </select>
         </div>
+
         <div>
           <label className="label">Session</label>
-          <input className="input" value={session} onChange={e => setSession(e.target.value)} />
+          <select
+            className="input"
+            value={session}
+            onChange={(e) =>
+              setSession(e.target.value)
+            }
+          >
+            {sessionOptions.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
         </div>
+
         <div>
           <label className="label">Term</label>
-          <input className="input" value={term} onChange={e => setTerm(e.target.value)} />
+          <select
+            className="input"
+            value={term}
+            onChange={(e) =>
+              setTerm(e.target.value)
+            }
+          >
+            {termOptions.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
         </div>
+
         <div className="flex items-end">
-          <a className="btn-outline" href="#" onClick={e => { e.preventDefault(); window.print(); }}><DocumentArrowDownIcon className="w-5 h-5 mr-2" /> Print</a>
+          <button
+            className="btn-outline w-full"
+            onClick={(e) => {
+              e.preventDefault();
+              window.print();
+            }}
+            disabled={classStudents.length === 0}
+          >
+            <DocumentArrowDownIcon className="w-5 h-5 mr-2" />
+            Print
+          </button>
         </div>
       </div>
 
+      {/* Broadsheet Table */}
       <div className="card overflow-x-auto">
-        <table className="min-w-full text-sm">
+        <table className="min-w-full text-xs">
           <thead>
             <tr className="bg-gray-50">
-              <th className="px-3 py-2 text-left">Student</th>
-              {classSubjectIds.map(subId => {
-                const sub = subjects.find(s => s.id === subId);
-                return <th key={subId} className="px-3 py-2 text-left">{sub?.name || subId}</th>;
+              <th className="px-3 py-2 text-left">
+                Student
+              </th>
+              {classSubjectIds.map((subId) => {
+                const sub = subjects.find(
+                  (s) => s.id === subId
+                );
+                return (
+                  <th
+                    key={subId}
+                    className="px-3 py-2 text-left"
+                  >
+                    {sub?.name || subId}
+                  </th>
+                );
               })}
-              <th className="px-3 py-2 text-left">Average</th>
-              <th className="px-3 py-2 text-left">Position</th>
-              <th className="px-3 py-2 text-left">Attendance</th>
-              <th className="px-3 py-2 text-left">Remark</th>
+              <th className="px-3 py-2 text-left">
+                Average
+              </th>
+              <th className="px-3 py-2 text-left">
+                Position
+              </th>
+              <th className="px-3 py-2 text-left">
+                Attendance
+              </th>
+              <th className="px-3 py-2 text-left">
+                Remark
+              </th>
             </tr>
           </thead>
           <tbody>
-            {classStudents.map(st => {
-              const totals = perf.studentTotals[st.id];
-              const pos = perf.positions[st.id];
-              const attn = attnSummary[st.id] || { presentDays: 0, absentDays: 0 };
-              const existingRemark = remarkByStudent.get(st.id)?.generalComment || '';
+            {classStudents.map((st) => {
+              const totals =
+                perf.studentTotals[st.id];
+              const pos =
+                perf.positions[st.id];
+              const attn =
+                attnSummary[st.id] || {
+                  presentDays: 0,
+                  absentDays: 0,
+                  lateDays: 0,
+                };
+              const existingRemark =
+                remarkByStudent.get(st.id)
+                  ?.generalComment || '';
+
+              const daysCount =
+                attn.presentDays +
+                attn.absentDays;
+
               return (
-                <tr key={st.id} className="border-t">
-                  <td className="px-3 py-2 whitespace-nowrap">{st.name}</td>
-                  {classSubjectIds.map(subId => {
-                    const val = studentSubjectTotals[st.id]?.[subId] ?? 0;
-                    return <td key={`${st.id}-${subId}`} className="px-3 py-2">{val}</td>;
-                  })}
-                  <td className="px-3 py-2">{totals ? Math.round(totals.average) : '-'}</td>
-                  <td className="px-3 py-2">{pos ?? '-'}</td>
-                  <td className="px-3 py-2">{attn.presentDays}/{attn.presentDays + attn.absentDays}</td>
+                <tr
+                  key={st.id}
+                  className="border-t"
+                >
+                  <td className="px-3 py-2 whitespace-nowrap">
+                    {st.name}
+                  </td>
+
+                  {classSubjectIds.map(
+                    (subId) => {
+                      const val =
+                        studentSubjectTotals[
+                          st.id
+                        ]?.[subId] ?? 0;
+                      return (
+                        <td
+                          key={`${st.id}-${subId}`}
+                          className="px-3 py-2"
+                        >
+                          {val || ''}
+                        </td>
+                      );
+                    }
+                  )}
+
+                  <td className="px-3 py-2">
+                    {totals
+                      ? Math.round(
+                          totals.average
+                        )
+                      : '-'}
+                  </td>
+                  <td className="px-3 py-2">
+                    {pos ?? '-'}
+                  </td>
+                  <td className="px-3 py-2">
+                    {attn.presentDays}
+                    {daysCount > 0
+                      ? `/${daysCount}`
+                      : ''}
+                  </td>
                   <td className="px-3 py-2 w-64">
                     <textarea
-                      className="input w-full"
-                      defaultValue={existingRemark}
-                      onBlur={(e) => saveRemark(st.id, e.target.value)}
+                      className="input w-full text-[10px]"
+                      defaultValue={
+                        existingRemark
+                      }
+                      onBlur={(e) =>
+                        saveRemark(
+                          st.id,
+                          e.target.value
+                        )
+                      }
                       placeholder="Enter teacher remark"
                       rows={2}
                     />
@@ -267,6 +629,20 @@ const Broadsheet: React.FC<BroadsheetProps> = ({ setActiveView, userRole = 'Admi
                 </tr>
               );
             })}
+            {classStudents.length === 0 && (
+              <tr>
+                <td
+                  colSpan={
+                    4 +
+                    classSubjectIds.length
+                  }
+                  className="px-3 py-4 text-center text-gray-400"
+                >
+                  No students found for the
+                  selected filters.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -275,3 +651,4 @@ const Broadsheet: React.FC<BroadsheetProps> = ({ setActiveView, userRole = 'Admi
 };
 
 export default Broadsheet;
+

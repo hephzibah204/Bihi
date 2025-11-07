@@ -82,21 +82,23 @@ const getSubjectPosition = (
 /**
  * Helper: render Affective / Psychomotor table matching sample
  */
-const SkillsDomainTable = ({ title, skills = [], ratings = {} }) => {
+const SkillsDomainTable = ({ title, skills = [], ratings = {}, theme = {} }) => {
   // ratings expected like { [skillKey]: 1-5 }, any falsy = blank
   const resolvedSkills = skills.map((s, idx) => ({
     key: s.key || s.id || getSkillLabel(s) || `skill-${idx}`,
     label: getSkillLabel(s),
   }));
+  const headerColor = theme.headerColor || '#4f81bd';
+  const bandColor = theme.bandColor || '#d9e1f2';
 
   return (
     <div className="border border-black">
-      <div className="bg-[#4f81bd] text-white font-bold text-[8px] px-1 py-0.5 border-b border-black uppercase">
+      <div className="text-white font-bold text-[8px] px-1 py-0.5 border-b border-black uppercase" style={{ backgroundColor: headerColor }}>
         {title}
       </div>
       <table className="w-full text-[7px]">
         <thead>
-          <tr className="bg-[#d9e1f2]">
+          <tr style={{ backgroundColor: bandColor }}>
             <th className="border border-black px-1 py-0.5 text-left">
               {title}
             </th>
@@ -147,6 +149,10 @@ const ClassicReportCard = ({
 
   const gradingSystem = settings.gradingSystem || [];
   const reportCfg = settings.reportCardSettings || {};
+  const classicOptions = reportCfg.classicOptions || {};
+  const classicTheme = reportCfg.classicTheme || {};
+  const headerColor = classicTheme.headerColor || '#4f81bd';
+  const bandColor = classicTheme.bandColor || '#d9e1f2';
 
   // Scores for this student / term / session
   const studentScores = (scores || []).filter(
@@ -265,13 +271,95 @@ const ClassicReportCard = ({
       ? 'Fair result. More hard work is required.'
       : 'Below expectation. Serious improvement needed.';
 
+  const headerTitle = reportCfg.classicHeaderTitle || `${term} Term Pupil's Performance Report`;
+  const summariesLocation = classicOptions.summariesLocation || 'below_subjects';
+  const showLogo = classicOptions.showLogo ?? true;
+  const showPhoto = classicOptions.showStudentPhoto ?? true;
+  const showAttendance = classicOptions.showAttendance ?? true;
+  const showAffective = classicOptions.showAffective ?? true;
+  const showPsychomotor = classicOptions.showPsychomotor ?? true;
+  const showGradeScale = classicOptions.showGradeScale ?? true;
+  const showPerformance = classicOptions.showPerformance ?? true;
+  const showGradeAnalysis = classicOptions.showGradeAnalysis ?? true;
+  const showRatingIndices = classicOptions.showRatingIndices ?? true;
+
+  const SummaryBlocks = () => (
+    <div className="grid grid-cols-12 gap-1">
+      {/* Performance Summary */}
+      {showPerformance && (
+        <div className="col-span-4 border border-black">
+          <div className="text-white font-bold text-[8px] text-center px-1 py-0.5 border-b border-black uppercase" style={{ backgroundColor: headerColor }}>
+            Performance Summary
+          </div>
+          <table className="w-full text-[7px]">
+            <tbody>
+              <tr>
+                <td className="border border-black px-1 py-0.5">Total Obtainable:</td>
+                <td className="border border-black px-1 py-0.5 text-right">{totalObtainable}</td>
+              </tr>
+              <tr>
+                <td className="border border-black px-1 py-0.5">Total Obtained:</td>
+                <td className="border border-black px-1 py-0.5 text-right">{totalObtained}</td>
+              </tr>
+              <tr>
+                <td className="border border-black px-1 py-0.5">Percentage:</td>
+                <td className="border border-black px-1 py-0.5 text-right">{percentage}%</td>
+              </tr>
+              <tr>
+                <td className="border border-black px-1 py-0.5">Position:</td>
+                <td className="border border-black px-1 py-0.5 text-right">{performance.position || '-'} of {performance.totalStudentsInClass || '-'}</td>
+              </tr>
+              <tr>
+                <td className="border border-black px-1 py-0.5">No. of Subjects Offered:</td>
+                <td className="border border-black px-1 py-0.5 text-right">{totalSubjects}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+      {/* Grade Analysis */}
+      {showGradeAnalysis && (
+        <div className="col-span-4 border border-black">
+          <div className="text-white font-bold text-[8px] text-center px-1 py-0.5 border-b border-black uppercase" style={{ backgroundColor: headerColor }}>
+            Grade Analysis
+          </div>
+          <div className="grid grid-cols-9 gap-0.5 px-1 py-0.5 text-[7px]" style={{ backgroundColor: bandColor }}>
+            {Object.keys(gradeCounts)
+              .sort()
+              .map((g) => (
+                <div key={g} className="border border-black text-center py-0.5 bg-white">
+                  <div className="font-semibold">{g}</div>
+                  <div>{gradeCounts[g]}</div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+      {/* Rating Indices */}
+      {showRatingIndices && (
+        <div className="col-span-4 border border-black">
+          <div className="text-white font-bold text-[8px] text-center px-1 py-0.5 border-b border-black uppercase" style={{ backgroundColor: headerColor }}>
+            Rating Indices
+          </div>
+          <ul className="text-[7px] px-2 py-1 space-y-0.5 list-disc">
+            <li>5 - Maintains an excellent degree of observable traits.</li>
+            <li>4 - Acceptable level of observable traits.</li>
+            <li>3 - Shows minimal regard for observable traits.</li>
+            <li>2 - Low regard for observable traits.</li>
+            <li>1 - No regard for observable traits.</li>
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="report-card-layout report-card-a4-size mx-auto p-4 border-[8px] border-black bg-white text-[8px] leading-tight font-sans">
       {/* Top Header: Logo - School Info - Passport */}
       <div className="grid grid-cols-12 gap-2 items-center">
         {/* Logo */}
         <div className="col-span-2 flex flex-col items-center">
-          {settings.logoUrl ? (
+          {showLogo && settings.logoUrl ? (
             <img
               src={settings.logoUrl}
               alt="School Logo"
@@ -305,13 +393,13 @@ const ClassicReportCard = ({
             </div>
           )}
           <div className="mt-1 border-y border-black py-0.5 text-[9px] font-bold uppercase">
-            {term} Term Pupil&apos;s Performance Report
+            {headerTitle}
           </div>
         </div>
 
         {/* Passport */}
         <div className="col-span-2 flex flex-col items-center">
-          {student.photoUrl ? (
+          {showPhoto && student.photoUrl ? (
             <img
               src={student.photoUrl}
               alt="Student Passport"
@@ -363,16 +451,23 @@ const ClassicReportCard = ({
         </div>
       </div>
 
+      {/* Optional: place summaries above subjects based on settings */}
+      {summariesLocation === 'above_subjects' && (
+        <div className="mt-2">
+          <SummaryBlocks />
+        </div>
+      )}
+
       {/* Main Body: Cognitive (left) + Right panels */}
       <div className="mt-2 grid grid-cols-12 gap-2">
         {/* Cognitive Domain */}
         <div className="col-span-8 border border-black">
-          <div className="bg-[#4f81bd] text-white font-bold text-[8px] px-1 py-0.5 border-b border-black uppercase">
+          <div className="text-white font-bold text-[8px] px-1 py-0.5 border-b border-black uppercase" style={{ backgroundColor: headerColor }}>
             Cognitive Domain
           </div>
           <table className="w-full text-[7px]">
             <thead>
-              <tr className="bg-[#d9e1f2]">
+              <tr style={{ backgroundColor: bandColor }}>
                 <th className="border border-black px-1 py-0.5 text-left">
                   SUBJECTS
                 </th>
@@ -462,86 +557,70 @@ const ClassicReportCard = ({
         {/* Right Column: Attendance, Affective, Psychomotor, Grade Scale */}
         <div className="col-span-4 flex flex-col gap-1">
           {/* Attendance Summary */}
-          <div className="border border-black">
-            <div className="bg-[#4f81bd] text-white font-bold text-[8px] px-1 py-0.5 border-b border-black uppercase">
-              Attendance Summary
+          {showAttendance && (
+            <div className="border border-black">
+              <div className="text-white font-bold text-[8px] px-1 py-0.5 border-b border-black uppercase" style={{ backgroundColor: headerColor }}>
+                Attendance Summary
+              </div>
+              <table className="w-full text-[7px]">
+                <tbody>
+                  <tr>
+                    <td className="border border-black px-1 py-0.5">No of Times School Opened</td>
+                    <td className="border border-black px-1 py-0.5 text-right">{attendanceSummary.total || 0}</td>
+                  </tr>
+                  <tr>
+                    <td className="border border-black px-1 py-0.5">No of Times Present</td>
+                    <td className="border border-black px-1 py-0.5 text-right">{attendanceSummary.present || 0}</td>
+                  </tr>
+                  <tr>
+                    <td className="border border-black px-1 py-0.5">No of Times Absent</td>
+                    <td className="border border-black px-1 py-0.5 text-right">{attendanceSummary.absent || 0}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-            <table className="w-full text-[7px]">
-              <tbody>
-                <tr>
-                  <td className="border border-black px-1 py-0.5">
-                    No of Times School Opened
-                  </td>
-                  <td className="border border-black px-1 py-0.5 text-right">
-                    {attendanceSummary.total || 0}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="border border-black px-1 py-0.5">
-                    No of Times Present
-                  </td>
-                  <td className="border border-black px-1 py-0.5 text-right">
-                    {attendanceSummary.present || 0}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="border border-black px-1 py-0.5">
-                    No of Times Absent
-                  </td>
-                  <td className="border border-black px-1 py-0.5 text-right">
-                    {attendanceSummary.absent || 0}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          )}
 
           {/* Affective Domain */}
-          <SkillsDomainTable
-            title="Affective Domain"
-            skills={affectiveSkills}
-            ratings={affectiveRatings}
-          />
+          {showAffective && (
+            <SkillsDomainTable
+              title="Affective Domain"
+              skills={affectiveSkills}
+              ratings={affectiveRatings}
+              theme={{ headerColor, bandColor }}
+            />
+          )}
 
           {/* Psychomotor Domain */}
-          <SkillsDomainTable
-            title="Psychomotor Domain"
-            skills={psychomotorSkills}
-            ratings={psychomotorRatings}
-          />
+          {showPsychomotor && (
+            <SkillsDomainTable
+              title="Psychomotor Domain"
+              skills={psychomotorSkills}
+              ratings={psychomotorRatings}
+              theme={{ headerColor, bandColor }}
+            />
+          )}
 
           {/* Grade Scale */}
-          {gradingSystem.length > 0 && (
+          {showGradeScale && gradingSystem.length > 0 && (
             <div className="border border-black mt-1">
-              <div className="bg-[#4f81bd] text-white font-bold text-[8px] px-1 py-0.5 border-b border-black uppercase">
+              <div className="text-white font-bold text-[8px] px-1 py-0.5 border-b border-black uppercase" style={{ backgroundColor: headerColor }}>
                 Grade Scale
               </div>
               <table className="w-full text-[7px]">
                 <thead>
-                  <tr className="bg-[#d9e1f2]">
-                    <th className="border border-black px-1 py-0.5">
-                      Grade
-                    </th>
-                    <th className="border border-black px-1 py-0.5">
-                      Score Range
-                    </th>
-                    <th className="border border-black px-1 py-0.5">
-                      Remark
-                    </th>
+                  <tr style={{ backgroundColor: bandColor }}>
+                    <th className="border border-black px-1 py-0.5">Grade</th>
+                    <th className="border border-black px-1 py-0.5">Score Range</th>
+                    <th className="border border-black px-1 py-0.5">Remark</th>
                   </tr>
                 </thead>
                 <tbody>
                   {gradingSystem.map((g, idx) => (
                     <tr key={idx}>
-                      <td className="border border-black px-1 py-0.5 text-center font-semibold">
-                        {g.grade}
-                      </td>
-                      <td className="border border-black px-1 py-0.5 text-center">
-                        {g.from} - {g.to}
-                      </td>
-                      <td className="border border-black px-1 py-0.5">
-                        {g.remark}
-                      </td>
+                      <td className="border border-black px-1 py-0.5 text-center font-semibold">{g.grade}</td>
+                      <td className="border border-black px-1 py-0.5 text-center">{g.from} - {g.to}</td>
+                      <td className="border border-black px-1 py-0.5">{g.remark}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -551,94 +630,12 @@ const ClassicReportCard = ({
         </div>
       </div>
 
-      {/* Performance Summary, Grade Analysis, Rating Indices */}
-      <div className="mt-2 grid grid-cols-12 gap-1">
-        {/* Performance Summary */}
-        <div className="col-span-4 border border-black">
-          <div className="bg-[#4f81bd] text-white font-bold text-[8px] text-center px-1 py-0.5 border-b border-black uppercase">
-            Performance Summary
-          </div>
-          <table className="w-full text-[7px]">
-            <tbody>
-              <tr>
-                <td className="border border-black px-1 py-0.5">
-                  Total Obtainable:
-                </td>
-                <td className="border border-black px-1 py-0.5 text-right">
-                  {totalObtainable}
-                </td>
-              </tr>
-              <tr>
-                <td className="border border-black px-1 py-0.5">
-                  Total Obtained:
-                </td>
-                <td className="border border-black px-1 py-0.5 text-right">
-                  {totalObtained}
-                </td>
-              </tr>
-              <tr>
-                <td className="border border-black px-1 py-0.5">
-                  Percentage:
-                </td>
-                <td className="border border-black px-1 py-0.5 text-right">
-                  {percentage}%
-                </td>
-              </tr>
-              <tr>
-                <td className="border border-black px-1 py-0.5">
-                  Position:
-                </td>
-                <td className="border border-black px-1 py-0.5 text-right">
-                  {performance.position || '-'} of{' '}
-                  {performance.totalStudentsInClass || '-'}
-                </td>
-              </tr>
-              <tr>
-                <td className="border border-black px-1 py-0.5">
-                  No. of Subjects Offered:
-                </td>
-                <td className="border border-black px-1 py-0.5 text-right">
-                  {totalSubjects}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+      {/* Performance Summary, Grade Analysis, Rating Indices (below subjects when configured) */}
+      {summariesLocation === 'below_subjects' && (
+        <div className="mt-2">
+          <SummaryBlocks />
         </div>
-
-        {/* Grade Analysis */}
-        <div className="col-span-4 border border-black">
-          <div className="bg-[#4f81bd] text-white font-bold text-[8px] text-center px-1 py-0.5 border-b border-black uppercase">
-            Grade Analysis
-          </div>
-          <div className="grid grid-cols-9 gap-0.5 px-1 py-0.5 text-[7px]">
-            {Object.keys(gradeCounts)
-              .sort()
-              .map((g) => (
-                <div
-                  key={g}
-                  className="border border-black text-center py-0.5"
-                >
-                  <div className="font-semibold">{g}</div>
-                  <div>{gradeCounts[g]}</div>
-                </div>
-              ))}
-          </div>
-        </div>
-
-        {/* Rating Indices */}
-        <div className="col-span-4 border border-black">
-          <div className="bg-[#4f81bd] text-white font-bold text-[8px] text-center px-1 py-0.5 border-b border-black uppercase">
-            Rating Indices
-          </div>
-          <ul className="text-[7px] px-2 py-1 space-y-0.5 list-disc">
-            <li>5 - Maintains an excellent degree of observable traits.</li>
-            <li>4 - Acceptable level of observable traits.</li>
-            <li>3 - Shows minimal regard for observable traits.</li>
-            <li>2 - Low regard for observable traits.</li>
-            <li>1 - No regard for observable traits.</li>
-          </ul>
-        </div>
-      </div>
+      )}
 
       {/* Remarks and Next Term */}
       <div className="mt-2 grid grid-cols-12 gap-2 text-[7px]">

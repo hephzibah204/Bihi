@@ -147,7 +147,27 @@ export const CORE_DEMO_DATA = {
         maxCa1: 20, maxCa2: 20, maxExam: 60,
         reportCardSettings: {
             principalName: 'Dr. Evelyn Magnus', schoolMotto: 'Excellence and Integrity',
+            nextTermBeginsDate: 'Sept 16, 2024',
             sections: [], affectiveSkills: [], psychomotorSkills: [],
+            classicOptions: {
+                showLogo: true,
+                showStudentPhoto: true,
+                showAttendance: true,
+                showAffective: true,
+                showPsychomotor: true,
+                showGradeScale: true,
+                showPerformance: true,
+                showGradeAnalysis: true,
+                showRatingIndices: true,
+                summariesLocation: 'below_subjects',
+            },
+            classicTheme: {
+                headerColor: '#4f81bd',
+                bandColor: '#d9e1f2',
+                borderWidth: 1,
+                textScale: 1.0,
+            },
+            classicHeaderTitle: '',
         },
         schoolStructure: {
             levels: [

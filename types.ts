@@ -301,10 +301,33 @@ export interface SchoolSettings {
   reportCardSettings: {
     principalName: string;
     schoolMotto?: string;
+    // Optional: Next term date shown in Classic footer
+    nextTermBeginsDate?: string;
     sections: { id: string; title: string; enabled: boolean }[];
     affectiveSkills: ReportCardSkill[];
     psychomotorSkills: ReportCardSkill[];
     cognitiveSkills?: ReportCardSkill[];
+    // Classic template configuration (visibility, layout, theme)
+    classicOptions?: {
+      showLogo?: boolean;
+      showStudentPhoto?: boolean;
+      showAttendance?: boolean;
+      showAffective?: boolean;
+      showPsychomotor?: boolean;
+      showGradeScale?: boolean;
+      showPerformance?: boolean;
+      showGradeAnalysis?: boolean;
+      showRatingIndices?: boolean;
+      summariesLocation?: 'above_subjects' | 'below_subjects';
+    };
+    classicTheme?: {
+      headerColor?: string;    // e.g. '#4f81bd'
+      bandColor?: string;      // e.g. '#d9e1f2'
+      borderWidth?: number;    // e.g. 1
+      textScale?: number;      // multiplier, e.g. 1.0
+    };
+    // Custom header title text, default falls back to "{term} Term Pupil's Performance Report"
+    classicHeaderTitle?: string;
   };
   features?: Record<string, boolean>;
   roleBasedFeatures?: {

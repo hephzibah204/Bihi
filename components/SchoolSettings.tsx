@@ -120,11 +120,14 @@ const ReportCardSettingsTab = ({ settings, onSettingsChange }) => {
     };
     
     const reportCardSettings = settings.reportCardSettings || { principalName: '', schoolMotto: '', affectiveSkills: [], psychomotorSkills: [] };
+    const classicOptions = reportCardSettings.classicOptions || {};
+    const classicTheme = reportCardSettings.classicTheme || {};
 
     return (
         <div className="space-y-4">
             <div><label className="label" htmlFor="principalName">Principal's Name</label><input id="principalName" type="text" value={reportCardSettings.principalName || ''} onChange={e => onSettingsChange({ reportCardSettings: { ...reportCardSettings, principalName: e.target.value } })} className="input-field" /></div>
             <div><label className="label" htmlFor="schoolMotto">School Motto</label><input id="schoolMotto" type="text" value={reportCardSettings.schoolMotto || ''} onChange={e => onSettingsChange({ reportCardSettings: { ...reportCardSettings, schoolMotto: e.target.value } })} className="input-field" /></div>
+            <div><label className="label" htmlFor="nextTermBeginsDate">Next Term Begins</label><input id="nextTermBeginsDate" type="text" placeholder="e.g., Sept 16, 2024" value={reportCardSettings.nextTermBeginsDate || ''} onChange={e => onSettingsChange({ reportCardSettings: { ...reportCardSettings, nextTermBeginsDate: e.target.value } })} className="input-field" /></div>
             <div>
               <label className="label" htmlFor="primaryTemplate">Primary Report Card Template</label>
               <select
@@ -138,6 +141,70 @@ const ReportCardSettingsTab = ({ settings, onSettingsChange }) => {
                 <option value="classic">Classic</option>
                 <option value="minimalist">Minimalist</option>
               </select>
+            </div>
+
+            {/* Classic Template Options */}
+            <div className="p-4 border rounded-md">
+              <h4 className="font-semibold mb-2">Classic Template Options</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={classicOptions.showLogo ?? true} onChange={e => onSettingsChange({ reportCardSettings: { ...reportCardSettings, classicOptions: { ...classicOptions, showLogo: e.target.checked } } })} />
+                  <span>Show School Logo</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={classicOptions.showStudentPhoto ?? true} onChange={e => onSettingsChange({ reportCardSettings: { ...reportCardSettings, classicOptions: { ...classicOptions, showStudentPhoto: e.target.checked } } })} />
+                  <span>Show Student Photograph</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={classicOptions.showAttendance ?? true} onChange={e => onSettingsChange({ reportCardSettings: { ...reportCardSettings, classicOptions: { ...classicOptions, showAttendance: e.target.checked } } })} />
+                  <span>Show Attendance Summary</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={classicOptions.showAffective ?? true} onChange={e => onSettingsChange({ reportCardSettings: { ...reportCardSettings, classicOptions: { ...classicOptions, showAffective: e.target.checked } } })} />
+                  <span>Show Affective Skills</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={classicOptions.showPsychomotor ?? true} onChange={e => onSettingsChange({ reportCardSettings: { ...reportCardSettings, classicOptions: { ...classicOptions, showPsychomotor: e.target.checked } } })} />
+                  <span>Show Psychomotor Skills</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={classicOptions.showGradeScale ?? true} onChange={e => onSettingsChange({ reportCardSettings: { ...reportCardSettings, classicOptions: { ...classicOptions, showGradeScale: e.target.checked } } })} />
+                  <span>Show Grade Scale</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={classicOptions.showPerformance ?? true} onChange={e => onSettingsChange({ reportCardSettings: { ...reportCardSettings, classicOptions: { ...classicOptions, showPerformance: e.target.checked } } })} />
+                  <span>Show Performance Summary</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={classicOptions.showGradeAnalysis ?? true} onChange={e => onSettingsChange({ reportCardSettings: { ...reportCardSettings, classicOptions: { ...classicOptions, showGradeAnalysis: e.target.checked } } })} />
+                  <span>Show Grade Analysis</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={classicOptions.showRatingIndices ?? true} onChange={e => onSettingsChange({ reportCardSettings: { ...reportCardSettings, classicOptions: { ...classicOptions, showRatingIndices: e.target.checked } } })} />
+                  <span>Show Rating Indices</span>
+                </label>
+                <div>
+                  <label className="label" htmlFor="summariesLocation">Summaries Location</label>
+                  <select id="summariesLocation" className="input-field" value={classicOptions.summariesLocation || 'below_subjects'} onChange={e => onSettingsChange({ reportCardSettings: { ...reportCardSettings, classicOptions: { ...classicOptions, summariesLocation: e.target.value } } })}>
+                    <option value="above_subjects">Above Subjects</option>
+                    <option value="below_subjects">Below Subjects</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <div>
+                  <label className="label" htmlFor="classicHeaderColor">Header Color</label>
+                  <input id="classicHeaderColor" type="text" className="input-field" placeholder="#4f81bd" value={classicTheme.headerColor || ''} onChange={e => onSettingsChange({ reportCardSettings: { ...reportCardSettings, classicTheme: { ...classicTheme, headerColor: e.target.value } } })} />
+                </div>
+                <div>
+                  <label className="label" htmlFor="classicBandColor">Band Color</label>
+                  <input id="classicBandColor" type="text" className="input-field" placeholder="#d9e1f2" value={classicTheme.bandColor || ''} onChange={e => onSettingsChange({ reportCardSettings: { ...reportCardSettings, classicTheme: { ...classicTheme, bandColor: e.target.value } } })} />
+                </div>
+                <div>
+                  <label className="label" htmlFor="classicHeaderTitle">Header Title</label>
+                  <input id="classicHeaderTitle" type="text" className="input-field" placeholder="Term Report Title" value={reportCardSettings.classicHeaderTitle || ''} onChange={e => onSettingsChange({ reportCardSettings: { ...reportCardSettings, classicHeaderTitle: e.target.value } })} />
+                </div>
+              </div>
             </div>
             
             <div className="grid grid-cols-2 gap-6">
