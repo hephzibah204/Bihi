@@ -105,6 +105,12 @@ const AppRouter = () => {
     }
 
     // Root site router with support for path-based tenant routing
+    // Handle query param view=signin for clean URL sign-in landing
+    const viewParam = typeof window !== 'undefined' ? new URL(window.location.href).searchParams.get('view') : null;
+    if (!subdomain && viewParam === 'signin') {
+        return <Suspense fallback={<FullPageLoader />}><CentralLoginPage /></Suspense>;
+    }
+
     return (
         <Suspense fallback={<FullPageLoader />}>
             <Routes>
