@@ -68,72 +68,43 @@ const getDomainConfig = (): DomainConfig => {
   };
 };
 
-export const getSubdomain = (): string | null => {
-  const config = getDomainConfig();
-  const hostname = window.location.hostname;
-  const pathname = window.location.pathname;
+// Strict root domain parsing and validation
+const parseRootDomains = (): string[] => {
+  const raw =
+    (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_ROOT_DOMAINS) ||
+    (typeof window !== 'undefined' && (window as any).ENV?.VITE_ROOT_DOMAINS) ||
+    '';
+  return String(raw)
+    .split(',')
+    .map((d) => d.trim().toLowerCase())
+    .filter(Boolean);
+};
 
-  // 0. Check demo mode FIRST - highest priority
+export const getSubdomain = (): string | null => {
+  if (typeof window === 'undefined') return null;
+
+  // Demo mode shortcut
   if (sessionStorage.getItem('isDemoMode') === 'true' || localStorage.getItem('isDemoMode') === 'true') {
     return DEMO_TENANT_ID;
   }
 
-  // 1. Handle subdomain-based routing first (most common for production)
-  // Check if hostname has subdomain and is a configured root domain
-  for (const rootDomain of config.rootDomains) {
-    if (hostname.endsWith(`.${rootDomain}`)) {
-      const subdomain = hostname.substring(0, hostname.length - rootDomain.length - 1);
-      if (subdomain && subdomain !== 'www') {
-        return subdomain;
-      }
-    }
-  }
-  
-  // 2. Handle development/preview hostnames with subdomains
-  if (hostname.includes('.pages.dev') || hostname.includes('.vercel.app') || hostname.includes('.netlify.app')) {
-    const parts = hostname.split('.');
-    if (parts.length > 2) {
-      return parts[0];
-    }
-  }
-  
-  // 3. Handle localhost subdomain development
-  if (hostname.includes('localhost')) {
-    const parts = hostname.split('.');
-    if (parts.length > 1 && parts[0] !== 'localhost') {
-      return parts[0];
-    }
-  }
+  const host = window.location.hostname.toLowerCase();
+  const roots = parseRootDomains();
 
-  // 4. Handle clean path-based routing (e.g., /tenant-name/dashboard)
-  const pathSegments = pathname.split('/').filter(segment => segment !== '');
-  if (pathSegments.length > 0) {
-    const firstSegment = pathSegments[0];
-    
-    // Skip system paths that are not tenant names
-    const systemPaths = ['dashboard', 'login', 'signup', 'demo', 'signin', 'results', 'controlhub', 'api', 'admin'];
-    
-    if (!systemPaths.includes(firstSegment)) {
-      // Clear demo mode when accessing tenant via path
-      sessionStorage.removeItem('isDemoMode');
-      return firstSegment;
-    }
-  }
+  // Fallback safe defaults if not configured
+  const effectiveRoots = roots.length > 0 ? roots : ['reportsheet.com.ng', 'localhost'];
 
-  // 5. Fallback to query parameter for backward compatibility
-  const params = new URLSearchParams(window.location.search);
-  const tenantParam = params.get('tenant');
-  if (tenantParam) {
-    sessionStorage.removeItem('isDemoMode');
-    return tenantParam;
-  }
-
-  // 6. Handle preview domain
-  if (config.previewDomain && hostname === config.previewDomain) {
+  const root = effectiveRoots.find((r) => host === r || host.endsWith(`.${r}`));
+  if (!root) {
+    console.error('[Multi-tenant] Host does not match any configured ROOT_DOMAINS', { host, effectiveRoots });
     return null;
   }
 
-  return null;
+  if (host === root) return null;
+
+  // strip ".root"
+  const sub = host.slice(0, host.length - root.length - 1);
+  return sub || null;
 };
 
 export const getPortalUrl = (subdomain: string): string => {

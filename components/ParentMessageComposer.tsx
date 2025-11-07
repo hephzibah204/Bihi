@@ -119,7 +119,7 @@ Constraints:
 
         {messageHtml && (
           <div className="mt-4 p-4 bg-gray-100 rounded-md">
-            <div className="prose-content" dangerouslySetInnerHTML={{ __html: messageHtml }} />
+        <div className="prose-content" dangerouslySetInnerHTML={{ __html: require('../utils/sanitize').safeHtml(messageHtml) }} />
           </div>
         )}
       </div>

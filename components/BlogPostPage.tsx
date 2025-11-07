@@ -31,7 +31,7 @@ const BlogPostPage = () => {
         <article className="prose max-w-none">
             <h1>{article.title}</h1>
             <p className="text-sm text-gray-500">Last updated: {formatDate(article.lastUpdated)}</p>
-            <div className="prose-content" dangerouslySetInnerHTML={{ __html: article.content }} />
+      <div className="prose-content" dangerouslySetInnerHTML={{ __html: require('../utils/sanitize').safeHtml(article.content) }} />
              <Link to="/blog" className="mt-8 inline-block no-underline">← Back to all articles</Link>
         </article>
     );

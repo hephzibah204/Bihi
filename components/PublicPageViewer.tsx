@@ -22,7 +22,7 @@ const PublicPageViewer: React.FC<PublicPageViewerProps> = ({ page }) => {
     return (
         <article className="prose max-w-none">
             <h1>{page.title}</h1>
-            <div className="prose-content" dangerouslySetInnerHTML={{ __html: page.content }} />
+      <div className="prose-content" dangerouslySetInnerHTML={{ __html: require('../utils/sanitize').safeHtml(page.content) }} />
         </article>
     );
 };

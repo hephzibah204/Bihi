@@ -57,11 +57,16 @@ export async function initSupabase() {
     // Environment validated successfully
   } catch (error: any) {
     logger.error('[Supabase] Config error', { message: error.message });
-    logger.error('[Supabase] Running in offline mode due to configuration error.');
-    
-    // 3️⃣ Offline fallback
-    supabase = createOfflineClient();
-    return supabase;
+    const isProd = (typeof import.meta !== 'undefined' && (import.meta as any)?.env?.PROD) === true;
+    if (isProd) {
+      // In production, fail-fast to surface misconfiguration
+      throw new Error('Supabase configuration invalid in production: ' + (error?.message || 'unknown error'));
+    } else {
+      logger.error('[Supabase] Running in offline mode due to configuration error.');
+      // 3️⃣ Offline fallback for development
+      supabase = createOfflineClient();
+      return supabase;
+    }
   }
 
   // 3️⃣b Guard against empty envs (utils/env returns empty strings when unset)

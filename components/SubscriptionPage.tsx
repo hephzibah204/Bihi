@@ -148,6 +148,14 @@ const SubscriptionPage = () => {
                 try {
                     const res = await tryRequest(url);
                     if (res.ok) { response = res; break; }
+                    if (res.status === 409) {
+                        try {
+                            const j = await res.json();
+                            throw new Error(j?.error || 'Subdomain taken');
+                        } catch {
+                            throw new Error('Subdomain taken');
+                        }
+                    }
                     // Collect detailed error for diagnostics
                     let details = `HTTP ${res.status}: ${res.statusText}`;
                     try {
@@ -215,6 +223,17 @@ const SubscriptionPage = () => {
                 }
             } catch { /* noop */ }
 
+            // Immediately verify tenant exists in the same environment the app is using.
+            try {
+                const checkRes = await fetch(`/api/tenant-exists?subdomain=${encodeURIComponent(formData.subdomain)}`);
+                const check = await checkRes.json().catch(() => ({} as any));
+                if (!check?.success && typeof check?.exists === 'boolean' ? !check.exists : !check?.exists) {
+                    throw new Error('Portal could not be verified after registration. Please contact support.');
+                }
+            } catch (verifyErr: any) {
+                throw new Error(verifyErr?.message || 'Portal could not be verified after registration. Please contact support.');
+            }
+
             // Record recent registration marker for tenant validation fallback (expires after 15 minutes)
             try {
                 const marker = { id: formData.subdomain, ts: Date.now() };
@@ -226,6 +245,9 @@ const SubscriptionPage = () => {
             let errorMessage = String(err?.message || 'Registration failed');
             if (String(err?.message || '').toLowerCase().includes('failed to fetch')) {
                 errorMessage = "A network error occurred. Please check your connection and try again.";
+            }
+            if (/subdomain taken/i.test(String(err?.message || ''))) {
+                errorMessage = 'Subdomain taken. Please choose a different portal address.';
             }
             setError(errorMessage);
         } finally {

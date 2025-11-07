@@ -154,7 +154,7 @@ const RubricGenerator: React.FC = () => {
 
         {rubricHtml && (
           <div className="mt-4 p-4 bg-gray-100 rounded-md overflow-x-auto">
-            <div className="prose-content" dangerouslySetInnerHTML={{ __html: rubricHtml }} />
+      <div className="prose-content" dangerouslySetInnerHTML={{ __html: require('../utils/sanitize').safeHtml(rubricHtml) }} />
           </div>
         )}
       </div>

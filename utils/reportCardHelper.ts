@@ -87,9 +87,11 @@ export const summarizeAttendance = (studentId, attendanceRecords) => {
     
     attendanceRecords.forEach(record => {
         const status = record.statuses?.[studentId];
-        if (status === 'present') present++;
-        else if (status === 'late') late++;
-        else if (status === 'absent') absent++;
+        const normalized = String(status || '').toLowerCase();
+        if (normalized === 'present') present++;
+        else if (normalized === 'late') late++;
+        else if (normalized === 'absent') absent++;
+        // else ignore unknown statuses
     });
 
     return { present, late, absent, total: present + late + absent };

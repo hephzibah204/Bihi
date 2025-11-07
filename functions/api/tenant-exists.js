@@ -8,7 +8,7 @@ export async function onRequest(context) {
   if (!isAllowed) return new Response(JSON.stringify({ error: 'Forbidden: Invalid Origin' }), { status: 403 });
 
   const url = new URL(request.url);
-  const tenant = url.searchParams.get('tenant') || url.searchParams.get('id') || '';
+  const tenant = url.searchParams.get('subdomain') || url.searchParams.get('tenant') || url.searchParams.get('id') || '';
   const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = env;
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     const res = new Response(JSON.stringify({ error: 'Server not configured' }), { status: 500 });
@@ -44,7 +44,7 @@ export async function onRequest(context) {
       return res;
     }
 
-    const res = new Response(JSON.stringify({ exists, tenantId: tenant }), { status: 200 });
+    const res = new Response(JSON.stringify({ success: true, exists, tenantId: tenant }), { status: 200 });
     Object.entries(corsHeaders).forEach(([k, v]) => res.headers.set(k, v));
     return res;
   } catch (err) {

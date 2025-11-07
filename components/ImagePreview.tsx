@@ -8,7 +8,7 @@ interface ImagePreviewProps {
 
 const ImagePreview: React.FC<ImagePreviewProps> = ({ html, base64, alt = 'Generated Image' }) => {
   if (html && html.trim().length) {
-    return <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: html }} />;
+  return <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: require('../utils/sanitize').safeHtml(html) }} />;
   }
   if (base64 && base64.trim().length) {
     const src = `data:image/png;base64,${base64}`;

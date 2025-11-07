@@ -31,7 +31,7 @@ const KBPostPage = () => {
         <article className="prose max-w-none">
             <h1>{article.title}</h1>
             <p className="text-sm text-gray-500">Last updated: {formatDate(article.lastUpdated)}</p>
-            <div className="prose-content" dangerouslySetInnerHTML={{ __html: article.content }} />
+      <div className="prose-content" dangerouslySetInnerHTML={{ __html: require('../utils/sanitize').safeHtml(article.content) }} />
              <Link to="/kb" className="mt-8 inline-block no-underline hover:text-indigo-600">← Back to Knowledge Base</Link>
         </article>
     );

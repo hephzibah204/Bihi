@@ -86,7 +86,14 @@ import { resolveTenantColumns, resolveTeachersColumns } from '../_lib/schema';
 
 async function handlePost(request, env) {
     try {
-        const { schoolName, subdomain, adminEmail, adminPassword, adminName, schoolType, emailRedirectTo } = await request.json();
+        const body = await request.json();
+        const schoolName = body.schoolName;
+        const adminEmail = body.adminEmail;
+        const adminPassword = body.adminPassword;
+        const adminName = body.adminName;
+        const schoolType = body.schoolType;
+        const emailRedirectTo = body.emailRedirectTo;
+        const subdomain = (body.subdomain || body.slug || '').trim().toLowerCase();
         let rolledBack = false;
 
         console.log('Registration attempt:', { subdomain, adminEmail, schoolName });
@@ -115,6 +122,21 @@ async function handlePost(request, env) {
         };
         
         const trialExpiry = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+
+        // Pre-insert uniqueness check across id/slug/subdomain
+        try {
+            const existsUrl = `${SUPABASE_URL}/rest/v1/tenants?or=(id.eq.${subdomain},slug.eq.${subdomain},subdomain.eq.${subdomain})&select=id`;
+            const existsRes = await fetch(existsUrl, { headers: adminHeaders });
+            if (!existsRes.ok) {
+                return json({ success: false, error: 'Could not validate existing tenants' }, 500);
+            }
+            const rows = await existsRes.json();
+            if (Array.isArray(rows) && rows.length > 0) {
+                return json({ success: false, error: 'Subdomain already in use' }, 409);
+            }
+        } catch (existsErr) {
+            return json({ success: false, error: 'Could not validate existing tenants' }, 500);
+        }
 
         // Step 1: Create Tenant
         const columns = await resolveTenantColumns(env);

@@ -60,7 +60,7 @@ const DashboardKnowledgeBase = () => {
                         className="w-full text-left card p-6 hover:shadow-lg transition-shadow"
                     >
                         <h2 className="text-xl font-semibold text-indigo-700">{article.title}</h2>
-                        <p className="mt-2 text-gray-600 line-clamp-2" dangerouslySetInnerHTML={{ __html: article.content.replace(/<[^>]+>/g, '') }} />
+            <p className="mt-2 text-gray-600 line-clamp-2" dangerouslySetInnerHTML={{ __html: require('../utils/sanitize').safeHtml(article.content) }} />
                     </button>
                 )) : (
                     <div className="card p-8 text-center text-gray-500">
@@ -72,7 +72,7 @@ const DashboardKnowledgeBase = () => {
             {selectedArticle && (
                 <Modal isOpen={!!selectedArticle} onClose={() => setSelectedArticle(null)} title={selectedArticle.title} size="lg">
                     <div className="p-6 max-h-[70vh] overflow-y-auto prose prose-indigo">
-                        <div className="prose-content" dangerouslySetInnerHTML={{ __html: selectedArticle.content }} />
+            <div className="prose-content" dangerouslySetInnerHTML={{ __html: require('../utils/sanitize').safeHtml(selectedArticle.content) }} />
                     </div>
                 </Modal>
             )}

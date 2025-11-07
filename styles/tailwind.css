@@ -125,8 +125,15 @@
 @layer utilities {
   /* Print utilities and report card theming */
   .no-print { @apply hidden print:hidden; }
-  .printable-content { @apply w-[210mm] mx-auto my-6 p-6 bg-white shadow-xl rounded-xl; }
-  .report-card-a4-size { width: 210mm; min-height: 297mm; }
+  /* Base: fluid width with A4 max for screen; exact A4 in print */
+  .printable-content {
+    @apply w-full mx-auto my-6 p-4 md:p-6 bg-white shadow-xl rounded-xl;
+    max-width: 210mm;
+  }
+  .report-card-a4-size {
+    width: 100%;
+    max-width: 210mm;
+  }
   .report-card-layout { @apply relative bg-white rounded-xl ring-1 ring-gray-200; }
   .report-card-layout::before {
     content: '';
@@ -147,7 +154,8 @@
     .no-print { display: none !important; }
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     @page { size: A4; margin: 12mm; }
-    .printable-content { box-shadow: none !important; margin: 0 auto !important; }
+    .printable-content { box-shadow: none !important; margin: 0 auto !important; max-width: initial; width: 210mm; }
+    .report-card-a4-size { width: 210mm; min-height: 297mm; margin: 0; box-shadow: none; }
     .page-break { break-after: page; page-break-after: always; }
   }
 }

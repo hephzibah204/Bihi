@@ -210,6 +210,26 @@ const Broadsheet: React.FC<BroadsheetProps> = ({
     return map;
   }, [filteredRemarks]);
 
+  // Controlled remark drafts to keep UI in sync with filtered remarks
+  const [remarkDrafts, setRemarkDrafts] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const next: Record<string, string> = {};
+    filteredRemarks.forEach((r) => {
+      next[r.studentId] = r.generalComment || '';
+    });
+    setRemarkDrafts(next);
+  }, [filteredRemarks]);
+
+  const handleRemarkChange = (studentId: string, value: string) => {
+    setRemarkDrafts((prev) => ({ ...prev, [studentId]: value }));
+  };
+
+  const handleRemarkBlur = (studentId: string) => {
+    const value = remarkDrafts[studentId] || '';
+    saveRemark(studentId, value);
+  };
+
   // Subjects taught in selected class
   const classSubjectIds = useMemo(() => {
     return subjects
@@ -310,12 +330,11 @@ const Broadsheet: React.FC<BroadsheetProps> = ({
       Object.entries(rec.statuses || {}).forEach(
         ([sid, status]) => {
           if (!summary[sid]) return;
-          if (status === 'present')
-            summary[sid].presentDays += 1;
-          else if (status === 'absent')
-            summary[sid].absentDays += 1;
-          else if (status === 'late')
-            summary[sid].lateDays += 1;
+          const normalized = String(status || '').toLowerCase();
+          if (normalized === 'present') summary[sid].presentDays += 1;
+          else if (normalized === 'absent') summary[sid].absentDays += 1;
+          else if (normalized === 'late') summary[sid].lateDays += 1;
+          // ignore unknown statuses
         }
       );
     });
@@ -613,15 +632,9 @@ const Broadsheet: React.FC<BroadsheetProps> = ({
                   <td className="px-3 py-2 w-64">
                     <textarea
                       className="input w-full text-[10px]"
-                      defaultValue={
-                        existingRemark
-                      }
-                      onBlur={(e) =>
-                        saveRemark(
-                          st.id,
-                          e.target.value
-                        )
-                      }
+                      value={remarkDrafts[st.id] ?? existingRemark}
+                      onChange={(e) => handleRemarkChange(st.id, e.target.value)}
+                      onBlur={() => handleRemarkBlur(st.id)}
                       placeholder="Enter teacher remark"
                       rows={2}
                     />
@@ -651,4 +664,3 @@ const Broadsheet: React.FC<BroadsheetProps> = ({
 };
 
 export default Broadsheet;
-

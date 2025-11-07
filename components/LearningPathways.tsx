@@ -165,7 +165,7 @@ Constraints:
                 {generatedPathway && (
                     <div className="mt-4 p-4 bg-gray-100 rounded-md">
                         <h4 className="font-semibold text-sm">Your Learning Pathway for "{topic}":</h4>
-                        <div className="mt-1 text-gray-800 font-sans text-sm prose-content" dangerouslySetInnerHTML={{ __html: generatedPathway }} />
+        <div className="mt-1 text-gray-800 font-sans text-sm prose-content" dangerouslySetInnerHTML={{ __html: require('../utils/sanitize').safeHtml(generatedPathway) }} />
                     </div>
                 )}
             </div>

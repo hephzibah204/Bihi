@@ -151,7 +151,7 @@ Instructions:
                 {recommendations && (
                     <div className="mt-4 p-4 bg-gray-100 rounded-md">
                         <h4 className="font-semibold text-sm">Suggested Subjects for {isStudentView ? 'You' : student?.name || 'the Student'}:</h4>
-                        <div className="mt-1 text-gray-800 font-sans text-sm prose-content" dangerouslySetInnerHTML={{ __html: recommendations }} />
+      <div className="mt-1 text-gray-800 font-sans text-sm prose-content" dangerouslySetInnerHTML={{ __html: require('../utils/sanitize').safeHtml(recommendations) }} />
                     </div>
                 )}
             </div>

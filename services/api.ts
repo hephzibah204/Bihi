@@ -538,7 +538,21 @@ export const apiGetBehavioralRecords = () => get<BehavioralLogEntry>('behavioral
 export const apiUpsertBehavioralRecord = (record: Partial<BehavioralLogEntry>) => upsert('behavioral_log', record);
 export const apiDeleteBehavioralRecord = (recordId: string) => del('behavioral_log', recordId);
 export const apiGetAttendance = () => get<AttendanceRecord>('attendance');
-export const apiSaveAttendance = (record: AttendanceRecord) => upsert('attendance', record);
+export const apiSaveAttendance = (record: AttendanceRecord) => {
+    // Normalize and restrict statuses to the enum: 'present' | 'absent' | 'late'
+    const normalizedStatuses: Record<string, 'present' | 'absent' | 'late'> = {};
+    Object.entries(record.statuses || {}).forEach(([sid, status]) => {
+        const val = String(status || '').toLowerCase();
+        if (val === 'present' || val === 'absent' || val === 'late') {
+            normalizedStatuses[sid] = val as 'present' | 'absent' | 'late';
+        } else {
+            // Default unknown to 'present' to avoid skew from garbage values
+            normalizedStatuses[sid] = 'present';
+        }
+    });
+    const safeRecord: AttendanceRecord = { ...record, statuses: normalizedStatuses };
+    return upsert('attendance', safeRecord);
+};
 export const apiGetAssignments = () => get<Assignment>('assignments');
 export const apiSaveAssignments = (assignments: Assignment[]) => batchUpsert('assignments', assignments);
 export const apiGetAssignmentScores = () => get<AssignmentScore>('assignment_scores');

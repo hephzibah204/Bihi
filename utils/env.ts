@@ -15,11 +15,21 @@ export function getSupabaseEnv() {
   const nextKey = (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY) || undefined;
   const nextPublishableKey = (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) || undefined;
 
-  return {
+  const resolved = {
     VITE_SUPABASE_URL: viteUrl || winUrl || nextUrl || '',
     VITE_SUPABASE_ANON_KEY: viteKey || winKey || nextKey || '',
     VITE_SUPABASE_PUBLISHABLE_KEY: vitePublishableKey || winPublishableKey || nextPublishableKey || ''
   };
+
+  // In production, required envs must be present; fail fast if missing
+  const isProd = (typeof import.meta !== 'undefined' && (import.meta as any)?.env?.PROD) === true;
+  if (isProd) {
+    if (!resolved.VITE_SUPABASE_URL || (!resolved.VITE_SUPABASE_PUBLISHABLE_KEY && !resolved.VITE_SUPABASE_ANON_KEY)) {
+      throw new Error('Supabase environment variables are not configured for production.');
+    }
+  }
+
+  return resolved;
 }
 
 export function getKeyType(key: string): string {
