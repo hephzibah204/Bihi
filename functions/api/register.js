@@ -33,6 +33,12 @@ function handleCors(request) {
     return { response: null, corsHeaders: headers, isAllowed };
 }
 
+// Reusable JSON response helper for consistent payloads
+const json = (body, status = 200) => new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+});
+
 // ... (defaultSubjects and defaultSettings remain the same) ...
 const defaultSubjects = [
     { name: 'Mathematics', classes: ['JSS 1', 'JSS 2', 'JSS 3', 'SSS 1', 'SSS 2', 'SSS 3'] },
@@ -81,24 +87,25 @@ import { resolveTenantColumns, resolveTeachersColumns } from '../_lib/schema';
 async function handlePost(request, env) {
     try {
         const { schoolName, subdomain, adminEmail, adminPassword, adminName, schoolType, emailRedirectTo } = await request.json();
+        let rolledBack = false;
 
         console.log('Registration attempt:', { subdomain, adminEmail, schoolName });
 
         if (!schoolName || !subdomain || !adminEmail || !adminPassword || !adminName) {
-            return new Response(JSON.stringify({ error: 'Missing required fields.' }), { status: 400 });
+            return json({ success: false, error: 'Missing required fields' }, 400);
         }
         // Basic validation
         if (!/^.{6,}$/.test(adminPassword)) {
-            return new Response(JSON.stringify({ error: 'Password must be at least 6 characters.' }), { status: 400 });
+            return json({ success: false, error: 'Password must be at least 6 characters.' }, 400);
         }
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail)) {
-            return new Response(JSON.stringify({ error: 'Invalid email format.' }), { status: 400 });
+            return json({ success: false, error: 'Invalid email format.' }, 400);
         }
 
         const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = env;
 
         if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-            return new Response(JSON.stringify({ error: 'Server is not configured for registration.' }), { status: 500 });
+            return json({ success: false, error: 'Server is not configured for registration.' }, 500);
         }
         
         const adminHeaders = {
@@ -213,6 +220,7 @@ async function handlePost(request, env) {
             } catch (rollbackErr) {
                 console.error('Failed to rollback tenant:', rollbackErr);
             }
+            rolledBack = true;
             
             throw new Error(`Failed to create admin profile: ${errorDetails}. Registration has been rolled back. Please try again or contact support if the issue persists.`);
         }
@@ -270,6 +278,7 @@ async function handlePost(request, env) {
             // Rollback defensively
             try { await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userData.id}`, { method: 'DELETE', headers: adminHeaders }); } catch {}
             try { await fetch(`${SUPABASE_URL}/rest/v1/tenants?id=eq.${subdomain}`, { method: 'DELETE', headers: adminHeaders }); } catch {}
+            rolledBack = true;
             throw new Error('Tenant verification failed. Registration has been rolled back. Please try again.');
         }
         const tenantRows = await tenantVerifyRes.json();
@@ -278,26 +287,23 @@ async function handlePost(request, env) {
             // Rollback defensively
             try { await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userData.id}`, { method: 'DELETE', headers: adminHeaders }); } catch {}
             try { await fetch(`${SUPABASE_URL}/rest/v1/tenants?id=eq.${subdomain}`, { method: 'DELETE', headers: adminHeaders }); } catch {}
+            rolledBack = true;
             throw new Error('Tenant verification failed. Registration has been rolled back. Please try again.');
         }
 
         console.log('Registration completed successfully for:', subdomain);
         // Return explicit success flags so frontend only shows success when tenant truly exists
-        return new Response(
-            JSON.stringify({
-                success: true,
-                tenantId: subdomain,
-                tenantCreated: true,
-                teacherProfileCreated: true,
-                userCreated: true,
-            }),
-            { status: 200, headers: { 'Content-Type': 'application/json' } }
-        );
+        return json({
+            success: true,
+            tenantId: subdomain,
+            tenantCreated: true,
+            teacherProfileCreated: true,
+            userCreated: true,
+        }, 200);
     } catch (err) {
-        return new Response(
-            JSON.stringify({ success: false, error: "Registration failed", details: err.message }),
-            { status: 500, headers: { 'Content-Type': 'application/json' } }
-        );
+        const details = err && (err.stack || err.message) ? (err.stack || err.message) : String(err);
+        const errorMsg = typeof rolledBack !== 'undefined' && rolledBack ? 'Registration failed, changes rolled back' : 'Registration failed';
+        return json({ success: false, error: errorMsg, details }, 500);
     }
 }
 
