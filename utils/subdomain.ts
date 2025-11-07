@@ -88,13 +88,37 @@ export const getSubdomain = (): string | null => {
     return DEMO_TENANT_ID;
   }
 
+  const config = getDomainConfig();
   const host = window.location.hostname.toLowerCase();
   const roots = parseRootDomains();
+  const url = new URL(window.location.href);
 
   // Fallback safe defaults if not configured
   const effectiveRoots = roots.length > 0 ? roots : ['reportsheet.com.ng', 'localhost'];
 
   const root = effectiveRoots.find((r) => host === r || host.endsWith(`.${r}`));
+
+  // If using path/query-based routing, try to resolve from URL params/segments first
+  if (!config.useSubdomains) {
+    const qp = (url.searchParams.get('tenant') || url.searchParams.get('school') || url.searchParams.get('portal') || '').trim().toLowerCase();
+    if (qp) return normalizeSubdomain(qp);
+
+    const firstSegment = url.pathname.split('/').filter(Boolean)[0];
+    if (firstSegment && firstSegment !== 'controlhub') {
+      return normalizeSubdomain(firstSegment);
+    }
+
+    // As a fallback, still attempt subdomain extraction if host matches a root domain
+    if (root && host !== root) {
+      const sub = host.slice(0, host.length - root.length - 1);
+      return normalizeSubdomain(sub);
+    }
+
+    // No match found
+    return null;
+  }
+
+  // Using subdomain-based routing
   if (!root) {
     console.error('[Multi-tenant] Host does not match any configured ROOT_DOMAINS', { host, effectiveRoots });
     return null;
@@ -104,7 +128,7 @@ export const getSubdomain = (): string | null => {
 
   // strip ".root"
   const sub = host.slice(0, host.length - root.length - 1);
-  return sub || null;
+  return normalizeSubdomain(sub) || null;
 };
 
 export const getPortalUrl = (subdomain: string): string => {
