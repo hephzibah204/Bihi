@@ -81,14 +81,21 @@ const StudentProfile = ({ demoUserId }) => {
 
     const generateAIAnalysis = async () => {
         if (!student || !scores.length) return;
-        
+
         setAnalysisLoading(true);
         try {
+            const subjectNameMap = new Map<string, string>((subjects || []).map(sub => [sub.id, sub.name]));
+            const formattedScores = scores.map(s => {
+                const subj = subjectNameMap.get(s.subjectId) || (s as any).subject || 'Unknown Subject';
+                const total = (s.ca1 || 0) + (s.ca2 || 0) + (s.exam || 0);
+                return `${subj}: ${total}%`;
+            }).join(', ');
+
             const prompt = `Analyze this student's academic performance and provide insights for teachers and administrators:
 
 Student: ${student.name}
 Class: ${student.class}
-Scores: ${scores.map(s => `${s.subject}: ${s.score}%`).join(', ')}
+Scores: ${formattedScores}
 
 Please provide:
 1. Academic Performance Analysis
@@ -123,7 +130,9 @@ Keep the analysis professional and actionable for educators.`;
     if (!student) return <div className="card p-6 text-center">Could not find student profile.</div>;
 
     const averageScore = scores.length > 0 
-        ? (scores.reduce((sum, score) => sum + score.score, 0) / scores.length).toFixed(1)
+        ? (
+            scores.reduce((sum, s) => sum + ((s.ca1 || 0) + (s.ca2 || 0) + (s.exam || 0)), 0) / scores.length
+          ).toFixed(1)
         : 'N/A';
 
     return (
@@ -228,18 +237,22 @@ Keep the analysis professional and actionable for educators.`;
                                         </thead>
                                         <tbody>
                                             {scores.map((score, index) => {
-                                                const grade = score.score >= 80 ? 'A' : 
-                                                            score.score >= 70 ? 'B' : 
-                                                            score.score >= 60 ? 'C' : 
-                                                            score.score >= 50 ? 'D' : 'F';
-                                                const remark = score.score >= 80 ? 'Excellent' : 
-                                                              score.score >= 70 ? 'Very Good' : 
-                                                              score.score >= 60 ? 'Good' : 
-                                                              score.score >= 50 ? 'Fair' : 'Poor';
+                                                const total = (score.ca1 || 0) + (score.ca2 || 0) + (score.exam || 0);
+                                                const grade = total >= 80 ? 'A' : 
+                                                            total >= 70 ? 'B' : 
+                                                            total >= 60 ? 'C' : 
+                                                            total >= 50 ? 'D' : 'F';
+                                                const remark = total >= 80 ? 'Excellent' : 
+                                                              total >= 70 ? 'Very Good' : 
+                                                              total >= 60 ? 'Good' : 
+                                                              total >= 50 ? 'Fair' : 'Poor';
+            
+                                                const subjectName = (subjects || []).find(s => s.id === (score as any).subjectId)?.name || (score as any).subject || 'Unknown Subject';
+
                                                 return (
                                                     <tr key={index}>
-                                                        <td className="td">{score.subject}</td>
-                                                        <td className="td">{score.score}%</td>
+                                                        <td className="td">{subjectName}</td>
+                                                        <td className="td">{total}%</td>
                                                         <td className="td">
                                                             <span className={`px-2 py-1 rounded text-xs font-semibold ${
                                                                 grade === 'A' ? 'bg-green-100 text-green-800' :
