@@ -427,6 +427,9 @@ const Broadsheet: React.FC<BroadsheetProps> = ({
 
   if (isLoading) return <Loader />;
 
+  const isReadOnly = userRole === 'Student' || userRole === 'Parent';
+  const canNavigate = userRole === 'Admin' || userRole === 'Teacher';
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -440,19 +443,21 @@ const Broadsheet: React.FC<BroadsheetProps> = ({
             positions, attendance, and remarks.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            className="btn-secondary"
-            onClick={goToScores}
-          >
-            <ClipboardListIcon className="w-5 h-5 mr-2" />
-            Enter Scores
-          </button>
-          <button className="btn" onClick={goToDossier}>
-            <PencilSquareIcon className="w-5 h-5 mr-2" />
-            Dossier
-          </button>
-        </div>
+        {canNavigate && (
+          <div className="flex items-center gap-2">
+            <button
+              className="btn-secondary"
+              onClick={goToScores}
+            >
+              <ClipboardListIcon className="w-5 h-5 mr-2" />
+              Enter Scores
+            </button>
+            <button className="btn" onClick={goToDossier}>
+              <PencilSquareIcon className="w-5 h-5 mr-2" />
+              Dossier
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Filters */}
@@ -633,9 +638,10 @@ const Broadsheet: React.FC<BroadsheetProps> = ({
                     <textarea
                       className="input w-full text-[10px]"
                       value={remarkDrafts[st.id] ?? existingRemark}
-                      onChange={(e) => handleRemarkChange(st.id, e.target.value)}
-                      onBlur={() => handleRemarkBlur(st.id)}
-                      placeholder="Enter teacher remark"
+                      onChange={(e) => !isReadOnly && handleRemarkChange(st.id, e.target.value)}
+                      onBlur={() => !isReadOnly && handleRemarkBlur(st.id)}
+                      readOnly={isReadOnly}
+                      placeholder={isReadOnly ? 'Remark' : 'Enter teacher remark'}
                       rows={2}
                     />
                   </td>

@@ -37,6 +37,7 @@ const StudentSidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveVi
     const navLinks = [
         { view: STUDENT_VIEWS.DASHBOARD, label: 'Dashboard', icon: <HomeIcon className="h-5 w-5" /> },
         { view: STUDENT_VIEWS.RESULTS, label: 'My Results', icon: <ClipboardListIcon className="h-5 w-5" /> },
+        { view: STUDENT_VIEWS.BROADSHEET, label: 'Broadsheet', icon: <ClipboardListIcon className="h-5 w-5" /> },
         { view: STUDENT_VIEWS.ASSIGNMENTS, label: 'Assignments', icon: <DocumentTextIcon className="h-5 w-5" /> },
         { view: STUDENT_VIEWS.TIMETABLE, label: 'My Timetable', icon: <CalendarDaysIcon className="h-5 w-5" /> },
         { view: STUDENT_VIEWS.AI_TOOLS, label: 'AI Tools', icon: <BrainCircuitIcon className="h-5 w-5" /> },

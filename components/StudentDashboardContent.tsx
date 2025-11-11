@@ -16,6 +16,7 @@ const PracticeQuiz = lazy(() => import('./PracticeQuiz'));
 const LearningPathways = lazy(() => import('./LearningPathways'));
 const SubjectRecommender = lazy(() => import('./SubjectRecommender'));
 const StudentReportCardViewer = lazy(() => import('./StudentReportCardViewer'));
+const Broadsheet = lazy(() => import('./Broadsheet'));
 
 // AI Tool Components
 const AIChatPanel = lazy(() => import('./AIChatPanel'));
@@ -35,6 +36,8 @@ const StudentDashboardContent = ({ activeView, setActiveView, demoUserId }: Stud
             return <StudentReportCardViewer demoUserId={demoUserId} />;
         case STUDENT_VIEWS.TRANSCRIPT:
             return <StudentResults demoUserId={demoUserId} />;
+        case STUDENT_VIEWS.BROADSHEET:
+            return <Broadsheet setActiveView={() => { /* student view: no cross-navigation */ }} userRole={USER_ROLES.STUDENT} />;
         case STUDENT_VIEWS.ASSIGNMENTS:
             return <StudentAssignments demoUserId={demoUserId} />;
         case STUDENT_VIEWS.TIMETABLE:

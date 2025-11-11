@@ -28,7 +28,7 @@ export type TeacherView =
   
 export type StudentView = 
   | 'dashboard' | 'results' | 'assignments' | 'timetable' | 'ai-tools'
-  | 'profile' | 'notifications' | 'transcript' | 'ai-tutor';
+  | 'profile' | 'notifications' | 'transcript' | 'ai-tutor' | 'broadsheet';
   
 export type ParentView = 
   | 'dashboard' | 'results' | 'fees' | 'attendance' | 'behavioral'

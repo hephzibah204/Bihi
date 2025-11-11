@@ -100,6 +100,7 @@ export const TEACHER_VIEWS = {
 export const STUDENT_VIEWS: { [key: string]: StudentView } = {
     DASHBOARD: 'dashboard',
     RESULTS: 'results',
+    BROADSHEET: 'broadsheet',
     ASSIGNMENTS: 'assignments',
     TIMETABLE: 'timetable',
     AI_TOOLS: 'ai-tools',
