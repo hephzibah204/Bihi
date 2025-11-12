@@ -46,7 +46,11 @@ const NotificationViewer = ({ demoUserId }) => {
     useEffect(() => {
         fetchData();
 
-        if (!supabase) return;
+        // If Supabase is not initialized or realtime is unavailable, skip subscription
+        if (!supabase || (supabase as any)._offline || typeof (supabase as any).channel !== 'function') {
+            logger.warn('[Notifications] Realtime unavailable; using fetch-only mode');
+            return;
+        }
 
         interface MinimalAnnouncement { id: string; recipients?: string[]; channel: string; content: string; sentAt: string }
         const handleNewAnnouncement = (payload: { new: MinimalAnnouncement }) => {
@@ -66,7 +70,7 @@ const NotificationViewer = ({ demoUserId }) => {
             });
         };
 
-        const channel = supabase.channel('communication-logs-viewer-channel')
+        const channel = (supabase as any).channel('communication-logs-viewer-channel')
             .on(
                 'postgres_changes',
                 { event: 'INSERT', schema: 'public', table: 'communication_logs', filter: 'type=eq.announcement' },
@@ -75,7 +79,11 @@ const NotificationViewer = ({ demoUserId }) => {
             .subscribe();
 
         return () => {
-            supabase.removeChannel(channel);
+            try {
+                if (typeof (supabase as any).removeChannel === 'function') {
+                    (supabase as any).removeChannel(channel);
+                }
+            } catch { /* noop */ }
         };
     }, [demoUserId, student, fetchData]); // Re-run effect if student context changes
     

@@ -33,10 +33,20 @@ const StudentProfile = ({ demoUserId }) => {
     });
 
     useEffect(() => {
-        const fetchProfile = async () => {
+        const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
+        const fetchWithRetry = async <T,>(fn: () => Promise<T>, retries = 2, delayMs = 300): Promise<T> => {
             try {
-                setLoading(true);
+                return await fn();
+            } catch (e) {
+                if (retries <= 0) throw e;
+                await sleep(delayMs);
+                return fetchWithRetry(fn, retries - 1, delayMs * 2);
+            }
+        };
 
+        const fetchProfile = async () => {
+            setLoading(true);
+            try {
                 // Resolve effective demo id with robust fallbacks
                 let effectiveId = demoUserId;
                 if (!effectiveId && typeof window !== 'undefined') {
@@ -50,28 +60,49 @@ const StudentProfile = ({ demoUserId }) => {
                     effectiveId = 'stud_1';
                 }
 
-                const allStudents = await apiGetStudents();
-                let profile = allStudents.find(s => s.id === effectiveId);
+                const allStudents = await fetchWithRetry(() => apiGetStudents());
+                let profile = allStudents.find((s: any) => s.id === effectiveId);
                 if (!profile && allStudents.length > 0) {
                     profile = allStudents[0];
                 }
-                setStudent(profile);
 
-                if (profile) {
-                    // Fetch student scores and subjects
-                    const [studentScores, allSubjects] = await Promise.all([
-                        apiGetStudentScores(),
-                        apiGetSubjects()
-                    ]);
-
-                    const studentScoreData = studentScores.filter(score =>
-                        score.studentId === profile.id
-                    );
-                    setScores(studentScoreData);
-                    setSubjects(allSubjects);
+                if (!profile) {
+                    // If still missing, synthesize a minimal profile from activeUser to avoid blank state
+                    try {
+                        const raw = sessionStorage.getItem('activeUser');
+                        const active = raw ? JSON.parse(raw) : null;
+                        if (active) {
+                            profile = {
+                                id: active.userId || effectiveId,
+                                name: active.name || 'Student',
+                                class: active.class || 'Unknown',
+                                admissionNo: 'N/A',
+                                gender: 'N/A',
+                                dob: 'N/A',
+                                photo: ''
+                            } as any;
+                        }
+                    } catch { /* noop */ }
                 }
+
+                setStudent(profile || null);
+
+                // Fetch dependent data without failing the whole flow if one endpoint errors
+                const settled = await Promise.allSettled([
+                    apiGetStudentScores(),
+                    apiGetSubjects()
+                ]);
+
+                const studentScores = settled[0].status === 'fulfilled' ? settled[0].value as any[] : [];
+                const allSubjects = settled[1].status === 'fulfilled' ? settled[1].value as any[] : [];
+
+                const studentScoreData = (profile && studentScores.length)
+                    ? studentScores.filter((score: any) => score.studentId === (profile as any).id)
+                    : [];
+                setScores(studentScoreData);
+                setSubjects(allSubjects);
             } catch (error) {
-                logger.error('Error fetching student profile', { error: error as unknown });
+                logger.captureError(error as unknown, 'Error fetching student profile');
             } finally {
                 setLoading(false);
             }

@@ -137,7 +137,16 @@ function createOfflineClient() {
         } catch { /* noop */ }
         return { data: { subscription }, error: null } as any;
       }
-    }
+    },
+    // Minimal realtime no-op stubs to avoid runtime errors in offline mode
+    channel: (_name: string) => {
+      const api = {
+        on: (_event: string, _config: any, _callback: any) => api,
+        subscribe: () => ({ data: { subscription: { unsubscribe: () => {} } }, error: null })
+      } as any;
+      return api;
+    },
+    removeChannel: (_channel: any) => { /* noop */ },
   };
 }
 

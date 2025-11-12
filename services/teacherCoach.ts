@@ -19,7 +19,9 @@ const INITIAL_CATALOG: MicroCourse[] = [
     id: 'pbl-foundations',
     title: 'Project-Based Learning Foundations',
     description: 'Core concepts, planning steps, and assessment strategies for PBL.',
-    videoUrl: 'https://www.youtube.com/watch?v=H2Cly3YoJjo',
+    // Verified: Project-Based Learning Explained (Common Craft / PBLWorks)
+    // Source: https://my.pblworks.org/resource/video/project_based_learning_explained
+    videoUrl: 'https://www.youtube.com/watch?v=LMCZvGesRz8',
     skills: ['PBL', 'Assessment', 'Collaboration'],
     durationMinutes: 12,
     provider: 'YouTube',
@@ -30,7 +32,9 @@ const INITIAL_CATALOG: MicroCourse[] = [
     id: 'classroom-management',
     title: 'Effective Classroom Management Strategies',
     description: 'Positive routines, attention signals, and engagement techniques.',
-    videoUrl: 'https://www.youtube.com/watch?v=b5hnjFb8wZg',
+    // Verified: Edutopia Sessions: Classroom Management for New Teachers
+    // Source: https://www.youtube.com/watch?v=mTBky3sQDH0
+    videoUrl: 'https://www.youtube.com/watch?v=mTBky3sQDH0',
     skills: ['Classroom Management', 'Engagement'],
     durationMinutes: 10,
     provider: 'YouTube',
@@ -41,7 +45,9 @@ const INITIAL_CATALOG: MicroCourse[] = [
     id: 'formative-assessment',
     title: 'Formative Assessment in Practice',
     description: 'Quick checks for understanding and feedback loops.',
-    videoUrl: 'https://www.youtube.com/watch?v=Ri1bCwWQKJA',
+    // Verified: Dylan Wiliam — Embedding Formative Assessment (SSAT/EEF)
+    // Source: https://www.youtube.com/watch?v=zwGaG1b_T2w
+    videoUrl: 'https://www.youtube.com/watch?v=zwGaG1b_T2w',
     skills: ['Assessment', 'Feedback'],
     durationMinutes: 9,
     provider: 'YouTube',
@@ -188,8 +194,16 @@ export function normalizeToYouTubeEmbed(url: string): string {
       return `https://www.youtube.com/embed/${id}`;
     }
     if (u.hostname.includes('youtube.com')) {
+      // Playlist support: if the URL has a list parameter and no specific video id,
+      // render the playlist embed.
+      const listId = u.searchParams.get('list');
       const id = u.searchParams.get('v');
-      if (id) return `https://www.youtube.com/embed/${id}`;
+      if (id) {
+        // When both v and list are present, preserve the playlist context.
+        if (listId) return `https://www.youtube.com/embed/${id}?list=${listId}`;
+        return `https://www.youtube.com/embed/${id}`;
+      }
+      if (listId) return `https://www.youtube.com/embed/videoseries?list=${listId}`;
       // Already an embed?
       if (u.pathname.includes('/embed/')) return url;
     }

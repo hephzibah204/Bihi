@@ -156,15 +156,82 @@ const Attendance = () => {
         const canvasRef = React.useRef<HTMLCanvasElement>(document.createElement('canvas'));
         const [error, setError] = useState<string | null>(null);
         const [scanning, setScanning] = useState(false);
+        const ensureJsQRLoaded = async () => {
+            if ((window as any).jsQR) return;
+            await new Promise<void>((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
+                script.async = true;
+                script.onload = () => resolve();
+                script.onerror = () => reject(new Error('Failed to load jsQR'));
+                document.head.appendChild(script);
+            });
+        };
         const stopStream = () => {
             const v = videoRef.current;
             const stream = v?.srcObject as MediaStream | null;
             stream?.getTracks().forEach(t => t.stop());
             if (v) v.srcObject = null;
         };
+        const decodeFromImageFile = async (file: File) => {
+            try {
+                await ensureJsQRLoaded();
+                const url = URL.createObjectURL(file);
+                const img = new Image();
+                await new Promise<void>((resolve, reject) => {
+                    img.onload = () => resolve();
+                    img.onerror = () => reject(new Error('Failed to load image'));
+                    img.src = url;
+                });
+                const w = img.naturalWidth || 640;
+                const h = img.naturalHeight || 480;
+                const canvas = canvasRef.current;
+                canvas.width = w; canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) throw new Error('Canvas context not available');
+                ctx.drawImage(img, 0, 0, w, h);
+                const imageData = ctx.getImageData(0, 0, w, h);
+                const code = (window as any).jsQR(imageData.data, w, h);
+                URL.revokeObjectURL(url);
+                const raw = code?.data || '';
+                if (!raw) throw new Error('No QR code detected in image');
+                // Reuse the same parsing and marking logic as stream loop
+                let targetId: string | undefined;
+                let admission: string | undefined;
+                if (raw.startsWith('RS1|')) {
+                    const parsed = parseStandardQRPayload(raw);
+                    targetId = parsed?.studentId;
+                    admission = parsed?.admissionNo;
+                    const sig = parsed?.signature;
+                    if (sig) {
+                        const core = raw.split('|').filter(p => !p.startsWith('SIG=')).join('|');
+                        const ok = await apiVerifyQRSignature(core, sig);
+                        if (!ok) { throw new Error('Invalid QR signature'); }
+                    }
+                } else {
+                    admission = raw;
+                }
+                let student = targetId ? students.find(s => s.id === targetId) : undefined;
+                if (!student && admission) student = students.find(s => s.admissionNo === admission);
+                if (student) {
+                    await handleStatusChange(student.id, 'present');
+                    setQRScanOpen(false);
+                    stopStream();
+                } else {
+                    throw new Error('No matching student found from payload');
+                }
+            } catch (e: any) {
+                setError(e?.message || 'Failed to decode QR image');
+            }
+        };
         useEffect(() => {
             const start = async () => {
                 try {
+                    const isSecure = (typeof window !== 'undefined') && ((window as any).isSecureContext || location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname));
+                    if (!isSecure || !(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) {
+                        setError('Camera access is unavailable. Use HTTPS or localhost, or upload a QR image / use manual entry.');
+                        return;
+                    }
                     const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
                     if (videoRef.current) {
                         videoRef.current.srcObject = stream;
@@ -175,16 +242,7 @@ const Attendance = () => {
                     let detector: any = null;
                     if (!BarcodeDetectorCtor) {
                         // Fallback: use jsQR from canvas snapshots
-                        const loadJsQR = () => new Promise<void>((resolve, reject) => {
-                            if ((window as any).jsQR) return resolve();
-                            const script = document.createElement('script');
-                            script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
-                            script.async = true;
-                            script.onload = () => resolve();
-                            script.onerror = () => reject(new Error('Failed to load jsQR'));
-                            document.head.appendChild(script);
-                        });
-                        try { await loadJsQR(); } catch (e: any) { setError(e.message); }
+                        try { await ensureJsQRLoaded(); } catch (e: any) { setError(e.message); }
                     } else {
                         detector = new BarcodeDetectorCtor({ formats: ['qr_code'] });
                     }
@@ -254,6 +312,18 @@ const Attendance = () => {
                     <h3 className="text-lg font-semibold mb-2">Scan QR Code</h3>
                     {error ? <p className="text-sm text-red-600">{error}</p> : null}
                     <video ref={videoRef} className="w-full rounded-md bg-black" playsInline muted />
+                    {error && (
+                        <div className="mt-3 space-y-2">
+                            <input type="file" accept="image/*" className="input-field w-full" onChange={e => {
+                                const f = e.target.files && e.target.files[0];
+                                if (f) decodeFromImageFile(f);
+                            }} />
+                            <div className="text-xs text-gray-500">Upload a photo of the QR code to decode.</div>
+                            <div className="flex justify-between items-center">
+                                <button className="btn btn-secondary" onClick={() => { setQRScanOpen(false); setQRModalOpen(true); }}>Use Manual Entry</button>
+                            </div>
+                        </div>
+                    )}
                     <div className="flex justify-end gap-2 mt-3">
                         <button className="btn btn-secondary" onClick={() => { setQRScanOpen(false); }}>Close</button>
                     </div>

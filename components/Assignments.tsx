@@ -69,6 +69,11 @@ const Assignments = () => {
                         <p className="text-sm text-gray-500">{subjects.find(s=>s.id === assignment.subjectId)?.name}</p>
                         <p className="text-sm mt-2">{assignment.description}</p>
                         <div className="text-xs mt-2">Due: {formatDate(assignment.dueDate)}</div>
+                        {assignment.includeInCA ? (
+                            <div className="text-xs mt-1 text-green-700">Counts towards CA ({Number(assignment.caWeight || 0)}%)</div>
+                        ) : (
+                            <div className="text-xs mt-1 text-gray-500">Not counted in CA</div>
+                        )}
                         <div className="flex gap-3 mt-2">
                             <button onClick={() => { setEditingAssignment(assignment); setModalOpen(true); }} className="text-indigo-600 text-sm">Edit</button>
                             <button onClick={() => { setScoringAssignment(assignment); setScoreModalOpen(true); }} className="text-indigo-600 text-sm">Record Scores</button>
@@ -90,11 +95,12 @@ const Assignments = () => {
 };
 
 const AssignmentFormModal = ({ assignment, subjects, selectedClass, onSave, onClose }) => {
-    const [formData, setFormData] = useState({ class: selectedClass, title: '', description: '', subjectId: '', dueDate: '', maxScore: 10, ...assignment });
+    const [formData, setFormData] = useState({ class: selectedClass, title: '', description: '', subjectId: '', dueDate: '', maxScore: 10, includeInCA: false, caWeight: 10, ...assignment });
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        const { name, value, type, checked } = e.target;
+        const nextVal = type === 'checkbox' ? checked : value;
+        setFormData(prev => ({ ...prev, [name]: nextVal }));
     };
 
     const handleSubmit = (e) => {
@@ -110,6 +116,15 @@ const AssignmentFormModal = ({ assignment, subjects, selectedClass, onSave, onCl
                 <div><label className="label">Description</label><textarea name="description" value={formData.description} onChange={handleChange} className="input-field" rows={3}></textarea></div>
                 <div><label className="label">Due Date</label><input type="date" name="dueDate" value={formData.dueDate} onChange={handleChange} className="input-field" required /></div>
                 <div><label className="label">Max Score</label><input type="number" name="maxScore" value={formData.maxScore} onChange={handleChange} className="input-field" required /></div>
+                <div className="flex items-center gap-3">
+                    <input id="includeInCA" type="checkbox" name="includeInCA" checked={!!formData.includeInCA} onChange={handleChange} />
+                    <label htmlFor="includeInCA" className="label">Include in Continuous Assessment (CA)</label>
+                </div>
+                <div>
+                    <label className="label">CA Weight (%)</label>
+                    <input type="number" name="caWeight" value={Number(formData.caWeight || 0)} onChange={handleChange} className="input-field" min={0} max={100} step={1} disabled={!formData.includeInCA} />
+                    <div className="text-xs text-gray-500 mt-1">Set how much this assignment contributes towards CA (0–100%).</div>
+                </div>
                 <div className="flex justify-end pt-2"><button type="submit" className="btn btn-primary">Save Assignment</button></div>
             </form>
         </Modal>

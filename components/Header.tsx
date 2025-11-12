@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import Bars3Icon from './icons/Bars3Icon';
 import LogoutIcon from './icons/LogoutIcon';
+import { useAuth } from '../contexts/AuthContext';
 
 interface HeaderProps {
     title: string;
@@ -10,6 +11,12 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ title, setSidebarOpen, onLogout, isSidebarOpen }) => {
+    const auth = useAuth();
+    const displayName = (() => {
+        const u = auth?.user;
+        if (!u) return null;
+        return (u as any).name || (u as any).fullName || (u as any).firstName || (u as any).email?.split('@')[0] || null;
+    })();
     return (
         <header className="flex justify-between items-center h-16 px-6 bg-white border-b border-gray-200">
             <button
@@ -19,7 +26,12 @@ const Header: React.FC<HeaderProps> = ({ title, setSidebarOpen, onLogout, isSide
             >
                 <Bars3Icon className="h-6 w-6" />
             </button>
-            <h1 className="text-xl font-semibold text-gray-800">{title}</h1>
+            <div className="flex items-baseline gap-3">
+                <h1 className="text-xl font-semibold text-gray-800">{title}</h1>
+                {displayName && (
+                    <span className="text-sm text-gray-500">Welcome {displayName}</span>
+                )}
+            </div>
             <button
                 onClick={onLogout}
                 className="flex items-center text-sm text-gray-500 hover:text-red-600"

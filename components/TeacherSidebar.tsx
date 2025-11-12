@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { TeacherView } from '../types';
 import Logo from './icons/Logo';
 import XIcon from './icons/XIcon';
@@ -24,40 +24,83 @@ interface SidebarProps {
     setActiveView: (view: TeacherView) => void;
 }
 
-const NavLink: React.FC<{ icon: React.ReactNode; label: string; view: TeacherView; activeView: TeacherView; setActiveView: (view: TeacherView) => void; }> = ({ icon, label, view, activeView, setActiveView }) => (
+const NavLink: React.FC<{ icon: React.ReactNode; label: string; view: TeacherView; activeView: TeacherView; setActiveView: (view: TeacherView) => void; compact?: boolean; }> = ({ icon, label, view, activeView, setActiveView, compact }) => (
     <button
         onClick={() => setActiveView(view)}
-        className={`w-full flex items-center px-4 py-2.5 rounded-lg transition-colors duration-200 ${
+        className={`w-full flex items-center ${compact ? 'px-3 py-1.5 text-sm' : 'px-4 py-2.5'} rounded-lg transition-colors duration-200 ${
             activeView === view
                 ? 'bg-indigo-600 text-white'
-                : 'text-gray-600 hover:bg-gray-100'
+                : 'text-gray-700 hover:bg-gray-100'
         }`}
     >
         {icon}
-        <span className="ml-3">{label}</span>
+        <span className={`ml-3 ${compact ? 'leading-tight' : ''}`}>{label}</span>
     </button>
 );
 
 const TeacherSidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView }: SidebarProps) => {
+    const [compact, setCompact] = useState<boolean>(true);
+    const [expanded, setExpanded] = useState<Record<string, boolean>>({
+        overview: true,
+        class: false,
+        teaching: false,
+        communication: false,
+        resources: false,
+        support: false,
+    });
 
-    const navLinks = [
-        { view: TEACHER_VIEWS.DASHBOARD, label: 'Dashboard', icon: <HomeIcon className="h-5 w-5" /> },
-        { view: TEACHER_VIEWS.MY_STUDENTS, label: 'My Students', icon: <UsersIcon className="h-5 w-5" /> },
-        { view: TEACHER_VIEWS.ENTER_SCORES, label: 'Enter Scores', icon: <ClipboardListIcon className="h-5 w-5" /> },
-        { view: TEACHER_VIEWS.BROADSHEET, label: 'Broadsheet', icon: <ClipboardListIcon className="h-5 w-5" /> },
-        { view: TEACHER_VIEWS.MY_SCHEDULE, label: 'My Schedule', icon: <CalendarDaysIcon className="h-5 w-5" /> },
-        { view: TEACHER_VIEWS.AI_TOOLS, label: 'AI Tools', icon: <BrainCircuitIcon className="h-5 w-5" /> },
-        { view: TEACHER_VIEWS.LESSON_TEMPLATES, label: 'Lesson Templates', icon: <DocumentTextIcon className="h-5 w-5" /> },
-        { view: TEACHER_VIEWS.RESOURCE_HUB, label: 'Resource Hub', icon: <BookmarkSquareIcon className="h-5 w-5" /> },
-        { view: TEACHER_VIEWS.MY_PAYSLIPS, label: 'My Payslips', icon: <BanknotesIcon className="h-5 w-5" /> },
-        { view: TEACHER_VIEWS.ASSIGNMENTS, label: 'Assignments', icon: <MegaphoneIcon className="h-5 w-5" /> },
-{ view: TEACHER_VIEWS.ATTENDANCE, label: 'Attendance', icon: <DocumentTextIcon className="h-5 w-5" /> },
-        { view: TEACHER_VIEWS.MESSAGES, label: 'Messages', icon: <ChatBubbleLeftRightIcon className="h-5 w-5" /> },
-        { view: TEACHER_VIEWS.NOTIFICATIONS, label: 'Notifications', icon: <BellIcon className="h-5 w-5" /> },
-{ view: TEACHER_VIEWS.BEHAVIORAL, label: 'Behavioral', icon: <DocumentTextIcon className="h-5 w-5" /> },
-        { view: TEACHER_VIEWS.REPORT_CARDS, label: 'Report Cards', icon: <ClipboardListIcon className="h-5 w-5" /> },
-        { view: TEACHER_VIEWS.HELP, label: 'Help & Support', icon: <QuestionMarkCircleIcon className="h-5 w-5" /> },
-        { view: TEACHER_VIEWS.MORE, label: 'More', icon: <Bars3Icon className="h-5 w-5" /> },
+    const toggle = (sectionId: string) =>
+        setExpanded(prev => ({ ...prev, [sectionId]: !prev[sectionId] }));
+
+    const groups = [
+        {
+            id: 'overview',
+            title: 'Overview',
+            items: [
+                { view: TEACHER_VIEWS.DASHBOARD, label: 'Dashboard', icon: <HomeIcon className="h-5 w-5" /> },
+                { view: TEACHER_VIEWS.MY_SCHEDULE, label: 'My Schedule', icon: <CalendarDaysIcon className="h-5 w-5" /> },
+                { view: TEACHER_VIEWS.MY_PAYSLIPS, label: 'My Payslips', icon: <BanknotesIcon className="h-5 w-5" /> },
+            ]
+        },
+        {
+            id: 'class',
+            title: 'Class & Students',
+            items: [
+                { view: TEACHER_VIEWS.MY_STUDENTS, label: 'My Students', icon: <UsersIcon className="h-5 w-5" /> },
+                { view: TEACHER_VIEWS.ATTENDANCE, label: 'Attendance', icon: <DocumentTextIcon className="h-5 w-5" /> },
+                { view: TEACHER_VIEWS.ENTER_SCORES, label: 'Enter Scores', icon: <ClipboardListIcon className="h-5 w-5" /> },
+                { view: TEACHER_VIEWS.BROADSHEET, label: 'Broadsheet', icon: <ClipboardListIcon className="h-5 w-5" /> },
+                { view: TEACHER_VIEWS.ASSIGNMENTS, label: 'Assignments', icon: <MegaphoneIcon className="h-5 w-5" /> },
+                { view: TEACHER_VIEWS.BEHAVIORAL, label: 'Behavioral', icon: <DocumentTextIcon className="h-5 w-5" /> },
+                { view: TEACHER_VIEWS.REPORT_CARDS, label: 'Report Cards', icon: <ClipboardListIcon className="h-5 w-5" /> },
+            ]
+        },
+        {
+            id: 'teaching',
+            title: 'Teaching & AI',
+            items: [
+                { view: TEACHER_VIEWS.LESSON_TEMPLATES, label: 'Lesson Templates', icon: <DocumentTextIcon className="h-5 w-5" /> },
+                { view: TEACHER_VIEWS.RESOURCE_HUB, label: 'Resource Hub', icon: <BookmarkSquareIcon className="h-5 w-5" /> },
+                { view: TEACHER_VIEWS.AI_TOOLS, label: 'AI Tools', icon: <BrainCircuitIcon className="h-5 w-5" /> },
+                { view: TEACHER_VIEWS.AI_COACH, label: 'AI Coach', icon: <DocumentTextIcon className="h-5 w-5" /> },
+            ]
+        },
+        {
+            id: 'communication',
+            title: 'Communication',
+            items: [
+                { view: TEACHER_VIEWS.MESSAGES, label: 'Messages', icon: <ChatBubbleLeftRightIcon className="h-5 w-5" /> },
+                { view: TEACHER_VIEWS.NOTIFICATIONS, label: 'Notifications', icon: <BellIcon className="h-5 w-5" /> },
+            ]
+        },
+        {
+            id: 'support',
+            title: 'Support',
+            items: [
+                { view: TEACHER_VIEWS.HELP, label: 'Help & Support', icon: <QuestionMarkCircleIcon className="h-5 w-5" /> },
+                { view: TEACHER_VIEWS.MORE, label: 'More', icon: <Bars3Icon className="h-5 w-5" /> },
+            ]
+        },
     ];
 
     return (
@@ -74,13 +117,35 @@ const TeacherSidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveVi
                         <Logo className="h-8 w-8" />
                         <span className="text-xl font-bold">Teacher Portal</span>
                     </div>
-                    <button className="md:hidden" onClick={() => setSidebarOpen(false)} aria-label="Close sidebar">
-                        <XIcon className="h-6 w-6"/>
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <label className="flex items-center gap-1 text-xs text-gray-600">
+                            <input type="checkbox" checked={compact} onChange={e => setCompact(e.target.checked)} />
+                            Compact
+                        </label>
+                        <button className="md:hidden" onClick={() => setSidebarOpen(false)} aria-label="Close sidebar">
+                            <XIcon className="h-6 w-6"/>
+                        </button>
+                    </div>
                 </div>
-                <nav className="flex-1 p-4 space-y-2">
-                    {navLinks.map(link => (
-                        <NavLink key={link.view} {...link} activeView={activeView} setActiveView={setActiveView} />
+                <nav className="flex-1 p-2 space-y-2">
+                    {groups.map(section => (
+                        <div key={section.id} className="">
+                            <button
+                                onClick={() => toggle(section.id)}
+                                className={`w-full flex items-center justify-between ${compact ? 'px-2 py-1.5' : 'px-3 py-2'} rounded-md bg-gray-50 hover:bg-gray-100 text-gray-700`}
+                                aria-expanded={expanded[section.id]}
+                            >
+                                <span className="font-medium text-sm">{section.title}</span>
+                                <span className="text-xs text-gray-500">{expanded[section.id] ? '−' : '+'}</span>
+                            </button>
+                            {expanded[section.id] && (
+                                <div className={`mt-1 space-y-1 ${compact ? '' : 'pl-1'}`}>
+                                    {section.items.map(link => (
+                                        <NavLink key={link.view} {...link} activeView={activeView} setActiveView={setActiveView} compact={compact} />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     ))}
                 </nav>
             </aside>

@@ -1,4 +1,4 @@
-import { Tenant, Student, Subject, SchoolSettings, Score, Teacher, Parent, Invoice, FeeStructure, BehavioralLogEntry, Remark, AttendanceRecord, Assignment, AssignmentScore, Expense, Income } from '../types';
+import { Tenant, Student, Subject, SchoolSettings, Score, Teacher, Parent, Invoice, FeeStructure, BehavioralLogEntry, Remark, AttendanceRecord, Assignment, AssignmentScore, Expense, Income, Payslip, PayrollRun } from '../types';
 
 export const DEMO_TENANT_ID = 'demo';
 
@@ -332,6 +332,86 @@ export const CORE_DEMO_DATA = {
         },
     }
 };
+
+// --- Demo Payroll Seeding ---
+(() => {
+  const teachers: Teacher[] = (CORE_DEMO_DATA as any).teachers || [];
+  if (!teachers || teachers.length === 0) return;
+
+  const now = new Date();
+  const month = now.getMonth();
+  const year = now.getFullYear();
+
+  const calculatePayslipFor = (teacher: Teacher): Payslip => {
+    const grossMonthlyPay = (teacher as any).baseSalary || 80000;
+    const grossAnnualPay = grossMonthlyPay * 12;
+    const annualBasic = grossAnnualPay * 0.5;
+    const annualHousing = grossAnnualPay * 0.3;
+    const annualTransport = grossAnnualPay * 0.2;
+    const pensionableEmoluments = annualBasic + annualHousing + annualTransport;
+    const employeePensionContributionAnnual = pensionableEmoluments * 0.08;
+    const consolidatedReliefAllowance = Math.max(200000, grossAnnualPay * 0.01) + (grossAnnualPay * 0.20);
+    const taxableIncomeAnnual = grossAnnualPay - consolidatedReliefAllowance - employeePensionContributionAnnual;
+
+    // PAYE calculation following brackets used in PayrollDashboard
+    const brackets = [
+      { limit: 300000, rate: 0.07 },
+      { limit: 300000, rate: 0.11 },
+      { limit: 500000, rate: 0.15 },
+      { limit: 500000, rate: 0.19 },
+      { limit: 1600000, rate: 0.21 },
+      { limit: Infinity, rate: 0.24 },
+    ];
+    let remaining = Math.max(0, taxableIncomeAnnual);
+    let payeAnnual = 0;
+    for (const b of brackets) {
+      if (remaining <= 0) break;
+      const taxed = Math.min(remaining, b.limit);
+      payeAnnual += taxed * b.rate;
+      remaining -= taxed;
+    }
+
+    const payeMonthly = payeAnnual / 12;
+    const employeePensionMonthly = employeePensionContributionAnnual / 12;
+
+    const baseSalary = annualBasic / 12;
+    const allowances = [
+      { name: 'Housing Allowance', amount: annualHousing / 12 },
+      { name: 'Transport Allowance', amount: annualTransport / 12 },
+    ];
+    const deductions = [
+      { name: 'PAYE Tax', amount: payeMonthly },
+      { name: 'Pension (8%)', amount: employeePensionMonthly },
+    ];
+    const grossPay = grossMonthlyPay;
+    const totalDeductions = deductions.reduce((s, d) => s + d.amount, 0);
+    const netPay = grossPay - totalDeductions;
+
+    return {
+      teacherId: teacher.id,
+      teacherName: teacher.name,
+      baseSalary,
+      allowances,
+      deductions,
+      grossPay,
+      totalDeductions,
+      netPay,
+    };
+  };
+
+  const payslips: Payslip[] = teachers.map(t => calculatePayslipFor(t));
+  const totalNet = payslips.reduce((sum, p) => sum + p.netPay, 0);
+  const run: PayrollRun = {
+    id: `run_demo_${year}_${month}`,
+    month,
+    year,
+    runDate: new Date().toISOString(),
+    totalNet,
+    payslips,
+  };
+
+  (CORE_DEMO_DATA as any).payroll = [ { id: 1, runs: [run] } ];
+})();
 
 // Extend demo timetables for additional classes (including Saturday)
 CORE_DEMO_DATA.timetable['Primary 5A'] = {

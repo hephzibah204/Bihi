@@ -21,26 +21,42 @@ const MyPayslips = () => {
             setLoading(true);
             setError('');
             try {
-                if (!supabase) throw new Error("Authentication service is not available.");
-                
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) throw new Error("User not authenticated.");
-
+                // Fetch teachers, payroll runs, and settings in parallel
                 const [allRuns, allTeachers, settings] = await Promise.all([
                     apiGetPayrollRuns(),
                     apiGetTeachers(),
                     apiGetSchoolSettings()
                 ]);
 
-                const me = allTeachers.find(t => t.email.toLowerCase() === user.email.toLowerCase());
-                if (!me) throw new Error("Could not find teacher profile.");
-                
+                // Try to get the authenticated user; in demo mode there may be none
+                let userEmail: string | null = null;
+                try {
+                    if (supabase) {
+                        const { data: { user } } = await supabase.auth.getUser();
+                        userEmail = user?.email || null;
+                    }
+                } catch {
+                    // Ignore auth errors and fall back to demo behavior
+                    userEmail = null;
+                }
+
+                // Resolve current teacher: use auth email if present; otherwise fall back to demo teacher
+                let me: Teacher | undefined = undefined;
+                if (userEmail) {
+                    me = allTeachers.find(t => t.email && t.email.toLowerCase() === userEmail!.toLowerCase());
+                }
+                if (!me) {
+                    // Demo fallback: prefer known demo teacher email, else first available
+                    me = allTeachers.find(t => t.email === 'teacher@demo.com') || allTeachers[0];
+                }
+                if (!me) throw new Error('Could not resolve teacher profile.');
+
                 setSchoolSettings(settings);
 
-                const mySlips = allRuns
+                const mySlips = (allRuns || [])
                     .map(run => ({
                         run,
-                        payslip: run.payslips.find(p => p.teacherId === me.id)
+                        payslip: run.payslips.find(p => p.teacherId === me!.id)
                     }))
                     .filter(item => item.payslip)
                     .sort((a, b) => new Date(b.run.runDate).getTime() - new Date(a.run.runDate).getTime());
@@ -48,7 +64,7 @@ const MyPayslips = () => {
                 setPayslips(mySlips);
 
             } catch (err) {
-                setError(err.message);
+                setError((err as any)?.message || 'Failed to load payslips');
             } finally {
                 setLoading(false);
             }

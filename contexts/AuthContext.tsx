@@ -5,6 +5,7 @@ import { apiGetTenants, apiGetPlatformSettings, apiGetTeachers, apiGetStudents, 
 import { DEMO_TENANT_ID, CORE_DEMO_DATA } from '../utils/demoData';
 import { USER_ROLES } from '../utils/constants';
 import type { SchoolSettings, Teacher, Student, Parent, UserRole } from '../types';
+import { registerFeatureContext } from '../services/aiContextRegistry';
 
 interface AuthContextType {
     user: Teacher | Student | Parent | null;
@@ -220,6 +221,42 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
     }, []);
 
     useEffect(() => {
+        // Persist identity details for AI context scoping and register a "user" feature context
+        try {
+            if (role) {
+                // Registry uses demoUserRole to resolve scope; set for all roles
+                localStorage.setItem('demoUserRole', String(role));
+            }
+            if (subdomain) {
+                localStorage.setItem('tenantId', String(subdomain));
+            }
+            if (user && (user as any).id) {
+                const uid = String((user as any).id);
+                localStorage.setItem('currentUserId', uid);
+                const minimal = {
+                    userId: uid,
+                    role: role,
+                    name: (user as any).name || (user as any).fullName || (user as any).firstName || undefined,
+                    email: (user as any).email || undefined,
+                    class: (user as any).class || undefined
+                } as Record<string, unknown>;
+                try { sessionStorage.setItem('activeUser', JSON.stringify(minimal)); } catch { /* noop */ }
+            }
+        } catch { /* noop */ }
+
+        if (user) {
+            try {
+                registerFeatureContext('user', {
+                    id: (user as any).id,
+                    role: role || undefined,
+                    name: (user as any).name || (user as any).fullName || (user as any).firstName || undefined,
+                    email: (user as any).email || undefined,
+                    class: (user as any).class || undefined,
+                    tenantId: subdomain || undefined
+                });
+            } catch { /* noop */ }
+        }
+
         const fetchTenantSettings = async () => {
             // Skip tenant settings fetch for Super Admin routes
             const isControlHub = typeof window !== 'undefined' && window.location.pathname.startsWith('/controlhub');
@@ -242,7 +279,7 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
             setLoading(false);
         };
         fetchTenantSettings();
-    }, [subdomain]);
+    }, [subdomain, user, role]);
 
     const logout = async () => {
         const sd = getSubdomain();
@@ -258,6 +295,8 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
             sessionStorage.removeItem('isDemoMode');
             localStorage.removeItem('isDemoMode');
             localStorage.removeItem('demoUserRole');
+            localStorage.removeItem('currentUserId');
+            localStorage.removeItem('tenantId');
         } catch { /* noop */ }
 
         // Sign out real sessions if present

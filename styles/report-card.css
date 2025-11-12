@@ -59,6 +59,17 @@
 
   .printable-content { page-break-inside: avoid; }
 .page-break { page-break-after: always; }
+
+  /* Isolate printing to report card only */
+  body * { visibility: hidden !important; }
+  .printable-content, .printable-content * { visibility: visible !important; }
+  .printable-content {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    margin: 0 !important;
+    width: 210mm !important;
+  }
 }
 
 /* Keep printable content offscreen on mobile to avoid heavy preview */

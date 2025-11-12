@@ -13,6 +13,7 @@ import Bars3Icon from './icons/Bars3Icon';
 import XIcon from './icons/XIcon';
 import FAQ from './FAQ';
 import { DEFAULT_LANDING_PAGE_CONTENT, DEFAULT_MENU_ITEMS } from '../utils/landingPageContent';
+import { safeHtml } from '../utils/sanitize';
 
 // --- Icon Mapping ---
 const icons: { [key: string]: React.FC<any> } = {
@@ -74,8 +75,8 @@ const Header = ({ menuItems }: { menuItems?: MenuItem[] }) => {
 const Hero = ({ content }: { content: LandingPageContent['hero'] }) => (
     <section className="py-24 text-center bg-gray-50">
         <div className="container mx-auto px-6">
-        <h1 className="text-4xl md:text-6xl font-extrabold text-gray-900 leading-tight" dangerouslySetInnerHTML={{ __html: require('../utils/sanitize').safeHtml(content?.title || '') }} />
-        <p className="mt-4 max-w-2xl mx-auto text-lg md:text-xl text-gray-600" dangerouslySetInnerHTML={{ __html: require('../utils/sanitize').safeHtml(content?.subtitle || '') }} />
+        <h1 className="text-4xl md:text-6xl font-extrabold text-gray-900 leading-tight" dangerouslySetInnerHTML={{ __html: safeHtml(content?.title || '') }} />
+        <p className="mt-4 max-w-2xl mx-auto text-lg md:text-xl text-gray-600" dangerouslySetInnerHTML={{ __html: safeHtml(content?.subtitle || '') }} />
             <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
                 <Link to="/signup" className="btn btn-primary px-8 py-3 text-lg">Start Free Trial</Link>
                 <Link to="/demo" className="btn btn-secondary px-8 py-3 text-lg">View Demo</Link>

@@ -109,6 +109,14 @@ const TeacherCoach: React.FC = () => {
                   <DocumentTextIcon className="h-5 w-5" />
                   Mark Completed
                 </button>
+                <a
+                  href={selected.videoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 bg-gray-100 text-gray-800 px-3 py-2 rounded"
+                >
+                  Open on YouTube
+                </a>
                 {selected.durationMinutes && (
                   <span className="text-xs text-gray-500">~{selected.durationMinutes} min</span>
                 )}

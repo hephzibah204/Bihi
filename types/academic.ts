@@ -49,6 +49,12 @@ export interface Assignment {
   dueDate: string;
   maxScore: number;
   type?: string;
+  // Continuous Assessment configuration
+  // When true, this assignment contributes to Continuous Assessment (CA)
+  includeInCA?: boolean;
+  // Percentage weight from 0-100 indicating how much this assignment counts towards CA
+  // Interpretation of this weight depends on the grading policy; kept optional for backward compatibility
+  caWeight?: number;
 }
 
 export interface AssignmentScore {

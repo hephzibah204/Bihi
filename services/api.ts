@@ -580,6 +580,16 @@ export const apiGetPayrollRuns = () => get<{runs: PayrollRun[]}>('payroll').then
 export const apiSavePayrollRun = async (runData: Omit<PayrollRun, 'id'>) => {
     const allRuns = await apiGetPayrollRuns();
     const newRun = { ...runData, id: `run_${Date.now()}` };
+    // Persist in demo mode using CORE_DEMO_DATA
+    if (isDemo()) {
+        const existing = (CORE_DEMO_DATA as any).payroll || [];
+        if (!existing.length) {
+            (CORE_DEMO_DATA as any).payroll = [{ id: 1, runs: [] }];
+        }
+        const currentRuns = (CORE_DEMO_DATA as any).payroll[0].runs || [];
+        (CORE_DEMO_DATA as any).payroll[0].runs = [...currentRuns, newRun];
+        return newRun;
+    }
     return upsert('payroll', { id: 1, runs: [...allRuns, newRun] });
 };
 export const apiGetScratchCards = (schoolId: string | null = null) => {
