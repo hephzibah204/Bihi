@@ -28,6 +28,7 @@ const IDCardGenerator = () => {
     const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
     
     const [isPrintView, setIsPrintView] = useState(false);
+    const [action, setAction] = useState<'print' | 'download' | null>(null);
     
     const allClasses = useMemo(() => {
         return [...new Set(students.map(s => s.class))].sort();
@@ -70,19 +71,28 @@ const IDCardGenerator = () => {
 
     const handlePrint = () => {
         if (selectedStudents.size > 0) {
+            setAction('print');
+            setIsPrintView(true);
+        }
+    };
+
+    const handleDownload = () => {
+        if (selectedStudents.size > 0) {
+            setAction('download');
             setIsPrintView(true);
         }
     };
     
     if (loading) return <div>Loading...</div>;
     
-    if (isPrintView) {
+    if (isPrintView && action) {
         return <BulkIDCardPrintView 
             studentIds={Array.from(selectedStudents)} 
             students={students}
             settings={settings}
             templateKey={selectedTemplate}
-            onClose={() => setIsPrintView(false)}
+            action={action}
+            onClose={() => { setIsPrintView(false); setAction(null); }}
         />;
     }
 
@@ -109,10 +119,15 @@ const IDCardGenerator = () => {
                         </select>
                     </div>
                     <div>
-                        <label className="label">&nbsp;</label>
-                        <button onClick={handlePrint} className="btn btn-primary w-full" disabled={selectedStudents.size === 0}>
-                            Print/Download ({selectedStudents.size})
-                        </button>
+                        <label className="label">Actions</label>
+                        <div className="flex gap-2">
+                            <button onClick={handlePrint} className="btn btn-secondary flex-1" disabled={selectedStudents.size === 0}>
+                                Print ({selectedStudents.size})
+                            </button>
+                            <button onClick={handleDownload} className="btn btn-primary flex-1" disabled={selectedStudents.size === 0}>
+                                Download ({selectedStudents.size})
+                            </button>
+                        </div>
                     </div>
                 </div>
 

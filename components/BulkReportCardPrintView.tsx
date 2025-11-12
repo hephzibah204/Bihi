@@ -4,11 +4,13 @@ import React, { useEffect, useState } from 'react';
 import { getReportCardTemplate } from '../utils/reportCardHelper';
 import ArrowLeftIcon from './icons/ArrowLeftIcon';
 import PrinterIcon from './icons/PrinterIcon';
+import ArrowDownTrayIcon from './icons/ArrowDownTrayIcon';
 import ClassicReportCard from './report-templates/ClassicReportCard';
 import ModernReportCard from './report-templates/ModernReportCard';
 import MinimalistReportCard from './report-templates/MinimalistReportCard';
 import SpinnerIcon from './icons/SpinnerIcon';
 import '../styles/report-card.css';
+import { sanitizeFilename } from '../utils/pdfUtils';
 
 const BulkReportCardPrintView = ({ studentIds, allData, onClose, action, templateKey = 'auto', sessionOverride, termOverride }) => {
     const [isProcessing, setIsProcessing] = useState(false);
@@ -49,24 +51,28 @@ const BulkReportCardPrintView = ({ studentIds, allData, onClose, action, templat
         // Determine filename: if all selected students share one class, use that; otherwise generic
         const uniqueClasses = Array.from(new Set(studentsToPrint.map(s => s.class))).filter(Boolean);
         const baseName = uniqueClasses.length === 1 ? uniqueClasses[0] : 'report-cards';
-        pdf.save(baseName + '.pdf');
+        try {
+            const blob = pdf.output('blob');
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = sanitizeFilename(baseName) + '.pdf';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        } catch (e) {
+            pdf.save(sanitizeFilename(baseName) + '.pdf');
+        }
         // Restore offscreen state
         if (hadOffscreen && container) {
             container.classList.add('offscreen');
         }
         setIsProcessing(false);
-        onClose();
     };
     
     useEffect(() => {
-        if (action === 'print') {
-            const timer = setTimeout(() => window.print(), 500);
-            return () => clearTimeout(timer);
-        } else if (action === 'download') {
-            // Need a short delay to ensure elements are rendered before capturing
-            const timer = setTimeout(() => handleDownload(), 100);
-            return () => clearTimeout(timer);
-        }
+        // Show preview and let user choose actions manually.
     }, [action]);
 
     const studentsToPrint = allData.allStudents.filter(s => studentIds.includes(s.id));
@@ -84,7 +90,7 @@ const BulkReportCardPrintView = ({ studentIds, allData, onClose, action, templat
 
     return (
         <div className="bg-gray-200 dark:bg-gray-800">
-             {isProcessing && action === 'download' && (
+             {isProcessing && (
                 <div className="no-print fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
                     <div className="bg-white p-8 rounded-lg text-center">
                         <SpinnerIcon className="w-10 h-10 animate-spin mx-auto mb-4 text-indigo-600" />
@@ -98,11 +104,17 @@ const BulkReportCardPrintView = ({ studentIds, allData, onClose, action, templat
                     <ArrowLeftIcon className="w-5 h-5 mr-2" />
                     Back to Dashboard
                 </button>
-                <h2 className="font-semibold text-lg hidden md:block">{action === 'print' ? 'Printing' : 'Downloading'} {studentsToPrint.length} Report Cards</h2>
-                <button onClick={() => window.print()} className="btn btn-primary">
-                    <PrinterIcon className="w-5 h-5 mr-2" />
-                    Print
-                </button>
+                <h2 className="font-semibold text-lg hidden md:block">Previewing {studentsToPrint.length} Report Cards</h2>
+                <div className="flex gap-2">
+                    <button onClick={() => window.print()} className="btn btn-secondary">
+                        <PrinterIcon className="w-5 h-5 mr-2" />
+                        Print
+                    </button>
+                    <button onClick={handleDownload} className="btn btn-primary">
+                        <ArrowDownTrayIcon className="w-5 h-5 mr-2" />
+                        Download
+                    </button>
+                </div>
             </div>
             
             {/* Mobile hint: we disable visible preview but keep print/download working */}

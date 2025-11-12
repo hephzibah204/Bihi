@@ -3,6 +3,23 @@ export const sanitizeFilename = (s: string): string => {
   return s.replace(/[^a-z0-9\-\s_]/gi, '').trim();
 };
 
+function triggerPdfDownload(pdf: any, filename: string) {
+  try {
+    const blob = pdf.output('blob');
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = sanitizeFilename(filename) + '.pdf';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    // Fallback to built-in save if necessary
+    try { pdf.save(sanitizeFilename(filename) + '.pdf'); } catch {}
+  }
+}
+
 /**
  * Download a single DOM element as an A4 PDF using html2canvas + jsPDF.
  * Pass a selector string (e.g., '.printable-content') or a direct HTMLElement.
@@ -29,7 +46,7 @@ export async function downloadElementAsPdf(elementOrSelector: string | HTMLEleme
   const A4_WIDTH = 210;
   const A4_HEIGHT = 297;
   pdf.addImage(imgData, 'PNG', 0, 0, A4_WIDTH, A4_HEIGHT, undefined, 'FAST');
-  pdf.save(sanitizeFilename(filename) + '.pdf');
+  triggerPdfDownload(pdf, filename);
 }
 
 /**
@@ -65,6 +82,5 @@ export async function downloadElementsAsPdf(elementsOrSelector: string | HTMLEle
     if (i > 0) pdf.addPage();
     pdf.addImage(imgData, 'PNG', 0, 0, A4_WIDTH, A4_HEIGHT, undefined, 'FAST');
   }
-
-  pdf.save(sanitizeFilename(filename) + '.pdf');
+  triggerPdfDownload(pdf, filename);
 }
