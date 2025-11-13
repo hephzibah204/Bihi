@@ -1,6 +1,7 @@
 // services/geminiService.ts
 // Back-compat shim that re-exports tolerant AI functions
 export { generateResponse, generateReport, generateAnnouncement, generateLessonPlan, normalizePrompt } from './geminiAIService';
+import { isValidGeminiApiKey, GEMINI_KEY_ERRORS } from '../utils/geminiKeyResolver';
 
 import { supabase, initSupabase } from './supabaseClient';
 import { getTenantId } from './api';
@@ -12,7 +13,7 @@ const AI_ENDPOINT = (
     typeof window !== 'undefined'
         ? (window.process?.env?.VITE_SUPABASE_AI_CHAT_URL || import.meta.env?.VITE_SUPABASE_AI_CHAT_URL)
         : process.env.VITE_SUPABASE_AI_CHAT_URL
-) || '/api/ai/generate';
+  ) || '/api/ai/generate';
 
 /**
  * Generates text content by sending a prompt to a secure, server-side proxy
@@ -377,12 +378,15 @@ export const generateText = async (prompt: string): Promise<string> => {
 // --- Direct Gemini fallback (client-side) ---
 const getGeminiEnv = () => {
     const apiKey = typeof window !== 'undefined'
-        ? (window.process?.env?.VITE_GEMINI_API_KEY || import.meta.env?.VITE_GEMINI_API_KEY)
-        : process.env.VITE_GEMINI_API_KEY;
+        ? (window.process?.env?.GEMINI_API_KEY || window.process?.env?.VITE_GEMINI_API_KEY || import.meta.env?.VITE_GEMINI_API_KEY)
+        : (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY);
     const model = typeof window !== 'undefined'
         ? (window.process?.env?.VITE_GEMINI_MODEL || import.meta.env?.VITE_GEMINI_MODEL || 'gemini-1.5-flash')
         : (process.env.VITE_GEMINI_MODEL || 'gemini-1.5-flash');
     if (!apiKey) throw new Error('Gemini API key not configured');
+    if (!isValidGeminiApiKey(apiKey)) {
+        throw new Error(GEMINI_KEY_ERRORS.INVALID_FORMAT);
+    }
     return { apiKey, model };
 };
 

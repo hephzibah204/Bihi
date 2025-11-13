@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { apiGetTeachers, apiGetPayrollRuns, apiSavePayrollRun } from '../services/api';
 import { Teacher, Payslip, PayrollRun } from '../types';
+import { downloadElementsAsPdf, sanitizeFilename } from '../utils/pdfUtils';
 import Modal from './Modal';
 import PlusIcon from './icons/PlusIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
@@ -93,6 +94,18 @@ const PayrollDashboard = () => {
             {isViewModalOpen && selectedRun && schoolSettings &&
                 <Modal isOpen={isViewModalOpen} onClose={() => setViewModalOpen(false)} title={`Payslips for ${MONTHS[selectedRun.month]} ${selectedRun.year}`} size="full">
                     <div className="p-4 bg-gray-100 space-y-4 printable-content">
+                        <div className="no-print flex justify-end gap-3 mb-4">
+                            <button onClick={() => setTimeout(() => window.print(), 100)} className="btn btn-primary">Print</button>
+                            <button
+                                onClick={async () => {
+                                    const baseName = `Payslips ${MONTHS[selectedRun.month]} ${selectedRun.year}`;
+                                    await downloadElementsAsPdf('.printable-content .page-break', sanitizeFilename(baseName));
+                                }}
+                                className="btn btn-secondary"
+                            >
+                                Download PDF
+                            </button>
+                        </div>
                         {selectedRun.payslips.map(payslip => (
                             <div key={payslip.teacherId} className="page-break">
                                 <PayslipTemplate schoolSettings={schoolSettings} payslip={payslip} payPeriod={`${MONTHS[selectedRun.month]} ${selectedRun.year}`} />

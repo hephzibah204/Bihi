@@ -5,6 +5,7 @@ import { PayrollRun, Payslip, SchoolSettings, Teacher } from '../types';
 import { formatDate } from '../utils/dateHelpers';
 import Modal from './Modal';
 import PayslipTemplate from './PayslipTemplate';
+import { downloadElementAsPdf, sanitizeFilename } from '../utils/pdfUtils';
 import PrinterIcon from './icons/PrinterIcon';
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -76,6 +77,13 @@ const MyPayslips = () => {
         setTimeout(() => window.print(), 100);
     };
 
+    const handleDownload = async () => {
+        if (!viewingPayslip) return;
+        const { run, payslip } = viewingPayslip;
+        const baseName = `${payslip.teacherName} ${MONTHS[run.month]} ${run.year} payslip`;
+        await downloadElementAsPdf('#payslip-print-area', sanitizeFilename(baseName));
+    };
+
     if (loading) return <div className="card p-6 text-center">Loading payslips...</div>;
     if (error) return <div className="card p-6 text-center text-red-500">{error}</div>;
 
@@ -122,10 +130,15 @@ const MyPayslips = () => {
                             />
                         </div>
                         <div className="no-print mt-8">
-                            <button onClick={handlePrint} className="btn btn-primary">
-                                <PrinterIcon className="w-5 h-5 mr-2" />
-                                Print Payslip
-                            </button>
+                            <div className="flex gap-3">
+                                <button onClick={handlePrint} className="btn btn-primary">
+                                    <PrinterIcon className="w-5 h-5 mr-2" />
+                                    Print Payslip
+                                </button>
+                                <button onClick={handleDownload} className="btn btn-secondary">
+                                    Download PDF
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </Modal>

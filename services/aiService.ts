@@ -1,6 +1,7 @@
 // services/aiService.ts
 // Gemini-first AI service with graceful fallback and user notifications
 import { logger } from '../utils/logger';
+import { isValidGeminiApiKey, GEMINI_KEY_ERRORS } from '../utils/geminiKeyResolver';
 import { withRetry } from '../utils/retry';
 
 interface AIServiceConfig {
@@ -63,6 +64,13 @@ class AIService {
     if (typeof import.meta !== 'undefined' && (import.meta.env as any).VITE_GEMINI_API_KEY) {
       return (import.meta.env as any).VITE_GEMINI_API_KEY;
     }
+    // Optional browser storage fallback
+    try {
+      if (typeof window !== 'undefined') {
+        const k = window.localStorage?.getItem('gemini_api_key');
+        if (k) return k;
+      }
+    } catch { /* ignore */ }
     return undefined;
   }
 
@@ -180,6 +188,10 @@ class AIService {
   private async testGeminiConnection(): Promise<void> {
     if (!this.config.geminiApiKey) {
       throw new Error('Gemini API key not configured');
+    }
+
+    if (!isValidGeminiApiKey(this.config.geminiApiKey)) {
+      throw new Error(GEMINI_KEY_ERRORS.INVALID_FORMAT);
     }
 
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
@@ -304,6 +316,10 @@ class AIService {
       || (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_GEMINI_API_KEY);
     if (!apiKey) {
       throw new Error('Gemini API key not configured');
+    }
+
+    if (!isValidGeminiApiKey(apiKey)) {
+      throw new Error(GEMINI_KEY_ERRORS.INVALID_FORMAT);
     }
 
     return await withRetry(

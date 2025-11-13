@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { sanitizeFilename } from '../utils/pdfUtils';
 
 // Ensure jspdf types are available if you have @types/jspdf
 // For CDN usage, we can declare them on the window object
@@ -12,7 +13,7 @@ declare global {
 export const useReportCardExporter = () => {
     const [exporting, setExporting] = useState(false);
 
-    const exportToPDF = (elementId: string, fileName: string = 'document.pdf') => {
+    const exportToPDF = (elementId: string, fileName: string = 'document') => {
         const element = document.getElementById(elementId);
         if (!element) {
             return;
@@ -36,7 +37,19 @@ export const useReportCardExporter = () => {
                     format: [canvas.width, canvas.height]
                 });
                 pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-                pdf.save(fileName);
+                try {
+                    const blob = pdf.output('blob');
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = sanitizeFilename(fileName) + '.pdf';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    URL.revokeObjectURL(url);
+                } catch (e) {
+                    try { pdf.save(sanitizeFilename(fileName) + '.pdf'); } catch {}
+                }
             })
             .catch(() => {
             })
