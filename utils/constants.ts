@@ -29,6 +29,7 @@ export const ADMIN_VIEWS: { [key: string]: DashboardView } = {
     COMMUNICATIONS: 'communications',
     AI_TOOLS: 'ai-tools',
     AI_COACH_MANAGER: 'ai-coach-manager',
+    AI_COACH_PROGRESS: 'ai-coach-progress',
     // Individual AI Tools
     AI_CHAT: 'ai-chat',
     AI_ELABORATORY: 'ai-elaboratory',
@@ -61,6 +62,7 @@ export const ADMIN_VIEWS: { [key: string]: DashboardView } = {
     BLOG_ARTICLES: 'blog-articles',
     KB_ARTICLES: 'kb-articles',
     PRINT_CENTER: 'print-center',
+    TEACHER_CERTIFICATES: 'teacher-certificates',
 };
 
 export const TEACHER_VIEWS = {

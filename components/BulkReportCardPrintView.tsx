@@ -15,6 +15,7 @@ import { sanitizeFilename } from '../utils/pdfUtils';
 const BulkReportCardPrintView = ({ studentIds, allData, onClose, action, templateKey = 'auto', sessionOverride, termOverride }) => {
     const [isProcessing, setIsProcessing] = useState(false);
     const isMobile = typeof window !== 'undefined' ? window.matchMedia('(max-width: 640px)').matches : false;
+    const silentMode = action === 'download' || action === 'print';
     
     const handleDownload = async () => {
         setIsProcessing(true);
@@ -69,6 +70,9 @@ const BulkReportCardPrintView = ({ studentIds, allData, onClose, action, templat
             container.classList.add('offscreen');
         }
         setIsProcessing(false);
+        if (silentMode && typeof onClose === 'function') {
+            onClose();
+        }
     };
     
     useEffect(() => {
@@ -76,7 +80,22 @@ const BulkReportCardPrintView = ({ studentIds, allData, onClose, action, templat
         if (action === 'download') {
             handleDownload();
         } else if (action === 'print') {
-            setTimeout(() => { window.print(); }, 50);
+            const container = document.querySelector('.printable-content') as HTMLElement | null;
+            const hadOffscreen = !!container && container.classList.contains('offscreen');
+            if (hadOffscreen) {
+                container.classList.remove('offscreen');
+            }
+            setTimeout(() => {
+                window.print();
+                setTimeout(() => {
+                    if (hadOffscreen && container) {
+                        container.classList.add('offscreen');
+                    }
+                    if (silentMode && typeof onClose === 'function') {
+                        onClose();
+                    }
+                }, 300);
+            }, 50);
         }
     }, [action]);
 
@@ -104,6 +123,7 @@ const BulkReportCardPrintView = ({ studentIds, allData, onClose, action, templat
                     </div>
                 </div>
             )}
+            {!silentMode && (
             <div className="no-print p-4 bg-white dark:bg-gray-900 shadow-md flex justify-between items-center sticky top-0 z-10">
                 <button onClick={onClose} className="btn btn-secondary">
                     <ArrowLeftIcon className="w-5 h-5 mr-2" />
@@ -121,6 +141,7 @@ const BulkReportCardPrintView = ({ studentIds, allData, onClose, action, templat
                     </button>
                 </div>
             </div>
+            )}
             
             {/* Mobile hint: we disable visible preview but keep print/download working */}
             {isMobile && (
@@ -138,7 +159,7 @@ const BulkReportCardPrintView = ({ studentIds, allData, onClose, action, templat
                     Missing session or term. Please set both before printing.
                 </div>
             ) : (
-            <div className={isMobile ? "printable-content offscreen" : "printable-content"}>
+            <div className={(isMobile || silentMode) ? "printable-content offscreen" : "printable-content"}>
                 {studentsToPrint.map((student) => {
                     const ReportCardComponent = getTemplateForStudent(student);
                     return (

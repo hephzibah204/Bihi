@@ -102,8 +102,37 @@ Return JSON: { "quiz": [ { "question": "string", "options": { "A": "string", "B"
       const key = getAttemptsKey(courseId);
       const raw = localStorage.getItem(key);
       const attempts = raw ? JSON.parse(raw) : [];
-      attempts.push({ at: new Date().toISOString(), total: items.length, score: correct });
+      let teacherId: string | null = null;
+      let teacherName: string | null = null;
+      try {
+        teacherId = localStorage.getItem('currentUserId');
+        const activeRaw = sessionStorage.getItem('activeUser');
+        if (activeRaw) {
+          const u = JSON.parse(activeRaw);
+          teacherName = (u?.name || u?.fullName || u?.firstName) ? String(u.name || u.fullName || u.firstName) : null;
+        }
+      } catch {}
+      attempts.push({ at: new Date().toISOString(), total: items.length, score: correct, teacherId: teacherId || undefined, teacherName: teacherName || undefined });
       localStorage.setItem(key, JSON.stringify(attempts));
+      // Supabase write (best-effort)
+      (async () => {
+        try {
+          const { supabase } = await import('../services/supabaseClient');
+          const { getTenantId } = await import('../services/api');
+          const tenantId = getTenantId() || 'default';
+          if (supabase && !supabase._offline) {
+            await supabase.from('ai_coach_quiz_attempts').insert({
+              tenant_id: tenantId,
+              teacher_id: teacherId || null,
+              teacher_name: teacherName || null,
+              course_id: courseId,
+              at: new Date().toISOString(),
+              total: items.length,
+              score: correct,
+            });
+          }
+        } catch {}
+      })();
     } catch {}
   };
 
@@ -165,4 +194,3 @@ Return JSON: { "quiz": [ { "question": "string", "options": { "A": "string", "B"
 };
 
 export default VideoQuiz;
-

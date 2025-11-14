@@ -6,6 +6,7 @@ export type CertificationCriteria = {
 export type CertificateRecord = {
   id: string;
   teacherName?: string;
+  teacherId?: string;
   issuedAt: string;
   completedCourseIds: string[];
   avgScorePct: number;
@@ -64,6 +65,7 @@ export function issueCertificate(teacherName: string | undefined, criteria: Cert
   const rec: CertificateRecord = {
     id: nextCertificateId(),
     teacherName,
+    teacherId: (() => { try { return localStorage.getItem('currentUserId') || undefined; } catch { return undefined; } })(),
     issuedAt: new Date().toISOString(),
     completedCourseIds: evaln.completedCourseIds,
     avgScorePct: evaln.avgScorePct,
@@ -74,6 +76,26 @@ export function issueCertificate(teacherName: string | undefined, criteria: Cert
     const updated = [...list, rec];
     localStorage.setItem('teacher_certificates', JSON.stringify(updated));
   } catch {}
+  // Supabase write (best-effort)
+  (async () => {
+    try {
+      const { supabase } = await import('./supabaseClient');
+      const { getTenantId } = await import('./api');
+      const tenantId = getTenantId() || 'default';
+      if (supabase && !supabase._offline) {
+        await supabase.from('ai_coach_certificates').insert({
+          certificate_code: rec.id,
+          tenant_id: tenantId,
+          teacher_id: rec.teacherId || null,
+          teacher_name: rec.teacherName || null,
+          issued_at: rec.issuedAt,
+          completed_course_ids: JSON.stringify(rec.completedCourseIds),
+          avg_score_pct: rec.avgScorePct,
+          min_courses: rec.criteria.minCourses,
+          min_score_pct: rec.criteria.minScorePct,
+        });
+      }
+    } catch {}
+  })();
   return rec;
 }
-

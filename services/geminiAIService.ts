@@ -287,12 +287,12 @@ export class GeminiAIService {
                 this.status.lastGeminiError = error.message;
 
                 // STEP 2: Use fallback system
-                return this.useFallback(request, error.message);
+                return await this.useFallback(request, error.message);
             }
         } else {
             // No Gemini key configured, use fallback directly
             logger.info('Gemini not configured, using fallback system');
-            return this.useFallback(request, 'Gemini API key not configured');
+            return await this.useFallback(request, 'Gemini API key not configured');
         }
     }
 
@@ -552,17 +552,25 @@ export class GeminiAIService {
     /**
      * Use fallback AI system (semantic cache → HF → templates)
      */
-    private useFallback(request: AIRequest, reason: string): AIResponse {
+    private async useFallback(request: AIRequest, reason: string): Promise<AIResponse> {
         logger.info('Activating fallback AI system...');
         
         try {
             const startTime = Date.now();
 
-            // Call our enhanced fallback system
-            const fallbackContent = generateFallbackResponse({
-                prompt: request.prompt,
-                context: request.context
-            });
+            let fallbackContent: string = '';
+            try {
+                const { generateFallbackResponseAsync } = await import('./fallbackAiService');
+                fallbackContent = await generateFallbackResponseAsync({
+                    prompt: request.prompt,
+                    context: request.context
+                } as any);
+            } catch {
+                fallbackContent = generateFallbackResponse({
+                    prompt: request.prompt,
+                    context: request.context
+                } as any);
+            }
 
             const responseTime = Date.now() - startTime;
 

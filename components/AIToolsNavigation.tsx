@@ -32,6 +32,14 @@ const aiTools: AITool[] = [
         roles: [USER_ROLES.ADMIN, USER_ROLES.TEACHER]
     },
     {
+        id: 'ai-coach-progress',
+        title: 'AI Coach Progress',
+        description: 'View teachers’ course completions and quiz performance.',
+        icon: <ChartBarIcon className="h-8 w-8" />,
+        view: 'AI_COACH_PROGRESS',
+        roles: [USER_ROLES.ADMIN]
+    },
+    {
         id: 'ai-chat',
         title: 'AI Assistant',
         description: 'Chat with your role-tailored AI assistant for personalized help and guidance.',

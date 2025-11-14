@@ -4,6 +4,7 @@ import { ADMIN_VIEWS } from '../utils/constants';
 import DocumentArrowDownIcon from './icons/DocumentArrowDownIcon';
 import IdentificationIcon from './icons/IdentificationIcon';
 import PrinterIcon from './icons/PrinterIcon';
+import GraduationCapIcon from './icons/GraduationCapIcon';
 
 interface PrintCenterProps {
   setActiveView: (view: DashboardView) => void;
@@ -45,6 +46,12 @@ const PrintCenter: React.FC<PrintCenterProps> = ({ setActiveView }) => {
           desc="Bulk print bursary documents like receipts and invoices."
           icon={<PrinterIcon className="w-6 h-6" />}
           onClick={() => { try { localStorage.setItem('bursaryInitialTab', 'print-center'); } catch {} setActiveView(ADMIN_VIEWS.BURSARY as DashboardView); }}
+        />
+        <Card
+          title="Course Certificates"
+          desc="Issue and print teacher course completion certificates."
+          icon={<GraduationCapIcon className="w-6 h-6" />}
+          onClick={() => setActiveView(ADMIN_VIEWS.TEACHER_CERTIFICATES as DashboardView)}
         />
       </div>
     </div>

@@ -154,7 +154,7 @@ class ConnectionManager {
       }
     } catch (error: any) {
       this.state.supabase.online = false;
-      this.state.supabase.reconnectAttempts++;
+      this.state.supabase.reconnectAttempts = Math.min(this.state.supabase.reconnectAttempts + 1, this.maxReconnectAttempts);
       
       this.logger.error('Supabase handshake failed', { 
         error: error.message, 
@@ -215,7 +215,7 @@ class ConnectionManager {
         throw new Error(`AI service handshake failed - service: ${status.service}`);
       }
     } catch (error: any) {
-      this.state.ai.reconnectAttempts++;
+      this.state.ai.reconnectAttempts = Math.min(this.state.ai.reconnectAttempts + 1, this.maxReconnectAttempts);
       
       this.logger.error('AI service handshake failed', { 
         error: error.message, 
@@ -350,6 +350,11 @@ class ConnectionManager {
    * Get current connection state
    */
   public getConnectionState(): ConnectionState {
+    try {
+      const online = typeof navigator !== 'undefined' ? navigator.onLine : this.state.network.online;
+      this.state.network.online = online;
+      this.state.network.lastCheck = new Date();
+    } catch {}
     return JSON.parse(JSON.stringify(this.state));
   }
 

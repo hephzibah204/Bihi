@@ -1,14 +1,21 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { listMicroCourses, normalizeToYouTubeEmbed, markCourseCompleted } from '../services/teacherCoach';
 import VideoTranscriptPanel from './VideoTranscriptPanel';
 import VideoQuiz from './VideoQuiz';
 import { USER_ROLES } from '../utils/constants';
 import { getPracticeEvents } from '../services/telemetry';
 import DocumentTextIcon from './icons/DocumentTextIcon';
+import { incrementWatchTime } from '../services/watchTime';
+import { useAuth } from '../contexts/AuthContext';
 
 const TeacherCoach: React.FC = () => {
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { user } = useAuth();
+  const teacherId = useMemo(() => {
+    try { return (user as any)?.id ? String((user as any).id) : (localStorage.getItem('currentUserId') || null); } catch { return null; }
+  }, [user]);
+  const timerRef = useRef<number | null>(null);
 
   const courses = useMemo(() => {
     const all = listMicroCourses();
@@ -221,3 +228,14 @@ const BadgesList: React.FC = () => {
 };
 
 export default TeacherCoach;
+  useEffect(() => {
+    if (!selected) return;
+    const intervalMs = 5000;
+    const tick = () => {
+      if (document.visibilityState === 'visible') {
+        incrementWatchTime(selected.id, teacherId, Math.floor(intervalMs / 1000));
+      }
+    };
+    timerRef.current = window.setInterval(tick, intervalMs);
+    return () => { if (timerRef.current) window.clearInterval(timerRef.current); timerRef.current = null; };
+  }, [selected?.id, teacherId]);

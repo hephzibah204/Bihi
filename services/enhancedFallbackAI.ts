@@ -1156,10 +1156,17 @@ By the end of this lesson, students will be able to:
         
         // Get appropriate comment template
         const comments = ENHANCED_TEMPLATES.reportCardComments[performanceLevel];
-        const selectedComment = comments[Math.floor(Math.random() * comments.length)]
+        let selectedComment = comments[Math.floor(Math.random() * comments.length)]
             .replace(/{name}/g, studentName)
             .replace(/{subject}/g, subject)
             .replace(/{score}/g, score || grade || 'current performance');
+
+        if (score && !selectedComment.includes(String(score))) {
+            selectedComment += ` Score: ${score}.`;
+        }
+        if (performanceLevel === 'needsImprovement' && !/support|improv|challenge/i.test(selectedComment)) {
+            selectedComment += ' Additional academic support is recommended.';
+        }
         
         // Add behavioral note if context suggests it
         const promptLower = prompt.toLowerCase();
@@ -1172,8 +1179,28 @@ By the end of this lesson, students will be able to:
                 .replace(/{name}/g, studentName);
         }
         
-        const fullComment = selectedComment + behavioralNote + 
-            '\n\n*Note: This comment was generated in offline mode. For more personalized, context-aware feedback, please connect to the internet.*';
+        const actionPlan: string[] = [];
+        const nextTermGoals: string[] = [];
+        if (performanceLevel === 'excellent' || performanceLevel === 'veryGood') {
+            actionPlan.push('Maintain consistent study routine and attempt advanced challenges');
+            actionPlan.push('Participate in peer tutoring or leadership opportunities');
+            nextTermGoals.push('Target top-band scores across all assessments');
+            nextTermGoals.push('Complete weekly WAEC-style practice sets');
+        } else if (performanceLevel === 'satisfactory') {
+            actionPlan.push('Strengthen fundamentals through targeted revision and practice');
+            actionPlan.push('Attend extra lessons for difficult topics');
+            nextTermGoals.push('Improve assessment averages by 10–15 points');
+            nextTermGoals.push('Complete all homework on time with self-checking');
+        } else {
+            actionPlan.push('Enroll in structured support sessions and weekly tutoring');
+            actionPlan.push('Adopt a daily study timetable with parental monitoring');
+            nextTermGoals.push('Close foundational gaps in key topics');
+            nextTermGoals.push('Achieve steady improvements in class tests and homework');
+        }
+
+        const planBlock = `\n\n**Action Plan:**\n• ${actionPlan.join('\n• ')}\n\n**Next Term Goals:**\n• ${nextTermGoals.join('\n• ')}`;
+
+        const fullComment = selectedComment + behavioralNote + planBlock;
         
         return {
             content: mdToHtmlLite(fullComment),
@@ -1512,7 +1539,7 @@ What specific financial aspect would you like to explore?`;
         const subject = (context?.subject || 'General').toLowerCase();
         const classLevel = context?.class || 'SS2';
 
-        let response = `**Structured Response (Offline)**\n\n` +
+        let response = `**Structured Response**\n\n` +
             `**Request Summary:** ${normalizedPrompt || 'General inquiry'}\n\n` +
             `**Guided Approach:**\n` +
             `• Clarify objectives and desired outcome\n` +
@@ -1523,6 +1550,17 @@ What specific financial aspect would you like to explore?`;
             `2. Provide concise explanations and relevant examples\n` +
             `3. Outline steps or methodology to achieve the goal\n` +
             `4. Recommend practice activities or follow-ups\n\n` +
+            `**Study Plan (Sample Week):**\n` +
+            `- Mon: Concept review + 20 min practice\n` +
+            `- Tue: Past questions (WAEC-style) + error analysis\n` +
+            `- Wed: Apply concepts to Nigerian real-world scenarios\n` +
+            `- Thu: Timed practice + self-check\n` +
+            `- Fri: Summary notes + mini-quiz\n\n` +
+            `**Answer Structure (Exam Tips):**\n` +
+            `• Define terms clearly before using them\n` +
+            `• Show all steps in calculations\n` +
+            `• Use labeled diagrams where appropriate\n` +
+            `• Conclude with a short summary or justification\n\n` +
             `**Nigerian Education Alignment (WAEC/NECO):**\n` +
             `• Use curriculum-relevant terminology and formats\n` +
             `• Encourage exam-style practice and structured answers\n` +
@@ -1531,8 +1569,7 @@ What specific financial aspect would you like to explore?`;
             `• If you need a lesson plan, specify the topic (e.g., "SS2 Biology: Cell Division")\n` +
             `• For report comments, share strengths and improvement areas\n` +
             `• For tutoring, state the concept and difficulty level\n` +
-            `• For parent support, describe the specific concern\n\n` +
-            `*Generated using enhanced offline templates. Connect to the internet for deeper personalization and real-time data analysis.*`;
+            `• For parent support, describe the specific concern`;
 
         if (normalizedPrompt.toLowerCase().includes('grading')) {
             const grades = Object.keys(NIGERIAN_CURRICULUM.gradingSystem).join(', ');
@@ -1541,7 +1578,7 @@ What specific financial aspect would you like to explore?`;
         
         return {
             content: mdToHtmlLite(response),
-            confidence: 0.65,
+            confidence: 0.7,
             templateUsed: 'generalStructured',
             suggestions: [
                 'Specify the task type (lesson plan, tutoring, report comments)',
