@@ -72,7 +72,12 @@ const BulkReportCardPrintView = ({ studentIds, allData, onClose, action, templat
     };
     
     useEffect(() => {
-        // Show preview and let user choose actions manually.
+        if (!action) return;
+        if (action === 'download') {
+            handleDownload();
+        } else if (action === 'print') {
+            setTimeout(() => { window.print(); }, 50);
+        }
     }, [action]);
 
     const studentsToPrint = allData.allStudents.filter(s => studentIds.includes(s.id));

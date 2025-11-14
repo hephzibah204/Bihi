@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://generativelanguage.googleapis.com https://router.huggingface.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'">
+    <meta name="referrer" content="no-referrer">
     <title>ReportSheet | AI-Powered School Management System</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%234f46e5;' /%3E%3Cstop offset='100%25' style='stop-color:%238b5cf6;' /%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23grad)' d='M20,5 Q10,5 10,15 L10,85 Q10,95 20,95 L80,95 Q90,95 90,85 L90,35 L65,5 Z' /%3E%3Cpath fill='%23fff' opacity='0.3' d='M65,5 L65,35 L90,35 Z' /%3E%3Ctext x='50' y='62' font-family='Inter, sans-serif' font-size='40' font-weight='800' fill='white' text-anchor='middle' dy='.3em'%3ERS%3C/text%3E%3C/svg%3E">
     
     <!-- PDF export libraries: html2canvas and jsPDF UMD build -->
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" crossorigin="anonymous"></script>
 
 </head>
 <body>

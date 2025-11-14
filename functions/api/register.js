@@ -13,15 +13,28 @@ const allowedOriginPatterns = [
     /^https:\/\/.*\.google\.internal$/,
 ];
 
-function handleCors(request) {
+function handleCors(request, env) {
     const origin = request.headers.get("Origin");
     const headers = {
         "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization, apikey",
+        "Access-Control-Max-Age": "86400",
     };
     let isAllowed = false;
 
-    if (origin && allowedOriginPatterns.some((p) => p.test(origin))) {
+    const dynamicAllowed = [];
+    try {
+        const configured = (env && env.ALLOWED_ORIGINS) ? String(env.ALLOWED_ORIGINS) : '';
+        const parts = configured.split(',').map(s => s.trim()).filter(Boolean);
+        for (const host of parts) {
+            dynamicAllowed.push(new RegExp(`^https?:\/\/${host.replace(/\./g, '\\.')}$`));
+            dynamicAllowed.push(new RegExp(`^https?:\/\/.+\.${host.replace(/\./g, '\\.')}$`));
+        }
+    } catch {}
+
+    const patterns = allowedOriginPatterns.concat(dynamicAllowed);
+
+    if (origin && patterns.some((p) => p.test(origin))) {
         headers["Access-Control-Allow-Origin"] = origin;
         isAllowed = true;
     }
@@ -331,7 +344,7 @@ async function handlePost(request, env) {
 
 export async function onRequest(context) {
     const { request, env } = context;
-    const { response: corsResponse, corsHeaders, isAllowed } = handleCors(request);
+    const { response: corsResponse, corsHeaders, isAllowed } = handleCors(request, env);
 
     if (corsResponse) {
         return corsResponse;

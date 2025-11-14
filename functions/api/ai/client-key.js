@@ -1,37 +1,6 @@
 // functions/api/ai/client-key.js
 
-const allowedOriginPatterns = [
-    /^https?:\/\/localhost(:\d+)?$/,
-    /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
-    /^https:\/\/reportsheet\.com\.ng$/,
-    /^https:\/\/.+\.reportsheet\.com\.ng$/,
-    /^https:\/\/reportsheet\.pages\.dev$/,
-    /^https:\/\/.+\.pages\.dev$/,
-    /^https:\/\/([a-z0-9-]+\.)?aistudio\.google\.com$/,
-    /^https:\/\/.+\.googleusercontent\.com$/,
-    /^https:\/\/.+\.web\.app$/,
-    /^https:\/\/.*\.google\.internal$/,
-];
-
-function handleCors(request) {
-    const origin = request.headers.get("Origin");
-    const headers = {
-        "Access-Control-Allow-Methods": "GET, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Demo-Mode",
-    };
-    let isAllowed = false;
-
-    if (origin && allowedOriginPatterns.some((p) => p.test(origin))) {
-        headers["Access-Control-Allow-Origin"] = origin;
-        isAllowed = true;
-    }
-
-    if (request.method === "OPTIONS") {
-        return { response: new Response(null, { headers }), corsHeaders: headers, isAllowed };
-    }
-
-    return { response: null, corsHeaders: headers, isAllowed };
-}
+import { handleCors } from '../../../_lib/cors';
 
 async function handleGet(request, env) {
     const headers = { 'Content-Type': 'application/json' };
@@ -59,18 +28,20 @@ async function handleGet(request, env) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers });
     }
 
-    if (env.API_KEY) {
-        return new Response(JSON.stringify({ key: env.API_KEY }), { headers });
+    if (isDemoMode) {
+        const r = new Response(JSON.stringify({ key: 'DEMO' }), { headers });
+        r.headers.set('Cache-Control', 'no-store');
+        return r;
     }
-    return new Response(
-        JSON.stringify({ error: "API_KEY not found in server environment" }),
-        { status: 500, headers }
-    );
+
+    const r = new Response(JSON.stringify({ key: null }), { headers });
+    r.headers.set('Cache-Control', 'no-store');
+    return r;
 }
 
 export async function onRequest(context) {
     const { request, env } = context;
-    const { response: corsResponse, corsHeaders, isAllowed } = handleCors(request);
+    const { response: corsResponse, corsHeaders, isAllowed } = handleCors(request, env, 'GET, OPTIONS');
 
     if (corsResponse) {
         return corsResponse;

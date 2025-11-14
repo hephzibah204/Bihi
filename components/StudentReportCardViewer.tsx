@@ -22,6 +22,7 @@ const StudentReportCardViewer = ({ demoUserId }) => {
     // Detect mobile to render preview offscreen while keeping content printable/downloadable
     const [isMobile, setIsMobile] = useState(false);
     const [showMobilePreview, setShowMobilePreview] = useState(true);
+    const { exporting, exportToPDF } = useReportCardExporter();
     useEffect(() => {
         const check = () => setIsMobile(window.innerWidth < 768);
         check();
@@ -342,4 +343,3 @@ const StudentReportCardViewer = ({ demoUserId }) => {
 };
 
 export default StudentReportCardViewer;
-    const { exporting, exportToPDF } = useReportCardExporter();

@@ -1,38 +1,6 @@
 // functions/api/conversations/index.js
 // API endpoints for chat conversation management
-
-const allowedOriginPatterns = [
-    /^https?:\/\/localhost(:\d+)?$/,
-    /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
-    /^https:\/\/reportsheet\.com\.ng$/,
-    /^https:\/\/.+\.reportsheet\.com\.ng$/,
-    /^https:\/\/reportsheet\.pages\.dev$/,
-    /^https:\/\/.+\.pages\.dev$/,
-    /^https:\/\/([a-z0-9-]+\.)?aistudio\.google\.com$/,
-    /^https:\/\/.+\.googleusercontent\.com$/,
-    /^https:\/\/.+\.web\.app$/,
-    /^https:\/\/.*\.google\.internal$/,
-];
-
-function handleCors(request) {
-    const origin = request.headers.get("Origin");
-    const headers = {
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    };
-    let isAllowed = false;
-
-    if (origin && allowedOriginPatterns.some((p) => p.test(origin))) {
-        headers["Access-Control-Allow-Origin"] = origin;
-        isAllowed = true;
-    }
-
-    if (request.method === "OPTIONS") {
-        return { response: new Response(null, { headers }), corsHeaders: headers, isAllowed };
-    }
-
-    return { response: null, corsHeaders: headers, isAllowed };
-}
+import { handleCors } from "../../_lib/cors.js";
 
 async function authenticate(request, env) {
     const authHeader = request.headers.get('Authorization');
@@ -331,7 +299,7 @@ async function handleDeleteConversation(request, env, user, token, conversationI
 
 export async function onRequest(context) {
     const { request, env } = context;
-    const { response: corsResponse, corsHeaders, isAllowed } = handleCors(request);
+    const { response: corsResponse, corsHeaders, isAllowed } = handleCors(request, env, 'GET, POST, PUT, DELETE, OPTIONS');
 
     if (corsResponse) {
         return corsResponse;

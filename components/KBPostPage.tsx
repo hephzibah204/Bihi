@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { apiGetKbArticles } from '../services/api';
 import { formatDate } from '../utils/dateHelpers';
+import { HtmlContent } from './HtmlContent';
 
 const KBPostPage = () => {
     const [article, setArticle] = useState(null);
@@ -31,8 +32,8 @@ const KBPostPage = () => {
         <article className="prose max-w-none">
             <h1>{article.title}</h1>
             <p className="text-sm text-gray-500">Last updated: {formatDate(article.lastUpdated)}</p>
-      <div className="prose-content" dangerouslySetInnerHTML={{ __html: require('../utils/sanitize').safeHtml(article.content) }} />
-             <Link to="/kb" className="mt-8 inline-block no-underline hover:text-indigo-600">← Back to Knowledge Base</Link>
+            <HtmlContent html={article.content || ''} />
+            <Link to="/kb" className="mt-8 inline-block no-underline hover:text-indigo-600">← Back to Knowledge Base</Link>
         </article>
     );
 };

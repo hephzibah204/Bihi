@@ -89,6 +89,7 @@ export async function initSupabase() {
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,
+      storage: typeof window !== 'undefined' ? window.sessionStorage : undefined,
       storageKey: 'dossier-auth-token',
       flowType: 'pkce'
     },
