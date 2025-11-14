@@ -87,7 +87,10 @@ const PortalLogin = ({ onStudentLoginSuccess }) => {
                 apiGetScratchCards()
             ]);
             
-            const student = allStudents.find(s => s.admissionNo.toLowerCase() === admissionNo.toLowerCase().trim());
+            const student = allStudents.find(s => {
+                const adm = String(((s as any).admissionNo || (s as any).admission_no || '')).toLowerCase();
+                return adm === admissionNo.toLowerCase().trim();
+            });
             const cardExists = allScratchCards.some(c => c.pin === pin.trim());
 
             if (student && cardExists) {
@@ -125,19 +128,29 @@ const PortalLogin = ({ onStudentLoginSuccess }) => {
             if (sessionData?.user) {
                 try {
                     const allParents = await apiGetParents();
-                    const parent = allParents.find(p => p.email.toLowerCase() === sessionData.user.email.toLowerCase());
+                    const parent = allParents.find(p => {
+                        const pe = String(((p as any).email || (p as any).email_address || (p as any).emailAddress || '')).toLowerCase();
+                        return pe === sessionData.user.email.toLowerCase();
+                    });
                     if (!parent) {
                         setError('Parent profile not found for this account.');
                         await supabase.auth.signOut();
                         return;
                     }
                     const allStudents = await apiGetStudents();
-                    const children = allStudents.filter(s => s.parentId === parent.id);
+                    const children = allStudents.filter(s => {
+                        const sid = (s as any).parentId ?? (s as any).parent_id;
+                        return sid === parent.id;
+                    });
                     if (children.length === 0) {
                         setError('No students are linked to this parent account.');
                         await supabase.auth.signOut();
                     } else if (children.length === 1) {
-                        const sessionData = { role: USER_ROLES.PARENT, userId: children[0].id, studentName: children[0].name };
+                        const sessionData = { 
+                            role: USER_ROLES.PARENT, 
+                            userId: (children[0] as any).id, 
+                            studentName: (children[0] as any).name || (children[0] as any).full_name || 'Student' 
+                        };
                         sessionStorage.setItem('activeUser', JSON.stringify(sessionData));
                         if(onStudentLoginSuccess) onStudentLoginSuccess(sessionData);
                     } else {
@@ -161,7 +174,7 @@ const PortalLogin = ({ onStudentLoginSuccess }) => {
     };
 
     const handleSelectChild = (child) => {
-        const sessionData = { role: USER_ROLES.PARENT, userId: child.id, studentName: child.name };
+        const sessionData = { role: USER_ROLES.PARENT, userId: (child as any).id, studentName: (child as any).name || (child as any).full_name || 'Student' };
         sessionStorage.setItem('activeUser', JSON.stringify(sessionData));
         if (onStudentLoginSuccess) onStudentLoginSuccess(sessionData);
         setChildrenToSelect([]);

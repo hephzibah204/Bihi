@@ -145,11 +145,14 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
                 } else {
                     try {
                         const teachers = await apiGetTeachers();
-                        const currentUser = teachers.find(t => t.email.toLowerCase() === session.user.email.toLowerCase());
+                        const currentUser = teachers.find(t => {
+                            const te = String(((t as any).email || (t as any).email_address || (t as any).emailAddress || '')).toLowerCase();
+                            return te === session.user.email.toLowerCase();
+                        });
                         
                         if (currentUser) {
                             setUser(currentUser);
-                            setRole(currentUser.role);
+                            setRole((currentUser as any).role || (currentUser as any).user_role || null);
                             console.log('User authenticated successfully:', currentUser.email);
                         } else {
                             // Auth user exists but no teacher profile - this is a data integrity issue
@@ -188,11 +191,14 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
             } else {
                 try {
                     const teachers = await apiGetTeachers();
-                    const currentUser = teachers.find(t => t.email.toLowerCase() === initialSession.user.email.toLowerCase());
+                    const currentUser = teachers.find(t => {
+                        const te = String(((t as any).email || (t as any).email_address || (t as any).emailAddress || '')).toLowerCase();
+                        return te === initialSession.user.email.toLowerCase();
+                    });
                     
                     if (currentUser) {
                         setUser(currentUser);
-                        setRole(currentUser.role);
+                        setRole((currentUser as any).role || (currentUser as any).user_role || null);
                         console.log('Initial session: User authenticated successfully:', currentUser.email);
                     } else {
                         // Auth user exists but no teacher profile
