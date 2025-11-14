@@ -55,6 +55,18 @@ const TeacherCoach: React.FC = () => {
     return courses.filter(c => uniqueIds.includes(c.id));
   }, [courses]);
 
+  useEffect(() => {
+    if (!selected) return;
+    const intervalMs = 5000;
+    const tick = () => {
+      if (document.visibilityState === 'visible') {
+        incrementWatchTime(selected.id, teacherId, Math.floor(intervalMs / 1000));
+      }
+    };
+    timerRef.current = window.setInterval(tick, intervalMs);
+    return () => { if (timerRef.current) window.clearInterval(timerRef.current); timerRef.current = null; };
+  }, [selected?.id, teacherId]);
+
   const handleComplete = () => {
     if (!selected) return;
     markCourseCompleted(selected.id);
@@ -228,14 +240,3 @@ const BadgesList: React.FC = () => {
 };
 
 export default TeacherCoach;
-  useEffect(() => {
-    if (!selected) return;
-    const intervalMs = 5000;
-    const tick = () => {
-      if (document.visibilityState === 'visible') {
-        incrementWatchTime(selected.id, teacherId, Math.floor(intervalMs / 1000));
-      }
-    };
-    timerRef.current = window.setInterval(tick, intervalMs);
-    return () => { if (timerRef.current) window.clearInterval(timerRef.current); timerRef.current = null; };
-  }, [selected?.id, teacherId]);
