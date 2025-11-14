@@ -49,8 +49,8 @@ const BulkReportCardPrintView = ({ studentIds, allData, onClose, action, templat
         }
         
         // Determine filename: if all selected students share one class, use that; otherwise generic
-        const uniqueClasses = Array.from(new Set(studentsToPrint.map(s => s.class))).filter(Boolean);
-        const baseName = uniqueClasses.length === 1 ? uniqueClasses[0] : 'report-cards';
+        const uniqueClasses: string[] = Array.from(new Set(studentsToPrint.map((s: any) => s.class))).filter(Boolean) as string[];
+        const baseName: string = uniqueClasses.length === 1 ? uniqueClasses[0] : 'report-cards';
         try {
             const blob = pdf.output('blob');
             const url = URL.createObjectURL(blob);

@@ -88,14 +88,14 @@ const Broadsheet: React.FC<BroadsheetProps> = ({
         setSelectedClass(defaultClass);
 
         // Build robust defaults for session/term from settings + scores
-        const scoreSessions = Array.from(
+        const scoreSessions: string[] = Array.from(
           new Set(
             (scoresRes || [])
               .map((s) => String(s.session || '').trim())
               .filter(Boolean)
           )
         );
-        const scoreTerms = Array.from(
+        const scoreTerms: string[] = Array.from(
           new Set(
             (scoresRes || [])
               .map((s) => String(s.term || '').trim())

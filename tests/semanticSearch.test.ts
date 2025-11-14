@@ -1,5 +1,5 @@
 // tests/semanticSearch.test.ts
-import { describe, it, expect, beforeEach } from '@jest/globals';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { SemanticSearchEngine, HybridSearchEngine, type SemanticMatch } from '../services/semanticSearch';
 
 describe('SemanticSearchEngine', () => {

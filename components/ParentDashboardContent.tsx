@@ -64,9 +64,9 @@ const ParentDashboardContent: React.FC<ParentDashboardContentProps> = ({ activeV
                     case PARENT_VIEWS.AI_CHAT:
                         return <AIChatPanel />;
                     case PARENT_VIEWS.AI_ELABORATORY:
-                        return <ELaboratory setActiveView={setActiveView} />;
+                        return <ELaboratory />;
                     case PARENT_VIEWS.AI_SUBJECT_RECOMMENDER:
-                        return <SubjectRecommender setActiveView={setActiveView} />;
+                        return <SubjectRecommender />;
                         
                     default:
                         return <ParentHome setActiveView={setActiveView} demoUserId={demoUserId} />;

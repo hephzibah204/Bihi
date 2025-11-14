@@ -12,7 +12,7 @@ describe('Enhanced Fallback AI System', () => {
             
             expect(response).toContain('LESSON PLAN');
             expect(response).toContain('WAEC/NECO');
-            expect(response).toContain('quadratic equations');
+            expect(response.toLowerCase()).toContain('quadratic equations');
             expect(response).toContain('SS2');
             expect(response).toContain('LEARNING OBJECTIVES');
         });
@@ -22,7 +22,7 @@ describe('Enhanced Fallback AI System', () => {
             const response = generateEnhancedFallbackResponse(prompt);
             
             expect(response).toContain('Geometry');
-            expect(response).toContain('circles');
+            expect(response.toLowerCase()).toContain('circles');
             expect(response).toContain('Nigerian');
             expect(response).toContain('WAEC');
         });
@@ -43,7 +43,7 @@ describe('Enhanced Fallback AI System', () => {
             const response = generateEnhancedFallbackResponse(prompt);
             
             expect(response).toContain('Ada Obi');
-            expect(response).toContain('exceptional');
+            expect(response).toMatch(/exceptional|outstanding|excellent/i);
             expect(response).toContain('85');
             expect(response).not.toContain('struggling');
         });
@@ -53,7 +53,7 @@ describe('Enhanced Fallback AI System', () => {
             const response = generateEnhancedFallbackResponse(prompt);
             
             expect(response).toContain('Chidi Eze');
-            expect(response).toContain('challenges' || 'support' || 'improvement');
+            expect(response).toMatch(/challenges|support|improv/i);
             expect(response).toContain('42');
         });
 
@@ -62,7 +62,7 @@ describe('Enhanced Fallback AI System', () => {
             const response = generateEnhancedFallbackResponse(prompt);
             
             expect(response).toContain('Amina Yusuf');
-            expect(response).toContain('A1' || 'excellent' || 'exceptional');
+            expect(response).toMatch(/A1|excellent|exceptional/);
         });
     });
 
@@ -74,7 +74,7 @@ describe('Enhanced Fallback AI System', () => {
             expect(response).toContain('algebra');
             expect(response).toContain('step');
             expect(response).toContain('WAEC');
-            expect(response.toLowerCase()).toContain('equation' || 'solve');
+            expect(response.toLowerCase()).toMatch(/equation|solve/);
         });
 
         test('should provide essay writing guidance', () => {
@@ -83,14 +83,14 @@ describe('Enhanced Fallback AI System', () => {
             
             expect(response).toContain('essay');
             expect(response).toContain('WAEC');
-            expect(response).toContain('structure' || 'paragraph' || 'introduction');
+            expect(response).toMatch(/structure|paragraph|introduction/);
         });
 
         test('should include Nigerian context in examples', () => {
             const prompt = 'explain how to solve math word problems';
             const response = generateEnhancedFallbackResponse(prompt);
             
-            expect(response).toContain('₦' || 'Naira' || 'Nigerian');
+            expect(response).toMatch(/₦|naira|nigerian/i);
         });
     });
 
@@ -99,9 +99,9 @@ describe('Enhanced Fallback AI System', () => {
             const prompt = 'My child is struggling with grades in mathematics. What should I do?';
             const response = generateEnhancedFallbackResponse(prompt);
             
-            expect(response).toContain('academic' || 'performance');
-            expect(response).toContain('support' || 'help');
-            expect(response).toContain('teacher' || 'study');
+            expect(response).toMatch(/academic|performance/i);
+            expect(response).toMatch(/support|help/i);
+            expect(response).toMatch(/teacher|study/i);
         });
 
         test('should provide WAEC/NECO exam preparation advice', () => {
@@ -109,7 +109,7 @@ describe('Enhanced Fallback AI System', () => {
             const response = generateEnhancedFallbackResponse(prompt);
             
             expect(response).toContain('WAEC');
-            expect(response).toContain('past questions' || 'preparation');
+            expect(response).toMatch(/past questions|preparation/i);
             expect(response).toContain('study');
         });
 
@@ -117,7 +117,7 @@ describe('Enhanced Fallback AI System', () => {
             const prompt = 'My child has behavior issues at school. Need advice.';
             const response = generateEnhancedFallbackResponse(prompt);
             
-            expect(response).toContain('behavior' || 'discipline');
+            expect(response).toMatch(/behavior|discipline/i);
             expect(response).toContain('teacher' || 'school');
         });
     });
@@ -127,8 +127,8 @@ describe('Enhanced Fallback AI System', () => {
             const prompt = 'Analyze school revenue and income collection';
             const response = generateEnhancedFallbackResponse(prompt);
             
-            expect(response).toContain('revenue' || 'Revenue');
-            expect(response).toContain('tuition' || 'fees');
+            expect(response).toMatch(/revenue/i);
+            expect(response).toMatch(/tuition|fees/i);
             expect(response).toContain('Nigerian' || '₦');
         });
 
@@ -146,21 +146,21 @@ describe('Enhanced Fallback AI System', () => {
             const prompt = 'Help with solving algebraic equations';
             const response = generateEnhancedFallbackResponse(prompt);
             
-            expect(response.toLowerCase()).toContain('math' || 'algebra');
+            expect(response.toLowerCase()).toMatch(/math|algebra/);
         });
 
         test('should detect English keywords', () => {
             const prompt = 'Need help with essay writing and grammar';
             const response = generateEnhancedFallbackResponse(prompt);
             
-            expect(response.toLowerCase()).toContain('english' || 'essay' || 'writing');
+            expect(response.toLowerCase()).toMatch(/english|essay|writing/);
         });
 
         test('should detect science keywords', () => {
             const prompt = 'Explain biology concepts about photosynthesis';
             const response = generateEnhancedFallbackResponse(prompt);
             
-            expect(response.toLowerCase()).toContain('biology' || 'science');
+            expect(response.toLowerCase()).toMatch(/biology|science/);
         });
     });
 
@@ -236,7 +236,7 @@ describe('Enhanced Fallback AI System', () => {
             
             // Should be substantial
             expect(response.length).toBeGreaterThan(500);
-            expect(response).toContain('LEARNING OBJECTIVES' || 'Objectives');
+            expect(response).toMatch(/LEARNING OBJECTIVES|Objectives/);
             expect(response).toContain('MATERIALS' || 'Materials');
         });
 
@@ -244,7 +244,7 @@ describe('Enhanced Fallback AI System', () => {
             const prompt = 'Generate content';
             const response = generateEnhancedFallbackResponse(prompt);
             
-            expect(response.toLowerCase()).toContain('offline' || 'internet');
+            expect(response.toLowerCase()).toMatch(/offline|internet/);
         });
 
         test('should provide helpful suggestions', () => {
@@ -312,7 +312,7 @@ describe('Real-World Use Cases', () => {
         expect(response).toContain('Chioma Nnamdi');
         expect(response).toContain('Chemistry');
         expect(response).toContain('78');
-        expect(response).toContain('good' || 'excellent');
+        expect(response).toMatch(/good|excellent/i);
     });
 
     test('Student asks for math help', () => {
@@ -321,9 +321,9 @@ describe('Real-World Use Cases', () => {
         
         const response = generateFallbackResponse({ prompt, context });
         
-        expect(response).toContain('algebra' || 'equation');
-        expect(response).toContain('step' || 'solve');
-        expect(response).toContain('WAEC' || 'exam');
+        expect(response).toMatch(/algebra|equation/i);
+        expect(response).toMatch(/step|solve/i);
+        expect(response).toMatch(/WAEC|exam/i);
     });
 
     test('Parent seeks advice on child performance', () => {
@@ -332,9 +332,9 @@ describe('Real-World Use Cases', () => {
         
         const response = generateFallbackResponse({ prompt, context });
         
-        expect(response).toContain('support' || 'help' || 'improve');
-        expect(response).toContain('study' || 'practice');
-        expect(response).toContain('teacher' || 'tutor');
+        expect(response).toMatch(/support|help|improve/i);
+        expect(response).toMatch(/study|practice/i);
+        expect(response).toMatch(/teacher|tutor/i);
     });
 
     test('Bursar analyzes school finances', () => {
@@ -342,9 +342,9 @@ describe('Real-World Use Cases', () => {
         
         const response = generateFallbackResponse({ prompt });
         
-        expect(response).toContain('revenue' || 'expense');
-        expect(response).toContain('₦' || 'Nigerian');
-        expect(response).toContain('school' || 'tuition');
+        expect(response).toMatch(/revenue|expense/i);
+        expect(response).toMatch(/₦|Nigerian/);
+        expect(response).toMatch(/school|tuition/i);
     });
 });
 

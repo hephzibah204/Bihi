@@ -10,14 +10,19 @@ export const slugSchema = z.string().regex(/^[a-z0-9-]+$/, 'Invalid slug format'
 // Student validation schema
 export const studentSchema = z.object({
   id: idSchema.optional(),
-  firstName: nameSchema,
-  lastName: nameSchema,
+  firstName: nameSchema.optional(),
+  lastName: nameSchema.optional(),
+  name: nameSchema.optional(),
   email: emailSchema.optional(),
   phone: phoneSchema.optional(),
   dateOfBirth: z.string().optional(),
+  dob: z.string().optional(),
   address: z.string().max(500, 'Address too long').optional(),
   parentId: idSchema.optional(),
   classId: idSchema.optional(),
+  class: z.string().optional(),
+  admissionNo: z.string().optional(),
+  gender: z.enum(['Male', 'Female']).optional(),
   enrollmentDate: z.string().optional(),
   status: z.enum(['active', 'inactive', 'graduated', 'transferred']).optional(),
 });
@@ -38,9 +43,10 @@ export const teacherSchema = z.object({
 // Parent validation schema
 export const parentSchema = z.object({
   id: idSchema.optional(),
-  firstName: nameSchema,
-  lastName: nameSchema,
-  email: emailSchema,
+  firstName: nameSchema.optional(),
+  lastName: nameSchema.optional(),
+  name: nameSchema.optional(),
+  email: emailSchema.optional(),
   phone: phoneSchema.optional(),
   address: z.string().max(500, 'Address too long').optional(),
   occupation: z.string().max(100, 'Occupation too long').optional(),

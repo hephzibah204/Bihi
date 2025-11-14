@@ -97,23 +97,23 @@ const TeacherDashboardContent: React.FC<TeacherDashboardContentProps> = ({ activ
                     case TEACHER_VIEWS.AI_CHAT:
                         return <AIChatPanel />;
                     case TEACHER_VIEWS.AI_ELABORATORY:
-                        return <ELaboratory setActiveView={setActiveView} />;
+                        return <ELaboratory />;
                     case TEACHER_VIEWS.AI_LESSON_PLANNER:
-                        return <LessonPlanner setActiveView={setActiveView} />;
+                        return <LessonPlanner />;
                     case TEACHER_VIEWS.AI_PRACTICE_QUIZ:
-                        return <PracticeQuiz setActiveView={setActiveView} />;
+                        return <PracticeQuiz />;
                     case TEACHER_VIEWS.AI_COMMENT_GENERATOR:
-                        return <CommentGenerator setActiveView={setActiveView} />;
+                        return <CommentGenerator />;
                     case TEACHER_VIEWS.AI_EARLY_INTERVENTION:
-                        return <EarlyIntervention setActiveView={setActiveView} />;
+                        return <EarlyIntervention />;
                     case TEACHER_VIEWS.AI_LEARNING_PATHWAYS:
-                        return <LearningPathways setActiveView={setActiveView} />;
+                        return <LearningPathways />;
                     case TEACHER_VIEWS.AI_SUBJECT_RECOMMENDER:
-                        return <SubjectRecommender setActiveView={setActiveView} />;
+                        return <SubjectRecommender />;
                     case TEACHER_VIEWS.AI_RUBRIC_GENERATOR:
-                        return <RubricGenerator setActiveView={setActiveView} />;
+                        return <RubricGenerator />;
                     case TEACHER_VIEWS.AI_PARENT_MESSAGE_COMPOSER:
-                        return <ParentMessageComposer setActiveView={setActiveView} />;
+                        return <ParentMessageComposer />;
                         
                     default:
                         return <TeacherSchedule />;

@@ -83,7 +83,7 @@ const getSubjectPosition = (
 /**
  * Helper: render Affective / Psychomotor table matching sample
  */
-const SkillsDomainTable = ({ title, skills = [], ratings = {}, theme = {} }) => {
+const SkillsDomainTable = ({ title, skills = [], ratings = {}, theme = {} as { headerColor?: string; bandColor?: string } }) => {
   // ratings expected like { [skillKey]: 1-5 }, any falsy = blank
   const resolvedSkills = skills.map((s, idx) => ({
     key: s.key || s.id || getSkillLabel(s) || `skill-${idx}`,
@@ -174,7 +174,7 @@ const ClassicReportCard = ({
       (score?.ca1 || 0) + (score?.ca2 || 0); // combined CA (40)
     const exam = score?.exam || 0; // (60)
     const total = ca + exam; // (100)
-    const gradeInfo = calculateGrade(total, gradingSystem) || {};
+    const gradeInfo = calculateGrade(total, gradingSystem);
     return {
       subjectId: subject.id,
       subjectName: subject.name,
@@ -230,6 +230,7 @@ const ClassicReportCard = ({
     totalObtainable > 0
       ? ((totalObtained / totalObtainable) * 100).toFixed(2)
       : '0.00';
+  const percentageNum = Number(percentage);
 
   // Attendance
   const attendanceSummary = summarizeAttendance(student.id, attendance);
@@ -264,11 +265,11 @@ const ClassicReportCard = ({
 
   // Simple auto head-teacher remark (optional, like sample)
   const autoHeadRemark =
-    percentage >= 85
+    percentageNum >= 85
       ? 'Excellent performance. Keep it up.'
-      : percentage >= 70
+      : percentageNum >= 70
       ? 'Very good. Aim even higher next term.'
-      : percentage >= 50
+      : percentageNum >= 50
       ? 'Fair result. More hard work is required.'
       : 'Below expectation. Serious improvement needed.';
 

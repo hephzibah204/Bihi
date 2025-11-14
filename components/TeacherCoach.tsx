@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { listMicroCourses, normalizeToYouTubeEmbed, markCourseCompleted } from '../services/teacherCoach';
+import VideoTranscriptPanel from './VideoTranscriptPanel';
+import VideoQuiz from './VideoQuiz';
 import { USER_ROLES } from '../utils/constants';
 import { getPracticeEvents } from '../services/telemetry';
 import DocumentTextIcon from './icons/DocumentTextIcon';
@@ -123,6 +125,22 @@ const TeacherCoach: React.FC = () => {
               </div>
               <div className="mt-2">
                 <div className="text-xs text-gray-500">Skills: {selected.skills.join(', ')}</div>
+              </div>
+              <div className="mt-4">
+                <VideoTranscriptPanel
+                  courseId={selected.id}
+                  title={selected.title}
+                  description={selected.description}
+                  videoUrl={selected.videoUrl}
+                />
+              </div>
+              <div className="mt-4">
+                <VideoQuiz
+                  courseId={selected.id}
+                  title={selected.title}
+                  description={selected.description}
+                  videoUrl={selected.videoUrl}
+                />
               </div>
             </div>
           ) : (

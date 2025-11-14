@@ -3,6 +3,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi, type MockedFunction } from 'vitest';
 import { getConnectionManager, ConnectionManager } from '../utils/connectionManager';
+import { isSupabaseOnline } from '../services/supabaseClient';
 import { getAIService } from '../services/aiService';
 import { logger } from '../utils/logger';
 
@@ -27,8 +28,15 @@ vi.mock('../utils/logger', () => ({
     getInstance: vi.fn(() => ({
       info: vi.fn(),
       warn: vi.fn(),
-      error: vi.fn()
+      error: vi.fn(),
+      captureError: vi.fn()
     }))
+  },
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    captureError: vi.fn()
   }
 }));
 
@@ -78,7 +86,6 @@ describe('Offline Mode and Connection Management', () => {
     
     (getAIService as MockedFunction<any>).mockReturnValue(mockAIService);
     
-    const { isSupabaseOnline } = require('../services/supabaseClient');
     mockSupabaseOnline = isSupabaseOnline as MockedFunction<any>;
     mockSupabaseOnline.mockResolvedValue(true);
 

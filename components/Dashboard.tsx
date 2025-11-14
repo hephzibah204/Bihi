@@ -304,7 +304,7 @@ const Dashboard = () => {
                 </div>
             <SyncStatusIndicator />
             <GlobalNotification />
-                <Chatbot userRole={role as string} activeView={activeView} />
+                
                 </>
             </PlanFeaturesProvider>
         </TenantProvider>

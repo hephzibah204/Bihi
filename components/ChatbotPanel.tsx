@@ -388,12 +388,12 @@ const ChatbotPanel = ({ isOpen, onClose, userRole, demoUserId, activeView, title
         try {
             const svc = getConversationService();
             const msgs = await svc.getMessages(id);
-            const mapped = (msgs || []).map(m => ({
+            const mapped: ChatMessage[] = (msgs || []).map(m => ({
                 id: m.id,
                 sender: m.role === 'assistant' ? 'ai' : 'user',
                 text: m.content,
                 metadata: m.metadata,
-            }));
+            })) as ChatMessage[];
             setConversationId(id);
             setMessages(mapped);
             setIsHistoryOpen(false);

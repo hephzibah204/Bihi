@@ -142,24 +142,20 @@ const AIToolsNavigation: React.FC<AIToolsNavigationProps> = ({ setActiveView }) 
     );
 
     const handleToolClick = (tool: AITool) => {
-        let viewConstant: string;
-        
         switch (currentRole) {
             case USER_ROLES.TEACHER:
-                viewConstant = (TEACHER_VIEWS as any)[tool.view];
-                break;
+                setActiveView((TEACHER_VIEWS as any)[tool.view] as TeacherView);
+                return;
             case USER_ROLES.STUDENT:
-                viewConstant = (STUDENT_VIEWS as any)[tool.view];
-                break;
+                setActiveView((STUDENT_VIEWS as any)[tool.view] as StudentView);
+                return;
             case USER_ROLES.PARENT:
-                viewConstant = (PARENT_VIEWS as any)[tool.view];
-                break;
+                setActiveView((PARENT_VIEWS as any)[tool.view] as ParentView);
+                return;
             default:
-                viewConstant = (ADMIN_VIEWS as any)[tool.view];
-                break;
+                setActiveView((ADMIN_VIEWS as any)[tool.view] as DashboardView);
+                return;
         }
-        
-        setActiveView(viewConstant);
     };
 
     return (

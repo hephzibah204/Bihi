@@ -169,7 +169,7 @@ const ModernReportCard = ({
         ).toFixed(1)
       : '';
 
-    const gradeInfo = calculateGrade(total, gradingSystem) || {};
+    const gradeInfo = calculateGrade(total, gradingSystem);
     const subjPos = getSubjectPosition(
       subject.id,
       student.id,
@@ -215,9 +215,7 @@ const ModernReportCard = ({
       ? ((totalObtained / totalObtainable) * 100).toFixed(1)
       : '0.0';
 
-  const overallGrade =
-    (calculateGrade(Number(overallPct), gradingSystem) || {})
-      .grade || '';
+  const overallGrade = calculateGrade(Number(overallPct), gradingSystem).grade || '';
 
   const attendanceSummary = summarizeAttendance(student.id, attendance);
   const opened = attendanceSummary.total || 0;

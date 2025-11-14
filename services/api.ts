@@ -260,7 +260,7 @@ export const apiUpsertStudent = async (student: Partial<Student>) => {
                 name: validatedStudent.name || 'New Student',
                 admissionNo: validatedStudent.admissionNo || `ADM-${Date.now()}`,
                 class: validatedStudent.class || '',
-                gender: validatedStudent.gender || '',
+                gender: validatedStudent.gender,
                 status: validatedStudent.status || 'active',
                 created_at: new Date().toISOString(),
                 ...validatedStudent
@@ -934,7 +934,13 @@ export const getCurrentUser = async (): Promise<any> => {
     }
     
     const teachers = await apiGetTeachers();
-    return teachers.find(t => t.email.toLowerCase() === user.email.toLowerCase());
+    const found = teachers.find(t => t.email.toLowerCase() === user.email.toLowerCase());
+    if (!found) return null;
+    const demoFlag = (typeof window !== 'undefined') && ((sessionStorage.getItem('isDemoMode') === 'true') || (localStorage.getItem('isDemoMode') === 'true'));
+    if (demoFlag && (!found.classTeacherOf || found.classTeacherOf.trim() === '')) {
+        return { ...found, classTeacherOf: 'JSS 1A' } as any;
+    }
+    return found;
 };
 
 export const apiGetMessagableUsers = async (currentUser) => {

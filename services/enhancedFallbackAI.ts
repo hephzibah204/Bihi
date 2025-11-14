@@ -799,8 +799,8 @@ class SemanticMatcher {
         const subjectMatch = prompt.match(/subject:?\s*([A-Za-z\s]+?)(?:\n|$|,)/i);
         const scoreMatch = prompt.match(/score:?\s*([0-9]+)/i);
         const gradeMatch = prompt.match(/grade:?\s*([A-F][0-9]?)/i);
-        const classMatch = prompt.match(/class:?\s*(JSS?|SS?)\s*([1-3])/i);
-        const topicMatch = prompt.match(/topic:?\s*["']?([^"'\n]+)["']?/i);
+        const classMatch = prompt.match(/class:?\s*(JSS?|SS?)\s*([1-3])/i) || prompt.match(/\b(SS|JSS)\s*([1-3])\b/i);
+        const topicMatch = prompt.match(/topic:?\s*["']?([^"'\n]+)["']?/i) || prompt.match(/\bon\s+([A-Za-z][^,.;\n]+)/i);
         
         if (nameMatch) context.name = nameMatch[1].trim();
         if (subjectMatch) context.subject = subjectMatch[1].trim();
@@ -887,8 +887,9 @@ export class EnhancedFallbackAI {
         // Extract context from prompt
         const extractedContext = SemanticMatcher.extractContext(prompt);
         
-        // Merge contexts
-        const fullContext = { ...context, ...extractedContext, subject };
+        // Merge contexts, prefer explicit subject from extraction/context over detected
+        const fullContext: any = { ...context, ...extractedContext };
+        if (!fullContext.subject && subject) fullContext.subject = subject;
         
         // Generate appropriate response
         let response: AIResponse;
@@ -974,6 +975,35 @@ export class EnhancedFallbackAI {
                 .replace(/{code}/g, 'XX.X')
                 .replace(/{number}/g, 'X.X')
                 .replace(/{essayType}/g, context.essayType || 'Argumentative');
+        } else if (subject === 'sciences') {
+            const pl = prompt.toLowerCase();
+            if (pl.includes('biology')) {
+                response = `**Biology Help (Offline Mode)**
+
+I can guide you through biology concepts like photosynthesis, cell structure, and genetics.
+
+**Study Approach:**
+1. Read definitions and draw labeled diagrams
+2. Memorize processes with steps (e.g., photosynthesis: light reactions → Calvin cycle)
+3. Practice WAEC-style short answers and diagrams
+
+**Quick Tip:** Use flashcards for biological terms.
+
+For detailed step-by-step examples and interactive practice, connect to the internet.`;
+                confidence = 0.75;
+            } else {
+                response = `**Science Help (Offline Mode)**
+
+I can assist with physics, chemistry, and biology basics.
+
+**General Strategy:**
+• Understand definitions and laws
+• Practice calculations
+• Draw and label diagrams (especially in biology)
+
+For deeper explanations and experiments, connect to the internet.`;
+                confidence = 0.65;
+            }
         } else {
             // Early Years specialized fallback if Nursery/Primary detected
             const isEarly = /nursery|kg|kindergarten|primary(\s*[1-3])?|lower\s*basic|basic\s*[1-3]/i.test(classLevel);
@@ -1169,7 +1199,7 @@ By the end of this lesson, students will be able to:
         // Get subject-specific tutoring response
         if (subject === 'mathematics' || subject === 'math') {
             if (prompt.toLowerCase().includes('algebra')) {
-                const responses = ENHANCED_TEMPLATES.tutorResponses.mathematics.algebra;
+                const responses = ENHANCED_TEMPLATES.tutorResponses.mathematics.algebra.map(r => r + "\n\nIn algebra, you often solve equations by isolating the variable step-by-step.");
                 response = responses[Math.floor(Math.random() * responses.length)];
                 confidence = 0.85;
             } else if (prompt.toLowerCase().includes('geometry')) {
@@ -1288,6 +1318,10 @@ When you connect to the internet, I can provide:
 • Real-time doubt clearing
 
 What subject or topic would you like to focus on?`;
+            if (prompt.toLowerCase().includes('grading')) {
+                const grades = Object.keys(NIGERIAN_CURRICULUM.gradingSystem).join(', ');
+                response += `\n\n**Nigerian Grading System:**\n• Common grades: ${grades}\n• WAEC/NECO use A1 (Excellent) through F9 (Fail)`;
+            }
             confidence = 0.5;
         }
         
@@ -1440,6 +1474,8 @@ I can provide basic financial guidance in offline mode.
 • Government regulations and taxes
 • Infrastructure maintenance needs
 
+• Currency: Naira (₦) for all local calculations
+
 **Financial Health Checklist:**
 ✓ Revenue exceeds expenses
 ✓ Strong fee collection rate
@@ -1476,7 +1512,7 @@ What specific financial aspect would you like to explore?`;
         const subject = (context?.subject || 'General').toLowerCase();
         const classLevel = context?.class || 'SS2';
 
-        const response = `**Structured Response (Offline)**\n\n` +
+        let response = `**Structured Response (Offline)**\n\n` +
             `**Request Summary:** ${normalizedPrompt || 'General inquiry'}\n\n` +
             `**Guided Approach:**\n` +
             `• Clarify objectives and desired outcome\n` +
@@ -1497,6 +1533,11 @@ What specific financial aspect would you like to explore?`;
             `• For tutoring, state the concept and difficulty level\n` +
             `• For parent support, describe the specific concern\n\n` +
             `*Generated using enhanced offline templates. Connect to the internet for deeper personalization and real-time data analysis.*`;
+
+        if (normalizedPrompt.toLowerCase().includes('grading')) {
+            const grades = Object.keys(NIGERIAN_CURRICULUM.gradingSystem).join(', ');
+            response += `\n\n**Nigerian Grading System:**\n• Common grades: ${grades}\n• WAEC/NECO use A1 (Excellent) through F9 (Fail)`;
+        }
         
         return {
             content: mdToHtmlLite(response),

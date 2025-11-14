@@ -55,7 +55,7 @@ const StudentDashboardContent = ({ activeView, setActiveView, demoUserId }: Stud
                     case STUDENT_VIEWS.AI_CHAT:
                         return <AIChatPanel />;
                     case STUDENT_VIEWS.AI_ELABORATORY:
-                        return <ELaboratory setActiveView={setActiveView} />;
+                        return <ELaboratory />;
                     case STUDENT_VIEWS.AI_SUBJECT_RECOMMENDER:
                         return <SubjectRecommender userRole={USER_ROLES.STUDENT} />;
                     case STUDENT_VIEWS.AI_PRACTICE_QUIZ:

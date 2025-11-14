@@ -42,7 +42,7 @@ const MinimalistReportCard = ({
     const ca = (score?.ca1 || 0) + (score?.ca2 || 0);
     const exam = score?.exam || 0;
     const total = ca + exam;
-    const gradeInfo = calculateGrade(total, gradingSystem) || {};
+    const gradeInfo = calculateGrade(total, gradingSystem);
     return {
       subjectId: subject.id,
       subjectName: subject.name,
@@ -73,8 +73,7 @@ const MinimalistReportCard = ({
       ? ((totalObtained / totalObtainable) * 100).toFixed(1)
       : '0.0';
 
-  const overallGradeInfo =
-    calculateGrade(Number(overallPercentage), gradingSystem) || {};
+  const overallGradeInfo = calculateGrade(Number(overallPercentage), gradingSystem);
 
   // Attendance
   const attendanceSummary = summarizeAttendance(student.id, attendance);
@@ -297,11 +296,7 @@ const MinimalistReportCard = ({
               <span className="font-semibold">
                 {
                   results.filter((r) => {
-                    const gi =
-                      calculateGrade(
-                        r.total,
-                        gradingSystem
-                      ) || {};
+                    const gi = calculateGrade(r.total, gradingSystem);
                     return (gi.grade || '').toUpperCase() !== 'F';
                   }).length
                 }{' '}

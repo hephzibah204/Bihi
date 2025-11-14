@@ -20,19 +20,29 @@ export type DashboardView =
   | 'bursary' | 'communications' | 'ai-tools' | 'analytics' | 'alumni' | 'staff'
   | 'parents' | 'timetable' | 'id-cards' | 'behavioral-remarks' | 'general-remarks'
   | 'help' | 'resource-hub' | 'billing' | 'more' | 'events' | 'absence-management'
-  | 'platform-settings' | 'users' | 'pages' | 'menus' | 'blog-articles' | 'kb-articles';
+  | 'platform-settings' | 'users' | 'pages' | 'menus' | 'blog-articles' | 'kb-articles'
+  | 'print-center'
+  | 'ai-coach-manager' | 'ai-chat' | 'ai-elaboratory' | 'ai-lesson-planner' | 'ai-practice-quiz'
+  | 'ai-comment-generator' | 'ai-early-intervention' | 'ai-learning-pathways' | 'ai-subject-recommender'
+  | 'ai-rubric-generator' | 'ai-parent-message-composer';
   
 export type TeacherView = 
   | 'dashboard' | 'my-students' | 'enter-scores' | 'my-schedule' | 'ai-tools'
-  | 'resource-hub' | 'my-payslips' | 'help' | 'more' | 'assignments' | 'behavioral' | 'broadsheet';
+  | 'resource-hub' | 'my-payslips' | 'help' | 'more' | 'assignments' | 'behavioral' | 'broadsheet'
+  | 'ai-chat' | 'ai-elaboratory' | 'ai-lesson-planner' | 'ai-practice-quiz'
+  | 'ai-comment-generator' | 'ai-early-intervention' | 'ai-learning-pathways' | 'ai-subject-recommender'
+  | 'ai-rubric-generator' | 'ai-parent-message-composer' | 'lesson-templates' | 'ai-coach'
+  | 'attendance' | 'messages' | 'notifications' | 'report-cards' | 'comprehensive-entry' | 'student-profile';
   
 export type StudentView = 
   | 'dashboard' | 'results' | 'assignments' | 'timetable' | 'ai-tools'
-  | 'profile' | 'notifications' | 'transcript' | 'ai-tutor' | 'broadsheet';
+  | 'profile' | 'notifications' | 'transcript' | 'ai-tutor' | 'broadsheet'
+  | 'ai-chat' | 'ai-elaboratory' | 'ai-subject-recommender' | 'ai-practice-quiz' | 'ai-learning-pathways';
   
 export type ParentView = 
   | 'dashboard' | 'results' | 'fees' | 'attendance' | 'behavioral'
-  | 'assignments' | 'messages' | 'profile' | 'events' | 'report-absence';
+  | 'assignments' | 'messages' | 'profile' | 'events' | 'report-absence'
+  | 'ai-tools' | 'ai-chat' | 'ai-elaboratory' | 'ai-subject-recommender';
 
 // Data Models
 export interface ClassHistoryItem {
@@ -143,6 +153,8 @@ export interface Assignment {
     dueDate: string;
     maxScore: number;
     type?: string;
+    includeInCA?: boolean;
+    caWeight?: number;
 }
 
 export interface AssignmentScore {
@@ -261,6 +273,7 @@ export interface Plan {
 export interface ReportCardSkill {
     id: string;
     label: string;
+    key?: string;
 }
 
 export interface ClassSection {
@@ -291,6 +304,12 @@ export interface SchoolSettings {
   };
   schoolAddress?: string;
   schoolLogo?: string;
+  logoUrl?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  schoolMotto?: string;
+  motto?: string;
   schoolType?: string;
   session: string;
   term: string;

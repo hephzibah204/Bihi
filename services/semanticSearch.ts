@@ -199,7 +199,7 @@ export class SemanticSearchEngine {
     /**
      * Search for semantically similar documents
      */
-    public search(query: string, topK: number = 5, minSimilarity: number = 0.3): SemanticMatch[] {
+    public search(query: string, topK: number = 5, minSimilarity: number = 0.1): SemanticMatch[] {
         if (this.documents.size === 0) return [];
         
         const queryVector = this.createVector(query);
