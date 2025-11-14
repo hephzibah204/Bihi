@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAI } from '../hooks/useAI';
-import { callGeminiApi } from '../services/geminiService';
 import { normalizeAIText } from '../utils/aiNormalize';
 // FIX: Corrected import path for api services.
 import { apiGetStudents, apiGetSubjects } from '../services/api';
@@ -27,7 +26,7 @@ const LearningPathways: React.FC<LearningPathwaysProps> = ({ studentId, userRole
     const [topic, setTopic] = useState<string>(initialTopic);
     const [learningStyle, setLearningStyle] = useState<string>('Balanced');
     const [generatedPathway, setGeneratedPathway] = useState<string>('');
-    const { status } = useAI();
+    const { status, generateResponse } = useAI();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const isStudentView = userRole === USER_ROLES.STUDENT;
@@ -87,8 +86,8 @@ Constraints:
 - Use <strong> for emphasis where helpful.
 - No extra commentary before or after the HTML.`;
 
-            const result = await callGeminiApi(prompt, { responseMimeType: 'text/html' });
-            setGeneratedPathway(normalizeAIText(result));
+            const result = await generateResponse(prompt, undefined, 'learning-pathway');
+            setGeneratedPathway(normalizeAIText(result.content));
         } catch (err) {
             const msg = (err as any)?.message || String(err);
             setError(`Failed to generate learning pathway: ${msg}`);

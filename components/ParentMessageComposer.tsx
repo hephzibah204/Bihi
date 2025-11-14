@@ -4,7 +4,7 @@ import { Student, Score } from '../types';
 import ChatBubbleLeftRightIcon from './icons/ChatBubbleLeftRightIcon';
 import SparklesIcon from './icons/SparklesIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
-import { callGeminiApi } from '../services/geminiService';
+import { useAI } from '../hooks/useAI';
 import { normalizeAIText } from '../utils/aiNormalize';
 
 const ParentMessageComposer: React.FC = () => {
@@ -64,8 +64,8 @@ Constraints:
 - Use only information provided above; no generic disclaimers.
 `;
 
-      const result = await callGeminiApi(prompt, { responseMimeType: 'text/html' });
-      setMessageHtml(normalizeAIText(result));
+      const result = await generateResponse(prompt, undefined, 'parent-message');
+      setMessageHtml(normalizeAIText(result.content));
     } catch (err) {
       const msg = (err as any)?.message || String(err);
       setError(`Failed to generate message: ${msg}`);
@@ -128,3 +128,4 @@ Constraints:
 };
 
 export default ParentMessageComposer;
+  const { generateResponse } = useAI();

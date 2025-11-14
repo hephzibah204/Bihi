@@ -7,7 +7,7 @@ import { geminiToHtml } from '../utils/geminiFormat';
 import SimulationSuggestionCard, { SimulationSuggestion } from './SimulationSuggestionCard';
 import ImagePreview from './ImagePreview';
 import SparklesIcon from './icons/SparklesIcon';
-import { callGeminiApi, callGeminiApiStream } from '../services/geminiService';
+import { useAI } from '../hooks/useAI';
 import { getBananaImageService } from '../services/bananaImageService';
 import UserCircleIcon from './icons/UserCircleIcon';
 import ChatHistorySidebar from './ChatHistorySidebar';
@@ -108,6 +108,7 @@ const Chat: React.FC<ChatProps> = ({ title = 'AI Chat' }) => {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user, session } = useAuth();
+  const { generateResponse, generateResponseStream } = useAI();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -152,17 +153,17 @@ const Chat: React.FC<ChatProps> = ({ title = 'AI Chat' }) => {
 
       // Prefer streaming text generation
       setIsStreaming(true);
-      await callGeminiApiStream(prompt, (chunk) => {
+      await generateResponseStream({ prompt, onChunk: (chunk) => {
         const text = String(chunk || '');
         if (!text) return;
         assistantTextRef.current += text;
         setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, text: (m.text || '') + text } : m));
-      });
+      }});
     } catch (err) {
       // Fallback to non-stream
       try {
-        const text = await callGeminiApi(prompt);
-        const html = geminiToHtml(text);
+        const resp = await generateResponse(prompt);
+        const html = geminiToHtml(resp.content);
         const msg: ChatMessage = { id: assistantId, role: 'assistant', html } as ChatMessage;
         setMessages(prev => prev.map(m => m.id === assistantId ? msg : m));
       } catch (err2) {

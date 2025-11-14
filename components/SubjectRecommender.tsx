@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { apiGetStudents, apiGetScores, apiGetSubjects } from '../services/api';
 import { useAI } from '../hooks/useAI';
-import { callGeminiApi } from '../services/geminiService';
 import { normalizeAIText } from '../utils/aiNormalize';
 import { Student, Score, Subject } from '../types';
 import GraduationCapIcon from './icons/GraduationCapIcon';
@@ -20,7 +19,7 @@ const SubjectRecommender: React.FC<SubjectRecommenderProps> = ({ studentId, user
     const [selectedStudentId, setSelectedStudentId] = useState<string>('');
     const [interests, setInterests] = useState<string>('');
     const [recommendations, setRecommendations] = useState<string>('');
-    const { status } = useAI();
+    const { status, generateResponse } = useAI();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const isStudentView = userRole === USER_ROLES.STUDENT;
@@ -85,8 +84,8 @@ Instructions:
 - Each <li> starts with <strong>Subject</strong> followed by a short justification.
 - No extra text before or after the <ul>.`;
 
-            const result = await callGeminiApi(prompt, { responseMimeType: 'text/html' });
-            setRecommendations(normalizeAIText(result));
+            const result = await generateResponse(prompt, undefined, 'subject-recommender');
+            setRecommendations(normalizeAIText(result.content));
 
         } catch (err) {
             const msg = (err as any)?.message || String(err);

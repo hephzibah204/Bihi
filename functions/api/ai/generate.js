@@ -272,30 +272,39 @@ async function handlePost(request, env) {
         let lastErrorBody = '';
         let lastStatus = 500;
         for (const m of order) {
-            const aiRes = await fetch(makeUrl(m), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: payload,
-            });
-
-            if (aiRes.ok) {
-                return new Response(aiRes.body, {
-                    status: 200,
-                    headers: {
-                        'Content-Type': 'text/event-stream',
-                        'Cache-Control': 'no-cache',
-                        'Connection': 'keep-alive',
-                    }
+            let aiRes;
+            let attempt = 0;
+            // Retry on 503 (overloaded) with backoff
+            while (attempt < 3) {
+                attempt++;
+                aiRes = await fetch(makeUrl(m), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: payload,
                 });
+                if (aiRes.ok) {
+                    return new Response(aiRes.body, {
+                        status: 200,
+                        headers: {
+                            'Content-Type': 'text/event-stream',
+                            'Cache-Control': 'no-cache',
+                            'Connection': 'keep-alive',
+                        }
+                    });
+                }
+                lastStatus = aiRes.status;
+                try { lastErrorBody = await aiRes.text(); } catch { lastErrorBody = ''; }
+                if (aiRes.status !== 503) break; // break for non-overload errors
+                const delay = attempt * 800;
+                console.warn(`Gemini overloaded on ${m}. Retry ${attempt}/3 in ${delay}ms...`);
+                await new Promise(r => setTimeout(r, delay));
             }
-
-            lastStatus = aiRes.status;
-            try { lastErrorBody = await aiRes.text(); } catch { lastErrorBody = ''; }
-            if (aiRes.status === 404) {
-                // Try next model
+            // If 404 or continued failure, try next model
+            if (lastStatus === 404 || lastStatus === 503) {
+                console.warn(`${m} failed with ${lastStatus}. Trying next model...`);
                 continue;
             }
-            // For non-404 errors, break and return
+            // Other errors: break and report
             break;
         }
 
@@ -306,6 +315,42 @@ async function handlePost(request, env) {
         } catch (e) {
             if (lastErrorBody) errorMessage = lastErrorBody;
         }
+        // Optional HuggingFace fallback if configured
+        try {
+            if (env.HUGGINGFACE_API_KEY) {
+                const hfResp = await fetch('https://router.huggingface.co/hf-inference/models/google/flan-t5-base', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${env.HUGGINGFACE_API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ inputs: `${systemPrompt}\n\nUser Prompt:\n${prompt}`, parameters: { max_new_tokens: 512, temperature: 0.7, return_full_text: false } })
+                });
+                if (hfResp.ok) {
+                    const raw = await hfResp.text();
+                    let text = '';
+                    try {
+                        const json = JSON.parse(raw);
+                        text = Array.isArray(json) ? (json[0]?.generated_text || '') : (json?.generated_text || raw);
+                    } catch {
+                        text = raw;
+                    }
+                    const stream = new ReadableStream({
+                        start(controller) {
+                            const msg = `data: ${JSON.stringify({ candidates: [{ content: { parts: [{ text }] } }] })}\n\n`;
+                            controller.enqueue(new TextEncoder().encode(msg));
+                            controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
+                            controller.close();
+                        }
+                    });
+                    return new Response(stream, {
+                        status: 200,
+                        headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' }
+                    });
+                }
+            }
+        } catch (_) { /* ignore HF fallback errors */ }
+
         return new Response(JSON.stringify({ error: errorMessage }), { status: lastStatus });
 
     } catch (err) {

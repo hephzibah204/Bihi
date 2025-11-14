@@ -396,8 +396,13 @@ export const generateText = async (prompt: string): Promise<string> => {
         return formatted.content;
     } catch (e: any) {
         try { window.dispatchEvent(new CustomEvent('show-global-error', { detail: { title: 'AI Service Error', message: e?.message || 'AI service unavailable' } })); } catch { /* noop */ }
-        const { generateEnhancedFallbackResponse } = await import('./enhancedFallbackAI');
-        return generateEnhancedFallbackResponse(prompt);
+        try {
+            const { generateFallbackResponseAsync } = await import('./fallbackAiService');
+            return await generateFallbackResponseAsync(prompt);
+        } catch {
+            const { generateEnhancedFallbackResponse } = await import('./enhancedFallbackAI');
+            return generateEnhancedFallbackResponse(prompt);
+        }
     }
 };
 
