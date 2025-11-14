@@ -6,7 +6,9 @@ import { isValidGeminiApiKey, GEMINI_KEY_ERRORS } from '../utils/geminiKeyResolv
 import { supabase, initSupabase } from './supabaseClient';
 import { getTenantId } from './api';
 import { getAIResponseCache } from './aiResponseCache';
+import { getGeminiAIService, formatAIResponse } from './geminiAIService';
 import { logger } from '../utils/logger';
+import { generateEnhancedFallbackResponse } from './enhancedFallbackAI';
 
 // Prefer Supabase Edge Function if configured; otherwise use local proxy
 const AI_ENDPOINT = (
@@ -197,8 +199,15 @@ cache.cacheResponse(actualPrompt, text, 'gemini', opts.context);
     }
     
   } catch (error) {
-    // If the server proxy endpoint is unreachable, try direct Gemini fallback
-    if ((error as any).message?.includes('Failed to fetch')) {
+    const msg = String((error as any)?.message || '').toLowerCase();
+    if (msg.includes('503') || msg.includes('overloaded') || msg.includes('quota') || msg.includes('429')) {
+      try {
+        const text = generateEnhancedFallbackResponse(actualPrompt, opts.context);
+        try { window.dispatchEvent(new CustomEvent('show-global-error', { detail: { title: 'AI Fallback Activated', message: 'Gemini is overloaded. Generated using offline templates.' } })); } catch { /* noop */ }
+        return text;
+      } catch { /* noop */ }
+    }
+    if (msg.includes('failed to fetch')) {
       let fallbackErr: any = null;
       try {
         const text = await directGeminiGenerate(actualPrompt);
@@ -372,7 +381,24 @@ export const callGeminiApiStream = async (
  * New components should use the `useAI` hook for robust error handling and fallback capabilities.
  */
 export const generateText = async (prompt: string): Promise<string> => {
-    return callGeminiApi(prompt);
+    try {
+        const service = getGeminiAIService();
+        const response = await service.generate({ prompt });
+        const formatted = formatAIResponse(response);
+        try {
+            if (formatted.notification) {
+                const n = formatted.notification;
+                const isWarning = n.type === 'warning' || n.showFallbackInfo;
+                const evt = isWarning ? 'show-global-error' : 'show-global-success';
+                window.dispatchEvent(new CustomEvent(evt, { detail: { title: isWarning ? 'AI Fallback Active' : 'AI Response Ready', message: n.message } }));
+            }
+        } catch { /* noop */ }
+        return formatted.content;
+    } catch (e: any) {
+        try { window.dispatchEvent(new CustomEvent('show-global-error', { detail: { title: 'AI Service Error', message: e?.message || 'AI service unavailable' } })); } catch { /* noop */ }
+        const { generateEnhancedFallbackResponse } = await import('./enhancedFallbackAI');
+        return generateEnhancedFallbackResponse(prompt);
+    }
 };
 
 // --- Direct Gemini fallback (client-side) ---
@@ -420,6 +446,7 @@ async function pickUsableModel(apiKey: string, preferred: string): Promise<strin
 async function directGeminiGenerate(prompt: string): Promise<string> {
     const { apiKey, model } = getGeminiEnv();
     let chosen = model;
+    let attempts = 0;
 
     async function tryGenerate(modelName: string): Promise<string> {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
@@ -427,7 +454,13 @@ async function directGeminiGenerate(prompt: string): Promise<string> {
         const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
         if (!resp.ok) {
             const txt = await resp.text();
-            throw new Error(`Gemini API error: ${resp.status} ${txt}`);
+            const msg = `Gemini API error: ${resp.status} ${txt}`;
+            if ((resp.status === 429 || resp.status === 503) && attempts < 3) {
+                attempts++;
+                await new Promise(r => setTimeout(r, 500 * attempts));
+                return tryGenerate(modelName);
+            }
+            throw new Error(msg);
         }
         const data = await resp.json();
         return data?.candidates?.[0]?.content?.parts?.[0]?.text || data?.text || '';
@@ -436,9 +469,19 @@ async function directGeminiGenerate(prompt: string): Promise<string> {
     try {
         return await tryGenerate(chosen);
     } catch (e: any) {
-        if ((e?.message || '').includes('404') || (e?.message || '').includes('NOT_FOUND') || (e?.message || '').toLowerCase().includes('unsupported')) {
+        const emsg = String(e?.message || '').toLowerCase();
+        if (emsg.includes('404') || emsg.includes('not_found') || emsg.includes('unsupported')) {
             chosen = await pickUsableModel(apiKey, chosen);
             return await tryGenerate(chosen);
+        }
+        if (emsg.includes('503') || emsg.includes('overloaded') || emsg.includes('quota') || emsg.includes('429')) {
+            try {
+                const fallback = generateEnhancedFallbackResponse(prompt);
+                try { window.dispatchEvent(new CustomEvent('show-global-error', { detail: { title: 'AI Fallback Activated', message: 'Gemini is overloaded. Generated using offline templates.' } })); } catch { /* noop */ }
+                return fallback;
+            } catch {
+                throw e;
+            }
         }
         throw e;
     }

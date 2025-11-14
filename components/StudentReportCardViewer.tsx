@@ -4,7 +4,7 @@ import { apiGetScores, apiGetSubjects, apiGetStudents, apiGetSchoolSettings, api
 import { getReportCardTemplate } from '../utils/reportCardHelper';
 import PrinterIcon from './icons/PrinterIcon';
 import ArrowDownTrayIcon from './icons/ArrowDownTrayIcon';
-import { downloadElementAsPdf } from '../utils/pdfUtils';
+import { useReportCardExporter } from '../hooks/useReportCardExporter';
 import '../styles/report-card.css';
 import ZoomablePreview from './ZoomablePreview';
 import { USER_ROLES } from '../utils/constants';
@@ -290,21 +290,13 @@ const StudentReportCardViewer = ({ demoUserId }) => {
                                 </button>
                             )}
                             <button
-                                onClick={async () => {
-                                    const el = document.querySelector('.printable-content') as HTMLElement | null;
-                                    const hadOffscreen = !!el && el.classList.contains('offscreen');
-                                    if (hadOffscreen) el.classList.remove('offscreen');
-                                    try {
-                                        await downloadElementAsPdf('.printable-content', reportData?.student?.name || 'report-card');
-                                    } finally {
-                                        if (hadOffscreen && el) el.classList.add('offscreen');
-                                    }
-                                }}
+                                onClick={() => exportToPDF('report-card-student-preview', reportData?.student?.name || 'report-card')}
                                 className="btn btn-secondary flex-1 md:flex-none"
                                 title="Download as PDF"
+                                disabled={exporting}
                             >
                                 <ArrowDownTrayIcon className="w-5 h-5 mr-2" />
-                                Download PDF
+                                {exporting ? 'Generating…' : 'Download PDF'}
                             </button>
                             <button onClick={() => window.print()} className="btn btn-primary flex-1 md:flex-none">
                                 <PrinterIcon className="w-5 h-5 mr-2" />
@@ -320,7 +312,7 @@ const StudentReportCardViewer = ({ demoUserId }) => {
                 <div className="mx-auto max-w-full md:max-w-4xl">
                     {/* Mobile: render content offscreen to avoid heavy preview while keeping print/download working */}
                     <div className="block md:hidden">
-                        <div className={`printable-content mx-auto bg-white shadow-lg report-card-page rounded-md ${isMobile && !showMobilePreview ? 'offscreen' : ''}`}>
+                        <div id={isMobile ? 'report-card-student-preview' : undefined} className={`printable-content mx-auto bg-white shadow-lg report-card-page rounded-md ${isMobile && !showMobilePreview ? 'offscreen' : ''}`}>
                             <ReportCardComponent
                                 {...reportData}
                                 student={{ ...reportData.student, class: effectiveClass }}
@@ -334,7 +326,7 @@ const StudentReportCardViewer = ({ demoUserId }) => {
                     </div>
                     {/* Desktop: normal visible preview */}
                     <div className="hidden md:block">
-                        <div className="printable-content mx-auto bg-white shadow-lg report-card-page rounded-md md:rounded-lg">
+                        <div id={!isMobile ? 'report-card-student-preview' : undefined} className="printable-content mx-auto bg-white shadow-lg report-card-page rounded-md md:rounded-lg">
                             <ReportCardComponent
                                 {...reportData}
                                 student={{ ...reportData.student, class: effectiveClass }}
@@ -350,3 +342,4 @@ const StudentReportCardViewer = ({ demoUserId }) => {
 };
 
 export default StudentReportCardViewer;
+    const { exporting, exportToPDF } = useReportCardExporter();
