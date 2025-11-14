@@ -311,9 +311,8 @@ const StudentReportCardViewer = ({ demoUserId }) => {
             {/* A4-like preview container; hide visible preview on mobile */}
             <div className="w-full px-2 report-card-wrapper">
                 <div className="mx-auto max-w-full md:max-w-4xl">
-                    {/* Mobile: render content offscreen to avoid heavy preview while keeping print/download working */}
                     <div className="block md:hidden">
-                        <div id={isMobile ? 'report-card-student-preview' : undefined} className={`printable-content mx-auto bg-white shadow-lg report-card-page rounded-md ${isMobile && !showMobilePreview ? 'offscreen' : ''}`}>
+                        <div id="report-card-student-preview" className={`printable-content mx-auto bg-white shadow-lg report-card-page rounded-md offscreen`}>
                             <ReportCardComponent
                                 {...reportData}
                                 student={{ ...reportData.student, class: effectiveClass }}
@@ -322,7 +321,26 @@ const StudentReportCardViewer = ({ demoUserId }) => {
                             />
                         </div>
                         {!showMobilePreview && (
-                            <div className="no-print text-xs text-gray-500 text-center mt-2">Preview disabled on mobile. Tap "Show Preview" to view.</div>
+                            <div className="a4-thumbnail no-print">
+                                <div className="a4-thumbnail-inner">
+                                    <ReportCardComponent
+                                        {...reportData}
+                                        student={{ ...reportData.student, class: effectiveClass }}
+                                        term={selectedTerm || reportData.term}
+                                        session={selectedSession || reportData.session}
+                                    />
+                                </div>
+                            </div>
+                        )}
+                        {showMobilePreview && (
+                            <div className="mx-auto bg-white shadow-lg report-card-page rounded-md">
+                                <ReportCardComponent
+                                    {...reportData}
+                                    student={{ ...reportData.student, class: effectiveClass }}
+                                    term={selectedTerm || reportData.term}
+                                    session={selectedSession || reportData.session}
+                                />
+                            </div>
                         )}
                     </div>
                     {/* Desktop: normal visible preview */}

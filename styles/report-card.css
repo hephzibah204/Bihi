@@ -90,3 +90,30 @@
     pointer-events: auto !important;
   }
 }
+
+.a4-thumbnail {
+  width: 100%;
+  max-width: 380px;
+  aspect-ratio: 210 / 297;
+  margin-left: auto;
+  margin-right: auto;
+  background: #fff;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.1);
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+}
+
+.a4-thumbnail-inner {
+  width: 210mm;
+  transform-origin: top left;
+  transform: scale(0.45);
+}
+
+@media screen and (max-width: 375px) {
+  .a4-thumbnail-inner { transform: scale(0.42); }
+}
+
+@media screen and (max-width: 320px) {
+  .a4-thumbnail-inner { transform: scale(0.38); }
+}
