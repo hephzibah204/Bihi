@@ -47,6 +47,14 @@ export const AIProviderIndicator: React.FC<AIProviderIndicatorProps> = ({
           badge: 'Offline',
           badgeColor: 'bg-slate-500'
         };
+      case 'offline':
+        return {
+          icon: '🖥️',
+          name: 'Offline Engine',
+          color: 'bg-orange-100 text-orange-800 border-orange-300',
+          badge: 'Local',
+          badgeColor: 'bg-orange-500'
+        };
       case 'auto':
         return {
           icon: '⚡',
@@ -149,6 +157,7 @@ export const AIProviderBadge: React.FC<{ provider: AIProvider }> = ({ provider }
   const info = {
     gemini: { icon: '🤖', color: 'bg-purple-100 text-purple-700' },
     huggingface: { icon: '🤗', color: 'bg-blue-100 text-blue-700' },
+    offline: { icon: '🖥️', color: 'bg-orange-100 text-orange-700' },
     templates: { icon: '📋', color: 'bg-slate-100 text-slate-700' },
     auto: { icon: '⚡', color: 'bg-green-100 text-green-700' }
   }[provider] || { icon: '🔄', color: 'bg-gray-100 text-gray-700' };
@@ -174,7 +183,7 @@ export const AIProviderSwitcher: React.FC<AIProviderSwitcherProps> = ({
   onProviderChange,
   disabled = false
 }) => {
-  const providers: AIProvider[] = ['auto', 'gemini', 'huggingface', 'templates'];
+  const providers: AIProvider[] = ['auto', 'gemini', 'huggingface', 'offline', 'templates'];
 
   return (
     <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border border-slate-200">

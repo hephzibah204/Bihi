@@ -20,9 +20,9 @@ import Bursary from './Bursary';
 
 const DashboardContent = lazy(() => import('./DashboardContent'));
 const MoreView = lazy(() => import('./MoreView'));
-const TeacherDashboard = lazy(() => import('./TeacherDashboard'));
-const StudentDashboard = lazy(() => import('./StudentDashboard'));
-const ParentDashboard = lazy(() => import('./ParentDashboard'));
+const TeacherBlueDashboard = lazy(() => import('./TeacherBlueDashboard'));
+const StudentBlueDashboard = lazy(() => import('./StudentBlueDashboard'));
+const ParentBlueDashboard = lazy(() => import('./ParentBlueDashboard'));
 const WelcomeModal = lazy(() => import('./WelcomeModal'));
 const AdminBlueDashboard = lazy(() => import('./AdminBlueDashboard'));
 
@@ -141,7 +141,7 @@ const Dashboard = () => {
                     <TenantProvider>
                         <PlanFeaturesProvider>
                             <Suspense fallback={<ContentLoader />}>
-                                <TeacherDashboard onLogout={logout} />
+                                <TeacherBlueDashboard onLogout={logout} />
                             </Suspense>
                         </PlanFeaturesProvider>
                     </TenantProvider>
@@ -152,7 +152,7 @@ const Dashboard = () => {
                     <TenantProvider>
                         <PlanFeaturesProvider>
                             <Suspense fallback={<ContentLoader />}>
-                                <StudentDashboard onLogout={logout} demoUserId={effectiveDemoStudentId} />
+                                <StudentBlueDashboard onLogout={logout} demoUserId={effectiveDemoStudentId} />
                             </Suspense>
                         </PlanFeaturesProvider>
                     </TenantProvider>
@@ -163,7 +163,7 @@ const Dashboard = () => {
                     <TenantProvider>
                         <PlanFeaturesProvider>
                             <Suspense fallback={<ContentLoader />}>
-                                <ParentDashboard onLogout={logout} demoUserId={effectiveDemoStudentId} />
+                                <ParentBlueDashboard onLogout={logout} demoUserId={effectiveDemoStudentId} />
                             </Suspense>
                         </PlanFeaturesProvider>
                     </TenantProvider>
@@ -226,7 +226,7 @@ const Dashboard = () => {
             <TenantProvider>
                 <PlanFeaturesProvider>
                     <Suspense fallback={<ContentLoader />}>
-                        <TeacherDashboard onLogout={logout} />
+                        <TeacherBlueDashboard onLogout={logout} />
                     </Suspense>
                 </PlanFeaturesProvider>
             </TenantProvider>
@@ -237,7 +237,7 @@ const Dashboard = () => {
             <TenantProvider>
                 <PlanFeaturesProvider>
                     <Suspense fallback={<ContentLoader />}>
-                        <StudentDashboard onLogout={logout} demoUserId={user?.id} />
+                        <StudentBlueDashboard onLogout={logout} demoUserId={user?.id} />
                     </Suspense>
                 </PlanFeaturesProvider>
             </TenantProvider>
@@ -248,7 +248,7 @@ const Dashboard = () => {
             <TenantProvider>
                 <PlanFeaturesProvider>
                     <Suspense fallback={<ContentLoader />}>
-                        <ParentDashboard onLogout={logout} demoUserId={user?.id} />
+                        <ParentBlueDashboard onLogout={logout} demoUserId={user?.id} />
                     </Suspense>
                 </PlanFeaturesProvider>
             </TenantProvider>
