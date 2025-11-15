@@ -18,7 +18,7 @@ import type {
   Student, Teacher, Parent, PlatformUser, UserRole,
   Subject, Score, Remark, BehavioralLogEntry, AttendanceRecord, Assignment, AssignmentScore, SharedLessonPlan, AbsenceReport,
   Invoice, Payment, Expense, Income, FeeStructure, Payslip, PayrollRun,
-  SchoolSettings,
+  SchoolSettings, TeacherAttendanceRecord,
   Tenant, Plan, ActivityLog,
   CommunicationLog, MessageTemplate, ScheduledReminder, ScheduledCampaign, Conversation, Message,
   Page, Event
@@ -552,6 +552,78 @@ export const apiSaveAttendance = (record: AttendanceRecord) => {
     });
     const safeRecord: AttendanceRecord = { ...record, statuses: normalizedStatuses };
     return upsert('attendance', safeRecord);
+};
+
+export const apiGetTeacherAttendance = (options: { teacherId?: string, from?: string, to?: string } = {}) => {
+    const { teacherId, from, to } = options;
+    if (isDemo()) {
+        const data = (CORE_DEMO_DATA['teacher_attendance'] as TeacherAttendanceRecord[]) || [];
+        return Promise.resolve(data.filter(r => (!teacherId || r.teacherId === teacherId)));
+    }
+    if (!supabase) return Promise.resolve([] as TeacherAttendanceRecord[]);
+    return withRetry(async () => {
+        let query = supabase.from('teacher_attendance').select('*');
+        if (teacherId) query = query.eq('teacher_id', teacherId);
+        if (from) query = query.gte('timestamp', from);
+        if (to) query = query.lte('timestamp', to);
+        const { data, error } = await query;
+        if (error) throw error;
+        return (Array.isArray(data) ? data : []) as TeacherAttendanceRecord[];
+    });
+};
+
+export const apiSaveTeacherAttendance = async (record: TeacherAttendanceRecord) => {
+    const tenantId = record.tenantId || getTenantId();
+    const payload: any = {
+        teacher_id: record.teacherId,
+        tenant_id: tenantId,
+        timestamp: record.timestamp,
+        status: record.status,
+        lat: record.lat,
+        lng: record.lng,
+        accuracy_m: record.accuracy_m,
+        method: record.method || 'geofence',
+        user_agent: record.userAgent,
+        notes: record.notes,
+    };
+    const settings = await apiGetSchoolSettings(tenantId);
+    const requireTwo = settings?.geofenceRules?.requireTwoCaptures ?? false;
+    const geofenceRequired = settings?.geofenceRules?.geofenceRequired ?? false;
+    if (geofenceRequired && payload.method !== 'geofence') {
+        throw new Error('Geofence is required for teacher sign-in');
+    }
+    if (requireTwo) {
+        let captures = 0;
+        try {
+            const parsed = typeof payload.notes === 'string' ? JSON.parse(payload.notes) : (payload.notes || {});
+            captures = Number(parsed?.captures || 0);
+        } catch {}
+        if (captures < 2) throw new Error('Two valid captures required');
+    }
+    if (isDemo()) {
+        const list = (CORE_DEMO_DATA['teacher_attendance'] as TeacherAttendanceRecord[]) || [];
+        const day = new Date(record.timestamp).toISOString().split('T')[0];
+        const exists = list.find(r => r.teacherId === record.teacherId && r.timestamp.startsWith(day) && r.status === 'present');
+        if (exists) return exists;
+        const next = [...list, record];
+        (CORE_DEMO_DATA as any)['teacher_attendance'] = next;
+        return record;
+    }
+    if (!supabase) return upsert('teacher_attendance', payload);
+    const ts = new Date(record.timestamp);
+    const start = new Date(ts.getFullYear(), ts.getMonth(), ts.getDate()).toISOString();
+    const end = new Date(ts.getFullYear(), ts.getMonth(), ts.getDate(), 23, 59, 59).toISOString();
+    const { data: existing, error: qErr } = await supabase
+        .from('teacher_attendance')
+        .select('*')
+        .eq('teacher_id', record.teacherId)
+        .eq('tenant_id', tenantId)
+        .eq('status', payload.status)
+        .gte('timestamp', start)
+        .lte('timestamp', end);
+    if (qErr) throw qErr;
+    if (Array.isArray(existing) && existing.length > 0) return existing[0];
+    return upsert('teacher_attendance', payload);
 };
 export const apiGetAssignments = () => get<Assignment>('assignments');
 export const apiSaveAssignments = (assignments: Assignment[]) => batchUpsert('assignments', assignments);

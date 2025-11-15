@@ -16,6 +16,7 @@ import MegaphoneIcon from './icons/MegaphoneIcon';
 import ChatBubbleLeftRightIcon from './icons/ChatBubbleLeftRightIcon';
 import BellIcon from './icons/BellIcon';
 import DocumentTextIcon from './icons/DocumentTextIcon';
+import HeadsetIcon from './icons/HeadsetIcon';
 
 interface SidebarProps {
     isSidebarOpen: boolean;
@@ -83,6 +84,7 @@ const TeacherSidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveVi
                 { view: TEACHER_VIEWS.RESOURCE_HUB, label: 'Resource Hub', icon: <BookmarkSquareIcon className="h-5 w-5" /> },
                 { view: TEACHER_VIEWS.AI_TOOLS, label: 'AI Tools', icon: <BrainCircuitIcon className="h-5 w-5" /> },
                 { view: TEACHER_VIEWS.AI_COACH, label: 'AI Coach', icon: <DocumentTextIcon className="h-5 w-5" /> },
+                { view: TEACHER_VIEWS.CLASSROOM_MONITORING, label: 'Classroom Monitoring', icon: <HeadsetIcon className="h-5 w-5" /> },
             ]
         },
         {

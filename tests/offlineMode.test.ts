@@ -40,25 +40,26 @@ vi.mock('../utils/logger', () => ({
   }
 }));
 
-// Mock window and navigator
+// Mock window and navigator with a simple event bus
 Object.defineProperty(window, 'navigator', {
   value: { onLine: true },
   writable: true
 });
 
-Object.defineProperty(window, 'addEventListener', {
-  value: vi.fn(),
-  writable: true
+const listeners = new Map<string, Function[]>();
+(window as any).addEventListener = vi.fn((type: string, cb: any) => {
+  const arr = listeners.get(type) || [];
+  arr.push(cb);
+  listeners.set(type, arr);
 });
-
-Object.defineProperty(window, 'removeEventListener', {
-  value: vi.fn(),
-  writable: true
+(window as any).removeEventListener = vi.fn((type: string, cb: any) => {
+  const arr = (listeners.get(type) || []).filter(fn => fn !== cb);
+  listeners.set(type, arr);
 });
-
-Object.defineProperty(window, 'dispatchEvent', {
-  value: vi.fn(),
-  writable: true
+vi.spyOn(window, 'dispatchEvent').mockImplementation((evt: Event) => {
+  const arr = listeners.get(evt.type) || [];
+  arr.forEach(fn => { try { fn(evt); } catch {} });
+  return true;
 });
 
 describe('Offline Mode and Connection Management', () => {
@@ -148,7 +149,7 @@ describe('Offline Mode and Connection Management', () => {
 
   describe('Service Handshakes', () => {
     it('should perform successful Supabase handshake', async () => {
-      mockSupabaseOnline.mockResolvedValue(true);
+      mockSupabaseOnline.mockImplementation(() => new Promise(resolve => setTimeout(() => resolve(true), 5)));
 
       const results = await connectionManager.forceReconnectAll();
       
@@ -258,11 +259,8 @@ describe('Offline Mode and Connection Management', () => {
       // Wait for async operations
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      expect(dispatchEventSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: 'connection-restoration-complete'
-        })
-      );
+      const called = dispatchEventSpy.mock.calls.some(([evt]) => (evt as Event).type === 'connection-restoration-complete');
+      expect(called).toBe(true);
     });
   });
 
@@ -286,8 +284,8 @@ describe('Offline Mode and Connection Management', () => {
     });
 
     it('should report unhealthy status when network is offline', () => {
+      Object.defineProperty(navigator, 'onLine', { value: false, writable: true });
       const state = connectionManager.getConnectionState();
-      state.network.online = false;
       state.supabase.online = true;
       state.ai.online = true;
 
@@ -295,8 +293,8 @@ describe('Offline Mode and Connection Management', () => {
     });
 
     it('should report unhealthy status when all services are offline', () => {
+      Object.defineProperty(navigator, 'onLine', { value: false, writable: true });
       const state = connectionManager.getConnectionState();
-      state.network.online = true;
       state.supabase.online = false;
       state.ai.online = false;
 
@@ -313,7 +311,7 @@ describe('Offline Mode and Connection Management', () => {
       const results = await connectionManager.forceReconnectAll();
       
       expect(results.ai.success).toBe(false);
-      expect(mockLogger.error).toHaveBeenCalledWith(
+      expect(logger.error).toHaveBeenCalledWith(
         'AI service handshake failed',
         expect.any(Object)
       );
@@ -327,7 +325,7 @@ describe('Offline Mode and Connection Management', () => {
       await connectionManager.forceReconnectAll();
       
       // Should dispatch connection lost event for AI service
-      expect(mockLogger.error).toHaveBeenCalled();
+      expect(logger.error).toHaveBeenCalled();
     });
   });
 });

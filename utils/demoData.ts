@@ -1,4 +1,4 @@
-import { Tenant, Student, Subject, SchoolSettings, Score, Teacher, Parent, Invoice, FeeStructure, BehavioralLogEntry, Remark, AttendanceRecord, Assignment, AssignmentScore, Expense, Income, Payslip, PayrollRun } from '../types';
+import { Tenant, Student, Subject, SchoolSettings, Score, Teacher, Parent, Invoice, FeeStructure, BehavioralLogEntry, Remark, AttendanceRecord, Assignment, AssignmentScore, Expense, Income, Payslip, PayrollRun, Payment, CommunicationLog, MessageTemplate, ScheduledReminder, ScheduledCampaign, Event, AbsenceReport, TeacherAttendanceRecord, ActivityLog, SharedLessonPlan } from '../types';
 
 export const DEMO_TENANT_ID = 'demo';
 
@@ -128,11 +128,24 @@ export const CORE_DEMO_DATA = {
         { studentId: 'stud_2', session: '2022/2023', term: 'Third Term', generalComment: 'Bisiola struggled significantly this term; requires comprehensive academic support.' },
     ] as Remark[],
     behavioralRecords: [] as BehavioralLogEntry[],
+    behavioral_log: [] as BehavioralLogEntry[],
     attendance: [] as AttendanceRecord[],
     expenses: [] as Expense[],
     income: [] as Income[],
     assignments: [] as Assignment[],
     assignment_scores: [] as AssignmentScore[],
+    payments: [] as Payment[],
+    communication_logs: [] as CommunicationLog[],
+    message_templates: [] as MessageTemplate[],
+    scheduled_reminders: [] as ScheduledReminder[],
+    scheduled_campaigns: [] as ScheduledCampaign[],
+    events: [] as Event[],
+    absence_reports: [] as AbsenceReport[],
+    activity_log: [] as ActivityLog[],
+    teacher_attendance: [] as TeacherAttendanceRecord[],
+    fee_structures: [] as any[],
+    payment_methods: [] as any[],
+    shared_lesson_plans: [] as SharedLessonPlan[],
     settings: {
         schoolName: 'Brightstar Demo Academy',
         schoolAddress: '123 Innovation Drive, Lagos, Nigeria',
@@ -616,6 +629,103 @@ CORE_DEMO_DATA.assignments.push(
     type: 'Oral Presentation'
   }
 );
+
+(() => {
+  const invoices = CORE_DEMO_DATA.invoices;
+  const payments: Payment[] = [];
+  const add = (invoiceId: string, studentId: string, amt: number, status: 'verified' | 'pending' | 'failed', method: 'Cash' | 'Bank Transfer' | 'Card', ref: string) => {
+    payments.push({ id: `pay_${invoiceId}_${ref}`, invoiceId, studentId, amount: amt, paymentDate: new Date().toISOString().split('T')[0], method, reference: ref, status } as any);
+  };
+  const inv1 = invoices.find(i => i.id === 'inv_1');
+  if (inv1) add(inv1.id, inv1.studentId, inv1.totalAmount, 'verified', 'Cash', 'RCPT-001');
+  const inv2 = invoices.find(i => i.id === 'inv_2');
+  if (inv2) {
+    add(inv2.id, inv2.studentId, Math.floor(inv2.totalAmount / 2), 'pending', 'Bank Transfer', 'TRF-AB12');
+  }
+  const inv3 = invoices.find(i => i.id === 'inv_3');
+  if (inv3) add(inv3.id, inv3.studentId, inv3.amountPaid || Math.floor(inv3.totalAmount / 2), 'verified', 'Card', 'POS-7788');
+  CORE_DEMO_DATA.payments.push(...payments);
+  CORE_DEMO_DATA.fee_structures = [
+    {
+      id: 1,
+      data: [
+        { id: 'fee_jss1', name: 'JSS 1 Standard Fees', session: CORE_DEMO_DATA.settings.session, term: CORE_DEMO_DATA.settings.term, applicableClasses: ['JSS 1A'], totalAmount: 75000, items: [
+          { description: 'Tuition', amount: 60000 },
+          { description: 'PTA Levy', amount: 5000 },
+          { description: 'Lab Fee', amount: 10000 }
+        ] } as FeeStructure,
+        { id: 'fee_sss2', name: 'SSS 2 Science Fees', session: CORE_DEMO_DATA.settings.session, term: CORE_DEMO_DATA.settings.term, applicableClasses: ['SSS 2A'], totalAmount: 100000, items: [
+          { description: 'Tuition', amount: 80000 },
+          { description: 'Science Lab', amount: 15000 },
+          { description: 'PTA Levy', amount: 5000 }
+        ] } as FeeStructure,
+        { id: 'fee_pri4', name: 'Primary 4 Fees', session: CORE_DEMO_DATA.settings.session, term: CORE_DEMO_DATA.settings.term, applicableClasses: ['Primary 4A'], totalAmount: 60000, items: [
+          { description: 'Tuition', amount: 50000 },
+          { description: 'Books', amount: 8000 },
+          { description: 'PTA Levy', amount: 2000 }
+        ] } as FeeStructure,
+        { id: 'fee_nur1', name: 'Nursery 1 Fees', session: CORE_DEMO_DATA.settings.session, term: CORE_DEMO_DATA.settings.term, applicableClasses: ['Nursery 1A'], totalAmount: 40000, items: [
+          { description: 'Tuition', amount: 35000 },
+          { description: 'Activity', amount: 3000 },
+          { description: 'PTA Levy', amount: 2000 }
+        ] } as FeeStructure,
+      ]
+    }
+  ];
+  CORE_DEMO_DATA.payment_methods = [ { id: 1, data: ['Cash', 'Bank Transfer', 'Card'] } ];
+})();
+
+(() => {
+  CORE_DEMO_DATA.communication_logs.push(
+    { id: 'comm_001', type: 'announcement', channel: 'sms', content: 'Welcome back! First term resumes on Monday.', recipients: ['all'], sentAt: new Date().toISOString() } as any,
+    { id: 'comm_002', type: 'reminder', channel: 'email', content: 'Fees reminder: Kindly settle outstanding balances.', recipients: ['parent_1', 'parent_2'], sentAt: new Date().toISOString() } as any
+  );
+  CORE_DEMO_DATA.message_templates.push(
+    { id: 'tmpl_term_start', name: 'Term Start Notice', type: 'email', subject: 'Term Starts', content: 'Dear Parents, the new term starts on {{date}}.' } as any
+  );
+  CORE_DEMO_DATA.scheduled_reminders.push(
+    { id: 'rem_fee_overdue', type: 'fee_overdue', schedule: '0 9 * * MON', payload: { class: 'JSS 1A' } } as any
+  );
+  CORE_DEMO_DATA.scheduled_campaigns.push(
+    { id: 'camp_newsletter_oct', name: 'October Newsletter', schedule: '2025-10-20', content: 'Highlights of the month', status: 'scheduled' } as any
+  );
+  CORE_DEMO_DATA.events.push(
+    { id: 'evt_pta_meeting', title: 'PTA Meeting', date: new Date().toISOString().split('T')[0], description: 'Monthly PTA meeting', location: 'Hall A' } as any,
+    { id: 'evt_sports_day', title: 'Sports Day', date: new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0], description: 'Inter-house sports', location: 'Main Field' } as any
+  );
+  CORE_DEMO_DATA.absence_reports.push(
+    { id: 'abs_001', studentId: 'stud_2', date: new Date().toISOString().split('T')[0], reason: 'Illness', reportedBy: 'teacher_2' } as any
+  );
+  CORE_DEMO_DATA.behavioral_log.push(
+    { id: 'beh_001', studentId: 'stud_1', date: new Date().toISOString().split('T')[0], category: 'Leadership', description: 'Led class project successfully' } as any,
+    { id: 'beh_002', studentId: 'stud_2', date: new Date().toISOString().split('T')[0], category: 'Discipline', description: 'Late to class' } as any
+  );
+  CORE_DEMO_DATA.activity_log.push(
+    { id: 'act_001', user: 'Admin', type: 'SUBJECT_UPDATE', description: 'Updated subjects for new term', timestamp: new Date().toISOString() } as any,
+    { id: 'act_002', user: 'Bursar', type: 'INVOICE_UPDATE', description: 'Processed payments for JSS 1A', timestamp: new Date().toISOString() } as any
+  );
+  CORE_DEMO_DATA.shared_lesson_plans.push(
+    { id: 'lp_math_fractions', title: 'Fractions Basics', subjectId: 'subj_1', author: 'teacher_2', upvotes: 3, sharedAt: new Date().toISOString() } as any,
+    { id: 'lp_basic_science_matter', title: 'States of Matter', subjectId: 'subj_4', author: 'teacher_2', upvotes: 2, sharedAt: new Date().toISOString() } as any
+  );
+})();
+
+(() => {
+  const today = new Date();
+  const fmt = (d: Date) => d.toISOString();
+  const entries: TeacherAttendanceRecord[] = [];
+  const pushDay = (teacherId: string, offset: number) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() - offset);
+    entries.push({ teacherId, tenantId: DEMO_TENANT_ID, timestamp: fmt(d), status: 'present', lat: 6.5244, lng: 3.3792, accuracy_m: 25, method: 'geofence' } as any);
+  };
+  ['teacher_2', 'teacher_1'].forEach(tid => {
+    pushDay(tid, 1);
+    pushDay(tid, 3);
+    pushDay(tid, 5);
+  });
+  (CORE_DEMO_DATA as any).teacher_attendance = entries;
+})();
 
 CORE_DEMO_DATA.assignment_scores = [
     // JSS 1A: graded quiz

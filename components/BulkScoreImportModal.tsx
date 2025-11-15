@@ -4,6 +4,7 @@ import { apiGetStudents, apiBatchUpsertScores } from '../services/api';
 import ArrowUpTrayIcon from './icons/ArrowUpTrayIcon';
 // Fix: Import `Student` type to correctly type the fetched student data.
 import { Score, Student } from '../types';
+import { parseCSV } from '../utils/csvExporter';
 
 type ImportStep = 'upload' | 'mapping' | 'review' | 'importing' | 'success';
 
@@ -69,15 +70,13 @@ const BulkScoreImportModal = ({ isOpen, onClose, onSuccess, selectedClass, selec
         const reader = new FileReader();
         reader.onload = (event) => {
             const csv = event.target?.result as string;
-            const lines = csv.split(/\r?\n/).filter(line => line.trim() !== '');
-            if (lines.length < 2) {
+            const { headers, rows } = parseCSV(csv);
+            if (!headers.length || rows.length === 0) {
                 setError('CSV must have a header row and at least one data row.');
                 return;
             }
-            const headers = lines[0].split(',').map(h => h.trim());
-            const dataRows = lines.slice(1).map(line => line.split(',').map(d => d.trim()));
             setCsvHeaders(headers);
-            setCsvData(dataRows);
+            setCsvData(rows);
             setFieldMapping(autoMapFields(headers));
             setStep('mapping');
         };

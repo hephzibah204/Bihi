@@ -42,3 +42,62 @@ export const exportToCSV = (data: any[], filename: string) => {
         document.body.removeChild(link);
     }
 };
+
+export const parseCSV = (text: string): { headers: string[]; rows: string[][] } => {
+    const rows: string[][] = [];
+    let i = 0;
+    const len = text.length;
+    let current: string[] = [];
+    let field = '';
+    let inQuotes = false;
+    while (i < len) {
+        const ch = text[i];
+        if (inQuotes) {
+            if (ch === '"') {
+                if (text[i + 1] === '"') {
+                    field += '"';
+                    i += 2;
+                    continue;
+                } else {
+                    inQuotes = false;
+                    i++;
+                    continue;
+                }
+            } else {
+                field += ch;
+                i++;
+                continue;
+            }
+        } else {
+            if (ch === '"') {
+                inQuotes = true;
+                i++;
+                continue;
+            }
+            if (ch === ',') {
+                current.push(field.trim());
+                field = '';
+                i++;
+                continue;
+            }
+            if (ch === '\n') {
+                current.push(field.trim());
+                field = '';
+                if (current.some(v => v !== '')) rows.push(current);
+                current = [];
+                i++;
+                continue;
+            }
+            if (ch === '\r') {
+                i++;
+                continue;
+            }
+            field += ch;
+            i++;
+        }
+    }
+    current.push(field.trim());
+    if (current.some(v => v !== '')) rows.push(current);
+    const headers = (rows.shift() || []).map(h => h.trim());
+    return { headers, rows };
+};

@@ -23,6 +23,8 @@ import SubjectHotColdChart from './SubjectHotColdChart';
 import SchoolVitals from './SchoolVitals';
 import AnalystQAWidget from './AnalystQAWidget';
 import EarlyIntervention from './EarlyIntervention';
+import IdleClassesAlertWidget from './IdleClassesAlertWidget';
+import TeacherPerformanceWidget from './TeacherPerformanceWidget';
 
 const DashboardHome = ({ setActiveView }: { setActiveView: (view: DashboardView) => void }) => {
     const { isSubscribed, planName, isLoading } = usePlanFeatures();
@@ -57,6 +59,10 @@ const DashboardHome = ({ setActiveView }: { setActiveView: (view: DashboardView)
                 <>
                     <SchoolVitals />
                     <DashboardInsights />
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                        <IdleClassesAlertWidget />
+                        <TeacherPerformanceWidget />
+                    </div>
                     {/* Prominent AI Early Intervention card */}
                     <div className="mt-6">
                         <EarlyIntervention />

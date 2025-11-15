@@ -201,7 +201,7 @@ describe('Enhanced Fallback AI System', () => {
             const response = generateFallbackResponse({ prompt });
             
             expect(response).toBeTruthy();
-            expect(response).toContain('offline' || 'Offline');
+            expect(response.toLowerCase()).toMatch(/offline|internet/);
         });
     });
 

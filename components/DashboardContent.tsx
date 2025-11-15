@@ -3,6 +3,7 @@
 import React, { lazy } from 'react';
 import { DashboardView, UserRole } from '../types';
 import { ADMIN_VIEWS } from '../utils/constants';
+import { useAuth } from '../contexts/AuthContext';
 
 // Lazy load all the components
 const DashboardHome = lazy(() => import('./DashboardHome'));
@@ -15,6 +16,7 @@ const Broadsheet = lazy(() => import('./Broadsheet'));
 const ComprehensiveReportEntry = lazy(() => import('./ComprehensiveReportEntry'));
 const Promotions = lazy(() => import('./Promotions'));
 const Attendance = lazy(() => import('./Attendance'));
+const TeacherAttendanceHistory = lazy(() => import('./TeacherAttendanceHistory'));
 const SchoolSettings = lazy(() => import('./SchoolSettings'));
 const Bursary = lazy(() => import('./Bursary'));
 const CommunicationsDashboard = lazy(() => import('./CommunicationsDashboard'));
@@ -35,6 +37,7 @@ const AdminAiCoachManager = lazy(() => import('./AdminAiCoachManager'));
 const AdminAiCoachProgress = lazy(() => import('./AdminAiCoachProgress'));
 const PrintCenter = lazy(() => import('./PrintCenter'));
 const TeacherCertificatePrintView = lazy(() => import('./TeacherCertificatePrintView'));
+const AdminMonitorView = lazy(() => import('./AdminMonitorView'));
 
 // AI Tool Components
 const AIChatPanel = lazy(() => import('./AIChatPanel'));
@@ -57,6 +60,7 @@ interface DashboardContentProps {
 }
 
 const DashboardContent: React.FC<DashboardContentProps> = ({ activeView, setActiveView, userRole, profileStudentId, onViewStudentProfile }) => {
+    const { settings } = useAuth() as any;
     switch (activeView) {
         case ADMIN_VIEWS.DASHBOARD:
             // Show bursary KPIs for Bursar on Home
@@ -79,6 +83,8 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ activeView, setActi
             return <Promotions />;
         case ADMIN_VIEWS.ATTENDANCE:
             return <Attendance />;
+        case ADMIN_VIEWS.TEACHER_ATTENDANCE_HISTORY:
+            return <TeacherAttendanceHistory />;
         case ADMIN_VIEWS.SETTINGS:
             return <SchoolSettings />;
         case ADMIN_VIEWS.BURSARY:
@@ -97,6 +103,11 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ activeView, setActi
             return <PrintCenter setActiveView={setActiveView} />;
         case ADMIN_VIEWS.TEACHER_CERTIFICATES:
             return <TeacherCertificatePrintView />;
+        case ADMIN_VIEWS.CLASSROOM_MONITORING:
+            {
+                const isEnabled = (settings?.features?.['classroom-monitoring'] ?? true) && (settings?.roleBasedFeatures?.admin?.['classroom-monitoring'] ?? true);
+                return isEnabled ? <AdminMonitorView /> : <div className="p-4 bg-yellow-50 border border-yellow-200 rounded">Classroom Monitoring is disabled for Admins.</div>;
+            }
         case ADMIN_VIEWS.ALUMNI:
             return <AlumniDashboard />;
         case ADMIN_VIEWS.STAFF:

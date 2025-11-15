@@ -2,6 +2,7 @@
 // Base repository class with common database operations
 
 import { getSupabase } from '../services/supabaseClient';
+import { getDatabaseProvider } from '../services/databaseProvider';
 import { withRetry } from '../utils/retry';
 import { parseSupabaseError, NotFoundError } from '../utils/errors';
 import { withCache, invalidateCache, CACHE_CONFIGS } from '../utils/cache';
@@ -37,6 +38,7 @@ export abstract class BaseRepository<T = any> {
   protected idField: string;
   protected tenantField: string | null;
   protected cacheConfig: { ttl: number; tags: string[] };
+  protected provider = getDatabaseProvider();
 
   constructor(config: RepositoryConfig) {
     this.table = config.table;
@@ -149,14 +151,11 @@ export abstract class BaseRepository<T = any> {
       cacheKey,
       async () => {
         return withRetry(async () => {
-          const query = this.buildQuery(options, tenantId);
-          const { data, error } = await query;
-          
+          const { data, error } = await this.provider.select(this.table, options, this.tenantField, tenantId);
           if (error) {
             throw parseSupabaseError(error, 'SELECT', this.table);
           }
-          
-          return data || [];
+          return (data as T[]) || [];
         });
       },
       this.cacheConfig
@@ -173,23 +172,11 @@ export abstract class BaseRepository<T = any> {
       cacheKey,
       async () => {
         return withRetry(async () => {
-          let query = this.getClient()
-            .from(this.table)
-            .select('*')
-            .eq(this.idField, id);
-          
-          query = this.applyTenantFilter(query, tenantId);
-          
-          const { data, error } = await query.single();
-          
+          const { data, error } = await this.provider.selectOneById(this.table, this.idField, id, this.tenantField, tenantId);
           if (error) {
-            if (error.code === 'PGRST116') {
-              return null; // Not found
-            }
             throw parseSupabaseError(error, 'SELECT', this.table);
           }
-          
-          return data;
+          return (data as T) ?? null;
         });
       },
       this.cacheConfig
@@ -206,17 +193,13 @@ export abstract class BaseRepository<T = any> {
       cacheKey,
       async () => {
         return withRetry(async () => {
-          const filters = { ...options.filters, [field]: value };
-          const queryOptions = { ...options, filters };
-          
-          const query = this.buildQuery(queryOptions, tenantId);
-          const { data, error } = await query;
-          
+          const filters = { ...options.filters, [field]: value } as any;
+          const queryOptions = { ...options, filters } as any;
+          const { data, error } = await this.provider.select(this.table, queryOptions, this.tenantField, tenantId);
           if (error) {
             throw parseSupabaseError(error, 'SELECT', this.table);
           }
-          
-          return data || [];
+          return (data as T[]) || [];
         });
       },
       this.cacheConfig
@@ -228,25 +211,12 @@ export abstract class BaseRepository<T = any> {
    */
   async create(data: Partial<T>, tenantId?: string): Promise<T> {
     return withRetry(async () => {
-      // Add tenant ID if configured
-      if (this.tenantField && tenantId) {
-        (data as any)[this.tenantField] = tenantId;
-      }
-
-      const { data: result, error } = await this.getClient()
-        .from(this.table)
-        .insert(data)
-        .select()
-        .single();
-
+      const { data: result, error } = await this.provider.insert(this.table, data, this.tenantField, tenantId);
       if (error) {
         throw parseSupabaseError(error, 'INSERT', this.table);
       }
-
-      // Invalidate related cache
       this.invalidateCache(['create', 'findAll']);
-
-      return result;
+      return result as T;
     });
   }
 
@@ -255,26 +225,15 @@ export abstract class BaseRepository<T = any> {
    */
   async update(id: string, data: Partial<T>, tenantId?: string): Promise<T> {
     return withRetry(async () => {
-      let query = this.getClient()
-        .from(this.table)
-        .update(data)
-        .eq(this.idField, id);
-
-      query = this.applyTenantFilter(query, tenantId);
-
-      const { data: result, error } = await query.select().single();
-
+      const { data: result, error, notFound } = await this.provider.updateById(this.table, this.idField, id, data, this.tenantField, tenantId);
       if (error) {
-        if (error.code === 'PGRST116') {
+        if (notFound) {
           throw new NotFoundError(`Record not found: ${id}`, this.table, id);
         }
         throw parseSupabaseError(error, 'UPDATE', this.table);
       }
-
-      // Invalidate related cache
       this.invalidateCache(['update', 'findById', 'findAll'], id);
-
-      return result;
+      return result as T;
     });
   }
 
@@ -283,20 +242,10 @@ export abstract class BaseRepository<T = any> {
    */
   async delete(id: string, tenantId?: string): Promise<void> {
     return withRetry(async () => {
-      let query = this.getClient()
-        .from(this.table)
-        .delete()
-        .eq(this.idField, id);
-
-      query = this.applyTenantFilter(query, tenantId);
-
-      const { error } = await query;
-
+      const { error } = await this.provider.deleteById(this.table, this.idField, id, this.tenantField, tenantId);
       if (error) {
         throw parseSupabaseError(error, 'DELETE', this.table);
       }
-
-      // Invalidate related cache
       this.invalidateCache(['delete', 'findById', 'findAll'], id);
     });
   }
@@ -306,27 +255,12 @@ export abstract class BaseRepository<T = any> {
    */
   async batchCreate(records: Partial<T>[], tenantId?: string): Promise<T[]> {
     return withRetry(async () => {
-      // Add tenant ID to all records if configured
-      if (this.tenantField && tenantId) {
-        records = records.map(record => ({
-          ...record,
-          [this.tenantField!]: tenantId
-        }));
-      }
-
-      const { data, error } = await this.getClient()
-        .from(this.table)
-        .insert(records)
-        .select();
-
+      const { data, error } = await this.provider.batchInsert(this.table, records, this.tenantField, tenantId);
       if (error) {
         throw parseSupabaseError(error, 'INSERT', this.table);
       }
-
-      // Invalidate related cache
       this.invalidateCache(['batchCreate', 'findAll']);
-
-      return data || [];
+      return (data as T[]) || [];
     });
   }
 
@@ -340,23 +274,14 @@ export abstract class BaseRepository<T = any> {
       cacheKey,
       async () => {
         return withRetry(async () => {
-          let query = this.getClient()
-            .from(this.table)
-            .select('*', { count: 'exact', head: true });
-
-          query = this.applyTenantFilter(query, tenantId);
-          query = this.applyFilters(query, filters);
-
-          const { count, error } = await query;
-
+          const { count, error } = await this.provider.count(this.table, filters, this.tenantField, tenantId);
           if (error) {
             throw parseSupabaseError(error, 'SELECT', this.table);
           }
-
           return count || 0;
         });
       },
-      { ...this.cacheConfig, ttl: 30000 } // Shorter cache for counts
+      { ...this.cacheConfig, ttl: 30000 }
     );
   }
 

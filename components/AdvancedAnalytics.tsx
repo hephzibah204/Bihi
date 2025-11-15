@@ -2,10 +2,12 @@
 
 import React, { useState, useEffect, useRef, PropsWithChildren } from 'react';
 // Fix: Add missing imports
-import { apiGetStudents, apiGetScores, apiGetAttendance, apiGetSchoolSettings, apiGetSubjects, apiGetTeachers, apiGetTimetableData } from '../services/api';
+import { apiGetStudents, apiGetScores, apiGetAttendance, apiGetSchoolSettings, apiGetSubjects, apiGetTeachers, apiGetTimetableData, apiGetPayments, apiGetInvoices, apiSendMessage } from '../services/api';
 import { useAI } from '../hooks/useAI';
 import { generateResponse as aiGenerateResponse } from '../services/geminiAIService';
 import { Score, Student, Subject } from '../types';
+import { downloadElementAsPdf, sanitizeFilename } from '../utils/pdfUtils';
+import { exportToCSV } from '../utils/csvExporter';
 import SparklesIcon from './icons/SparklesIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
 import { USER_ROLES } from '../utils/constants';
@@ -22,7 +24,7 @@ declare global {
 const AdminAnalyticsDashboard = () => {
     // State for visual dashboards
     const [stats, setStats] = useState({ students: 0, subjects: 0, teachers: 0 });
-    const [allData, setAllData] = useState<{students: Student[], scores: Score[], subjects: Subject[], settings: any}>({ students: [], scores: [], subjects: [], settings: null });
+    const [allData, setAllData] = useState<{students: Student[], scores: Score[], subjects: Subject[], settings: any, teachers: any[]}>({ students: [], scores: [], subjects: [], settings: null, teachers: [] });
     const [chartData, setChartData] = useState({
         subjectHotspot: null,
         termPerformance: null,
@@ -37,6 +39,10 @@ const AdminAnalyticsDashboard = () => {
     const [selectedClassForCharts, setSelectedClassForCharts] = useState('');
     const [selectedStudentId, setSelectedStudentId] = useState('');
     const [loading, setLoading] = useState(true);
+    const [reportPeriod, setReportPeriod] = useState<'daily' | 'weekly' | 'termly' | 'yearly'>('termly');
+    const [reportDate, setReportDate] = useState<string>('');
+    const [weekStartDate, setWeekStartDate] = useState<string>('');
+    const [reportSummary, setReportSummary] = useState<{ period: string; session: string; term: string; studentCount: number; averageScore: number; attendanceRate: number; totalCollected: number; outstanding: number; topClasses: { className: string; average: number }[] } | null>(null);
 
     // State for new School-Wide AI Analyst
     const { generateResponse, status } = useAI();
@@ -64,7 +70,7 @@ const AdminAnalyticsDashboard = () => {
                     apiGetSchoolSettings(),
                 ]);
 
-                setAllData({ students: studentData, scores: scoreData, subjects: subjectData, settings: settingsData });
+                setAllData({ students: studentData, scores: scoreData, subjects: subjectData, settings: settingsData, teachers: teacherData });
                 setStats({ students: studentData.length, subjects: subjectData.length, teachers: teacherData.length });
 
                 const uniqueSessions = [...new Set(scoreData.map(s => s.session))].sort((a: string, b: string) => b.localeCompare(a));
@@ -124,6 +130,136 @@ const AdminAnalyticsDashboard = () => {
             chartInstances.current.classAverages = new window.Chart(classAverageChartRef.current, { type: 'bar', data: chartData.classAverages, options: commonOptions });
         }
     }, [loading, chartData]);
+
+    const computeDateRange = () => {
+        const now = new Date();
+        if (reportPeriod === 'daily') {
+            const d = reportDate ? new Date(reportDate) : now;
+            const start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+            const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59);
+            return { start, end };
+        }
+        if (reportPeriod === 'weekly') {
+            const d = weekStartDate ? new Date(weekStartDate) : now;
+            const start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+            const end = new Date(start);
+            end.setDate(start.getDate() + 6);
+            end.setHours(23, 59, 59, 999);
+            return { start, end };
+        }
+        if (reportPeriod === 'termly') {
+            return { start: new Date(now.getFullYear(), 0, 1), end: new Date(now.getFullYear(), 11, 31, 23, 59, 59) };
+        }
+        return { start: new Date(now.getFullYear(), 0, 1), end: new Date(now.getFullYear(), 11, 31, 23, 59, 59) };
+    };
+
+    const filterByDate = (iso?: string, range?: { start: Date; end: Date }) => {
+        if (!iso) return false;
+        const d = new Date(iso);
+        return d >= (range?.start || new Date(0)) && d <= (range?.end || new Date(8640000000000000));
+    };
+
+    const summarizePerformance = async () => {
+        const range = computeDateRange();
+        const [payments, invoices] = await Promise.all([apiGetPayments(), apiGetInvoices()]);
+        const attendance = await apiGetAttendance();
+        const students = allData.students;
+        const scores = allData.scores;
+        const settings = allData.settings;
+
+        const relevantAttendance = attendance.filter(a => filterByDate(a.date, range));
+        let present = 0, totalMarked = 0;
+        relevantAttendance.forEach(rec => {
+            Object.values(rec.statuses || {}).forEach(s => {
+                totalMarked += 1;
+                if (String(s).toLowerCase() === 'present') present += 1;
+            });
+        });
+        const attendanceRate = totalMarked > 0 ? ((present / totalMarked) * 100) : 0;
+
+        const selectedSession = selectedSession || settings?.session || '';
+        const selectedTermEffective = selectedTerm === 'All Terms' ? '' : (selectedTerm || settings?.term || '');
+        const sessionScores = scores.filter(s => (!selectedSession || s.session === selectedSession) && (!selectedTermEffective || s.term === selectedTermEffective));
+        const overallAvg = sessionScores.length > 0 ? (
+            sessionScores.reduce((sum, s) => sum + (s.ca1 || 0) + (s.ca2 || 0) + (s.exam || 0), 0) / sessionScores.length
+        ) : 0;
+
+        const classList = [...new Set(students.map(s => s.class))];
+        const classAverages = classList.map(cls => {
+            const ids = new Set(students.filter(s => s.class === cls).map(s => s.id));
+            const clsScores = sessionScores.filter(s => ids.has(s.studentId));
+            const avg = clsScores.length > 0 ? (
+                clsScores.reduce((sum, sc) => sum + (sc.ca1 || 0) + (sc.ca2 || 0) + (sc.exam || 0), 0) / clsScores.length
+            ) : 0;
+            return { className: cls, average: Number(avg.toFixed(2)) };
+        }).sort((a, b) => b.average - a.average);
+
+        const topClasses = classAverages.slice(0, 3);
+
+        const relevantPayments = payments.filter(p => filterByDate(p.paymentDate, range));
+        const totalCollected = relevantPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+        const outstanding = invoices.reduce((sum, inv) => sum + Math.max((inv.totalAmount || 0) - (inv.amountPaid || 0), 0), 0);
+
+        return {
+            period: reportPeriod,
+            session: selectedSession,
+            term: selectedTermEffective || 'All Terms',
+            studentCount: students.length,
+            averageScore: Number(overallAvg.toFixed(2)),
+            attendanceRate: Number(attendanceRate.toFixed(2)),
+            totalCollected,
+            outstanding,
+            topClasses
+        };
+    };
+
+    const downloadReportPdf = async () => {
+        await downloadElementAsPdf('#school-performance-report', sanitizeFilename(`School_Performance_${reportPeriod}`));
+    };
+
+    const downloadReportCsv = async () => {
+        const summary = await summarizePerformance();
+        const rows: any[] = [
+            { Metric: 'Period', Value: summary.period },
+            { Metric: 'Session', Value: summary.session },
+            { Metric: 'Term', Value: summary.term },
+            { Metric: 'Students', Value: summary.studentCount },
+            { Metric: 'Average Score', Value: summary.averageScore },
+            { Metric: 'Attendance Rate (%)', Value: summary.attendanceRate },
+            { Metric: 'Total Collected', Value: summary.totalCollected },
+            { Metric: 'Outstanding Fees', Value: summary.outstanding },
+        ];
+        summary.topClasses.forEach((c, idx) => rows.push({ Metric: `Top Class ${idx + 1}`, Value: `${c.className} (${c.average})` }));
+        exportToCSV(rows, `School_Performance_${reportPeriod}.csv`);
+    };
+
+    const sendReportEmail = async () => {
+        const summary = await summarizePerformance();
+        const recipients: string[] = [];
+        const adminEmails = (allData.teachers || []).filter(t => String(t.role) === 'Admin').map(t => t.email).filter(Boolean);
+        recipients.push(...adminEmails);
+        const schoolEmail = allData.settings?.email ? [allData.settings.email] : [];
+        recipients.push(...schoolEmail);
+        const content = [
+            `Subject: School Performance (${summary.period})`,
+            `Session: ${summary.session} | Term: ${summary.term}`,
+            `Students: ${summary.studentCount}`,
+            `Average Score: ${summary.averageScore.toFixed(2)}`,
+            `Attendance Rate: ${summary.attendanceRate.toFixed(2)}%`,
+            `Total Collected: ₦${summary.totalCollected.toLocaleString()}`,
+            `Outstanding Fees: ₦${summary.outstanding.toLocaleString()}`,
+            `Top Classes: ${summary.topClasses.map(c => `${c.className} (${c.average})`).join(', ')}`
+        ].join('\n');
+        await apiSendMessage({ channel: 'email', content, recipients: recipients.length ? recipients : ['all'], type: 'announcement' });
+    };
+
+    useEffect(() => {
+        const init = async () => {
+            const s = await summarizePerformance();
+            setReportSummary(s);
+        };
+        if (!loading) init();
+    }, [loading, reportPeriod, reportDate, weekStartDate, selectedSession, selectedTerm]);
 
     const handleSchoolWideAnalysis = async () => {
         if (!aiQuery.trim()) return;
@@ -212,6 +348,47 @@ const AdminAnalyticsDashboard = () => {
 
     return (
         <div>
+            <div className="card mb-6">
+                <div className="p-6">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <h2 className="text-xl font-semibold">School Performance Report</h2>
+                            <p className="text-gray-500 mt-1">Download or send daily, weekly, termly and yearly summaries.</p>
+                        </div>
+                        <div className="flex gap-2">
+                            <select value={reportPeriod} onChange={e => setReportPeriod(e.target.value as any)} className="input-field">
+                                <option value="daily">Daily</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="termly">Termly</option>
+                                <option value="yearly">Yearly</option>
+                            </select>
+                            {reportPeriod === 'daily' && (
+                                <input type="date" value={reportDate} onChange={e => setReportDate(e.target.value)} className="input-field" />
+                            )}
+                            {reportPeriod === 'weekly' && (
+                                <input type="date" value={weekStartDate} onChange={e => setWeekStartDate(e.target.value)} className="input-field" />
+                            )}
+                        </div>
+                    </div>
+                    <div id="school-performance-report" className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <StatCard title="Students" value={stats.students} />
+                        <StatCard title="Average Score (session/term)" value={(() => {
+                            const s = selectedSession || allData.settings?.session || '';
+                            const t = selectedTerm === 'All Terms' ? '' : (selectedTerm || allData.settings?.term || '');
+                            const sc = allData.scores.filter(v => (!s || v.session === s) && (!t || v.term === t));
+                            if (!sc.length) return '0';
+                            const avg = sc.reduce((sum, v) => sum + (v.ca1 || 0) + (v.ca2 || 0) + (v.exam || 0), 0) / sc.length;
+                            return Number(avg.toFixed(2));
+                        })()} />
+                        <StatCard title="Attendance Rate" value={reportSummary ? `${reportSummary.attendanceRate.toFixed(2)}%` : '...'} />
+                    </div>
+                    <div className="mt-4 flex justify-end gap-2">
+                        <button className="btn-outline" onClick={downloadReportCsv}>Export CSV</button>
+                        <button className="btn-outline" onClick={downloadReportPdf}>Download PDF</button>
+                        <button className="btn" onClick={sendReportEmail}>Send Email</button>
+                    </div>
+                </div>
+            </div>
             <div className="card mb-6">
                 <div className="p-6">
                     <div className="flex justify-between items-start">

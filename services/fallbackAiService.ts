@@ -8,6 +8,7 @@ import {
 import { generateEnhancedFallbackResponse } from './enhancedFallbackAI';
 import { HybridSearchEngine, getSemanticSearchEngine, type SemanticMatch } from './semanticSearch';
 import { getHuggingFaceClient } from './huggingFaceAPI';
+import { getAIResponseCache } from './aiResponseCache';
 
 // Enhanced fallback AI service with improved training data and context awareness
 // Now uses the new enhanced AI system with 500+ templates and Nigerian curriculum support
@@ -18,20 +19,7 @@ const hybridSearch = new HybridSearchEngine();
 
 const polishResponse = (text: string): string => {
     try {
-        const rawLines = text.split(/\r?\n/);
-        const cleaned = rawLines.filter(line => {
-            const l = line.toLowerCase();
-            if (!l.trim()) return true;
-            return !(
-                l.includes('offline mode') ||
-                l.includes('limited capabilities') ||
-                l.includes('connect to the internet') ||
-                l.includes('full ai experience') ||
-                l.includes('basic template') ||
-                l.includes('in-house ai')
-            );
-        });
-        let out = cleaned.join('\n').trim();
+        let out = (text || '').trim();
         if (out.length < 200) {
             out += '\n\n**Next Steps:**\n- Clarify objectives and constraints\n- List key concepts and required outcomes\n- Draft a short plan with tasks and checks';
         }
@@ -187,6 +175,10 @@ const cacheResponse = (prompt: string, response: string, context?: Record<string
             context: context?.userRole || 'general',
             cached: true
         });
+        try {
+            const rc = getAIResponseCache();
+            rc.cacheResponse(prompt, response, 'fallback', context, { confidence });
+        } catch {}
     } catch (_error) {
         // ignore cache failures
     }

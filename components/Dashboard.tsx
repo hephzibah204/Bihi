@@ -16,6 +16,7 @@ import SelectChildModal from './SelectChildModal';
 import SpinnerIcon from './icons/SpinnerIcon';
 import useLocalStorage from '../hooks/useLocalStorage';
 import { useAuth } from '../contexts/AuthContext';
+import Bursary from './Bursary';
 
 const DashboardContent = lazy(() => import('./DashboardContent'));
 const MoreView = lazy(() => import('./MoreView'));
@@ -167,47 +168,47 @@ const Dashboard = () => {
                     </TenantProvider>
                 );
             }
-            // Default to admin dashboard for other roles
+            const effectiveRole = demoRole === USER_ROLES.BURSAR ? USER_ROLES.BURSAR : USER_ROLES.ADMIN;
+            if (effectiveRole === USER_ROLES.BURSAR) {
+                return (
+                    <TenantProvider>
+                        <PlanFeaturesProvider>
+                            <Bursary />
+                        </PlanFeaturesProvider>
+                    </TenantProvider>
+                );
+            }
             return (
                 <TenantProvider>
                     <PlanFeaturesProvider>
                         <div className="flex h-screen bg-gray-100">
-                            {(() => {
-                                const demoRole = localStorage.getItem('demoUserRole');
-                                const effectiveRole = demoRole === USER_ROLES.BURSAR ? USER_ROLES.BURSAR : USER_ROLES.ADMIN;
-                                return (
-                                    <>
-                                        <Sidebar 
-                                            isSidebarOpen={isSidebarOpen} 
-                                            setSidebarOpen={setSidebarOpen} 
-                                            activeView={activeView}
-                                            setActiveView={handleViewChange}
-                                            userRole={effectiveRole}
-                                        />
-                                        <div className="flex-1 flex flex-col overflow-hidden main-content-mobile-padding">
-                                            <Header title={headerTitle} setSidebarOpen={setSidebarOpen} onLogout={logout} isSidebarOpen={isSidebarOpen} />
-                                            <main className="flex-1 overflow-x-hidden overflow-y-auto">
-                                                <div className="container mx-auto px-6 py-8">
-                                                    <Suspense fallback={<ContentLoader />}>
-                                                        {activeView === ADMIN_VIEWS.MORE 
-                                                            ? <MoreView setActiveView={handleViewChange} /> 
-                                                            : <DashboardContent 
-                                                                activeView={activeView} 
-                                                                setActiveView={handleViewChange}
-                                                                userRole={effectiveRole}
-                                                                onViewStudentProfile={handleViewStudentProfile}
-                                                                profileStudentId={profileStudentId}
-                                                            />
-                                                        }
-                                                    </Suspense>
-                                                </div>
-                                            </main>
-                                        </div>
-                                        <AdminBottomNavBar activeView={activeView} setActiveView={handleViewChange} userRole={effectiveRole} />
-                                    </>
-                                );
-                            })()}
-
+                            <Sidebar 
+                                isSidebarOpen={isSidebarOpen} 
+                                setSidebarOpen={setSidebarOpen} 
+                                activeView={activeView}
+                                setActiveView={handleViewChange}
+                                userRole={effectiveRole}
+                            />
+                            <div className="flex-1 flex flex-col overflow-hidden main-content-mobile-padding">
+                                <Header title={headerTitle} setSidebarOpen={setSidebarOpen} onLogout={logout} isSidebarOpen={isSidebarOpen} />
+                                <main className="flex-1 overflow-x-hidden overflow-y-auto">
+                                    <div className="container mx-auto px-6 py-8">
+                                        <Suspense fallback={<ContentLoader />}>
+                                            {activeView === ADMIN_VIEWS.MORE 
+                                                ? <MoreView setActiveView={handleViewChange} /> 
+                                                : <DashboardContent 
+                                                    activeView={activeView} 
+                                                    setActiveView={handleViewChange}
+                                                    userRole={effectiveRole}
+                                                    onViewStudentProfile={handleViewStudentProfile}
+                                                    profileStudentId={profileStudentId}
+                                                />
+                                            }
+                                        </Suspense>
+                                    </div>
+                                </main>
+                            </div>
+                            <AdminBottomNavBar activeView={activeView} setActiveView={handleViewChange} userRole={effectiveRole} />
                             <SyncStatusIndicator />
                             <GlobalNotification />
                         </div>
@@ -253,6 +254,15 @@ const Dashboard = () => {
         );
     }
 
+    if (role === USER_ROLES.BURSAR) {
+        return (
+            <TenantProvider>
+                <PlanFeaturesProvider>
+                    <Bursary />
+                </PlanFeaturesProvider>
+            </TenantProvider>
+        );
+    }
     return (
         <TenantProvider>
             <PlanFeaturesProvider>
@@ -302,9 +312,8 @@ const Dashboard = () => {
                         <AdminBottomNavBar activeView={activeView} setActiveView={handleViewChange} userRole={role} />
                     </div>
                 </div>
-            <SyncStatusIndicator />
-            <GlobalNotification />
-                
+                <SyncStatusIndicator />
+                <GlobalNotification />
                 </>
             </PlanFeaturesProvider>
         </TenantProvider>

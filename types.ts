@@ -21,10 +21,10 @@ export type DashboardView =
   | 'parents' | 'timetable' | 'id-cards' | 'behavioral-remarks' | 'general-remarks'
   | 'help' | 'resource-hub' | 'billing' | 'more' | 'events' | 'absence-management'
   | 'platform-settings' | 'users' | 'pages' | 'menus' | 'blog-articles' | 'kb-articles'
-  | 'print-center'
+  | 'print-center' | 'teacher-certificates' | 'ai-coach-progress'
   | 'ai-coach-manager' | 'ai-chat' | 'ai-elaboratory' | 'ai-lesson-planner' | 'ai-practice-quiz'
   | 'ai-comment-generator' | 'ai-early-intervention' | 'ai-learning-pathways' | 'ai-subject-recommender'
-  | 'ai-rubric-generator' | 'ai-parent-message-composer';
+  | 'ai-rubric-generator' | 'ai-parent-message-composer' | 'teacher-attendance-history';
   
 export type TeacherView = 
   | 'dashboard' | 'my-students' | 'enter-scores' | 'my-schedule' | 'ai-tools'
@@ -32,7 +32,8 @@ export type TeacherView =
   | 'ai-chat' | 'ai-elaboratory' | 'ai-lesson-planner' | 'ai-practice-quiz'
   | 'ai-comment-generator' | 'ai-early-intervention' | 'ai-learning-pathways' | 'ai-subject-recommender'
   | 'ai-rubric-generator' | 'ai-parent-message-composer' | 'lesson-templates' | 'ai-coach'
-  | 'attendance' | 'messages' | 'notifications' | 'report-cards' | 'comprehensive-entry' | 'student-profile';
+  | 'attendance' | 'messages' | 'notifications' | 'report-cards' | 'comprehensive-entry' | 'student-profile'
+  | 'classroom-monitoring';
   
 export type StudentView = 
   | 'dashboard' | 'results' | 'assignments' | 'timetable' | 'ai-tools'
@@ -142,6 +143,33 @@ export interface AttendanceRecord {
     date: string;
     class: string;
     statuses: Record<string, 'present' | 'absent' | 'late'>;
+}
+
+export interface GeofencePoint {
+    lat: number;
+    lng: number;
+}
+
+export interface Geofence {
+    type: 'circle' | 'polygon';
+    name?: string;
+    center?: GeofencePoint;
+    radius_m?: number;
+    polygon?: GeofencePoint[];
+}
+
+export interface TeacherAttendanceRecord {
+    id?: string;
+    teacherId: string;
+    tenantId?: string;
+    timestamp: string;
+    status: 'present' | 'absent';
+    lat?: number;
+    lng?: number;
+    accuracy_m?: number;
+    method?: 'geofence' | 'manual' | 'qr';
+    userAgent?: string;
+    notes?: string;
 }
 
 export interface Assignment {
@@ -347,6 +375,20 @@ export interface SchoolSettings {
     };
     // Custom header title text, default falls back to "{term} Term Pupil's Performance Report"
     classicHeaderTitle?: string;
+  };
+  premisesGeofences?: Geofence[];
+  geofenceRules?: {
+    mode?: 'disabled' | 'manual' | 'automatic';
+    geofenceRequired?: boolean;
+    allowManualMarking?: boolean;
+    allowQRMarking?: boolean;
+    autoSignInEnabled?: boolean;
+    autoSignInGraceMinutes?: number;
+    minAccuracy_m?: number;
+    graceRadius_m?: number;
+    requireTwoCaptures?: boolean;
+    autoSignoutEnabled?: boolean;
+    signoutGraceMinutes?: number;
   };
   features?: Record<string, boolean>;
   roleBasedFeatures?: {

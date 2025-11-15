@@ -200,6 +200,13 @@ cache.cacheResponse(actualPrompt, text, 'gemini', opts.context);
     
   } catch (error) {
     const msg = String((error as any)?.message || '').toLowerCase();
+    if (msg.includes('invalid gemini api key format') || msg.includes('gemini api key not configured')) {
+      try {
+        const text = generateEnhancedFallbackResponse(actualPrompt, opts.context);
+        try { window.dispatchEvent(new CustomEvent('show-global-error', { detail: { title: 'AI Fallback Activated', message: 'Transcript generated using offline templates (no valid API key).' } })); } catch { /* noop */ }
+        return text;
+      } catch { /* noop */ }
+    }
     if (msg.includes('503') || msg.includes('overloaded') || msg.includes('quota') || msg.includes('429')) {
       try {
         const text = generateEnhancedFallbackResponse(actualPrompt, opts.context);

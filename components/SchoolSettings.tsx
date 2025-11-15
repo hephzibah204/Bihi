@@ -8,6 +8,7 @@ import FeatureControlSettings from './FeatureControlSettings';
 import IntegrationSettings from './IntegrationSettings';
 import ManualBankSettings from './ManualBankSettings';
 import { CONTROLLABLE_FEATURES } from '../utils/constants';
+import { Geofence } from '../types';
 
 const TabButton = ({ view, active, onClick, children }: PropsWithChildren<{ view: string, active: boolean, onClick: (view: string) => void }>) => (
     <button
@@ -233,6 +234,182 @@ const ReportCardSettingsTab = ({ settings, onSettingsChange }) => {
     );
 };
 
+const GeofencingSettings = ({ settings, onSettingsChange }: { settings: any, onSettingsChange: (changed: any) => void }) => {
+    const geofences: Geofence[] = settings.premisesGeofences || [];
+    const rules = settings.geofenceRules || {};
+
+    const addGeofence = () => {
+        const newFence: Geofence = { type: 'circle', name: '', center: { lat: 0, lng: 0 }, radius_m: 50 } as any;
+        onSettingsChange({ premisesGeofences: [...geofences, newFence] });
+    };
+
+    const updateFence = (index: number, field: string, value: any) => {
+        const next = [...geofences];
+        next[index] = { ...next[index], [field]: value };
+        onSettingsChange({ premisesGeofences: next });
+    };
+
+    const updateFenceCenter = (index: number, coord: 'lat' | 'lng', value: number) => {
+        const next = [...geofences];
+        const center = next[index].center || { lat: 0, lng: 0 };
+        next[index] = { ...next[index], center: { ...center, [coord]: value } };
+        onSettingsChange({ premisesGeofences: next });
+    };
+
+    const updateFenceType = (index: number, type: 'circle' | 'polygon') => {
+        const next = [...geofences];
+        if (type === 'circle') {
+            next[index] = { type, name: next[index].name || '', center: next[index].center || { lat: 0, lng: 0 }, radius_m: next[index].radius_m ?? 50 } as any;
+        } else {
+            next[index] = { type, name: next[index].name || '', polygon: next[index].polygon || [{ lat: 0, lng: 0 }, { lat: 0.001, lng: 0 }, { lat: 0, lng: 0.001 }] } as any;
+        }
+        onSettingsChange({ premisesGeofences: next });
+    };
+
+    const addPolygonPoint = (index: number) => {
+        const next = [...geofences];
+        const pts = next[index].polygon || [];
+        next[index] = { ...next[index], polygon: [...pts, { lat: 0, lng: 0 }] } as any;
+        onSettingsChange({ premisesGeofences: next });
+    };
+
+    const updatePolygonPoint = (index: number, pointIndex: number, coord: 'lat' | 'lng', value: number) => {
+        const next = [...geofences];
+        const pts = [...(next[index].polygon || [])];
+        const p = { ...(pts[pointIndex] || { lat: 0, lng: 0 }), [coord]: value } as any;
+        pts[pointIndex] = p;
+        next[index] = { ...next[index], polygon: pts } as any;
+        onSettingsChange({ premisesGeofences: next });
+    };
+
+    const removePolygonPoint = (index: number, pointIndex: number) => {
+        const next = [...geofences];
+        const pts = (next[index].polygon || []).filter((_, i) => i !== pointIndex);
+        next[index] = { ...next[index], polygon: pts } as any;
+        onSettingsChange({ premisesGeofences: next });
+    };
+
+    const removeFence = (index: number) => {
+        const next = geofences.filter((_, i) => i !== index);
+        onSettingsChange({ premisesGeofences: next });
+    };
+
+    return (
+        <div className="space-y-6">
+            <div className="p-4 border rounded-md">
+                <h4 className="font-semibold mb-2">Premises Geofences</h4>
+                <p className="text-xs text-gray-500 mb-4">Define one or more circular geofences around your school premises. Validation currently supports circle type.</p>
+                <div className="space-y-3">
+                    {geofences.map((g, idx) => (
+                        <div key={idx} className="space-y-3 border rounded-md p-3">
+                            <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+                                <div>
+                                    <label className="label" htmlFor={`gf-name-${idx}`}>Name</label>
+                                    <input id={`gf-name-${idx}`} type="text" value={g.name || ''} onChange={e => updateFence(idx, 'name', e.target.value)} className="input-field" />
+                                </div>
+                                <div>
+                                    <label className="label" htmlFor={`gf-type-${idx}`}>Type</label>
+                                    <select id={`gf-type-${idx}`} className="input-field" value={g.type} onChange={e => updateFenceType(idx, e.target.value as any)}>
+                                        <option value="circle">Circle</option>
+                                        <option value="polygon">Polygon</option>
+                                    </select>
+                                </div>
+                                <div className="flex items-center md:justify-end">
+                                    <button onClick={() => removeFence(idx)} className="icon-button text-red-500" title="Remove geofence"><TrashIcon className="w-5 h-5"/></button>
+                                </div>
+                            </div>
+                            {g.type === 'circle' ? (
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    <div>
+                                        <label className="label" htmlFor={`gf-lat-${idx}`}>Center Lat</label>
+                                        <input id={`gf-lat-${idx}`} type="number" value={g.center?.lat ?? 0} onChange={e => updateFenceCenter(idx, 'lat', Number(e.target.value))} className="input-field" />
+                                    </div>
+                                    <div>
+                                        <label className="label" htmlFor={`gf-lng-${idx}`}>Center Lng</label>
+                                        <input id={`gf-lng-${idx}`} type="number" value={g.center?.lng ?? 0} onChange={e => updateFenceCenter(idx, 'lng', Number(e.target.value))} className="input-field" />
+                                    </div>
+                                    <div>
+                                        <label className="label" htmlFor={`gf-radius-${idx}`}>Radius (m)</label>
+                                        <input id={`gf-radius-${idx}`} type="number" value={g.radius_m ?? 0} onChange={e => updateFence(idx, 'radius_m', Number(e.target.value))} className="input-field" />
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    <div className="flex justify-between items-center">
+                                        <h5 className="font-medium text-sm">Polygon Points</h5>
+                                        <button type="button" className="btn btn-secondary btn-sm" onClick={() => addPolygonPoint(idx)}><PlusIcon className="w-3 h-3 mr-1"/>Add Point</button>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {(g.polygon || []).map((pt, pIdx) => (
+                                            <div key={pIdx} className="grid grid-cols-1 md:grid-cols-3 gap-2 items-end">
+                                                <input type="number" className="input-field" value={pt.lat ?? 0} onChange={e => updatePolygonPoint(idx, pIdx, 'lat', Number(e.target.value))} aria-label={`point ${pIdx+1} lat`} />
+                                                <input type="number" className="input-field" value={pt.lng ?? 0} onChange={e => updatePolygonPoint(idx, pIdx, 'lng', Number(e.target.value))} aria-label={`point ${pIdx+1} lng`} />
+                                                <button type="button" className="icon-button text-red-500" onClick={() => removePolygonPoint(idx, pIdx)} title="Remove point"><TrashIcon className="w-4 h-4"/></button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+                <button type="button" onClick={addGeofence} className="btn btn-secondary mt-3"><PlusIcon className="w-4 h-4 mr-2"/>Add Geofence</button>
+            </div>
+
+            <div className="p-4 border rounded-md">
+                <h4 className="font-semibold mb-2">Geofence Rules</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label className="label" htmlFor="geoMode">Operation Mode</label>
+                        <select id="geoMode" className="input-field" value={rules.mode || 'manual'} onChange={e => onSettingsChange({ geofenceRules: { ...rules, mode: e.target.value } })}>
+                            <option value="disabled">Disabled</option>
+                            <option value="manual">Manual</option>
+                            <option value="automatic">Automatic</option>
+                        </select>
+                    </div>
+                    <label className="flex items-center gap-2">
+                        <input type="checkbox" checked={rules.geofenceRequired ?? false} onChange={e => onSettingsChange({ geofenceRules: { ...rules, geofenceRequired: e.target.checked } })} />
+                        <span>Require geofence for teacher sign-in</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                        <input type="checkbox" checked={rules.allowManualMarking ?? true} onChange={e => onSettingsChange({ geofenceRules: { ...rules, allowManualMarking: e.target.checked } })} />
+                        <span>Allow manual sign-in</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                        <input type="checkbox" checked={rules.autoSignInEnabled ?? false} onChange={e => onSettingsChange({ geofenceRules: { ...rules, autoSignInEnabled: e.target.checked } })} />
+                        <span>Auto sign-in when inside premises</span>
+                    </label>
+                    <div>
+                        <label className="label" htmlFor="autoSignInGraceMinutes">Auto Sign-in Grace (minutes)</label>
+                        <input id="autoSignInGraceMinutes" type="number" value={rules.autoSignInGraceMinutes ?? 5} onChange={e => onSettingsChange({ geofenceRules: { ...rules, autoSignInGraceMinutes: Number(e.target.value) } })} className="input-field" />
+                    </div>
+                    <div>
+                        <label className="label" htmlFor="minAccuracy">Minimum Accuracy (m)</label>
+                        <input id="minAccuracy" type="number" value={rules.minAccuracy_m ?? 70} onChange={e => onSettingsChange({ geofenceRules: { ...rules, minAccuracy_m: Number(e.target.value) } })} className="input-field" />
+                    </div>
+                    <div>
+                        <label className="label" htmlFor="graceRadius">Grace Radius (m)</label>
+                        <input id="graceRadius" type="number" value={rules.graceRadius_m ?? 0} onChange={e => onSettingsChange({ geofenceRules: { ...rules, graceRadius_m: Number(e.target.value) } })} className="input-field" />
+                    </div>
+                    <label className="flex items-center gap-2">
+                        <input type="checkbox" checked={rules.requireTwoCaptures ?? false} onChange={e => onSettingsChange({ geofenceRules: { ...rules, requireTwoCaptures: e.target.checked } })} />
+                        <span>Require two consecutive valid captures to confirm</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                        <input type="checkbox" checked={rules.autoSignoutEnabled ?? false} onChange={e => onSettingsChange({ geofenceRules: { ...rules, autoSignoutEnabled: e.target.checked } })} />
+                        <span>Auto signout when outside premises</span>
+                    </label>
+                    <div>
+                        <label className="label" htmlFor="signoutGraceMinutes">Signout Grace (minutes)</label>
+                        <input id="signoutGraceMinutes" type="number" value={rules.signoutGraceMinutes ?? 10} onChange={e => onSettingsChange({ geofenceRules: { ...rules, signoutGraceMinutes: Number(e.target.value) } })} className="input-field" />
+                    </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">Accuracy gate rejects readings above the threshold. Grace radius adds tolerance outside the perimeter.</p>
+            </div>
+        </div>
+    );
+};
+
 const ClassSettings = ({ settings, onSettingsChange }) => {
     const structure = settings.schoolStructure || { levels: [], sections: [] };
 
@@ -379,6 +556,7 @@ const SchoolSettingsComponent = () => {
             case 'classes': return settings ? <ClassSettings settings={settings} onSettingsChange={handleSettingsChange} /> : null;
             case 'grading': return settings ? <GradingSettings settings={settings} onSettingsChange={handleSettingsChange} /> : null;
             case 'report-card': return settings ? <ReportCardSettingsTab settings={settings} onSettingsChange={handleSettingsChange} /> : null;
+            case 'geofencing': return settings ? <GeofencingSettings settings={settings} onSettingsChange={handleSettingsChange} /> : null;
             case 'features': return settings ? <FeatureControlSettings settings={settings} onSettingsChange={handleSettingsChange} /> : null;
             case 'integrations': return settings ? <IntegrationSettings settings={settings} onSettingsChange={handleSettingsChange} /> : null;
             case 'payments': return settings ? <ManualBankSettings settings={settings} onSettingsChange={handleSettingsChange} /> : null;
@@ -402,6 +580,7 @@ const SchoolSettingsComponent = () => {
                         <TabButton view="classes" active={activeTab === 'classes'} onClick={setActiveTab}>Classes</TabButton>
                         <TabButton view="grading" active={activeTab === 'grading'} onClick={setActiveTab}>Grading</TabButton>
                         <TabButton view="report-card" active={activeTab === 'report-card'} onClick={setActiveTab}>Report Card</TabButton>
+                        <TabButton view="geofencing" active={activeTab === 'geofencing'} onClick={setActiveTab}>Geofencing</TabButton>
                         <TabButton view="features" active={activeTab === 'features'} onClick={setActiveTab}>Features</TabButton>
                         <TabButton view="integrations" active={activeTab === 'integrations'} onClick={setActiveTab}>Integrations</TabButton>
                         <TabButton view="payments" active={activeTab === 'payments'} onClick={setActiveTab}>Payments</TabButton>

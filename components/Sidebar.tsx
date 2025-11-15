@@ -21,6 +21,7 @@ import UsersGroupIcon from './icons/UsersGroupIcon';
 import Cog6ToothIcon from './icons/Cog6ToothIcon';
 import BriefcaseIcon from './icons/BriefcaseIcon';
 import IdentificationIcon from './icons/IdentificationIcon';
+import HeadsetIcon from './icons/HeadsetIcon';
 import { ADMIN_VIEWS, USER_ROLES } from '../utils/constants';
 import { usePlanFeatures } from '../contexts/PlanFeaturesContext';
 import LockIcon from './icons/LockIcon';
@@ -190,6 +191,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView, use
             items: [
                 { view: ADMIN_VIEWS.STUDENTS, label: 'Students', icon: <UsersIcon className="h-5 w-5" /> },
                 { view: ADMIN_VIEWS.ATTENDANCE, label: 'Attendance', icon: <HandRaisedIcon className="h-5 w-5" /> },
+                { view: ADMIN_VIEWS.TEACHER_ATTENDANCE_HISTORY, label: 'Teacher Attendance History', icon: <HistoryIcon className="h-5 w-5" /> },
                 { view: ADMIN_VIEWS.BEHAVIORAL_REMARKS, label: 'Behavioral', icon: <PencilIcon className="h-5 w-5" /> },
             ]
         },
@@ -219,6 +221,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView, use
                 { view: ADMIN_VIEWS.PRINT_CENTER, label: 'Print Center', icon: <PrinterIcon className="h-5 w-5" /> },
                 { view: ADMIN_VIEWS.ID_CARDS, label: 'ID Cards', icon: <IdentificationIcon className="h-5 w-5" /> },
                 { view: ADMIN_VIEWS.ALUMNI, label: 'Alumni', icon: <GraduationCapIcon className="h-5 w-5" /> },
+                { view: ADMIN_VIEWS.CLASSROOM_MONITORING, label: 'Classroom Monitoring', icon: <HeadsetIcon className="h-5 w-5" /> },
             ]
         },
         {

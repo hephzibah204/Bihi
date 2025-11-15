@@ -224,9 +224,11 @@ export class SemanticSearchEngine {
         
         // Sort by similarity * confidence (hybrid score)
         results.sort((a, b) => {
-            const scoreA = a.similarity * (0.7 + a.confidence * 0.3); // Weight: 70% similarity, 30% confidence
+            const scoreA = a.similarity * (0.7 + a.confidence * 0.3);
             const scoreB = b.similarity * (0.7 + b.confidence * 0.3);
-            return scoreB - scoreA;
+            const diff = scoreB - scoreA;
+            if (diff === 0) return b.confidence - a.confidence;
+            return diff;
         });
         
         return results.slice(0, topK);

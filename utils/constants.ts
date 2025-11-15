@@ -63,6 +63,8 @@ export const ADMIN_VIEWS: { [key: string]: DashboardView } = {
     KB_ARTICLES: 'kb-articles',
     PRINT_CENTER: 'print-center',
     TEACHER_CERTIFICATES: 'teacher-certificates',
+    CLASSROOM_MONITORING: 'classroom-monitoring',
+    TEACHER_ATTENDANCE_HISTORY: 'teacher-attendance-history',
 };
 
 export const TEACHER_VIEWS = {
@@ -97,6 +99,7 @@ export const TEACHER_VIEWS = {
     STUDENT_PROFILE: 'student-profile',
     COMPREHENSIVE_ENTRY: 'comprehensive-entry',
     BROADSHEET: 'broadsheet',
+    CLASSROOM_MONITORING: 'classroom-monitoring',
 } as const;
 
 export const STUDENT_VIEWS: { [key: string]: StudentView } = {
@@ -231,6 +234,14 @@ export const CONTROLLABLE_FEATURES = [
         description: 'Personalized coaching and micro-courses for 21st-century skills',
         applicableRoles: ['admin', 'teacher'],
         category: 'Professional Development'
+    }
+    ,
+    {
+        key: 'classroom-monitoring',
+        name: 'Classroom Monitoring',
+        description: 'Listen live and watch recorded lessons',
+        applicableRoles: ['admin', 'teacher'],
+        category: 'Monitoring'
     }
 ];
 

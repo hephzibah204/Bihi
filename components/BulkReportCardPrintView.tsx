@@ -10,7 +10,7 @@ import ModernReportCard from './report-templates/ModernReportCard';
 import MinimalistReportCard from './report-templates/MinimalistReportCard';
 import SpinnerIcon from './icons/SpinnerIcon';
 import '../styles/report-card.css';
-import { sanitizeFilename } from '../utils/pdfUtils';
+import { sanitizeFilename, downloadElementsAsPdf } from '../utils/pdfUtils';
 
 const BulkReportCardPrintView = ({ studentIds, allData, onClose, action, templateKey = 'auto', sessionOverride, termOverride }) => {
     const [isProcessing, setIsProcessing] = useState(false);
@@ -25,46 +25,10 @@ const BulkReportCardPrintView = ({ studentIds, allData, onClose, action, templat
         if (hadOffscreen) {
             container.classList.remove('offscreen');
         }
-        const { html2canvas, jspdf } = window;
-        if (!html2canvas || !jspdf) {
-            alert("PDF export library not loaded. Please try again.");
-            setIsProcessing(false);
-            return;
-        }
-        const { jsPDF } = jspdf;
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const reportCardElements = document.querySelectorAll('.page-break');
-        
-        for (let i = 0; i < reportCardElements.length; i++) {
-            const element = reportCardElements[i] as HTMLElement;
-            const canvas = await html2canvas(element, { scale: 2 });
-            const imgData = canvas.toDataURL('image/png');
-            
-            const A4_WIDTH = 210;
-            const A4_HEIGHT = 297;
-            
-            if (i > 0) {
-                pdf.addPage();
-            }
-            pdf.addImage(imgData, 'PNG', 0, 0, A4_WIDTH, A4_HEIGHT, undefined, 'FAST');
-        }
-        
         // Determine filename: if all selected students share one class, use that; otherwise generic
         const uniqueClasses: string[] = Array.from(new Set(studentsToPrint.map((s: any) => s.class))).filter(Boolean) as string[];
         const baseName: string = uniqueClasses.length === 1 ? uniqueClasses[0] : 'report-cards';
-        try {
-            const blob = pdf.output('blob');
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = sanitizeFilename(baseName) + '.pdf';
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
-        } catch (e) {
-            pdf.save(sanitizeFilename(baseName) + '.pdf');
-        }
+        await downloadElementsAsPdf('.page-break', sanitizeFilename(baseName));
         // Restore offscreen state
         if (hadOffscreen && container) {
             container.classList.add('offscreen');

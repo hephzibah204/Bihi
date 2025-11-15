@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { apiGetAttendance, apiSaveAttendance, apiGetStudents } from '../services/api';
-import { AttendanceRecord, Student } from '../types';
+import { apiGetAttendance, apiSaveAttendance, apiGetStudents, apiSaveTeacherAttendance } from '../services/api';
+import { AttendanceRecord, Student, TeacherAttendanceRecord } from '../types';
 import { formatDate } from '../utils/dateHelpers';
 import { useTenant } from '../contexts/TenantContext';
 import { generateClassNames } from '../utils/classManager';
@@ -8,8 +8,12 @@ import TableSkeleton from './skeletons/TableSkeleton';
 import EmptyState from './EmptyState';
 import { parseStandardQRPayload } from '../utils/qrCodeGenerator';
 import { apiVerifyQRSignature } from '../services/qr';
+import { useAuth } from '../contexts/AuthContext';
+import { useGeolocationFence } from '../hooks/useGeolocationFence';
+import { useTeacherPresenceWatcher } from '../hooks/useTeacherPresenceWatcher';
 
 const Attendance = () => {
+    const { user, role } = useAuth();
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [selectedClass, setSelectedClass] = useState('');
     const [students, setStudents] = useState<Student[]>([]);
@@ -17,6 +21,11 @@ const Attendance = () => {
     const [loading, setLoading] = useState(false);
     const { settings } = useTenant();
     const classNames = useMemo(() => generateClassNames(settings), [settings]);
+
+    const { reading, error: geoError, capture, validate } = useGeolocationFence();
+    const [geoStatus, setGeoStatus] = useState<'idle' | 'locating' | 'inside' | 'outside' | 'saved' | 'error'>('idle');
+    const [distanceInfo, setDistanceInfo] = useState<string>('');
+    const [validCaptureCount, setValidCaptureCount] = useState<number>(0);
 
     useEffect(() => {
         if(classNames.length > 0 && !selectedClass) {
@@ -48,6 +57,60 @@ const Attendance = () => {
         };
         fetchAttendanceData();
     }, [date, selectedClass]);
+
+    const handleCaptureLocation = async () => {
+        setGeoStatus('locating');
+        const loc = await capture();
+        if (!loc) { setGeoStatus('error'); return; }
+        const res = validate(loc, settings?.premisesGeofences || [], settings?.geofenceRules || {});
+        if (res.nearest) setDistanceInfo(`${Math.round(res.nearest.distance_m)} m to site`);
+        if (res.inside) {
+            setValidCaptureCount(prev => prev + 1);
+            setGeoStatus('inside');
+        } else {
+            setValidCaptureCount(0);
+            setGeoStatus('outside');
+        }
+    };
+
+    const handleConfirmPresent = async () => {
+        if (!user || role !== 'Teacher' || !reading) return;
+        const record: TeacherAttendanceRecord = {
+            teacherId: (user as any).id,
+            timestamp: new Date().toISOString(),
+            status: 'present',
+            lat: reading.lat,
+            lng: reading.lng,
+            accuracy_m: reading.accuracy_m,
+            method: 'geofence',
+            userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
+            notes: JSON.stringify({ captures: validCaptureCount })
+        };
+        try {
+            await apiSaveTeacherAttendance(record);
+            setGeoStatus('saved');
+            setValidCaptureCount(0);
+        } catch {
+            setGeoStatus('error');
+        }
+    };
+
+    const handleConfirmPresentManual = async () => {
+        if (!user || role !== 'Teacher') return;
+        const record: TeacherAttendanceRecord = {
+            teacherId: (user as any).id,
+            timestamp: new Date().toISOString(),
+            status: 'present',
+            method: 'manual',
+            userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
+        };
+        try {
+            await apiSaveTeacherAttendance(record);
+            setGeoStatus('saved');
+        } catch {
+            setGeoStatus('error');
+        }
+    };
 
     const handleStatusChange = async (studentId: string, status: 'present' | 'absent' | 'late') => {
         const newAttendance = { ...attendance, [studentId]: status };
@@ -358,6 +421,44 @@ const Attendance = () => {
     return (
         <div className="card">
             <div className="p-6">
+                <div className="mb-6">
+                    <h2 className="text-lg font-semibold mb-2">Mark My Attendance</h2>
+                    {role !== 'Teacher' ? (
+                        <p className="text-sm text-gray-500">Only teachers can mark their own attendance.</p>
+                    ) : (
+                        <div className="flex flex-wrap items-center gap-3">
+                            <button className="btn" onClick={handleCaptureLocation} disabled={geoStatus === 'locating'}>
+                                {geoStatus === 'locating' ? 'Locating…' : 'Capture Location'}
+                            </button>
+                            {reading && <span className="text-sm text-gray-600">Accuracy: {Math.round(reading.accuracy_m || 0)} m</span>}
+                            {distanceInfo && <span className="text-sm text-gray-600">{distanceInfo}</span>}
+                            {geoError && <span className="text-sm text-red-600">{geoError}</span>}
+                            {geoStatus === 'inside' && (
+                                ((settings?.geofenceRules?.requireTwoCaptures ?? false) ? (
+                                    validCaptureCount >= 2 ? (
+                                        <button className="btn btn-primary" onClick={handleConfirmPresent}>Confirm Present</button>
+                                    ) : (
+                                        <span className="text-sm text-gray-600">Capture again to confirm</span>
+                                    )
+                                ) : (
+                                    <button className="btn btn-primary" onClick={handleConfirmPresent}>Confirm Present</button>
+                                ))
+                            )}
+                            {(settings?.geofenceRules?.allowManualMarking ?? true) && (
+                                <button className="btn btn-secondary" onClick={handleConfirmPresentManual}>Mark Present Manually</button>
+                            )}
+                            {geoStatus === 'outside' && (
+                                <span className="text-red-600 text-sm">Outside premises or low accuracy</span>
+                            )}
+                            {geoStatus === 'saved' && (
+                                <span className="text-green-600 text-sm">Attendance marked</span>
+                            )}
+                            {geoStatus === 'error' && (
+                                <span className="text-red-600 text-sm">Unable to mark attendance</span>
+                            )}
+                        </div>
+                    )}
+                </div>
                 <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                     <div className="flex gap-4 w-full md:w-auto">
                         <input type="date" value={date} onChange={e => setDate(e.target.value)} className="input-field"/>
@@ -383,3 +484,4 @@ const Attendance = () => {
 };
 
 export default Attendance;
+    useTeacherPresenceWatcher();

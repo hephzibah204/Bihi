@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import Modal from './Modal';
 import { apiUpsertStudent } from '../services/api';
 import ArrowUpTrayIcon from './icons/ArrowUpTrayIcon';
+import { parseCSV } from '../utils/csvExporter';
 import { Student } from '../types';
 
 type ImportStep = 'upload' | 'mapping' | 'review' | 'importing' | 'success';
@@ -80,16 +81,13 @@ const ImportStudentsModal = ({ isOpen, onClose, onSuccess }) => {
         const reader = new FileReader();
         reader.onload = (event) => {
             const csv = event.target?.result as string;
-            const lines = csv.split(/\r?\n/).filter(line => line.trim() !== '');
-            if (lines.length < 2) {
+            const { headers, rows } = parseCSV(csv);
+            if (!headers.length || rows.length === 0) {
                 setError('CSV file must have at least one header row and one data row.');
                 return;
             }
-            const headers = lines[0].split(',').map(h => h.trim());
-            const dataRows = lines.slice(1).map(line => line.split(',').map(d => d.trim()));
-            
             setCsvHeaders(headers);
-            setCsvData(dataRows);
+            setCsvData(rows);
             setFieldMapping(autoMapFields(headers));
             setStep('mapping');
         };

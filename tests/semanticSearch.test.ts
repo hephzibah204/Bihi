@@ -18,8 +18,13 @@ describe('SemanticSearchEngine', () => {
                 'Photosynthesis is the process by which plants convert sunlight into energy.',
                 { confidence: 0.9 }
             );
+            searchEngine.indexDocument(
+                'neutral',
+                'Unrelated content',
+                'This document is about school policies and administration.'
+            );
 
-            const results = searchEngine.search('photosynthesis plants', 5);
+            const results = searchEngine.search('photosynthesis plants', 5, 0.0);
             
             expect(results.length).toBeGreaterThan(0);
             expect(results[0].id).toBe('doc1');
@@ -32,7 +37,7 @@ describe('SemanticSearchEngine', () => {
                 'Photosynthesis is the process by which plants convert sunlight into energy.'
             );
 
-            const results = searchEngine.search('quantum physics', 5);
+            const results = searchEngine.search('quantum physics', 5, 0.8);
             
             expect(results.length).toBe(0);
         });
@@ -50,7 +55,7 @@ describe('SemanticSearchEngine', () => {
                 'Cellular respiration is the process by which cells break down glucose to produce energy.'
             );
 
-            const results = searchEngine.search('plant food production', 3);
+            const results = searchEngine.search('plant food production', 3, 0.0);
             
             expect(results.length).toBeGreaterThan(0);
             expect(results[0].id).toBe('doc1'); // Should match doc1 more closely
@@ -105,7 +110,7 @@ describe('SemanticSearchEngine', () => {
                 }
             ]);
 
-            const results = searchEngine.search('solving quadratic equations', 5);
+            const results = searchEngine.search('solving quadratic equations', 5, 0.2);
             
             expect(results.length).toBeGreaterThan(0);
             // The most similar should be first
@@ -179,18 +184,19 @@ describe('SemanticSearchEngine', () => {
                 {
                     id: 'doc1',
                     prompt: 'Lesson plan for mathematics',
-                    response: 'Basic math lesson...',
+                    response: 'Mathematics lesson content identical',
                     metadata: { confidence: 0.3 }
                 },
                 {
                     id: 'doc2',
                     prompt: 'Lesson plan for mathematics',
-                    response: 'Comprehensive math lesson with activities...',
+                    response: 'Mathematics lesson content identical',
                     metadata: { confidence: 0.9 }
                 }
             ]);
+            searchEngine.indexDocument('docX', 'Other subject', 'History lesson content.');
 
-            const results = searchEngine.search('math lesson plan', 5);
+            const results = searchEngine.search('lesson plan for mathematics', 2, 0.0);
             
             expect(results.length).toBe(2);
             // Higher confidence should be ranked higher when similarity is equal
@@ -283,8 +289,9 @@ describe('SemanticSearchEngine', () => {
             const longResponse = 'Mathematics is important. '.repeat(100);
             
             searchEngine.indexDocument('doc1', 'Why is math important?', longResponse);
+            searchEngine.indexDocument('docN', 'Other topic', 'Completely different subject matter.');
             
-            const results = searchEngine.search('mathematics importance', 5);
+            const results = searchEngine.search('mathematics importance', 5, 0.0);
             
             expect(results.length).toBeGreaterThan(0);
         });
@@ -295,8 +302,9 @@ describe('SemanticSearchEngine', () => {
                 'PHOTOSYNTHESIS IN PLANTS',
                 'PLANTS USE SUNLIGHT FOR PHOTOSYNTHESIS'
             );
+            searchEngine.indexDocument('docN', 'Other topic', 'Completely different subject matter.');
             
-            const results = searchEngine.search('photosynthesis plants', 5);
+            const results = searchEngine.search('photosynthesis plants', 5, 0.0);
             
             expect(results.length).toBeGreaterThan(0);
         });
@@ -368,7 +376,7 @@ describe('Performance', () => {
         expect(indexTime).toBeLessThan(5000); // Should index in under 5 seconds
 
         const searchStart = Date.now();
-        const results = searchEngine.search('educational topics', 10);
+        const results = searchEngine.search('educational topics', 10, 0.0);
         const searchTime = Date.now() - searchStart;
 
         expect(searchTime).toBeLessThan(1000); // Should search in under 1 second

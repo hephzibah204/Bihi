@@ -3,6 +3,7 @@ import Modal from './Modal';
 import { apiGetStudents, apiGetInvoices, apiBatchUpdateInvoices, apiBatchUpsertPayments } from '../services/api';
 import { Student, Invoice, Payment } from '../types';
 import ArrowUpTrayIcon from './icons/ArrowUpTrayIcon';
+import { parseCSV } from '../utils/csvExporter';
 
 type ImportStep = 'upload' | 'mapping' | 'review' | 'importing' | 'success';
 
@@ -43,7 +44,6 @@ const BulkPaymentImportModal = ({ isOpen, onClose, onSuccess }) => {
     const handleClose = () => { handleReset(); onClose(); };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        // This is a simplified version. A real implementation would parse the CSV.
         const selectedFile = e.target.files?.[0];
         if (!selectedFile) return;
         setFile(selectedFile);
@@ -52,16 +52,25 @@ const BulkPaymentImportModal = ({ isOpen, onClose, onSuccess }) => {
         const reader = new FileReader();
         reader.onload = (event) => {
             const csv = event.target?.result as string;
-            const lines = csv.split(/\r?\n/).filter(line => line.trim() !== '');
-            if (lines.length < 2) {
+            const { headers, rows } = parseCSV(csv);
+            if (!headers.length || rows.length === 0) {
                 setError('CSV must have a header and at least one data row.');
                 return;
             }
-            const headers = lines[0].split(',').map(h => h.trim());
-            const dataRows = lines.slice(1).map(line => line.split(',').map(d => d.trim()));
             setCsvHeaders(headers);
-            setCsvData(dataRows);
-            setFieldMapping(TARGET_FIELDS.reduce((acc, field) => ({...acc, [field.label]: field.key}), {})); // Simple mapping
+            setCsvData(rows);
+            const commonMappings: Record<string, string> = {
+                'admissionno': 'admissionNo', 'admission number': 'admissionNo', 'admission_no': 'admissionNo',
+                'amount': 'amount', 'amount paid': 'amount',
+                'paymentdate': 'paymentDate', 'payment date': 'paymentDate',
+                'reference': 'reference', 'ref': 'reference'
+            };
+            const mapping = headers.reduce((acc, h) => {
+                const k = commonMappings[h.toLowerCase().trim()] || 'ignore';
+                acc[h] = k;
+                return acc;
+            }, {} as Record<string, string>);
+            setFieldMapping(mapping);
             setStep('review');
         };
         reader.readAsText(selectedFile);

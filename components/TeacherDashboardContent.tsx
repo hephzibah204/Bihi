@@ -1,6 +1,7 @@
 import React, { lazy, Suspense } from 'react';
 import { TeacherView } from '../types';
 import { TEACHER_VIEWS } from '../utils/constants';
+import { useAuth } from '../contexts/AuthContext';
 import SpinnerIcon from './icons/SpinnerIcon';
 
 // Lazy-loaded components for teacher dashboard
@@ -23,6 +24,7 @@ const TeacherHome = lazy(() => import('./TeacherHome'));
 const StudentProfilePage = lazy(() => import('./StudentProfilePage'));
 const ComprehensiveReportEntry = lazy(() => import('./ComprehensiveReportEntry'));
 const Broadsheet = lazy(() => import('./Broadsheet'));
+const TeacherLiveControl = lazy(() => import('./TeacherLiveControl'));
 
 // AI Tool Components
 const AIChatPanel = lazy(() => import('./AIChatPanel'));
@@ -50,8 +52,10 @@ const ContentLoader = () => (
 );
 
 const TeacherDashboardContent: React.FC<TeacherDashboardContentProps> = ({ activeView, setActiveView, profileStudentId, onViewStudentProfile }) => {
+    const { settings } = useAuth();
+    const isEnabled = (settings?.features?.['classroom-monitoring'] ?? true) && (settings?.roleBasedFeatures?.teacher?.['classroom-monitoring'] ?? true);
     return (
-        <Suspense fallback={<ContentLoader />}>
+        <Suspense fallback={<ContentLoader />}> 
             {(() => {
                 switch(activeView) {
                     case TEACHER_VIEWS.DASHBOARD:
@@ -88,6 +92,8 @@ const TeacherDashboardContent: React.FC<TeacherDashboardContentProps> = ({ activ
                         return <ReportCard setActiveView={setActiveView} />;
                     case TEACHER_VIEWS.BROADSHEET:
                         return <Broadsheet setActiveView={setActiveView} userRole={'Teacher'} />;
+                    case TEACHER_VIEWS.CLASSROOM_MONITORING:
+                        return isEnabled ? <TeacherLiveControl /> : <div className="p-4 bg-yellow-50 border border-yellow-200 rounded">Classroom Monitoring is disabled for Teachers.</div>;
                     case TEACHER_VIEWS.COMPREHENSIVE_ENTRY:
                         return <ComprehensiveReportEntry />;
                     case TEACHER_VIEWS.STUDENT_PROFILE:

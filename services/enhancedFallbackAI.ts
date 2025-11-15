@@ -217,6 +217,61 @@ NECO Standards - Spatial Understanding
 Examples drawn from Nigerian architecture, traditional patterns, and local construction practices.`,
                     variables: ['topic', 'class', 'duration']
                 }
+                ,
+                trigonometry: {
+                    template: `**LESSON PLAN: {topic} (Trigonometry)**
+**Subject:** Mathematics
+**Class:** {class}
+**Duration:** {duration} minutes
+
+**Learning Objectives:**
+1. Define sine, cosine, and tangent
+2. Apply trigonometric ratios to right triangles
+3. Solve WAEC/NECO trigonometry problems
+
+**Materials:**
+• Scientific calculators
+• Triangle diagrams
+• WAEC past questions
+
+**Lesson Flow:**
+1. Introduction (10 min): Ratio definitions and unit circle link
+2. Direct Instruction (20 min): Example problems
+3. Guided Practice (15 min): Board solutions
+4. Independent Practice (15 min): Worksheet
+5. Assessment (5 min): Exit ticket
+
+**Exam Tips:**
+✓ Label triangles clearly
+✓ Use correct ratio for given sides
+✓ Check angle measures and units`,
+                    variables: ['topic', 'class', 'duration']
+                },
+                numberBases: {
+                    template: `**LESSON PLAN: {topic} (Number Bases)**
+**Subject:** Mathematics
+**Class:** {class}
+**Duration:** {duration} minutes
+
+**Objectives:**
+1. Convert between base 10 and other bases
+2. Perform arithmetic in different bases
+3. Apply concepts to WAEC/NECO questions
+
+**Materials:**
+• Place value charts
+• Conversion worksheets
+
+**Lesson Flow:**
+1. Introduction: Place value across bases
+2. Direct Instruction: Conversion methods
+3. Practice: Guided problems
+4. Assessment: Short quiz
+
+**Homework:**
+• Conversion and arithmetic practice`,
+                    variables: ['topic', 'class', 'duration']
+                }
             }
         },
         english: {
@@ -285,8 +340,7 @@ Examples drawn from Nigerian architecture, traditional patterns, and local const
 
 **WAEC ALIGNMENT:**
 ✓ Paper 1: Comprehension section
-✓ Tests reading speed and accuracy
-✓ Vocabulary in context`,
+✓ Tests reading speed and accuracy`,
             essay: `**LESSON PLAN: Essay Writing Skills**
 **Subject:** English Language
 **Class:** {class}
@@ -363,7 +417,39 @@ Identify areas for improvement
 **WAEC PREPARATION:**
 Practice under timed conditions (45 min)
 Study past WAEC essay topics
-Build vocabulary for common themes`
+Build vocabulary for common themes`,
+            grammar: `**LESSON PLAN: Grammar – Parts of Speech**
+**Subject:** English Language
+**Class:** {class}
+**Duration:** {duration} minutes
+
+**OBJECTIVES:**
+1. Identify and use parts of speech correctly
+2. Improve sentence construction
+3. Apply grammar rules in writing
+
+**MATERIALS:**
+• Sentence strips
+• Worksheets
+• Board examples
+
+**LESSON FLOW:**
+1. Introduction (10 min): Quick review and examples
+2. Direct Instruction (15 min): Definitions and examples
+3. Guided Practice (15 min): Class exercises
+4. Independent Practice (10 min): Short worksheet
+5. Assessment (5 min): Exit ticket
+
+**COMMON ERRORS:**
+• Subject-verb agreement
+• Pronoun consistency
+• Tense consistency
+
+**HOMEWORK:**
+• Short writing task using target grammar
+
+**WAEC LINK:**
+Paper focus on grammar, sentence structure`
         },
         sciences: {
             biology: `**LESSON PLAN: {topic} (Biology)**
@@ -854,6 +940,32 @@ function mdToHtmlLite(md: string): string {
     } catch { return md; }
 }
 
+function ensureLessonPlanStructure(content: string, subject: string, topic: string, classLevel: string, duration: string): string {
+    const lc = content.toLowerCase();
+    let out = content.trim();
+    const needsObjectives = !(lc.includes('learning objectives') || lc.includes('objectives'));
+    const needsMaterials = !(lc.includes('materials') || lc.includes('resources'));
+    const needsAssessment = !(lc.includes('assessment') || lc.includes('quiz') || lc.includes('exit ticket'));
+    const needsFlow = !(lc.includes('lesson structure') || lc.includes('lesson flow') || lc.includes('introduction') && lc.includes('practice'));
+    const blocks: string[] = [];
+    if (needsObjectives) {
+        blocks.push(`**Learning Objectives:**\n• Understand key concepts of ${topic}\n• Apply knowledge in ${subject}\n• Practice WAEC/NECO-style questions`);
+    }
+    if (needsMaterials) {
+        blocks.push(`**Materials:**\n• Board and markers\n• Worksheets\n• ${subject === 'mathematics' ? 'Calculator' : 'Relevant subject aids'}`);
+    }
+    if (needsFlow) {
+        blocks.push(`**Lesson Structure (${duration} minutes):**\n1. Introduction\n2. Direct Instruction\n3. Guided Practice\n4. Independent Practice\n5. Assessment & Closure`);
+    }
+    if (needsAssessment) {
+        blocks.push(`**Assessment:**\n• Exit ticket (2–3 items)\n• Short quiz aligned to objectives`);
+    }
+    if (blocks.length) {
+        out += `\n\n${blocks.join('\n\n')}`;
+    }
+    return out;
+}
+
 // Enhanced Response Generator
 export class EnhancedFallbackAI {
     private static tryFromLearned(prompt: string, context?: any): string | null {
@@ -923,7 +1035,14 @@ export class EnhancedFallbackAI {
     private static generateLessonPlan(prompt: string, context: any): AIResponse {
         const learned = this.tryFromLearned(prompt, context);
         if (learned) {
-            return { content: learned, confidence: 0.95, templateUsed: 'learned_gemini', suggestions: ['Adapt as needed for your class'] };
+            const subject = (context.subject || 'General').toLowerCase();
+            const topic = context.topic || 'the selected topic';
+            const classLevel = context.class || 'SS2';
+            const enriched = ensureLessonPlanStructure(learned, subject, topic, classLevel, '45');
+            const stage = getStage(classLevel) || 'N/A';
+            const mapping = getNERDCMappings(subject, classLevel) as any;
+            const curriculumBlock = mapping ? `\n\n**CURRICULUM LINKS (Auto):**\n• Stage: ${stage}\n• Strands: ${mapping.strands.map((s:any)=>`${s.code} ${s.name}`).join('; ')}\n• Sample Objectives: ${mapping.sampleObjectives.join('; ')}` : '';
+            return { content: mdToHtmlLite(enriched + curriculumBlock), confidence: 0.95, templateUsed: 'learned_gemini', suggestions: ['Adapt as needed for your class'] };
         }
         const subject = context.subject || 'General';
         const topic = context.topic || 'the selected topic';
@@ -941,6 +1060,12 @@ export class EnhancedFallbackAI {
             } else if (prompt.toLowerCase().includes('geometry')) {
                 template = ENHANCED_TEMPLATES.lessonPlans.mathematics.topics.geometry.template;
                 confidence = 0.9;
+            } else if (/(trig|trigonometry)/i.test(prompt)) {
+                template = ENHANCED_TEMPLATES.lessonPlans.mathematics.topics.trigonometry.template;
+                confidence = 0.9;
+            } else if (/(number bases|number base|base\s*\d+)/i.test(prompt)) {
+                template = ENHANCED_TEMPLATES.lessonPlans.mathematics.topics.numberBases.template;
+                confidence = 0.88;
             }
         } else if (subject === 'english' && ENHANCED_TEMPLATES.lessonPlans.english) {
             if (prompt.toLowerCase().includes('comprehension')) {
@@ -1128,7 +1253,35 @@ By the end of this lesson, students will be able to:
     private static generateReportComment(prompt: string, context: any): AIResponse {
         const learned = this.tryFromLearned(prompt, context);
         if (learned) {
-            return { content: learned, confidence: 0.95, templateUsed: 'learned_gemini_comment' };
+            const studentName = context.name || 'The student';
+            const subject = context.subject || 'this subject';
+            const score = context.score;
+            let performanceLevel = 'satisfactory';
+            if (score) {
+                const num = parseInt(score);
+                if (num >= 75) performanceLevel = 'excellent'; else if (num >= 65) performanceLevel = 'veryGood'; else if (num >= 50) performanceLevel = 'satisfactory'; else performanceLevel = 'needsImprovement';
+            }
+            const actionPlan: string[] = [];
+            const nextTermGoals: string[] = [];
+            if (performanceLevel === 'excellent' || performanceLevel === 'veryGood') {
+                actionPlan.push('Maintain consistent study routine and attempt advanced challenges');
+                actionPlan.push('Participate in peer tutoring or leadership opportunities');
+                nextTermGoals.push('Target top-band scores across all assessments');
+                nextTermGoals.push('Complete weekly WAEC-style practice sets');
+            } else if (performanceLevel === 'satisfactory') {
+                actionPlan.push('Strengthen fundamentals through targeted revision and practice');
+                actionPlan.push('Attend extra lessons for difficult topics');
+                nextTermGoals.push('Improve assessment averages by 10–15 points');
+                nextTermGoals.push('Complete all homework on time with self-checking');
+            } else {
+                actionPlan.push('Enroll in structured support sessions and weekly tutoring');
+                actionPlan.push('Adopt a daily study timetable with parental monitoring');
+                nextTermGoals.push('Close foundational gaps in key topics');
+                nextTermGoals.push('Achieve steady improvements in class tests and homework');
+            }
+            const planBlock = `\n\n**Action Plan:**\n• ${actionPlan.join('\n• ')}\n\n**Next Term Goals:**\n• ${nextTermGoals.join('\n• ')}`;
+            const out = mdToHtmlLite(`${learned}${planBlock}`);
+            return { content: out, confidence: 0.95, templateUsed: 'learned_gemini_comment' };
         }
         const studentName = context.name || 'The student';
         const subject = context.subject || 'this subject';
@@ -1166,6 +1319,9 @@ By the end of this lesson, students will be able to:
         }
         if (performanceLevel === 'needsImprovement' && !/support|improv|challenge/i.test(selectedComment)) {
             selectedComment += ' Additional academic support is recommended.';
+        }
+        if ((performanceLevel === 'excellent' || performanceLevel === 'veryGood') && !/excellent|good/i.test(selectedComment)) {
+            selectedComment += performanceLevel === 'excellent' ? ' Excellent.' : ' Good.';
         }
         
         // Add behavioral note if context suggests it
@@ -1570,6 +1726,8 @@ What specific financial aspect would you like to explore?`;
             `• For report comments, share strengths and improvement areas\n` +
             `• For tutoring, state the concept and difficulty level\n` +
             `• For parent support, describe the specific concern`;
+
+        response += `\n\n*Offline mode active — connect to the internet for enhanced, real-time results.*`;
 
         if (normalizedPrompt.toLowerCase().includes('grading')) {
             const grades = Object.keys(NIGERIAN_CURRICULUM.gradingSystem).join(', ');

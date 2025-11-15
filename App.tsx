@@ -10,6 +10,7 @@ import { DEFAULT_LANDING_PAGE_CONTENT, DEFAULT_MENU_ITEMS } from './utils/landin
 
 // Load Dashboard eagerly to avoid intermittent dynamic import fetch errors
 import Dashboard from './components/Dashboard';
+import CBTRouter from './components/cbt/CBTRouter';
 const LandingPage = lazy(() => import('./components/LandingPage'));
 const SuperAdminDashboard = lazy(() => import('./components/SuperAdminDashboard'));
 const NotFoundPage = lazy(() => import('./components/NotFoundPage'));
@@ -120,6 +121,7 @@ const AppRouter = () => {
                 <Route path="/signin" element={<CentralLoginPage />} />
                 <Route path="/results" element={<PublicResultViewer />} />
                 <Route path="/controlhub" element={<SuperAdminDashboard />} />
+                <Route path="/cbt/*" element={<CBTRouter />} />
                 {/* Path-based tenant routing */}
                 <Route path="/:tenantSlug/*" element={<TenantRouter />} />
                 {/* Catch-all route for unknown paths (non-tenant) */}

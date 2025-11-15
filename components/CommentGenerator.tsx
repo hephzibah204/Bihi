@@ -5,6 +5,7 @@ import { useAI } from '../hooks/useAI';
 import { generateResponse as aiGenerateResponse } from '../services/geminiAIService';
 import { normalizeAIText } from '../utils/aiNormalize';
 import { logger } from '../utils/logger';
+import { HtmlContent } from './HtmlContent';
 
 const CommentGenerator = () => {
     const [studentInfo, setStudentInfo] = useState('');
@@ -63,7 +64,7 @@ const CommentGenerator = () => {
                 {generatedComment && (
                     <div className="mt-4 p-4 bg-gray-100 rounded-md">
                         <h4 className="font-semibold text-sm">Suggested Comment:</h4>
-                        <div className="mt-1 text-gray-800 prose-content" dangerouslySetInnerHTML={{ __html: generatedComment }} />
+                        <HtmlContent className="mt-1" html={generatedComment} />
                     </div>
                 )}
             </div>
