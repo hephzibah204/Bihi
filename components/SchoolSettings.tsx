@@ -9,6 +9,9 @@ import IntegrationSettings from './IntegrationSettings';
 import ManualBankSettings from './ManualBankSettings';
 import { CONTROLLABLE_FEATURES } from '../utils/constants';
 import { Geofence } from '../types';
+import FileUpload from './FileUpload';
+import FileList from './FileList';
+import { getTenantId } from '../services/api';
 
 const TabButton = ({ view, active, onClick, children }: PropsWithChildren<{ view: string, active: boolean, onClick: (view: string) => void }>) => (
     <button
@@ -54,6 +57,12 @@ const GeneralSettings = ({ settings, onSettingsChange }) => {
                     </div>
                 </div>
                 {uploading && <div className="text-xs text-indigo-600 mt-1">Uploading...</div>}
+                <div className="mt-3">
+                  <FileUpload tenantId={getTenantId() || ''} linkedType="school" linkedId={String(getTenantId() || '')} category="school_logo" label="Upload Logo (R2)" />
+                </div>
+                <div className="mt-2">
+                  <FileList tenantId={getTenantId() || ''} linkedType="school" linkedId={String(getTenantId() || '')} categoryFilter="school_logo" title="Stored Logos" compact />
+                </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div><label className="label" htmlFor="currentSession">Current Session</label><input id="currentSession" type="text" value={settings.session || ''} onChange={e => onSettingsChange({ session: e.target.value })} className="input-field" placeholder="e.g., 2023/2024" /></div>

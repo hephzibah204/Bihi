@@ -63,6 +63,10 @@ export interface AssignmentScore {
   studentId: string;
   score: number;
   comment?: string;
+  submitted_at?: string;
+  graded_at?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface SharedLessonPlan {

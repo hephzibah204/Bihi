@@ -1,5 +1,7 @@
 import React, { useState, useEffect, lazy, Suspense, useMemo } from 'react';
 import { supabase } from '../services/supabaseClient';
+import useIdleClassAlerts from '../hooks/useIdleClassAlerts';
+import useActiveTeacherAnnouncer from '../hooks/useActiveTeacherAnnouncer';
 import SuperAdminLoginPage from './SuperAdminLoginPage';
 import { ADMIN_VIEWS } from '../utils/constants';
 import ConnectionStatusBar from './ConnectionStatusBar';
@@ -26,6 +28,7 @@ const APIManager = lazy(() => import('./SuperAdmin/APIManager'));
 const NotificationCenter = lazy(() => import('./SuperAdmin/NotificationCenter'));
 const LicenseManager = lazy(() => import('./SuperAdmin/LicenseManager'));
 const AdvancedAnalytics = lazy(() => import('./SuperAdmin/AdvancedAnalytics'));
+const TeacherLeaderboard = lazy(() => import('./SuperAdmin/TeacherLeaderboard'));
 const SystemTools = lazy(() => import('./SuperAdmin/SystemTools'));
 const Reports = lazy(() => import('./SuperAdmin/Reports'));
 const AdminProfile = lazy(() => import('./SuperAdmin/AdminProfile'));
@@ -61,20 +64,21 @@ const SuperAdminSidebar = ({ activeView, setActiveView, isSidebarCollapsed, setS
         }));
     };
 
-    const menuSections = [
-        {
-            id: 'dashboard',
-            title: 'Dashboard',
-            icon: '📊',
-            items: [
-                { view: 'overview', label: 'Overview', icon: '🏠' },
-                { view: 'analytics', label: 'Advanced Analytics', icon: '📈' },
-                { view: 'web-analytics', label: 'Website Analytics', icon: '🌐' },
-                { view: 'performance', label: 'Performance', icon: '⚡' },
-                { view: 'notifications', label: 'Notifications', icon: '🔔', badge: '5' },
-                { view: 'reports', label: 'Reports', icon: '📊' }
-            ]
-        },
+            const menuSections = [
+                {
+                    id: 'dashboard',
+                    title: 'Dashboard',
+                    icon: '📊',
+                    items: [
+                        { view: 'overview', label: 'Overview', icon: '🏠' },
+                        { view: 'analytics', label: 'Advanced Analytics', icon: '📈' },
+                        { view: 'teacher-leaderboard', label: 'Teacher Leaderboard', icon: '🏆' },
+                        { view: 'web-analytics', label: 'Website Analytics', icon: '🌐' },
+                        { view: 'performance', label: 'Performance', icon: '⚡' },
+                        { view: 'notifications', label: 'Notifications', icon: '🔔', badge: '5' },
+                        { view: 'reports', label: 'Reports', icon: '📊' }
+                    ]
+                },
         {
             id: 'platform',
             title: 'Platform Management',
@@ -190,6 +194,7 @@ const SuperAdminSidebar = ({ activeView, setActiveView, isSidebarCollapsed, setS
                                         const req: Record<string, PermissionKey | null> = {
                                             overview: null,
                                             analytics: 'view_reports',
+                                            'teacher-leaderboard': 'view_reports',
                                             performance: 'view_reports',
                                             notifications: 'send_broadcasts',
                                             reports: 'view_reports',
@@ -475,6 +480,9 @@ const SuperAdminDashboard = () => {
         return () => subscription.unsubscribe();
     }, []);
 
+    useIdleClassAlerts();
+    useActiveTeacherAnnouncer();
+
     const handleLogout = async () => {
         if (supabase) {
             await supabase.auth.signOut();
@@ -629,6 +637,7 @@ const SuperAdminDashboard = () => {
             case 'website-content': return <WebsiteContentManager />;
             case 'seo': return <SEOManager />;
             case 'analytics': return <AdvancedAnalytics />;
+            case 'teacher-leaderboard': return <TeacherLeaderboard />;
             case 'web-analytics': return <AnalyticsDashboard />;
             case 'performance': return <PerformanceOptimizer />;
             case 'backups': return <BackupManager />;

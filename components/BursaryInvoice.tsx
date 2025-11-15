@@ -12,6 +12,9 @@ import AIDebtReminderModal from './AIDebtReminderModal';
 import SendSummarySmsModal from './SendSummarySmsModal';
 import TableSkeleton from './skeletons/TableSkeleton';
 import EmptyState from './EmptyState';
+import FileUpload from './FileUpload';
+import FileList from './FileList';
+import { getTenantId } from '../services/api';
 
 const BursaryInvoice = () => {
     const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -24,6 +27,7 @@ const BursaryInvoice = () => {
     const [isImportModalOpen, setImportModalOpen] = useState(false);
     const [isAIReminderModalOpen, setAIReminderModalOpen] = useState(false);
     const [isSmsModalOpen, setSmsModalOpen] = useState(false);
+    const [isAttachmentsOpen, setAttachmentsOpen] = useState(false);
     const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
     const studentMap = useMemo(() => new Map(students.map(s => [s.id, s])), [students]);
@@ -86,6 +90,7 @@ const BursaryInvoice = () => {
                                          <button onClick={() => { setSelectedInvoice(invoice); setRecordPaymentModalOpen(true); }} className="btn btn-secondary text-xs">Record Payment</button>
                                          <button onClick={() => { setSelectedInvoice(invoice); setSmsModalOpen(true); }} className="btn btn-secondary text-xs">Send SMS</button>
                                          <button onClick={() => { setSelectedInvoice(invoice); setAIReminderModalOpen(true); }} className="btn btn-secondary text-xs">AI Reminder</button>
+                                         <button onClick={() => { setSelectedInvoice(invoice); setAttachmentsOpen(true); }} className="btn btn-secondary text-xs">Attachments</button>
                                     </td>
                                 </tr>
                             )
@@ -135,6 +140,15 @@ const BursaryInvoice = () => {
                     student={studentMap.get(selectedInvoice.studentId)}
                     invoice={selectedInvoice}
                 />
+            )}
+
+            {isAttachmentsOpen && selectedInvoice && (
+                <Modal isOpen={true} onClose={() => setAttachmentsOpen(false)} title="Invoice Attachments">
+                    <div className="p-6 space-y-4">
+                        <FileUpload tenantId={getTenantId() || ''} linkedType="invoice" linkedId={String(selectedInvoice.id)} category="invoice_attachment" label="Upload Attachment" />
+                        <FileList tenantId={getTenantId() || ''} linkedType="invoice" linkedId={String(selectedInvoice.id)} title="Files" />
+                    </div>
+                </Modal>
             )}
         </div>
     );

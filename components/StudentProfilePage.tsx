@@ -5,6 +5,10 @@ import { ADMIN_VIEWS } from '../utils/constants';
 import { useQRCodeGenerator } from '../hooks/useQRCodeGenerator';
 import { buildStandardQRPayload } from '../utils/qrCodeGenerator';
 import { apiSignQRPayload } from '../services/qr';
+import FileUpload from './FileUpload';
+import FileList from './FileList';
+import { getTenantId } from '../services/api';
+import { useFilesList } from '../hooks/useFilesList';
 
 // Make Chart.js available from CDN
 declare global {
@@ -178,6 +182,10 @@ const StudentProfilePage = ({ studentId, setActiveView }) => {
         };
     }, [loading, student, scores, subjects, allStudents]);
 
+    const tenantId = getTenantId() || '';
+    const linkedIdForFiles = student?.id ? String(student.id) : '__none__';
+    const { files: studentPhotoFiles } = useFilesList({ tenantId, linkedType: 'student', linkedId: linkedIdForFiles, categoryFilter: 'student_photo' });
+
     if (loading) return <div className="card p-6 text-center">Loading profile...</div>;
     if (!student) return <div className="card p-6 text-center">Student not found. <button onClick={() => setActiveView(ADMIN_VIEWS.STUDENTS)} className="text-indigo-600">Go back</button></div>;
     
@@ -192,9 +200,13 @@ const StudentProfilePage = ({ studentId, setActiveView }) => {
     return (
         <div>
              <button onClick={() => setActiveView(ADMIN_VIEWS.STUDENTS)} className="btn btn-secondary mb-4">&larr; Back to Students</button>
-             <div className="card">
+            <div className="card">
                 <div className="p-6 flex flex-col md:flex-row items-center gap-6">
-                    <img src={student.photo || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(student.name)}`} alt={student.name} className="h-32 w-32 rounded-full object-cover" />
+                    {(() => {
+                      const photoFile = studentPhotoFiles[0];
+                      const photoSrc = student.photo || (photoFile ? `/api/get-file?fileId=${photoFile.id}` : `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(student.name)}`);
+                      return (<img src={photoSrc} alt={student.name} className="h-32 w-32 rounded-full object-cover" />);
+                    })()}
                     <div>
                         <h2 className="text-3xl font-bold">{student.name}</h2>
                         <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-2 text-gray-600">
@@ -205,6 +217,21 @@ const StudentProfilePage = ({ studentId, setActiveView }) => {
                         </div>
                     </div>
                 </div>
+            </div>
+            <div className="card mt-6">
+              <div className="p-6">
+                <h3 className="text-xl font-semibold">Student Files</h3>
+                <p className="text-sm text-gray-500 mt-1">Upload a passport photo or report card PDF.</p>
+                <div className="mt-3">
+                  <FileUpload tenantId={tenantId} linkedType="student" linkedId={String(student.id)} category="student_photo" label="Upload Photo" onUploadSuccess={() => { try { window.dispatchEvent(new CustomEvent('show-global-success', { detail: { message: 'Photo uploaded.' } })); } catch {} }} />
+                </div>
+                <div className="mt-3">
+                  <FileUpload tenantId={tenantId} linkedType="student" linkedId={String(student.id)} category="report_card_pdf" label="Upload Report Card" />
+                </div>
+                <div className="mt-4">
+                  <FileList tenantId={tenantId} linkedType="student" linkedId={String(student.id)} categoryFilter={["student_photo","report_card_pdf"]} title="Files" compact />
+                </div>
+              </div>
             </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">

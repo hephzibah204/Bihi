@@ -628,7 +628,16 @@ export const apiSaveTeacherAttendance = async (record: TeacherAttendanceRecord) 
 export const apiGetAssignments = () => get<Assignment>('assignments');
 export const apiSaveAssignments = (assignments: Assignment[]) => batchUpsert('assignments', assignments);
 export const apiGetAssignmentScores = () => get<AssignmentScore>('assignment_scores');
-export const apiSaveAssignmentScores = (scores: AssignmentScore[]) => batchUpsert('assignment_scores', scores);
+export const apiSaveAssignmentScores = (scores: AssignmentScore[]) => {
+    const now = new Date().toISOString();
+    const prepared = scores.map(s => ({
+        ...s,
+        graded_at: s.graded_at || now,
+        created_at: s.created_at || now,
+        updated_at: now,
+    }));
+    return batchUpsert('assignment_scores', prepared);
+};
 
 // --- Financials ---
 export const apiGetInvoices = () => get<Invoice>('invoices');
