@@ -21,7 +21,7 @@ export type DashboardView =
   | 'parents' | 'timetable' | 'id-cards' | 'behavioral-remarks' | 'general-remarks'
   | 'help' | 'resource-hub' | 'billing' | 'more' | 'events' | 'absence-management'
   | 'platform-settings' | 'users' | 'pages' | 'menus' | 'blog-articles' | 'kb-articles'
-  | 'print-center' | 'teacher-certificates' | 'ai-coach-progress'
+  | 'print-center' | 'teacher-certificates' | 'ai-coach-progress' | 'reports'
   | 'ai-coach-manager' | 'ai-chat' | 'ai-elaboratory' | 'ai-lesson-planner' | 'ai-practice-quiz'
   | 'ai-comment-generator' | 'ai-early-intervention' | 'ai-learning-pathways' | 'ai-subject-recommender'
   | 'ai-rubric-generator' | 'ai-parent-message-composer' | 'teacher-attendance-history';

@@ -4,10 +4,11 @@ import ArrowLeftIcon from './icons/ArrowLeftIcon';
 import PrinterIcon from './icons/PrinterIcon';
 import SimpleReceipt from './SimpleReceipt';
 import SimpleInvoice from './SimpleInvoice';
+import SimplePaymentReminder from './SimplePaymentReminder';
 import AnimatedCheckbox from './AnimatedCheckbox';
 
 interface BulkFinancialsPrintViewProps {
-    type: 'invoice' | 'receipt';
+    type: 'invoice' | 'receipt' | 'reminder';
     items: (Invoice | Payment)[];
     students: Map<string, Student>;
     invoices: Map<string, Invoice>;
@@ -39,6 +40,12 @@ const BulkFinancialsPrintView2: React.FC<BulkFinancialsPrintViewProps> = ({ type
             const invoice = item as Invoice;
             if (!invoice) return null;
             return <SimpleInvoice settings={settings} invoice={invoice} compact={compact} />;
+        }
+        if (type === 'reminder') {
+            const invoice = item as Invoice;
+            const student = students.get(invoice.studentId);
+            if (!invoice || !student) return null;
+            return <SimplePaymentReminder settings={settings} invoice={invoice} student={student} compact={compact} />;
         }
         return null;
     };

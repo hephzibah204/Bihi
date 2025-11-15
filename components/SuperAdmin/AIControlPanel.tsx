@@ -90,9 +90,7 @@ export const SuperAdminAIControlPanel: React.FC<AIControlPanelProps> = ({ isSupe
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <div className="text-slate-600 text-sm mb-1">Total AI Requests</div>
           <div className="text-3xl font-bold text-purple-600">
-            {router.getUsageStats().providerDistribution.gemini + 
-             router.getUsageStats().providerDistribution.huggingface + 
-             router.getUsageStats().providerDistribution.templates}
+            {Object.values(router.getUsageStats().providerDistribution).reduce((a, b) => a + b, 0)}
           </div>
           <div className="text-xs text-slate-500 mt-1">This session</div>
         </div>

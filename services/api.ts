@@ -730,11 +730,12 @@ export const apiGetTimetableData = async () => {
 export const apiSaveTimetableData = (timetable: any) => upsert('timetable', { id: 1, data: timetable });
 
 // --- Communications ---
-export const apiSendMessage = async ({ channel, content, recipients, type = 'announcement' }: {
+export const apiSendMessage = async ({ channel, content, recipients, type = 'announcement', attachments }: {
     channel: 'sms' | 'email',
     content: string,
     recipients: string[] | 'all',
-    type?: 'announcement' | 'reminder' | 'direct'
+    type?: 'announcement' | 'reminder' | 'direct',
+    attachments?: { filename: string; base64: string; contentType?: string }[]
 }) => {
     // Validate and sanitize communication input
     const validatedComm = validateInput(communicationSchema.partial(), {
@@ -764,7 +765,7 @@ export const apiSendMessage = async ({ channel, content, recipients, type = 'ann
     const result = await fetchWithExponentialBackoff<any>('/api/send-communication', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
-        body: JSON.stringify({ channel, content: sanitizedContent, recipients, type })
+        body: JSON.stringify({ channel, content: sanitizedContent, recipients, type, attachments })
     });
     return result;
 };

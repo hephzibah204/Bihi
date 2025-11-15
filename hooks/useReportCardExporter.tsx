@@ -21,9 +21,18 @@ export const useReportCardExporter = () => {
         }
         cancelledRef.current = false;
         setExporting(true);
+        const hadOffscreen = element.classList.contains('offscreen');
+        if (hadOffscreen) {
+            element.classList.remove('offscreen');
+        }
         try {
-            await downloadElementAsPdf(element, sanitizeFilename(fileName));
+            await downloadElementAsPdf(element, sanitizeFilename(fileName), {
+                shouldCancel: () => cancelledRef.current,
+            });
         } finally {
+            if (hadOffscreen) {
+                element.classList.add('offscreen');
+            }
             setExporting(false);
         }
     };

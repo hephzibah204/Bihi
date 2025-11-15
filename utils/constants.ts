@@ -42,6 +42,7 @@ export const ADMIN_VIEWS: { [key: string]: DashboardView } = {
     AI_RUBRIC_GENERATOR: 'ai-rubric-generator',
     AI_PARENT_MESSAGE_COMPOSER: 'ai-parent-message-composer',
     ANALYTICS: 'analytics',
+    REPORTS: 'reports',
     ALUMNI: 'alumni',
     STAFF: 'staff',
     PARENTS: 'parents',
@@ -175,6 +176,13 @@ export const CONTROLLABLE_FEATURES = [
         name: 'Advanced Analytics',
         description: 'Detailed reports and insights on student performance and school metrics',
         applicableRoles: ['admin', 'teacher'],
+        category: 'Analytics'
+    },
+    { 
+        key: 'reports', 
+        name: 'Reports',
+        description: 'Dedicated reports center with exports and emailing',
+        applicableRoles: ['admin'],
         category: 'Analytics'
     },
     { 

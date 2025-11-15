@@ -3,6 +3,13 @@ import { usePlanFeatures } from '../contexts/PlanFeaturesContext';
 import type { LessonTemplate, LessonPlan } from '../types/academic';
 import { DocumentTextIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { emitPracticeEvent } from '../services/telemetry';
+import { apiGetSubjects } from '../services/api';
+import { Subject } from '../types';
+import { useTenant } from '../contexts/TenantContext';
+import { generateClassNames } from '../utils/classManager';
+import { generateResponse as aiGenerateResponse } from '../services/geminiAIService';
+import HtmlContent from './HtmlContent';
+import { getMappings, getStageFromClassLevel } from '../utils/nerdcMappings';
 
 type PillarKey = 'collaboration' | 'creativity' | 'technology';
 
@@ -18,6 +25,7 @@ function loadTemplates(): Promise<LessonTemplate[]> {
 
 export default function LessonTemplates() {
   const { isLoading, hasFeature } = usePlanFeatures();
+  const { settings } = useTenant();
   const [templates, setTemplates] = useState<LessonTemplate[]>([]);
   const [activeTemplate, setActiveTemplate] = useState<LessonTemplate | null>(null);
   const [planTitle, setPlanTitle] = useState('');
@@ -29,14 +37,23 @@ export default function LessonTemplates() {
   });
   const [error, setError] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [selectedSubject, setSelectedSubject] = useState('');
+  const [classLevel, setClassLevel] = useState('');
+  const [topic, setTopic] = useState('');
+  const [outputType, setOutputType] = useState<'plan' | 'note' | 'combined'>('plan');
+  const [generatedContent, setGeneratedContent] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     loadTemplates()
       .then(setTemplates)
       .catch(() => setError('Failed to load templates.'));
+    apiGetSubjects().then(setSubjects).catch(() => {});
   }, []);
 
   const pillarsRequired: PillarKey[] = useMemo(() => ['collaboration', 'creativity', 'technology'], []);
+  const classNames = useMemo(() => generateClassNames(settings), [settings]);
 
   if (isLoading) {
     return (
@@ -110,6 +127,7 @@ export default function LessonTemplates() {
       steps: activeTemplate.steps.map((s) => ({ id: s.id, notes: stepNotes[s.id] || '', completed: false })),
       createdByTeacherId: 'demo-teacher',
       createdAt: new Date().toISOString(),
+      content: generatedContent || undefined,
     };
     try {
       const key = 'lesson_plans';
@@ -121,6 +139,50 @@ export default function LessonTemplates() {
       setError(null);
     } catch (e) {
       setError('Failed to save lesson plan.');
+    }
+  };
+
+  const generateFromTemplate = async () => {
+    setGeneratedContent('');
+    setIsGenerating(true);
+    setError(null);
+    try {
+      if (!activeTemplate) throw new Error('Select a template first');
+      if (!topic || !selectedSubject || !classLevel) throw new Error('Enter subject, class level, and topic');
+      const subjectName = subjects.find(s => s.id === selectedSubject)?.name || '';
+      const stage = getStageFromClassLevel(classLevel) || 'N/A';
+      const mapping = getMappings(subjectName, classLevel, 'NERDC');
+      const templateGuidance = activeTemplate.steps.map(s => `- ${s.title}: ${s.guidance}`).join('\n');
+      const notesSummary = Object.entries(stepNotes).map(([id, note]) => {
+        const step = activeTemplate.steps.find(s => s.id === id);
+        return step ? `• ${step.title}: ${note}` : '';
+      }).filter(Boolean).join('\n');
+      const prompt = `You are an expert Nigerian educator. Using the selected 21st‑Century template and teacher notes, produce a comprehensive ${outputType} for the topic.
+
+Context
+• Subject: "${subjectName}"
+• Topic: "${topic}"
+• Class Level: "${classLevel}"
+• Detected Stage: ${stage}
+• Curriculum: NERDC
+• Output Type: "${outputType}"
+• Template: ${activeTemplate.title}
+• Template Pillars: collaboration=${pillarConfirmations.collaboration}, creativity=${pillarConfirmations.creativity}, technology=${pillarConfirmations.technology}
+• Template Guidance:\n${templateGuidance}
+• Teacher Notes:\n${notesSummary || 'None'}
+${mapping ? `\nAlignment (Auto): NERDC strands and sample objectives are available. Integrate best‑fit strands and objectives.` : ''}
+
+Formatting
+• Return a single valid HTML string only.
+• Use semantic headings and lists; include assessment rubric and differentiation strategies.
+• Reflect Nigerian classroom realities and low‑resource alternatives.
+`;
+      const html = await aiGenerateResponse(prompt);
+      setGeneratedContent(html);
+    } catch (e:any) {
+      setError(e.message || 'Failed to generate plan');
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -157,6 +219,35 @@ export default function LessonTemplates() {
               <div className="text-sm text-gray-600">{activeTemplate.description}</div>
             </div>
             <button className="text-sm text-indigo-600" onClick={() => setActiveTemplate(null)}>Back to templates</button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium">Subject</label>
+              <select className="mt-1 w-full border rounded p-2" value={selectedSubject} onChange={e => setSelectedSubject(e.target.value)}>
+                <option value="">-- Select --</option>
+                {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium">Class Level</label>
+              <select className="mt-1 w-full border rounded p-2" value={classLevel} onChange={e => setClassLevel(e.target.value)}>
+                <option value="">-- Select --</option>
+                {classNames.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium">Topic</label>
+              <input className="mt-1 w-full border rounded p-2" value={topic} onChange={e => setTopic(e.target.value)} placeholder="e.g., Photosynthesis" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium">Output Type</label>
+              <select className="mt-1 w-full border rounded p-2" value={outputType} onChange={e => setOutputType(e.target.value as any)}>
+                <option value="plan">Lesson Plan</option>
+                <option value="note">Lesson Note</option>
+                <option value="combined">Lesson Plan & Note</option>
+              </select>
+            </div>
           </div>
 
           <div>
@@ -222,7 +313,17 @@ export default function LessonTemplates() {
           <div className="flex gap-2">
             <button className="bg-indigo-600 text-white px-4 py-2 rounded" onClick={savePlan}>Save Plan</button>
             <button className="border px-4 py-2 rounded" onClick={resetWizard}>Reset</button>
+            <button className="bg-green-600 text-white px-4 py-2 rounded" onClick={generateFromTemplate} disabled={isGenerating || !topic}>
+              {isGenerating ? 'Generating…' : 'Generate AI Plan'}
+            </button>
           </div>
+
+          {generatedContent && (
+            <div className="mt-4 border-t pt-4">
+              <div className="font-semibold">Generated Document</div>
+              <HtmlContent html={generatedContent} className="mt-2 p-4 bg-gray-50 rounded-md max-h-[60vh] overflow-y-auto" />
+            </div>
+          )}
         </div>
       )}
     </div>

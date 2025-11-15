@@ -129,4 +129,5 @@ export interface LessonPlan {
   createdByTeacherId: string;
   createdAt: string;
   updatedAt?: string;
+  content?: string;
 }

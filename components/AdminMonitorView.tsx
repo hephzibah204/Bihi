@@ -71,18 +71,18 @@ const AdminMonitorView: React.FC = () => {
           <div className="text-gray-600">No recordings yet</div>
         )}
       </div>
-    </div>
-  )
-}
-
-export default AdminMonitorView
       <div className="space-y-2 mb-6">
         <div className="font-medium">Live Sessions</div>
         {liveSessions.map(s => (
           <div key={s.id} className="flex items-center justify-between p-2 border rounded">
-            <div>{s.class_name} • {s.room_name}</div>
+            <div>{s.class_name} - {s.room_name}</div>
             <button className="btn btn-primary" onClick={() => joinLive(s.room_name)}>Listen</button>
           </div>
         ))}
         {liveSessions.length === 0 && <div className="text-gray-600">No live sessions</div>}
       </div>
+    </div>
+  )
+}
+
+export default AdminMonitorView

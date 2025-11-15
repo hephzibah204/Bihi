@@ -24,7 +24,11 @@ function triggerPdfDownload(pdf: any, filename: string) {
  * Download a single DOM element as an A4 PDF using html2canvas + jsPDF.
  * Pass a selector string (e.g., '.printable-content') or a direct HTMLElement.
  */
-export async function downloadElementAsPdf(elementOrSelector: string | HTMLElement, filename: string) {
+export async function downloadElementAsPdf(
+  elementOrSelector: string | HTMLElement,
+  filename: string,
+  options?: { shouldCancel?: () => boolean }
+) {
   const w = window as any;
   const { html2canvas, jspdf } = w;
   if (!html2canvas || !jspdf) {
@@ -40,12 +44,16 @@ export async function downloadElementAsPdf(elementOrSelector: string | HTMLEleme
   }
 
   const { jsPDF } = jspdf;
+  if (options?.shouldCancel && options.shouldCancel()) return;
   const canvas = await html2canvas(el, { scale: 2 });
+  if (options?.shouldCancel && options.shouldCancel()) return;
   const imgData = canvas.toDataURL('image/png');
   const pdf = new jsPDF('p', 'mm', 'a4');
   const A4_WIDTH = 210;
   const A4_HEIGHT = 297;
+  if (options?.shouldCancel && options.shouldCancel()) return;
   pdf.addImage(imgData, 'PNG', 0, 0, A4_WIDTH, A4_HEIGHT, undefined, 'FAST');
+  if (options?.shouldCancel && options.shouldCancel()) return;
   triggerPdfDownload(pdf, filename);
 }
 
@@ -53,7 +61,11 @@ export async function downloadElementAsPdf(elementOrSelector: string | HTMLEleme
  * Download multiple elements (e.g., pages marked with '.page-break')
  * into a single A4 PDF file.
  */
-export async function downloadElementsAsPdf(elementsOrSelector: string | HTMLElement[], filename: string) {
+export async function downloadElementsAsPdf(
+  elementsOrSelector: string | HTMLElement[],
+  filename: string,
+  options?: { shouldCancel?: () => boolean }
+) {
   const w = window as any;
   const { html2canvas, jspdf } = w;
   if (!html2canvas || !jspdf) {
@@ -77,10 +89,37 @@ export async function downloadElementsAsPdf(elementsOrSelector: string | HTMLEle
   const A4_HEIGHT = 297;
 
   for (let i = 0; i < elements.length; i++) {
+    if (options?.shouldCancel && options.shouldCancel()) return;
     const canvas = await html2canvas(elements[i], { scale: 2 });
+    if (options?.shouldCancel && options.shouldCancel()) return;
     const imgData = canvas.toDataURL('image/png');
     if (i > 0) pdf.addPage();
     pdf.addImage(imgData, 'PNG', 0, 0, A4_WIDTH, A4_HEIGHT, undefined, 'FAST');
   }
+  if (options?.shouldCancel && options.shouldCancel()) return;
   triggerPdfDownload(pdf, filename);
+}
+
+export async function renderElementAsPdfBlob(elementOrSelector: string | HTMLElement) {
+  const w = window as any;
+  const { html2canvas, jspdf } = w;
+  if (!html2canvas || !jspdf) {
+    return null;
+  }
+  const el: HTMLElement | null = typeof elementOrSelector === 'string'
+    ? (document.querySelector(elementOrSelector) as HTMLElement)
+    : (elementOrSelector as HTMLElement);
+  if (!el) return null;
+  const { jsPDF } = jspdf;
+  const canvas = await html2canvas(el, { scale: 2 });
+  const imgData = canvas.toDataURL('image/png');
+  const pdf = new jsPDF('p', 'mm', 'a4');
+  const A4_WIDTH = 210;
+  const A4_HEIGHT = 297;
+  pdf.addImage(imgData, 'PNG', 0, 0, A4_WIDTH, A4_HEIGHT, undefined, 'FAST');
+  try {
+    return pdf.output('blob');
+  } catch {
+    return null;
+  }
 }

@@ -1,6 +1,10 @@
 import { useState, useCallback } from 'react';
 import { callGeminiApi, callGeminiApiStream } from '../services/geminiService';
 import { generateFallbackResponse } from '../services/fallbackAiService';
+import { runOfflineModel } from '../lib/ai/offline-engine/offline_llm';
+import { isSensitiveFinanceQuery, needsStructuredOutput } from '../lib/ai/orchestrator/fallback_strategy';
+import { detectTools } from '../lib/ai/orchestrator/tool_router';
+import { getTenantId } from '../services/api';
 import { logger } from '../utils/logger';
 
 // Lazy-load feature contexts to avoid hard dependency during initial render
@@ -91,8 +95,8 @@ export const useAI = (onNotification?: AINotificationCallback) => {
     setIsLoading(true);
     
     try {
-      // Try Gemini API first if online
-      if (isOnline) {
+      const forceOffline = isSensitiveFinanceQuery(prompt) || detectTools(prompt).length > 0 || needsStructuredOutput(prompt);
+      if (!forceOffline && isOnline) {
         try {
           // Attach context to the prompt to ensure online API receives it
           const promptWithContext = context
@@ -181,21 +185,14 @@ export const useAI = (onNotification?: AINotificationCallback) => {
         });
       }
       
-      // Use fallback AI service (prefer HF if online)
       const featureContexts = filterFeatureContextsByRole(await safeGetFeatureContexts(), resolveCurrentRole());
-      const ctxObj = { ...(context ? { context } : {}), ...(type ? { type } : {}) , featureContexts } as Record<string, unknown> | undefined;
+      const tenantId = getTenantId() || 'demo';
       let fallbackResponse: string;
       try {
-        if (isOnline) {
-          const { generateFallbackResponseAsync } = await import('../services/fallbackAiService');
-          fallbackResponse = await generateFallbackResponseAsync(prompt, ctxObj, type);
-        } else {
-          const { generateFallbackResponse } = await import('../services/fallbackAiService');
-          fallbackResponse = generateFallbackResponse(prompt, ctxObj, type);
-        }
+        fallbackResponse = await runOfflineModel({ prompt, role: (resolveCurrentRole() as any) || 'Teacher', tenantId, conversationHistory: [], topK: 5 });
       } catch {
         const { generateFallbackResponse } = await import('../services/fallbackAiService');
-        fallbackResponse = generateFallbackResponse(prompt, ctxObj, type);
+        fallbackResponse = generateFallbackResponse(prompt, { featureContexts }, type);
       }
       setIsLoading(false);
       setIsOnline(false);
@@ -254,8 +251,8 @@ export const useAI = (onNotification?: AINotificationCallback) => {
     setIsLoading(true);
     
     try {
-      // Try real streaming via server when online
-      if (isOnline) {
+      const forceOffline = isSensitiveFinanceQuery(prompt) || detectTools(prompt).length > 0 || needsStructuredOutput(prompt);
+      if (!forceOffline && isOnline) {
         const featureContexts = filterFeatureContextsByRole(await safeGetFeatureContexts(), (userProfile && typeof userProfile === 'object' ? (userProfile as any).userRole : undefined));
         await callGeminiApiStream(
           prompt,
@@ -272,8 +269,14 @@ export const useAI = (onNotification?: AINotificationCallback) => {
         return;
       }
 
-      // Fallback to offline generation if offline
-      const response = await generateResponse(prompt, typeof context === 'string' ? context : JSON.stringify(context), type);
+      const tenantId = getTenantId() || 'demo';
+      let text = '';
+      try {
+        text = await runOfflineModel({ prompt, role: (resolveCurrentRole() as any) || 'Teacher', tenantId, conversationHistory: [], topK: 5 });
+      } catch {
+        const response = await generateResponse(prompt, typeof context === 'string' ? context : JSON.stringify(context), type);
+        text = response.content;
+      }
       
       if (response.error || response.content.includes('Sorry, I encountered an error')) {
         setIsLoading(false);
@@ -295,7 +298,6 @@ export const useAI = (onNotification?: AINotificationCallback) => {
       }
       
       // Simulate streaming by sending chunks of the offline response
-      const text = response.content;
       const chunkSize = 10;
       for (let i = 0; i < text.length; i += chunkSize) {
         const chunk = text.slice(i, i + chunkSize);

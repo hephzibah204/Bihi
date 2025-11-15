@@ -51,6 +51,7 @@ export const AIUsageDashboard: React.FC = () => {
     switch (provider) {
       case 'gemini': return 'bg-purple-500';
       case 'huggingface': return 'bg-blue-500';
+      case 'offline': return 'bg-orange-500';
       case 'templates': return 'bg-slate-500';
       default: return 'bg-gray-500';
     }
@@ -138,7 +139,7 @@ export const AIUsageDashboard: React.FC = () => {
         {/* Visual Distribution Bar */}
         <div className="mb-6">
           <div className="h-8 flex rounded-lg overflow-hidden">
-            {(['gemini', 'huggingface', 'templates'] as AIProvider[]).map((provider) => {
+            {(['gemini', 'huggingface', 'offline', 'templates'] as AIProvider[]).map((provider) => {
               const percentage = parseFloat(getPercentage(provider));
               if (percentage === 0) return null;
               return (
@@ -157,7 +158,7 @@ export const AIUsageDashboard: React.FC = () => {
 
         {/* Detailed Stats */}
         <div className="space-y-3">
-          {(['gemini', 'huggingface', 'templates'] as AIProvider[]).map((provider) => {
+          {(['gemini', 'huggingface', 'offline', 'templates'] as AIProvider[]).map((provider) => {
             const count = stats.providerDistribution[provider];
             const percentage = getPercentage(provider);
             
@@ -172,7 +173,8 @@ export const AIUsageDashboard: React.FC = () => {
                     <div className="text-xs text-slate-500">
                       {provider === 'gemini' && 'Premium AI - Complex tasks'}
                       {provider === 'huggingface' && 'Free tier - Simple tasks'}
-                      {provider === 'templates' && 'Offline fallback'}
+                      {provider === 'offline' && 'Local engine (tools + RAG)'}
+                      {provider === 'templates' && 'Template fallback'}
                     </div>
                   </div>
                 </div>

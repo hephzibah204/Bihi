@@ -8,9 +8,9 @@ export interface ThemeSettings {
 }
 
 export const defaultTheme: ThemeSettings = {
-  primaryColor: '#2563eb',
-  secondaryColor: '#9333ea',
-  accentColor: '#10b981',
+  primaryColor: '#2563EB',
+  secondaryColor: '#1E3A8A',
+  accentColor: '#06B6D4',
   logoUrl: '',
   darkMode: false,
   fontFamily: "Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Ubuntu, Cantarell, 'Noto Sans', sans-serif",

@@ -14,6 +14,7 @@ import { supabase } from '../services/supabaseClient';
 import { normalizeAIText } from '../utils/aiNormalize';
 import HtmlContent from './HtmlContent';
 import { getMappings, getPhonicsPlan, getStageFromClassLevel } from '../utils/nerdcMappings';
+import type { LessonTemplate } from '../types/academic';
 
 const LessonPlanner = () => {
     const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -39,6 +40,8 @@ const LessonPlanner = () => {
     const [useExperiential, setUseExperiential] = useState(true);
     const [includeMultimedia, setIncludeMultimedia] = useState(true);
     const [includeRealWorld, setIncludeRealWorld] = useState(true);
+    const [templates, setTemplates] = useState<LessonTemplate[]>([]);
+    const [selectedTemplateId, setSelectedTemplateId] = useState('');
 
     // AI & UI State
     const [generatedPlan, setGeneratedPlan] = useState('');
@@ -66,6 +69,12 @@ const LessonPlanner = () => {
             }
         };
         fetchData();
+        // Load lesson templates
+        Promise.all([
+            import('../plans/lesson-templates/design-thinking.json'),
+            import('../plans/lesson-templates/flipped-classroom.json'),
+            import('../plans/lesson-templates/project-based-learning.json'),
+        ]).then(mods => setTemplates(mods.map(m => (m as any).default as LessonTemplate))).catch(() => {});
     }, []);
     
     const classNames = useMemo(() => generateClassNames(settings), [settings]);
@@ -122,6 +131,13 @@ You are an expert Nigerian educator and curriculum designer. Create a deeply det
 ${uploadedScheme || 'None provided.'}
 """
 
+${selectedTemplateId ? (() => {
+    const tpl = templates.find(t => t.id === selectedTemplateId);
+    if (!tpl) return '';
+    const guidance = tpl.steps.map(s => `- ${s.title}: ${s.guidance}`).join('\n');
+    return `\n<strong>Template Integration</strong>\n• Template: ${tpl.title}\n• Pillars: collaboration=${tpl.pillars?.collaboration ? 'yes' : 'no'}, creativity=${tpl.pillars?.creativity ? 'yes' : 'no'}, technology=${tpl.pillars?.technology ? 'yes' : 'no'}\n• Guidance:\n${guidance}\n`;
+})() : ''}
+
 <strong>Formatting</strong>
 • Return a single valid HTML string only (no external CSS).
 • Use <h2> for main sections (“Lesson Plan”, “Lesson Note”).
@@ -177,7 +193,7 @@ Include ALL of the following, tailored to Nigeria’s classroom realities and re
 14) <h3>Assessment Rubric (Table)</h3>
     • Criteria with performance levels A–D/E for the main summative task.
 
-<strong>If Output Type = note</strong> (Student‑facing):
+ <strong>If Output Type = note</strong> (Student‑facing):
 • Produce clear, board‑ready notes: definitions, explanations, worked examples, diagrams (describe), key points, practice questions, and a short summary.
 • Use simple language suitable for the specified class level; emphasize exam‑style clarity.
 • Where relevant, include short QR‑style references or titles for videos/simulations that students can search (no external links required).
@@ -186,7 +202,7 @@ ${phonics ? `<h3>Phonics Scope (Auto)</h3><p><strong>Focus/Graphemes:</strong> $
 <strong>If Output Type = combined</strong>
 • First output the complete Lesson Plan, then the complete Lesson Note.
 
-Ensure strict integration of the uploaded scheme of work (topic sequencing, period/duration) and reflect local realities (power/internet availability, classroom size). Use evidence‑based pedagogy and Nigeria‑specific examples throughout. Ensure the result is thorough, practical, and immediately usable.
+ Ensure strict integration of the uploaded scheme of work (topic sequencing, period/duration) and reflect local realities (power/internet availability, classroom size). Use evidence‑based pedagogy and Nigeria‑specific examples throughout. Ensure the result is thorough, practical, and immediately usable.
 `;
             const result = await aiGenerateResponse(prompt);
             setGeneratedPlan(normalizeAIText(result));
@@ -269,6 +285,18 @@ Ensure strict integration of the uploaded scheme of work (topic sequencing, peri
                                 <label className="inline-flex items-center gap-2"><input type="checkbox" checked={includeMultimedia} onChange={e => setIncludeMultimedia(e.target.checked)} /> Include Multimedia</label>
                                 <label className="inline-flex items-center gap-2"><input type="checkbox" checked={includeRealWorld} onChange={e => setIncludeRealWorld(e.target.checked)} /> Emphasize Real‑World</label>
                             </div>
+                        </div>
+                        <div className="md:col-span-2">
+                            <label className="label">Start From Template (optional)</label>
+                            <select className="input-field" value={selectedTemplateId} onChange={e => setSelectedTemplateId(e.target.value)}>
+                                <option value="">-- None --</option>
+                                {templates.map(t => (
+                                    <option key={t.id} value={t.id}>{t.title}</option>
+                                ))}
+                            </select>
+                            {selectedTemplateId && (
+                                <p className="text-xs text-gray-500 mt-2">Selected template guidance will be integrated into the AI plan.</p>
+                            )}
                         </div>
                         <div className="md:col-span-2">
                             <label className="label">Custom Instructions</label>

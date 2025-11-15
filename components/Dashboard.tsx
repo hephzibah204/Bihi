@@ -24,6 +24,7 @@ const TeacherDashboard = lazy(() => import('./TeacherDashboard'));
 const StudentDashboard = lazy(() => import('./StudentDashboard'));
 const ParentDashboard = lazy(() => import('./ParentDashboard'));
 const WelcomeModal = lazy(() => import('./WelcomeModal'));
+const AdminBlueDashboard = lazy(() => import('./AdminBlueDashboard'));
 
 const ContentLoader = () => (
     <div className="flex items-center justify-center p-8">
@@ -266,6 +267,11 @@ const Dashboard = () => {
     return (
         <TenantProvider>
             <PlanFeaturesProvider>
+                {activeView === ADMIN_VIEWS.DASHBOARD ? (
+                    <Suspense fallback={<ContentLoader />}>
+                        <AdminBlueDashboard />
+                    </Suspense>
+                ) : (
                 <>
                 {isWelcomeModalOpen && (
                     <Suspense fallback={<div/>}>
@@ -295,7 +301,7 @@ const Dashboard = () => {
                         <Header title={headerTitle} setSidebarOpen={setSidebarOpen} onLogout={logout} isSidebarOpen={isSidebarOpen} />
                         <main className="flex-1 overflow-x-hidden overflow-y-auto">
                             <div className="container mx-auto px-6 py-8">
-                                <Suspense fallback={<ContentLoader />}>
+                                <Suspense fallback={<ContentLoader />}> 
                                     {activeView === ADMIN_VIEWS.MORE 
                                         ? <MoreView setActiveView={handleViewChange} /> 
                                         : <DashboardContent 
@@ -315,6 +321,7 @@ const Dashboard = () => {
                 <SyncStatusIndicator />
                 <GlobalNotification />
                 </>
+                )}
             </PlanFeaturesProvider>
         </TenantProvider>
     );

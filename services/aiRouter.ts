@@ -5,8 +5,11 @@ import { callGeminiApi } from './geminiService';
 import { getHuggingFaceClient } from './huggingFaceAPI';
 import { generateFallbackResponse } from './fallbackAiService';
 import { logger } from '../utils/logger';
+import { runOfflineModel } from '../lib/ai/offline-engine/offline_llm';
+import { isSensitiveFinanceQuery, needsStructuredOutput } from '../lib/ai/orchestrator/fallback_strategy';
+import { detectTools } from '../lib/ai/orchestrator/tool_router';
 
-export type AIProvider = 'gemini' | 'huggingface' | 'auto' | 'templates';
+export type AIProvider = 'gemini' | 'huggingface' | 'auto' | 'templates' | 'offline';
 
 export interface AISettings {
   preferredProvider: AIProvider;
@@ -75,6 +78,7 @@ export class AIRouterService {
     this.providerHealth.set('gemini', { available: true, lastCheck: new Date() });
     this.providerHealth.set('huggingface', { available: true, lastCheck: new Date() });
     this.providerHealth.set('templates', { available: true, lastCheck: new Date() });
+    this.providerHealth.set('offline', { available: true, lastCheck: new Date() });
     
     logger.info('AIRouter initialized with site-wide settings');
   }
@@ -225,8 +229,9 @@ export class AIRouterService {
   ): Promise<AIRouterResponse> {
     const startTime = Date.now();
     
-    // Analyze complexity
     const complexity = this.analyzeComplexity(prompt, conversationId, metadata);
+    const toolsNeeded = detectTools(prompt).length > 0;
+    const forceOffline = isSensitiveFinanceQuery(prompt) || toolsNeeded || needsStructuredOutput(prompt);
     
     // Get or create conversation context
     let conversation = conversationId ? this.conversations.get(conversationId) : undefined;
@@ -244,7 +249,7 @@ export class AIRouterService {
     }
 
     // Maintain conversation continuity (use same provider unless complexity changes significantly)
-    let targetProvider = complexity.recommendedProvider;
+    let targetProvider = forceOffline ? 'offline' : complexity.recommendedProvider;
     if (conversation && conversation.messages.length > 0) {
       const avgComplexity = conversation.complexityTrend.reduce((a, b) => a + b, 0) / conversation.complexityTrend.length;
       const complexityChange = Math.abs(complexity.score - avgComplexity);
@@ -272,7 +277,7 @@ export class AIRouterService {
       logger.warn(`Primary provider ${targetProvider} failed, trying fallback`);
       
       // Try alternative provider
-      const fallbackProvider = targetProvider === 'gemini' ? 'huggingface' : 'gemini';
+      const fallbackProvider = targetProvider === 'gemini' ? 'huggingface' : targetProvider === 'offline' ? 'templates' : 'gemini';
       try {
         response = await this.generateWithProvider(
           prompt,
@@ -355,6 +360,17 @@ export class AIRouterService {
           complexity,
           responseTime: Date.now() - startTime,
           cost: 0 // Free tier
+        };
+      } else if (provider === 'offline') {
+        const role = (typeof window !== 'undefined' ? localStorage.getItem('demoUserRole') : null) as any;
+        const content = await runOfflineModel({ prompt, role: (role || 'Teacher') as any, tenantId: (typeof window !== 'undefined' ? (localStorage.getItem('tenant_id') || 'demo') : 'demo'), conversationHistory: conversation ? conversation.messages.map(m => `${m.role}: ${m.content}`) : [] });
+        return {
+          content,
+          provider: 'offline',
+          fallbackUsed: false,
+          complexity,
+          responseTime: Date.now() - startTime,
+          cost: 0
         };
       } else {
         // Templates
@@ -547,7 +563,8 @@ export class AIRouterService {
         gemini: 0,
         huggingface: 0,
         auto: 0,
-        templates: 0
+        templates: 0,
+        offline: 0
       } as Record<AIProvider, number>,
       averageComplexity: 0,
       totalCost: 0

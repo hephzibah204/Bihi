@@ -22,6 +22,7 @@ const Bursary = lazy(() => import('./Bursary'));
 const CommunicationsDashboard = lazy(() => import('./CommunicationsDashboard'));
 const AIToolsNavigation = lazy(() => import('./AIToolsNavigation'));
 const AdvancedAnalytics = lazy(() => import('./AdvancedAnalytics'));
+const Reports = lazy(() => import('./Reports'));
 const AlumniDashboard = lazy(() => import('./AlumniDashboard'));
 const Teachers = lazy(() => import('./Teachers'));
 const Parents = lazy(() => import('./Parents'));
@@ -99,6 +100,8 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ activeView, setActi
             return <AdminAiCoachProgress />;
         case ADMIN_VIEWS.ANALYTICS:
             return <AdvancedAnalytics />;
+        case ADMIN_VIEWS.REPORTS:
+            return <Reports />;
         case ADMIN_VIEWS.PRINT_CENTER:
             return <PrintCenter setActiveView={setActiveView} />;
         case ADMIN_VIEWS.TEACHER_CERTIFICATES:

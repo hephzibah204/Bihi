@@ -56,7 +56,7 @@ async function handlePost(request, env) {
             return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
         }
 
-        const { channel, content, recipients, type } = await request.json();
+        const { channel, content, recipients, type, attachments } = await request.json();
         if (!channel || !content || !recipients || !type) {
             return new Response(JSON.stringify({ error: 'Missing required fields.' }), { status: 400 });
         }
@@ -206,6 +206,7 @@ async function handlePost(request, env) {
                     },
                     subject,
                     content: [ { type: 'text/plain', value: content } ],
+                    attachments: Array.isArray(attachments) && attachments.length ? attachments.map(a => ({ content: a.base64, type: a.contentType || 'application/pdf', filename: a.filename })) : undefined,
                 };
                 const sgRes = await fetch('https://api.sendgrid.com/v3/mail/send', {
                     method: 'POST',
@@ -220,18 +221,33 @@ async function handlePost(request, env) {
                     return new Response(JSON.stringify({ error: 'Email provider error', details: sgBody }), { status: 502 });
                 }
             } else if (integrations?.mailgun_api_key && integrations?.mailgun_domain) {
-                const params = new URLSearchParams();
-                params.append('from', integrations.mailgun_from_email || 'no-reply@example.com');
-                params.append('to', recipientsArray.join(','));
-                params.append('subject', subject);
-                params.append('text', content);
-
                 const authHeader = 'Basic ' + btoa('api:' + integrations.mailgun_api_key);
-                const mgRes = await fetch(`https://api.mailgun.net/v3/${integrations.mailgun_domain}/messages`, {
-                    method: 'POST',
-                    headers: { 'Authorization': authHeader },
-                    body: params,
-                });
+                let mgRes;
+                if (Array.isArray(attachments) && attachments.length) {
+                    const form = new FormData();
+                    form.append('from', integrations.mailgun_from_email || 'no-reply@example.com');
+                    form.append('to', recipientsArray.join(','));
+                    form.append('subject', subject);
+                    form.append('text', content);
+                    for (const a of attachments) {
+                        try {
+                            const bin = atob(a.base64);
+                            const len = bin.length;
+                            const bytes = new Uint8Array(len);
+                            for (let i = 0; i < len; i++) bytes[i] = bin.charCodeAt(i);
+                            const blob = new Blob([bytes.buffer], { type: a.contentType || 'application/pdf' });
+                            form.append('attachment', blob, a.filename);
+                        } catch {}
+                    }
+                    mgRes = await fetch(`https://api.mailgun.net/v3/${integrations.mailgun_domain}/messages`, { method: 'POST', headers: { 'Authorization': authHeader }, body: form });
+                } else {
+                    const params = new URLSearchParams();
+                    params.append('from', integrations.mailgun_from_email || 'no-reply@example.com');
+                    params.append('to', recipientsArray.join(','));
+                    params.append('subject', subject);
+                    params.append('text', content);
+                    mgRes = await fetch(`https://api.mailgun.net/v3/${integrations.mailgun_domain}/messages`, { method: 'POST', headers: { 'Authorization': authHeader }, body: params });
+                }
                 const mgBody = await mgRes.text();
                 if (!mgRes.ok) {
                     return new Response(JSON.stringify({ error: 'Email provider error', details: mgBody }), { status: 502 });
@@ -265,7 +281,6 @@ export async function onRequest(context) {
     Object.entries(corsHeaders).forEach(([key, value]) => response.headers.set(key, value));
     return response;
 }
-
 
 
 

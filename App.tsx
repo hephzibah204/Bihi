@@ -1,4 +1,5 @@
 import { lazy, Suspense, PropsWithChildren, useEffect } from 'react';
+import useDailySnapshot from './hooks/useDailySnapshot';
 import { Routes, Route, useParams, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import GlobalSuccessNotification from './components/GlobalSuccessNotification';
@@ -133,6 +134,7 @@ const AppRouter = () => {
 
 
 const App = () => {
+    useDailySnapshot();
     // Initialize connection manager when app starts
     useEffect(() => {
         const connectionManager = getConnectionManager();
