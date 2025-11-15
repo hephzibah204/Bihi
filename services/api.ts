@@ -21,7 +21,8 @@ import type {
   SchoolSettings, TeacherAttendanceRecord,
   Tenant, Plan, ActivityLog,
   CommunicationLog, MessageTemplate, ScheduledReminder, ScheduledCampaign, Conversation, Message,
-  Page, Event
+  Page, Event,
+  Admission
 } from '../types';
 import { USER_ROLES } from '../utils/constants';
 import { DEFAULT_LANDING_PAGE_CONTENT, DEFAULT_MENU_ITEMS } from '../utils/landingPageContent';
@@ -400,6 +401,83 @@ export const apiApproveParentUpdate = async (parentId) => {
     await apiUpsertParent({ ...parent, ...parent.pendingChanges, pendingChanges: null });
 };
 export const apiRejectParentUpdate = (parentId) => apiUpsertParent({ id: parentId, pendingChanges: null });
+
+// --- Admissions ---
+export const apiGetAdmissions = async (options: { limit?: number, offset?: number } = {}): Promise<Admission[]> => {
+    if (isDemo()) {
+        const list: Admission[] = (CORE_DEMO_DATA as any).admissions || [];
+        const limit = options.limit ?? undefined;
+        const offset = options.offset ?? 0;
+        if (limit !== undefined) return list.slice(offset, offset + limit);
+        return list;
+    }
+    if (!supabase) return [];
+    return withRetry(async () => {
+        let query = supabase.from('admissions').select('*');
+        const limit = options.limit ?? undefined;
+        const offset = options.offset ?? 0;
+        if (limit !== undefined) query = query.range(offset, offset + limit - 1);
+        const { data, error } = await query;
+        if (error) throw error;
+        return data || [];
+    });
+};
+export const apiUpsertAdmission = (admission: Partial<Admission>) => upsert('admissions', admission);
+export const apiDeleteAdmission = (admissionId: string) => del('admissions', admissionId);
+export const apiMoveAdmissionStage = (admissionId: string, stage: Admission['stage']) => apiUpsertAdmission({ id: admissionId, stage });
+export const apiHandleAdmissionStageChange = async (admissionId: string, stage: Admission['stage']) => {
+    await apiMoveAdmissionStage(admissionId, stage);
+    const current = (await apiGetAdmissions()).find(a => a.id === admissionId);
+    if (!current) return;
+
+    const name = current.candidateName || 'your child';
+    const intended = current.intendedClass || '';
+    const recipientsEmail = current.parentEmail ? [current.parentEmail] : [];
+    const recipientsSms = current.parentPhone ? [current.parentPhone] : [];
+
+    if (stage === 'interested') {
+        const msg = `Your child has been shortlisted for ${intended}. Next steps will be shared.`;
+        if (recipientsEmail.length) await apiSendMessage({ channel: 'email', content: msg, recipients: recipientsEmail, type: 'announcement' });
+        if (recipientsSms.length) await apiSendMessage({ channel: 'sms', content: msg, recipients: recipientsSms, type: 'announcement' });
+    }
+
+    if (stage === 'paid_application') {
+        // Create application fee invoice if missing
+        await createApplicationFeeInvoiceIfNeeded(current);
+        const msg = `Complete payment for application fee for ${name} (${intended}).`;
+        if (recipientsEmail.length) await apiSendMessage({ channel: 'email', content: msg, recipients: recipientsEmail, type: 'reminder' });
+        if (recipientsSms.length) await apiSendMessage({ channel: 'sms', content: msg, recipients: recipientsSms, type: 'reminder' });
+    }
+
+    if (stage === 'registered') {
+        const msg = `Registration complete for ${name}. Bring required documents on resumption.`;
+        if (recipientsEmail.length) await apiSendMessage({ channel: 'email', content: msg, recipients: recipientsEmail, type: 'announcement' });
+        if (recipientsSms.length) await apiSendMessage({ channel: 'sms', content: msg, recipients: recipientsSms, type: 'announcement' });
+    }
+};
+
+const createApplicationFeeInvoiceIfNeeded = async (admission: Admission) => {
+    if (admission.applicationFeeInvoiceId) return;
+    const settings = await apiGetSchoolSettings();
+    const session = settings?.session || new Date().getFullYear().toString();
+    const term = settings?.term || 'Term';
+    const amount = Number((settings as any)?.admissions_application_fee) || 5000;
+    const invoice: Partial<Invoice> = {
+        id: `inv_${Date.now()}`,
+        studentId: admission.id,
+        class: admission.intendedClass,
+        session,
+        term,
+        issueDate: new Date().toISOString(),
+        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        totalAmount: amount,
+        amountPaid: 0,
+        status: 'unpaid',
+        items: [{ description: 'Application Fee', amount }]
+    } as any;
+    await apiUpsertInvoice(invoice);
+    await apiUpsertAdmission({ id: admission.id, applicationFeeInvoiceId: invoice.id });
+};
 
 // --- Teachers ---
 export const apiGetTeachers = async (options: { limit?: number, offset?: number } = {}): Promise<Teacher[]> => {

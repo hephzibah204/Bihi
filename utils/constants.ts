@@ -88,6 +88,7 @@ export const TEACHER_VIEWS = {
     AI_RUBRIC_GENERATOR: 'ai-rubric-generator',
     AI_PARENT_MESSAGE_COMPOSER: 'ai-parent-message-composer',
     RESOURCE_HUB: 'resource-hub',
+    OPEN_BOOKS: 'open-books',
     MY_PAYSLIPS: 'my-payslips',
     HELP: 'help',
     MORE: 'more',
@@ -110,6 +111,7 @@ export const STUDENT_VIEWS: { [key: string]: StudentView } = {
     ASSIGNMENTS: 'assignments',
     TIMETABLE: 'timetable',
     AI_TOOLS: 'ai-tools',
+    OPEN_BOOKS: 'open-books',
     // Individual AI Tools
     AI_CHAT: 'ai-chat',
     AI_ELABORATORY: 'ai-elaboratory',

@@ -10,6 +10,7 @@ const TeacherSchedule = lazy(() => import('./TeacherSchedule'));
 const AIToolsNavigation = lazy(() => import('./AIToolsNavigation'));
 const MyStudents = lazy(() => import('./MyStudents'));
 const ResourceHub = lazy(() => import('./ResourceHub'));
+const OpenBooksHub = lazy(() => import('./OpenBooksHub'));
 const LessonTemplates = lazy(() => import('./LessonTemplates'));
 const TeacherCoach = lazy(() => import('./TeacherCoach'));
 const DashboardKnowledgeBase = lazy(() => import('./DashboardKnowledgeBase'));
@@ -74,6 +75,8 @@ const TeacherDashboardContent: React.FC<TeacherDashboardContentProps> = ({ activ
                         return <TeacherCoach />;
                     case TEACHER_VIEWS.RESOURCE_HUB:
                         return <ResourceHub />;
+                    case TEACHER_VIEWS.OPEN_BOOKS:
+                        return <OpenBooksHub />;
                     case TEACHER_VIEWS.HELP:
                         return <DashboardKnowledgeBase />;
                     case TEACHER_VIEWS.MY_PAYSLIPS:

@@ -11,6 +11,7 @@ const StudentProfile = lazy(() => import('./StudentProfile'));
 const StudentTimetable = lazy(() => import('./StudentTimetable'));
 const NotificationViewer = lazy(() => import('./NotificationViewer'));
 const StudentAssignments = lazy(() => import('./StudentAssignments'));
+const OpenBooksHub = lazy(() => import('./OpenBooksHub'));
 const AIAcademicTutor = lazy(() => import('./AIAcademicTutor'));
 const PracticeQuiz = lazy(() => import('./PracticeQuiz'));
 const LearningPathways = lazy(() => import('./LearningPathways'));
@@ -50,6 +51,8 @@ const StudentDashboardContent = ({ activeView, setActiveView, demoUserId }: Stud
             return <AIAcademicTutor demoUserId={demoUserId} />;
         case STUDENT_VIEWS.AI_TOOLS:
             return <Suspense fallback={<div className="card p-4">Loading...</div>}><AIToolsNavigation setActiveView={setActiveView} /></Suspense>;
+        case STUDENT_VIEWS.OPEN_BOOKS:
+            return <OpenBooksHub />;
         
         // Individual AI Tool Views
                     case STUDENT_VIEWS.AI_CHAT:

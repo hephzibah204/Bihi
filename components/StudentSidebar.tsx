@@ -4,6 +4,7 @@ import HomeIcon from './icons/HomeIcon';
 import ClipboardListIcon from './icons/ClipboardListIcon';
 import CalendarDaysIcon from './icons/CalendarDaysIcon';
 import BrainCircuitIcon from './icons/BrainCircuitIcon';
+import BookOpenIcon from './icons/BookOpenIcon';
 import UserCircleIcon from './icons/UserCircleIcon';
 import BellIcon from './icons/BellIcon';
 import DocumentTextIcon from './icons/DocumentTextIcon';
@@ -41,6 +42,7 @@ const StudentSidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveVi
         { view: STUDENT_VIEWS.ASSIGNMENTS, label: 'Assignments', icon: <DocumentTextIcon className="h-5 w-5" /> },
         { view: STUDENT_VIEWS.TIMETABLE, label: 'My Timetable', icon: <CalendarDaysIcon className="h-5 w-5" /> },
         { view: STUDENT_VIEWS.AI_TOOLS, label: 'AI Tools', icon: <BrainCircuitIcon className="h-5 w-5" /> },
+        { view: STUDENT_VIEWS.OPEN_BOOKS, label: 'Open Books', icon: <BookOpenIcon className="h-5 w-5" /> },
         { view: STUDENT_VIEWS.PROFILE, label: 'My Profile', icon: <UserCircleIcon className="h-5 w-5" /> },
         { view: STUDENT_VIEWS.NOTIFICATIONS, label: 'Notifications', icon: <BellIcon className="h-5 w-5" /> },
     ];

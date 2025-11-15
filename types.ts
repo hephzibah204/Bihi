@@ -28,7 +28,7 @@ export type DashboardView =
   
 export type TeacherView = 
   | 'dashboard' | 'my-students' | 'enter-scores' | 'my-schedule' | 'ai-tools'
-  | 'resource-hub' | 'my-payslips' | 'help' | 'more' | 'assignments' | 'behavioral' | 'broadsheet'
+  | 'resource-hub' | 'open-books' | 'my-payslips' | 'help' | 'more' | 'assignments' | 'behavioral' | 'broadsheet'
   | 'ai-chat' | 'ai-elaboratory' | 'ai-lesson-planner' | 'ai-practice-quiz'
   | 'ai-comment-generator' | 'ai-early-intervention' | 'ai-learning-pathways' | 'ai-subject-recommender'
   | 'ai-rubric-generator' | 'ai-parent-message-composer' | 'lesson-templates' | 'ai-coach'
@@ -37,7 +37,7 @@ export type TeacherView =
   
 export type StudentView = 
   | 'dashboard' | 'results' | 'assignments' | 'timetable' | 'ai-tools'
-  | 'profile' | 'notifications' | 'transcript' | 'ai-tutor' | 'broadsheet'
+  | 'profile' | 'notifications' | 'transcript' | 'ai-tutor' | 'broadsheet' | 'open-books'
   | 'ai-chat' | 'ai-elaboratory' | 'ai-subject-recommender' | 'ai-practice-quiz' | 'ai-learning-pathways';
   
 export type ParentView = 
@@ -92,6 +92,21 @@ export interface Parent {
     phone?: string;
     auth_id?: string;
     pendingChanges?: Partial<Parent>;
+}
+
+export interface Admission {
+  id: string;
+  candidateName: string;
+  intendedClass: string;
+  parentName?: string;
+  parentEmail?: string;
+  parentPhone?: string;
+  stage: 'enquiry' | 'interested' | 'paid_application' | 'admitted' | 'registered';
+  leadSource?: string;
+  campaign?: string;
+  applicationFeeInvoiceId?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Subject {
