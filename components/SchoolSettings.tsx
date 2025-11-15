@@ -256,6 +256,14 @@ const GeofencingSettings = ({ settings, onSettingsChange }: { settings: any, onS
         onSettingsChange({ premisesGeofences: next });
     };
 
+    const setFenceCenterFromCurrent = (index: number) => {
+        if (!('geolocation' in navigator)) return;
+        navigator.geolocation.getCurrentPosition((pos) => {
+            updateFenceCenter(index, 'lat', pos.coords.latitude);
+            updateFenceCenter(index, 'lng', pos.coords.longitude);
+        });
+    };
+
     const updateFenceType = (index: number, type: 'circle' | 'polygon') => {
         const next = [...geofences];
         if (type === 'circle') {
@@ -271,6 +279,24 @@ const GeofencingSettings = ({ settings, onSettingsChange }: { settings: any, onS
         const pts = next[index].polygon || [];
         next[index] = { ...next[index], polygon: [...pts, { lat: 0, lng: 0 }] } as any;
         onSettingsChange({ premisesGeofences: next });
+    };
+
+    const addPolygonPointFromCurrent = (index: number) => {
+        if (!('geolocation' in navigator)) return;
+        navigator.geolocation.getCurrentPosition((pos) => {
+            const next = [...geofences];
+            const pts = next[index].polygon || [];
+            next[index] = { ...next[index], polygon: [...pts, { lat: pos.coords.latitude, lng: pos.coords.longitude }] } as any;
+            onSettingsChange({ premisesGeofences: next });
+        });
+    };
+
+    const addGeofenceFromCurrent = (radius_m: number) => {
+        if (!('geolocation' in navigator)) return;
+        navigator.geolocation.getCurrentPosition((pos) => {
+            const newFence: Geofence = { type: 'circle', name: 'Primary Location', center: { lat: pos.coords.latitude, lng: pos.coords.longitude }, radius_m } as any;
+            onSettingsChange({ premisesGeofences: [...geofences, newFence] });
+        });
     };
 
     const updatePolygonPoint = (index: number, pointIndex: number, coord: 'lat' | 'lng', value: number) => {
@@ -299,6 +325,14 @@ const GeofencingSettings = ({ settings, onSettingsChange }: { settings: any, onS
             <div className="p-4 border rounded-md">
                 <h4 className="font-semibold mb-2">Premises Geofences</h4>
                 <p className="text-xs text-gray-500 mb-4">Define one or more circular geofences around your school premises. Validation currently supports circle type.</p>
+                <div className="flex items-center gap-3 mb-3">
+                    <input id="new-radius" type="number" className="input-field w-40" placeholder="Radius (m)" defaultValue={100} />
+                    <button type="button" className="btn btn-secondary" onClick={() => {
+                        const el = document.getElementById('new-radius') as HTMLInputElement;
+                        const r = Number(el?.value || 100);
+                        addGeofenceFromCurrent(isNaN(r) ? 100 : r);
+                    }}>Add From My Location</button>
+                </div>
                 <div className="space-y-3">
                     {geofences.map((g, idx) => (
                         <div key={idx} className="space-y-3 border rounded-md p-3">
@@ -332,12 +366,18 @@ const GeofencingSettings = ({ settings, onSettingsChange }: { settings: any, onS
                                         <label className="label" htmlFor={`gf-radius-${idx}`}>Radius (m)</label>
                                         <input id={`gf-radius-${idx}`} type="number" value={g.radius_m ?? 0} onChange={e => updateFence(idx, 'radius_m', Number(e.target.value))} className="input-field" />
                                     </div>
+                                    <div className="md:col-span-3">
+                                        <button type="button" className="btn btn-secondary btn-sm" onClick={() => setFenceCenterFromCurrent(idx)}>Use My Location</button>
+                                    </div>
                                 </div>
                             ) : (
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center">
                                         <h5 className="font-medium text-sm">Polygon Points</h5>
-                                        <button type="button" className="btn btn-secondary btn-sm" onClick={() => addPolygonPoint(idx)}><PlusIcon className="w-3 h-3 mr-1"/>Add Point</button>
+                                        <div className="flex gap-2">
+                                            <button type="button" className="btn btn-secondary btn-sm" onClick={() => addPolygonPoint(idx)}><PlusIcon className="w-3 h-3 mr-1"/>Add Point</button>
+                                            <button type="button" className="btn btn-secondary btn-sm" onClick={() => addPolygonPointFromCurrent(idx)}>Add Point From My Location</button>
+                                        </div>
                                     </div>
                                     <div className="space-y-2">
                                         {(g.polygon || []).map((pt, pIdx) => (

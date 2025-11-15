@@ -1,4 +1,5 @@
 import { Tenant, Student, Subject, SchoolSettings, Score, Teacher, Parent, Invoice, FeeStructure, BehavioralLogEntry, Remark, AttendanceRecord, Assignment, AssignmentScore, Expense, Income, Payslip, PayrollRun, Payment, CommunicationLog, MessageTemplate, ScheduledReminder, ScheduledCampaign, Event, AbsenceReport, TeacherAttendanceRecord, ActivityLog, SharedLessonPlan } from '../types';
+import { CBTExam } from '../types/cbt';
 
 export const DEMO_TENANT_ID = 'demo';
 
@@ -146,6 +147,7 @@ export const CORE_DEMO_DATA = {
     fee_structures: [] as any[],
     payment_methods: [] as any[],
     shared_lesson_plans: [] as SharedLessonPlan[],
+    cbt_exams: [] as CBTExam[],
     settings: {
         schoolName: 'Brightstar Demo Academy',
         schoolAddress: '123 Innovation Drive, Lagos, Nigeria',
@@ -725,6 +727,64 @@ CORE_DEMO_DATA.assignments.push(
     pushDay(tid, 5);
   });
   (CORE_DEMO_DATA as any).teacher_attendance = entries;
+})();
+
+(() => {
+  const now = new Date();
+  const addHours = (d: Date, h: number) => {
+    const x = new Date(d);
+    x.setHours(x.getHours() + h);
+    return x;
+  };
+  const inDays = (d: Date, days: number, hour = 9) => {
+    const x = new Date(d);
+    x.setDate(x.getDate() + days);
+    x.setHours(hour, 0, 0, 0);
+    return x;
+  };
+  const exams: CBTExam[] = [
+    {
+      id: 'exam_jss1_math_midterm',
+      title: 'JSS 1A Mathematics Midterm',
+      description: 'Algebra basics and fractions',
+      sections: [ { id: 'sec1', title: 'MCQ' } ],
+      rules: { scoreEntry: { subjectId: 'subj_1', className: 'JSS 1A', term: CORE_DEMO_DATA.settings.term, examWeight: 60 }, shuffleItems: true, shuffleOptions: true, autoGradeOnSubmit: true, autoEnterScores: false },
+      timeWindowStart: inDays(now, 3).toISOString(),
+      timeWindowEnd: addHours(inDays(now, 3), 2).toISOString(),
+      status: 'ready'
+    },
+    {
+      id: 'exam_sss2_physics_practical',
+      title: 'SSS 2A Physics Practical',
+      description: 'Kinematics and projectile motion',
+      sections: [ { id: 'sec1', title: 'Short Answer' } ],
+      rules: { scoreEntry: { subjectId: 'subj_3', className: 'SSS 2A', term: CORE_DEMO_DATA.settings.term, examWeight: 70 }, navigation: 'linear' },
+      timeWindowStart: inDays(now, 5, 10).toISOString(),
+      timeWindowEnd: addHours(inDays(now, 5, 10), 3).toISOString(),
+      status: 'ready'
+    },
+    {
+      id: 'exam_pri4_english_quiz',
+      title: 'Primary 4A English Quiz',
+      description: 'Comprehension and vocabulary',
+      sections: [ { id: 'sec1', title: 'MCQ' } ],
+      rules: { scoreEntry: { subjectId: 'subj_2', className: 'Primary 4A', term: CORE_DEMO_DATA.settings.term, examWeight: 40 }, attempts: 1 },
+      timeWindowStart: inDays(now, 1, 8).toISOString(),
+      timeWindowEnd: addHours(inDays(now, 1, 8), 1).toISOString(),
+      status: 'ready'
+    },
+    {
+      id: 'exam_nur1_number_work_assessment',
+      title: 'Nursery 1A Number Work Assessment',
+      description: 'Counting and number recognition',
+      sections: [ { id: 'sec1', title: 'MCQ' } ],
+      rules: { scoreEntry: { subjectId: 'subj_5', className: 'Nursery 1A', term: CORE_DEMO_DATA.settings.term, examWeight: 30 } },
+      timeWindowStart: inDays(now, 2, 9).toISOString(),
+      timeWindowEnd: addHours(inDays(now, 2, 9), 1).toISOString(),
+      status: 'ready'
+    }
+  ];
+  (CORE_DEMO_DATA as any).cbt_exams = exams;
 })();
 
 CORE_DEMO_DATA.assignment_scores = [
