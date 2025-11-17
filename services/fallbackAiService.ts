@@ -179,6 +179,10 @@ const cacheResponse = (prompt: string, response: string, context?: Record<string
             const rc = getAIResponseCache();
             rc.cacheResponse(prompt, response, 'fallback', context, { confidence });
         } catch {}
+        try {
+            const tenantId = (typeof window !== 'undefined' ? (localStorage.getItem('tenant_id') || 'demo') : 'demo');
+            import('../lib/ai/rag/embedder').then(m => m.upsertEmbedding(tenantId, cacheId, response)).catch(() => {});
+        } catch {}
     } catch (_error) {
         // ignore cache failures
     }

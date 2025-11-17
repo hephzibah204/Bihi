@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useAI } from '../hooks/useAI';
-import { generateResponse as aiGenerateResponse } from '../services/geminiAIService';
 import { apiGetInvoices, apiGetPayments, apiGetExpenses, apiGetPayrollRuns, apiGetIncome } from '../services/api';
 import SparklesIcon from './icons/SparklesIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
@@ -8,7 +7,7 @@ import HtmlContent from './HtmlContent';
 import SkeletonLoader from './SkeletonLoader';
 
 const FinancialQAWidget: React.FC = () => {
-  const { generateResponse, status } = useAI();
+  const { generateResponseStream, status } = useAI();
   const [query, setQuery] = useState('');
   const [answer, setAnswer] = useState('');
   const [error, setError] = useState('');
@@ -65,9 +64,12 @@ const FinancialQAWidget: React.FC = () => {
         USER QUESTION:
         "${query}"
       `;
-
-      const res = await aiGenerateResponse(prompt);
-      setAnswer(String(res));
+      const acc = useRef('');
+      await generateResponseStream({
+        prompt,
+        context: JSON.stringify(context),
+        onChunk: (chunk) => { acc.current += String(chunk || ''); setAnswer(acc.current); }
+      });
     } catch (e: any) {
       setError(`AI Error: ${e.message}`);
     } finally {
@@ -84,8 +86,8 @@ const FinancialQAWidget: React.FC = () => {
             <p className="text-sm text-gray-500">Ask questions about income, expenses, and collections.</p>
           </div>
           <div className="flex items-center text-xs text-gray-500">
-            <span className={`w-2 h-2 rounded-full mr-2 ${status === 'gemini' ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
-            {status === 'gemini' ? 'Online' : 'Offline'}
+            <span className={`w-2 h-2 rounded-full mr-2 ${status === 'gemini' ? 'bg-green-500' : status === 'loading' ? 'bg-yellow-500' : 'bg-yellow-500'}`}></span>
+            {status === 'gemini' ? 'Online' : status === 'loading' ? 'Thinking' : 'Offline'}
           </div>
         </div>
 

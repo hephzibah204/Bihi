@@ -3,11 +3,15 @@ import SearchIcon from './icons/SearchIcon';
 import BookOpenIcon from './icons/BookOpenIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
 
-type Source = 'Open Library' | 'Internet Archive' | 'Wikipedia';
+type Source = 'Open Library' | 'Internet Archive' | 'Wikipedia' | 'OER Index';
 
 const ExternalLibrarySearch: React.FC = () => {
   const [source, setSource] = useState<Source>('Open Library');
   const [q, setQ] = useState('');
+  const [year, setYear] = useState('');
+  const [author, setAuthor] = useState('');
+  const [subject, setSubject] = useState('');
+  const [tagInput, setTagInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [results, setResults] = useState<any[]>([]);
@@ -111,4 +115,3 @@ const ExternalLibrarySearch: React.FC = () => {
 };
 
 export default ExternalLibrarySearch;
-

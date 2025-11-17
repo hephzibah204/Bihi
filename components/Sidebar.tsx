@@ -89,7 +89,7 @@ interface NavGroupProps {
 const NavGroup: React.FC<NavGroupProps> = ({ title, items, activeView, setActiveView, hasFeature }) => {
     return (
         <div>
-            <h3 className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">{title}</h3>
+            <h3 className="px-4 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{title}</h3>
             <div className="mt-2 space-y-1">
                 {items.map((link, index) => (
                     <NavLink 
@@ -173,6 +173,14 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView, use
             ]
         },
         {
+            group: 'Finance',
+            groupId: 'finance',
+            items: [
+                { view: ADMIN_VIEWS.BURSARY, label: 'Bursary', icon: <WalletIcon className="h-5 w-5" /> },
+                { view: ADMIN_VIEWS.REPORTS, label: 'Reports', icon: <DocumentTextIcon className="h-5 w-5" /> },
+            ]
+        },
+        {
             group: 'Academics',
             groupId: 'academics',
             items: [
@@ -196,19 +204,12 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView, use
             ]
         },
         {
-            group: 'Management',
+            group: 'Communication',
             groupId: 'management',
             items: [
+                { view: ADMIN_VIEWS.COMMUNICATIONS, label: 'Communications', icon: <MegaphoneIcon className="h-5 w-5" /> },
                 { view: ADMIN_VIEWS.STAFF, label: 'Staff', icon: <BriefcaseIcon className="h-5 w-5" /> },
                 { view: ADMIN_VIEWS.PARENTS, label: 'Parents', icon: <UsersGroupIcon className="h-5 w-5" /> },
-                { view: ADMIN_VIEWS.COMMUNICATIONS, label: 'Communications', icon: <MegaphoneIcon className="h-5 w-5" /> },
-            ]
-        },
-        {
-            group: 'Finance',
-            groupId: 'finance',
-            items: [
-                { view: ADMIN_VIEWS.BURSARY, label: 'Bursary', icon: <WalletIcon className="h-5 w-5" /> },
             ]
         },
         {
@@ -257,7 +258,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView, use
                         <XIcon className="h-6 w-6"/>
                     </button>
                 </div>
-                <nav className="flex-1 p-4 space-y-6 overflow-y-auto h-[calc(100vh-4rem)]">
+                <nav className="flex-1 p-3 space-y-2 overflow-y-auto h-[calc(100vh-4rem)]">
                    {navLinks
                      .filter(group => {
                         // Show only Finance (and optionally Main) for Bursar

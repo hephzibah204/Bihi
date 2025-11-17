@@ -14,6 +14,23 @@ import BookOpenIcon from './icons/BookOpenIcon';
 import ClipboardListIcon from './icons/ClipboardListIcon';
 import MegaphoneIcon from './icons/MegaphoneIcon';
 import Cog6ToothIcon from './icons/Cog6ToothIcon';
+import SchoolVitals from './SchoolVitals';
+import DashboardInsights from './DashboardInsights';
+import IdleClassesAlertWidget from './IdleClassesAlertWidget';
+import TeacherPerformanceWidget from './TeacherPerformanceWidget';
+import EarlyIntervention from './EarlyIntervention';
+import AttendanceSnapshotWidget from './AttendanceSnapshotWidget';
+import FinancialVitalsWidget from './FinancialVitalsWidget';
+import IncomeExpenseTrendChart from './IncomeExpenseTrendChart';
+import ExpenseCategoryBreakdown from './ExpenseCategoryBreakdown';
+import TopDebtorsByClassAlt from './TopDebtorsByClassAlt';
+import HighPriorityDebtorsWidget from './HighPriorityDebtorsWidget';
+import FinancialQAWidget from './FinancialQAWidget';
+import ClassPerformanceRanking from './ClassPerformanceRanking';
+import SubjectHotColdChart from './SubjectHotColdChart';
+import AnalystQAWidget from './AnalystQAWidget';
+import LineChartMini from './ui/LineChartMini';
+import BarChartMini from './ui/BarChartMini';
 
 const AdminBlueDashboard: React.FC = () => {
   const sidebarItems = [
@@ -53,24 +70,37 @@ const AdminBlueDashboard: React.FC = () => {
   return (
     <AppShell pageTitle="Dashboard" sidebarItems={sidebarItems} rightPanel={rightPanel}>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        <StatPill icon={<UsersIcon className="w-5 h-5" />} label="Students" value={1280} accentColor="#2563EB" />
-        <StatPill icon={<BriefcaseIcon className="w-5 h-5" />} label="Teachers" value={65} accentColor="#F97316" />
-        <StatPill icon={<CalendarDaysIcon className="w-5 h-5" />} label="Events" value={8} accentColor="#FACC15" />
-        <StatPill icon={<WalletIcon className="w-5 h-5" />} label="Fees Collected" value={'₦12,450,000'} accentColor="#06B6D4" />
+        <StatPill icon={<UsersIcon className="w-5 h-5" />} label="Students" value={932} accentColor="#2563EB" />
+        <StatPill icon={<BriefcaseIcon className="w-5 h-5" />} label="Teachers" value={754} accentColor="#F97316" />
+        <StatPill icon={<CalendarDaysIcon className="w-5 h-5" />} label="Events" value={40} accentColor="#FACC15" />
+        <StatPill icon={<WalletIcon className="w-5 h-5" />} label="Fees Collected" value={'₦32,000,000'} accentColor="#06B6D4" />
       </div>
-
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
-        <Card header={<><div>School Performance</div><div className="text-xs text-gray-500">This week vs last week</div></>}>
-          <div className="h-40 bg-gray-100 rounded-2xl flex items-center justify-center text-gray-500">Chart placeholder</div>
+        <Card header={<div className="bg-[#F5F7FF] rounded-xl px-4 py-3">
+          <div className="text-base font-semibold">School Performance</div>
+          <div className="mt-1 flex items-center gap-2">
+            <span className="chip chip-blue">This Week 1,245</span>
+            <span className="chip chip-orange">Last Week 1,356</span>
+          </div>
+        </div>}>
+          <LineChartMini />
         </Card>
-        <Card header={<div className="flex items-center gap-3">School Overview<div className="ml-auto flex gap-2 text-xs"><button className="px-2 py-1 rounded-full bg-gray-100">Week</button><button className="px-2 py-1 rounded-full bg-gray-100">Month</button><button className="px-2 py-1 rounded-full bg-gray-100">Year</button></div></div>}>
-          <div className="h-40 bg-gray-100 rounded-2xl flex items-center justify-center text-gray-500">Dual bars placeholder</div>
+        <Card header={<div className="bg-[#F5F7FF] rounded-xl px-4 py-3 flex items-center justify-between">
+          <div className="text-base font-semibold">School Overview</div>
+          <div className="flex items-center gap-2">
+            <button className="toggle-pill">Week</button>
+            <button className="toggle-pill">Month</button>
+            <button className="toggle-pill">Year</button>
+            <button className="toggle-pill">All</button>
+          </div>
+        </div>}>
+          <BarChartMini />
         </Card>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
         <CalendarMini />
-        <Card header={<div>Teacher Details</div>} footer={<div className="text-xs text-gray-500">Showing 1–4 of 14 entries</div>}>
+        <Card header={<div className="text-base font-semibold">Teacher Details</div>} footer={<div className="text-xs text-gray-500">Showing 1 to 4 of 14 entries</div>}>
           <Table
             columns={[
               { key: 'name', header: 'Name' },

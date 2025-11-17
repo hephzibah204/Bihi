@@ -13,6 +13,7 @@ import UserCircleIcon from './icons/UserCircleIcon';
 import ChatHistorySidebar from './ChatHistorySidebar';
 import { useAuth } from '../contexts/AuthContext';
 import { getConversationService } from '../services/conversationService';
+import { generateStreamViaGateway, generateViaGateway, AIGatewayStreamChunk } from '../services/aiGatewayService';
 
 type ChatMessage = {
   id: string;
@@ -151,18 +152,24 @@ const Chat: React.FC<ChatProps> = ({ title = 'AI Chat' }) => {
         return;
       }
 
-      // Prefer streaming text generation
+      // Use AI Gateway streaming with forced offline for sensitive queries
       setIsStreaming(true);
-      await generateResponseStream({ prompt, onChunk: (chunk) => {
-        const text = String(chunk || '');
+      assistantTextRef.current = '';
+      
+      // Check if this is a sensitive/financial query that should use offline mode
+      const forceOffline = /\b(budget|expense|financial|money|cost|price|investment|tax|income|salary|payment)\b/i.test(prompt);
+      
+      await generateStreamViaGateway(prompt, (chunk: AIGatewayStreamChunk) => {
+        const text = String(chunk.text || '');
         if (!text) return;
         assistantTextRef.current += text;
         setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, text: (m.text || '') + text } : m));
-      }});
+      }, { forceOffline });
     } catch (err) {
-      // Fallback to non-stream
+      // Fallback to non-stream gateway generation
       try {
-        const resp = await generateResponse(prompt);
+        const forceOffline = /\b(budget|expense|financial|money|cost|price|investment|tax|income|salary|payment)\b/i.test(prompt);
+        const resp = await generateViaGateway(prompt, { forceOffline });
         const html = geminiToHtml(resp.content);
         const msg: ChatMessage = { id: assistantId, role: 'assistant', html } as ChatMessage;
         setMessages(prev => prev.map(m => m.id === assistantId ? msg : m));

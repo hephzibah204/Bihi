@@ -6,6 +6,7 @@ import { isSensitiveFinanceQuery, needsStructuredOutput } from '../lib/ai/orches
 import { detectTools } from '../lib/ai/orchestrator/tool_router';
 import { getTenantId } from '../services/api';
 import { logger } from '../utils/logger';
+import { aiGatewayService, generateViaGateway, generateStreamViaGateway, AIGatewayStreamChunk } from '../services/aiGatewayService';
 
 // Lazy-load feature contexts to avoid hard dependency during initial render
 async function safeGetFeatureContexts(): Promise<Record<string, unknown>> {
@@ -90,122 +91,60 @@ export const useAI = (onNotification?: AINotificationCallback) => {
   const generateResponse = useCallback(async (
     prompt: string,
     context?: string,
-    type?: string
+    type?: string,
+    forceOffline?: boolean
   ): Promise<AIResponse> => {
     setIsLoading(true);
     
     try {
-      const forceOffline = isSensitiveFinanceQuery(prompt) || detectTools(prompt).length > 0 || needsStructuredOutput(prompt);
-      if (!forceOffline && isOnline) {
-        try {
-          // Attach context to the prompt to ensure online API receives it
-          const promptWithContext = context
-            ? `Context:\n${context}\n\nUser Prompt:\n${prompt}`
-            : prompt;
-          // Merge global feature/KPI contexts (optional)
-          const featureContexts = filterFeatureContextsByRole(await safeGetFeatureContexts(), resolveCurrentRole());
-          const response = await callGeminiApi(actualPromptForOnline(prompt, context, featureContexts), undefined);
-          setIsLoading(false);
-          return {
-            content: response,
-            isOnline: true
-          };
-        } catch (error) {
-          logger.captureError(error as any, 'Gemini API failed, checking for permission error');
+      // Use AI Gateway service for enhanced offline flow control
+      const response = await generateViaGateway(prompt, {
+        context,
+        role: resolveCurrentRole() || 'Teacher',
+        tenantId: getTenantId() || 'demo',
+        forceOffline: forceOffline || isSensitiveFinanceQuery(prompt) || detectTools(prompt).length > 0 || needsStructuredOutput(prompt)
+      });
 
-          // Permission denied: surface to user and DO NOT fallback
-          if (error instanceof Error && /permission denied/i.test(error.message)) {
-            setIsLoading(false);
-            showNotification({
-              type: 'error',
-              title: 'Permission denied',
-              message: 'Your role is not permitted to access that information. If you believe this is a mistake, contact an administrator.'
-            });
-            return {
-              content: 'Permission denied: you are not allowed to access that information.',
-              isOnline: true,
-              error: 'permission_denied'
-            };
-          }
-          
-          // Determine fallback reason
-          let fallbackReason = 'API service unavailable';
-          let notificationMessage = 'The AI service is temporarily unavailable. Using offline AI with limited capabilities.';
-          
-          if (error instanceof Error) {
-            if (error.message.includes('network') || error.message.includes('fetch')) {
-              fallbackReason = 'Network connectivity issues';
-              notificationMessage = 'Network connection issues detected. Switching to offline AI mode.';
-            } else if (error.message.includes('quota') || error.message.includes('limit')) {
-              fallbackReason = 'API quota exceeded';
-              notificationMessage = 'AI service quota exceeded. Using offline AI until quota resets.';
-            } else if (error.message.includes('auth') || error.message.includes('key')) {
-              fallbackReason = 'Authentication error';
-              notificationMessage = 'AI service authentication failed. Using offline AI mode.';
-            }
-          }
-          
-          // Show notification about fallback
-          showNotification({
-            type: 'warning',
-            title: 'Switched to Offline AI',
-            message: `${notificationMessage} Results may be less comprehensive than our premium AI service.`
-          });
-          
-          // Fall through to fallback with reason; prefer HuggingFace if online
-          const ctxObj = { ...(context ? { context } : {}), ...(type ? { type } : {}) } as Record<string, unknown> | undefined;
-          let fallbackResponse: string;
-          try {
-            const { generateFallbackResponseAsync } = await import('../services/fallbackAiService');
-            fallbackResponse = await generateFallbackResponseAsync(prompt, ctxObj, type);
-          } catch {
-            const { generateFallbackResponse } = await import('../services/fallbackAiService');
-            fallbackResponse = generateFallbackResponse(prompt, ctxObj, type);
-          }
-          setIsLoading(false);
-          setIsOnline(false);
-          
-          return {
-            content: fallbackResponse,
-            isOnline: false,
-            fallbackReason,
-            notification: {
-              type: 'warning',
-              title: 'Offline AI Active',
-              message: `Using in-house AI due to: ${fallbackReason}. Responses may be more basic.`
-            }
-          };
-        }
-      } else {
-        // Offline mode notification
+      setIsLoading(false);
+      
+      // Handle permission errors
+      if (response.error?.includes('permission') || response.error?.includes('denied')) {
         showNotification({
-          type: 'info',
-          title: 'Offline Mode',
-          message: 'No internet connection detected. Using offline AI with basic responses.'
+          type: 'error',
+          title: 'Permission denied',
+          message: 'Your role is not permitted to access that information. If you believe this is a mistake, contact an administrator.'
+        });
+        return {
+          content: 'Permission denied: you are not allowed to access that information.',
+          isOnline: !response.fallbackUsed,
+          error: 'permission_denied'
+        };
+      }
+
+      // Handle fallback notifications
+      if (response.fallbackUsed) {
+        const notificationType = response.provider === 'offline' ? 'warning' : 'info';
+        const title = response.provider === 'offline' ? 'Switched to Offline AI' : 'Offline AI Active';
+        const message = response.error 
+          ? `Using offline AI due to: ${response.error}. Responses may be more basic.`
+          : 'Using in-house AI. Responses are more basic but still helpful for common tasks.';
+        
+        showNotification({
+          type: notificationType,
+          title,
+          message
         });
       }
-      
-      const featureContexts = filterFeatureContextsByRole(await safeGetFeatureContexts(), resolveCurrentRole());
-      const tenantId = getTenantId() || 'demo';
-      let fallbackResponse: string;
-      try {
-        fallbackResponse = await runOfflineModel({ prompt, role: (resolveCurrentRole() as any) || 'Teacher', tenantId, conversationHistory: [], topK: 5 });
-      } catch {
-        const { generateFallbackResponse } = await import('../services/fallbackAiService');
-        fallbackResponse = generateFallbackResponse(prompt, { featureContexts }, type);
-      }
-      setIsLoading(false);
-      setIsOnline(false);
-      
+
       return {
-        content: fallbackResponse,
-        isOnline: false,
-        fallbackReason: isOnline ? 'API service failed' : 'No internet connection',
-        notification: {
-          type: 'info',
-          title: 'Offline AI Active',
-          message: 'Using in-house AI. Responses are more basic but still helpful for common tasks.'
-        }
+        content: response.content,
+        isOnline: !response.fallbackUsed,
+        fallbackReason: response.fallbackUsed ? response.error : undefined,
+        notification: response.fallbackUsed ? {
+          type: response.provider === 'offline' ? 'warning' : 'info',
+          title: response.provider === 'offline' ? 'Offline AI Active' : 'AI Service Notice',
+          message: response.error || 'Using offline AI mode'
+        } : undefined
       };
     } catch (error) {
       setIsLoading(false);
@@ -237,7 +176,8 @@ export const useAI = (onNotification?: AINotificationCallback) => {
     conversationId,
     userProfile,
     conversationHistory,
-    responseMimeType
+    responseMimeType,
+    forceOffline
   }: {
     prompt: string;
     context?: string | Record<string, unknown>;
@@ -247,63 +187,57 @@ export const useAI = (onNotification?: AINotificationCallback) => {
     userProfile?: Record<string, unknown>;
     conversationHistory?: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
     responseMimeType?: string;
+    forceOffline?: boolean;
   }): Promise<void> => {
     setIsLoading(true);
     
     try {
-      const forceOffline = isSensitiveFinanceQuery(prompt) || detectTools(prompt).length > 0 || needsStructuredOutput(prompt);
-      if (!forceOffline && isOnline) {
-        const featureContexts = filterFeatureContextsByRole(await safeGetFeatureContexts(), (userProfile && typeof userProfile === 'object' ? (userProfile as any).userRole : undefined));
-        await callGeminiApiStream(
-          prompt,
-          onChunk,
-          {
-            context: typeof context === 'string' ? { _raw: context, featureContexts } : { ...(context || {}), featureContexts },
-            conversationId,
-            conversationHistory,
-            userProfile,
-            responseMimeType
+      // Use AI Gateway service for enhanced streaming with offline flow control
+      const featureContexts = filterFeatureContextsByRole(await safeGetFeatureContexts(), (userProfile && typeof userProfile === 'object' ? (userProfile as any).userRole : undefined));
+      
+      await generateStreamViaGateway(prompt, (chunk: AIGatewayStreamChunk) => {
+        if (chunk.text) {
+          onChunk(chunk.text);
+        } else if (chunk.error) {
+          setIsLoading(false);
+          let errorMessage = 'I apologize, but I\'m having trouble processing your request right now. ';
+          
+          if (!isOnline) {
+            errorMessage += 'I\'m currently in offline mode with limited capabilities. Please check your internet connection for the full AI experience.';
+          } else if (chunk.provider === 'offline' || chunk.provider === 'templates') {
+            errorMessage += 'I\'m using offline mode with limited capabilities. The response may be more basic than usual.';
+          } else {
+            errorMessage += 'Please try rephrasing your question or try again in a moment.';
           }
-        );
-        setIsLoading(false);
-        return;
-      }
-
-      const tenantId = getTenantId() || 'demo';
-      let text = '';
-      try {
-        text = await runOfflineModel({ prompt, role: (resolveCurrentRole() as any) || 'Teacher', tenantId, conversationHistory: [], topK: 5 });
-      } catch {
-        const response = await generateResponse(prompt, typeof context === 'string' ? context : JSON.stringify(context), type);
-        text = response.content;
-      }
-      
-      if (response.error || response.content.includes('Sorry, I encountered an error')) {
-        setIsLoading(false);
-        let errorMessage = 'I apologize, but I\'m having trouble processing your request right now. ';
-        if (!isOnline) {
-          errorMessage += 'I\'m currently in offline mode with limited capabilities. Please check your internet connection for the full AI experience.';
-        } else if (response.fallbackReason) {
-          errorMessage += `I'm using offline mode because: ${response.fallbackReason}. The response may be more basic than usual.`;
-        } else {
-          errorMessage += 'Please try rephrasing your question or try again in a moment.';
+          
+          onChunk(errorMessage);
+          showNotification({
+            type: 'warning',
+            title: isOnline ? 'AI Service Issue' : 'Offline Mode',
+            message: isOnline ? 'AI service temporarily unavailable. Using offline mode.' : 'Limited AI capabilities in offline mode.'
+          });
+        } else if (chunk.done) {
+          setIsLoading(false);
+          if (chunk.provider === 'offline' || chunk.provider === 'templates') {
+            setIsOnline(false);
+            showNotification({
+              type: 'warning',
+              title: 'Switched to Offline AI',
+              message: 'Using offline AI mode. Responses may be more basic than premium service.'
+            });
+          }
         }
-        onChunk(errorMessage);
-        showNotification({
-          type: 'warning',
-          title: isOnline ? 'AI Service Issue' : 'Offline Mode',
-          message: isOnline ? 'AI service temporarily unavailable. Using offline mode.' : 'Limited AI capabilities in offline mode.'
-        });
-        return;
-      }
-      
-      // Simulate streaming by sending chunks of the offline response
-      const chunkSize = 10;
-      for (let i = 0; i < text.length; i += chunkSize) {
-        const chunk = text.slice(i, i + chunkSize);
-        onChunk(chunk);
-        await new Promise(resolve => setTimeout(resolve, 50));
-      }
+      }, {
+        context: typeof context === 'string' ? { _raw: context, featureContexts } : { ...(context || {}), featureContexts },
+        conversationId,
+        conversationHistory,
+        userProfile,
+        responseMimeType,
+        role: (resolveCurrentRole() as any) || 'Teacher',
+        tenantId: getTenantId() || 'demo',
+        forceOffline: forceOffline || isSensitiveFinanceQuery(prompt) || detectTools(prompt).length > 0 || needsStructuredOutput(prompt)
+      });
+
       setIsLoading(false);
     } catch (error) {
       // Permission denied: surface a friendly message and do not fallback
@@ -315,55 +249,7 @@ export const useAI = (onNotification?: AINotificationCallback) => {
         return;
       }
 
-      // Streaming failed: try non-stream Gemini once with merged contexts
-      if (isOnline) {
-        try {
-          const featureContexts = filterFeatureContextsByRole(await safeGetFeatureContexts(), resolveCurrentRole());
-          const mergedContext = typeof context === 'string' ? context : JSON.stringify(context || {});
-          const full = await callGeminiApi(actualPromptForOnline(prompt, mergedContext, featureContexts), undefined);
-          const CHUNK = 256;
-          for (let i = 0; i < full.length; i += CHUNK) {
-            onChunk(full.slice(i, i + CHUNK));
-            await new Promise(r => setTimeout(r, 25));
-          }
-          setIsLoading(false);
-          return;
-        } catch (e) {
-          // fall through to offline fallback generation
-        }
-      }
-
-      // Attempt offline fallback generation even if online attempts failed
-      try {
-        const resp = await generateResponse(
-          prompt,
-          typeof context === 'string' ? context : JSON.stringify(context || {}),
-          type
-        );
-
-        if (!resp.error && resp.content && !resp.content.includes('Sorry, I encountered an error')) {
-          const CHUNK = 256;
-          for (let i = 0; i < resp.content.length; i += CHUNK) {
-            onChunk(resp.content.slice(i, i + CHUNK));
-            await new Promise(r => setTimeout(r, 25));
-          }
-          // Switch mode indicator to offline if we had to fallback
-          setIsOnline(false);
-          setIsLoading(false);
-          showNotification({
-            type: 'warning',
-            title: 'Switched to Offline AI',
-            message: resp.fallbackReason
-              ? `Using offline AI due to: ${resp.fallbackReason}. Responses may be more basic.`
-              : 'Using offline AI mode. Responses may be more basic than premium service.'
-          });
-          return;
-        }
-      } catch (fallbackErr) {
-        // continue to final error messaging
-        logger.captureError(fallbackErr as any, 'Offline fallback generation failed');
-      }
-
+      // Final fallback to basic offline generation
       setIsLoading(false);
       const errorMessage = isOnline 
         ? 'I\'m experiencing technical difficulties. Please try again in a moment or check your internet connection.'
@@ -376,7 +262,7 @@ export const useAI = (onNotification?: AINotificationCallback) => {
       });
       logger.captureError(error as any, 'AI Streaming Error');
     }
-  }, [isOnline, showNotification, generateResponse]);
+  }, [isOnline, showNotification]);
 
   return {
     generateResponse,

@@ -25,7 +25,11 @@ const CalendarMini: React.FC = () => {
     <div className="card p-4">
       <div className="flex items-center justify-between mb-3">
         <div className="text-base font-semibold">School Calendar</div>
-        <div className="text-xs text-gray-500">{monthName} {year}</div>
+        <div className="flex items-center gap-2 text-xs text-gray-500">
+          <button className="toggle-pill">◀</button>
+          <div>{monthName} {year}</div>
+          <button className="toggle-pill">▶</button>
+        </div>
       </div>
       <div className="grid grid-cols-7 gap-2 text-xs text-gray-500 mb-2">
         {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => <div key={d} className="text-center">{d}</div>)}

@@ -1103,7 +1103,7 @@ export class EnhancedFallbackAI {
         } else if (subject === 'sciences') {
             const pl = prompt.toLowerCase();
             if (pl.includes('biology')) {
-                response = `**Biology Help (Offline Mode)**
+                template = `**Biology Help (Offline Mode)**
 
 I can guide you through biology concepts like photosynthesis, cell structure, and genetics.
 
@@ -1117,7 +1117,7 @@ I can guide you through biology concepts like photosynthesis, cell structure, an
 For detailed step-by-step examples and interactive practice, connect to the internet.`;
                 confidence = 0.75;
             } else {
-                response = `**Science Help (Offline Mode)**
+                template = `**Science Help (Offline Mode)**
 
 I can assist with physics, chemistry, and biology basics.
 

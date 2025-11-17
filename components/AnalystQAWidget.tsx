@@ -1,12 +1,12 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { generateResponse } from '../services/geminiAIService';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
+import { useAI } from '../hooks/useAI';
 import { apiGetStudents, apiGetScores, apiGetSubjects, apiGetSchoolSettings, apiGetTeachers, apiGetTimetableData } from '../services/api';
 import SparklesIcon from './icons/SparklesIcon';
 import HtmlContent from './HtmlContent';
 import SpinnerIcon from './icons/SpinnerIcon';
 
 const AnalystQAWidget: React.FC = () => {
-  const status: 'gemini' | 'offline' = 'gemini';
+  const { generateResponseStream, status } = useAI();
   const [query, setQuery] = useState('');
   const [answer, setAnswer] = useState('');
   const [error, setError] = useState('');
@@ -77,8 +77,12 @@ const AnalystQAWidget: React.FC = () => {
         "${query}"
       `;
 
-      const res = await generateResponse(prompt);
-      setAnswer(res);
+      const acc = useRef('');
+      await generateResponseStream({
+        prompt,
+        context: JSON.stringify(context),
+        onChunk: (chunk) => { acc.current += String(chunk || ''); setAnswer(acc.current); }
+      });
     } catch (e: any) {
       setError(`AI Error: ${e.message}`);
     } finally {
@@ -95,8 +99,8 @@ const AnalystQAWidget: React.FC = () => {
             <p className="text-sm text-gray-500">Ask anything about your school's performance.</p>
           </div>
           <div className="flex items-center text-xs text-gray-500">
-            <span className={`w-2 h-2 rounded-full mr-2 ${status === 'gemini' ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
-            {status === 'gemini' ? 'Online' : 'Offline'}
+            <span className={`w-2 h-2 rounded-full mr-2 ${status === 'gemini' ? 'bg-green-500' : status === 'loading' ? 'bg-yellow-500' : 'bg-yellow-500'}`}></span>
+            {status === 'gemini' ? 'Online' : status === 'loading' ? 'Thinking' : 'Offline'}
           </div>
         </div>
 

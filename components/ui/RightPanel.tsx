@@ -27,14 +27,17 @@ const MessageItem: React.FC<{ item: Message }> = ({ item }) => (
 
 const RightPanel: React.FC<{ students: RecentStudent[]; messages: Message[] }> = ({ students, messages }) => {
   return (
-    <div className="space-y-4">
+    <div className="space-y-6 relative">
+      <button title="Add" className="absolute -top-2 -right-2 h-10 w-10 rounded-full bg-[#1D4ED8] text-white flex items-center justify-center">+</button>
       <div>
-        <div className="text-base font-semibold mb-2">Recent Students</div>
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-base font-semibold">Recent Students</div>
+        </div>
         <div className="text-xs text-gray-500 mb-2">You have {students.length} students</div>
         <div className="space-y-2">
           {students.map(s => <RecentStudentItem key={s.id} item={s} />)}
         </div>
-        <button className="mt-2 btn btn-primary w-full">View more</button>
+        <button className="mt-3 w-full rounded-full bg-white border border-gray-200 px-3 py-2 text-sm">View More</button>
       </div>
       <div>
         <div className="text-base font-semibold mb-2">Messages</div>
