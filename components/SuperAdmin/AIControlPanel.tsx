@@ -4,6 +4,8 @@
 import React, { useState } from 'react';
 import { AISettingsPanel } from '../AISettings';
 import { AIUsageDashboard } from '../AIUsageDashboard';
+import { OfflineModelToggle } from './OfflineModelToggle';
+import { ToolCacheAdmin } from './ToolCacheAdmin';
 import { getAIRouter, type AISettings } from '../../services/aiRouter';
 import { logger } from '../../utils/logger';
 
@@ -162,6 +164,15 @@ export const SuperAdminAIControlPanel: React.FC<AIControlPanelProps> = ({ isSupe
                 onSettingsChange={handleSettingsChange}
                 showAdvanced={true} // Super Admin gets advanced options
               />
+
+              <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                  <OfflineModelToggle />
+                </div>
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                  <ToolCacheAdmin />
+                </div>
+              </div>
             </div>
           )}
 
