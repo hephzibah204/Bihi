@@ -13,6 +13,8 @@ import { supabase } from '../services/supabaseClient';
 import { normalizeAIText } from '../utils/aiNormalize';
 import HtmlContent from './HtmlContent';
 import { getMappings, getPhonicsPlan, getStageFromClassLevel } from '../utils/nerdcMappings';
+import { getSubjectDomainPresets } from '../utils/subjectDomains';
+import { buildTopicSuggestionPrompt } from '../lib/ai/prompting/topic_suggestion_templates';
 import type { LessonTemplate } from '../types/academic';
 
 const LessonPlanner = () => {
@@ -82,22 +84,12 @@ const LessonPlanner = () => {
         const baseCurr = curriculum === 'Other' ? otherCurriculum : curriculum;
         const m = subjectName && classLevel ? getMappings(subjectName, classLevel, baseCurr) : null;
         const byStrand = m?.strands ? m.strands.map((s: any) => String(s.name || s.code || '')).filter(Boolean) : [];
-        const map: Record<string, string[]> = {
-            Mathematics: ['Number bases','Algebra','Geometry','Trigonometry','Statistics','Mensuration'],
-            English: ['Comprehension','Grammar','Essay writing','Letter writing','Literature'],
-            "Basic Science": ['Photosynthesis','States of matter','Energy','Force','Human body systems'],
-            Biology: ['Cell structure','Photosynthesis','Respiration','Reproduction','Genetics'],
-            Chemistry: ['Atomic structure','Periodic table','Bonding','Stoichiometry','Acids and bases'],
-            Physics: ['Motion','Forces','Waves','Electricity','Energy'],
-            "Civic Education": ['Rights and duties','Government','Citizenship','Democracy'],
-            "Computer Science": ['Algorithms','Data types','Networking','Databases','Spreadsheets']
-        };
+        const preset = getSubjectDomainPresets(subjectName, classLevel, term);
         let fromScheme: string[] = [];
         if (uploadedScheme) {
             const lines = String(uploadedScheme).split(/\r?\n/).map(x => x.trim()).filter(Boolean);
             fromScheme = lines.filter(l => l.length > 3 && !/week\s*\d+/i.test(l)).slice(0, 10);
         }
-        const preset = map[subjectName] || [];
         const combined = Array.from(new Set([...fromScheme, ...byStrand, ...preset])).filter(x => x && x.length > 2).slice(0, 12);
         setSuggestedTopics(combined);
     }, [selectedSubject, classLevel, curriculum, otherCurriculum, uploadedScheme, term, subjects]);
@@ -107,9 +99,9 @@ const LessonPlanner = () => {
             const subjectName = subjects.find(s => s.id === selectedSubject)?.name || '';
             if (!subjectName || !classLevel) return;
             const baseCurr = curriculum === 'Other' ? otherCurriculum : curriculum;
-            const ctx = `Subject: ${subjectName}\nClass: ${classLevel}\nTerm: ${term || 'Any'}\nCurriculum: ${baseCurr || 'NERDC'}`;
+            const prompt = buildTopicSuggestionPrompt(subjectName, classLevel, baseCurr || 'NERDC', term || 'Any');
             try {
-                const r = await generateResponse(`Suggest 12 concise topic titles appropriate for the given subject, class, term, and curriculum. Return one topic per line.`, ctx, 'topic_suggestions');
+                const r = await generateResponse(prompt, undefined, 'topic_suggestions');
                 const lines = String(r.content || '').split(/\r?\n/).map(x => x.replace(/<[^>]+>/g,'').trim()).filter(Boolean).slice(0, 12);
                 if (lines.length) setSuggestedTopics(prev => Array.from(new Set([...lines, ...prev])).slice(0, 12));
             } catch {}
