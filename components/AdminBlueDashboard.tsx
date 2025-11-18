@@ -41,6 +41,8 @@ import TopDebtorsQuickList from './TopDebtorsQuickList';
 import RecentActivityWidget from './RecentActivityWidget';
 import DataChampionsWidget from './DataChampionsWidget';
 import { ADMIN_VIEWS } from '../utils/constants';
+import { DashboardFilterProvider } from '../contexts/DashboardFilterContext';
+import DashboardFilterBar from './DashboardFilterBar';
 
 const AdminBlueDashboard: React.FC = () => {
   const sidebarItems = [
@@ -106,7 +108,10 @@ const AdminBlueDashboard: React.FC = () => {
         <DataChampionsWidget />
       </div>
 
-      <DashboardKPI />
+      <DashboardFilterProvider>
+        <DashboardFilterBar />
+        <DashboardKPI />
+      </DashboardFilterProvider>
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
         <Card header={<div className="bg-[#F5F7FF] rounded-xl px-4 py-3">
           <div className="text-base font-semibold">School Performance</div>

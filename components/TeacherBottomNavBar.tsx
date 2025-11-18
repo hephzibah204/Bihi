@@ -1,12 +1,7 @@
 import React, { FC } from 'react';
-import HomeIcon from './icons/HomeIcon';
-import UsersIcon from './icons/UsersIcon';
 import { TeacherView } from '../types';
-import ClipboardListIcon from './icons/ClipboardListIcon';
 import { TEACHER_VIEWS } from '../utils/constants';
-import BookmarkSquareIcon from './icons/BookmarkSquareIcon';
-import CheckBadgeIcon from './icons/CheckBadgeIcon';
-import BrainCircuitIcon from './icons/BrainCircuitIcon';
+import { IconHome, IconScoreEntry, IconAttendance, IconReportCards, IconAITools } from './icons/Standard';
 
 interface NavItemProps {
     icon: React.ReactNode;
@@ -34,11 +29,11 @@ interface BottomNavBarProps {
 const TeacherBottomNavBar: FC<BottomNavBarProps> = ({ activeView, setActiveView }) => {
     const navItems: { view: TeacherView; label: string; icon: React.ReactNode }[] = [
         // Fix: Cast string constants to TeacherView
-        { view: TEACHER_VIEWS.DASHBOARD as TeacherView, label: 'Home', icon: <HomeIcon className="h-6 w-6" /> },
-        { view: TEACHER_VIEWS.ENTER_SCORES as TeacherView, label: 'Scores', icon: <ClipboardListIcon className="h-6 w-6" /> },
-        { view: TEACHER_VIEWS.ATTENDANCE as TeacherView, label: 'Attendance', icon: <CheckBadgeIcon className="h-6 w-6" /> },
-        { view: TEACHER_VIEWS.REPORT_CARDS as TeacherView, label: 'Report Card', icon: <BookmarkSquareIcon className="h-6 w-6" /> },
-        { view: TEACHER_VIEWS.AI_TOOLS as TeacherView, label: 'AI Tools', icon: <BrainCircuitIcon className="h-6 w-6" /> },
+        { view: TEACHER_VIEWS.DASHBOARD as TeacherView, label: 'Home', icon: <IconHome className="h-6 w-6" /> },
+        { view: TEACHER_VIEWS.ENTER_SCORES as TeacherView, label: 'Scores', icon: <IconScoreEntry className="h-6 w-6" /> },
+        { view: TEACHER_VIEWS.ATTENDANCE as TeacherView, label: 'Attendance', icon: <IconAttendance className="h-6 w-6" /> },
+        { view: TEACHER_VIEWS.REPORT_CARDS as TeacherView, label: 'Report Card', icon: <IconReportCards className="h-6 w-6" /> },
+        { view: TEACHER_VIEWS.AI_TOOLS as TeacherView, label: 'AI Tools', icon: <IconAITools className="h-6 w-6" /> },
     ];
 
     return (

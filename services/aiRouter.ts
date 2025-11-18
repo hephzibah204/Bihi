@@ -4,12 +4,15 @@
 import { callGeminiApi } from './geminiService';
 import { getHuggingFaceClient } from './huggingFaceAPI';
 import { generateFallbackResponse } from './fallbackAiService';
+import { callAnthropicApi } from './anthropicService';
+import { callOpenRouter } from './openrouterService';
+import { callOpenAI } from './openaiService';
 import { logger } from '../utils/logger';
 import { runOfflineModel } from '../lib/ai/offline-engine/offline_llm';
 import { isSensitiveFinanceQuery, needsStructuredOutput } from '../lib/ai/orchestrator/fallback_strategy';
 import { detectTools } from '../lib/ai/orchestrator/tool_router';
 
-export type AIProvider = 'gemini' | 'huggingface' | 'auto' | 'templates' | 'offline';
+export type AIProvider = 'gemini' | 'huggingface' | 'anthropic' | 'openrouter' | 'openai' | 'auto' | 'templates' | 'offline';
 
 export interface AISettings {
   preferredProvider: AIProvider;
@@ -77,6 +80,9 @@ export class AIRouterService {
     // Initialize provider health
     this.providerHealth.set('gemini', { available: true, lastCheck: new Date() });
     this.providerHealth.set('huggingface', { available: true, lastCheck: new Date() });
+    this.providerHealth.set('anthropic', { available: true, lastCheck: new Date() });
+    this.providerHealth.set('openrouter', { available: true, lastCheck: new Date() });
+    this.providerHealth.set('openai', { available: true, lastCheck: new Date() });
     this.providerHealth.set('templates', { available: true, lastCheck: new Date() });
     this.providerHealth.set('offline', { available: true, lastCheck: new Date() });
     
@@ -276,20 +282,28 @@ export class AIRouterService {
     } catch (error) {
       logger.warn(`Primary provider ${targetProvider} failed, trying fallback`);
       
-      // Try alternative provider
-      const fallbackProvider = targetProvider === 'gemini' ? 'huggingface' : targetProvider === 'offline' ? 'templates' : 'gemini';
-      try {
-        response = await this.generateWithProvider(
-          prompt,
-          fallbackProvider,
-          complexity,
-          conversation,
-          startTime
-        );
-        response.fallbackUsed = true;
-      } catch (fallbackError) {
-        // Use template fallback
-        logger.warn('All AI providers failed, using templates');
+      // Try chain in order: HuggingFace → Anthropic → OpenRouter → OpenAI → Offline → Templates
+      const chain: AIProvider[] = ['huggingface','anthropic','openrouter','openai','offline','templates'];
+      let lastErr: any = null;
+      for (const p of chain) {
+        if (p === targetProvider) continue;
+        try {
+          response = await this.generateWithProvider(
+            prompt,
+            p,
+            complexity,
+            conversation,
+            startTime
+          );
+          response.fallbackUsed = true;
+          lastErr = null;
+          break;
+        } catch (fallbackError) {
+          lastErr = fallbackError;
+          continue;
+        }
+      }
+      if (!response) {
         const templateResponse = generateFallbackResponse(prompt, metadata);
         response = {
           content: templateResponse,
@@ -360,6 +374,36 @@ export class AIRouterService {
           complexity,
           responseTime: Date.now() - startTime,
           cost: 0 // Free tier
+        };
+      } else if (provider === 'anthropic') {
+        const content = await callAnthropicApi(prompt);
+        return {
+          content,
+          provider: 'anthropic',
+          fallbackUsed: false,
+          complexity,
+          responseTime: Date.now() - startTime,
+          cost: 0
+        };
+      } else if (provider === 'openrouter') {
+        const content = await callOpenRouter(prompt);
+        return {
+          content,
+          provider: 'openrouter',
+          fallbackUsed: false,
+          complexity,
+          responseTime: Date.now() - startTime,
+          cost: 0
+        };
+      } else if (provider === 'openai') {
+        const content = await callOpenAI(prompt);
+        return {
+          content,
+          provider: 'openai',
+          fallbackUsed: false,
+          complexity,
+          responseTime: Date.now() - startTime,
+          cost: 0
         };
       } else if (provider === 'offline') {
         const role = (typeof window !== 'undefined' ? localStorage.getItem('demoUserRole') : null) as any;
@@ -562,6 +606,9 @@ export class AIRouterService {
       providerDistribution: {
         gemini: 0,
         huggingface: 0,
+        anthropic: 0,
+        openrouter: 0,
+        openai: 0,
         auto: 0,
         templates: 0,
         offline: 0

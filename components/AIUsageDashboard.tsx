@@ -139,7 +139,7 @@ export const AIUsageDashboard: React.FC = () => {
         {/* Visual Distribution Bar */}
         <div className="mb-6">
           <div className="h-8 flex rounded-lg overflow-hidden">
-            {(['gemini', 'huggingface', 'offline', 'templates'] as AIProvider[]).map((provider) => {
+            {(['gemini', 'huggingface', 'anthropic', 'openrouter', 'openai', 'offline', 'templates'] as AIProvider[]).map((provider) => {
               const percentage = parseFloat(getPercentage(provider));
               if (percentage === 0) return null;
               return (
@@ -158,7 +158,7 @@ export const AIUsageDashboard: React.FC = () => {
 
         {/* Detailed Stats */}
         <div className="space-y-3">
-          {(['gemini', 'huggingface', 'offline', 'templates'] as AIProvider[]).map((provider) => {
+          {(['gemini', 'huggingface', 'anthropic', 'openrouter', 'openai', 'offline', 'templates'] as AIProvider[]).map((provider) => {
             const count = stats.providerDistribution[provider];
             const percentage = getPercentage(provider);
             

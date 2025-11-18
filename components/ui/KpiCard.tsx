@@ -9,10 +9,11 @@ interface KpiCardProps {
   accentColor?: string;
   sparkline?: number[];
   sparklineColor?: string;
+  progress?: number; // 0-100 for percentage metrics
   onClick?: () => void;
 }
 
-const KpiCard: React.FC<KpiCardProps> = ({ icon, label, value, deltaText, deltaDirection, accentColor, sparkline, sparklineColor, onClick }) => {
+const KpiCard: React.FC<KpiCardProps> = ({ icon, label, value, deltaText, deltaDirection, accentColor, sparkline, sparklineColor, progress, onClick }) => {
   const accent = accentColor || 'var(--brand-color-primary)';
   const spColor = sparklineColor || accent;
   const data = Array.isArray(sparkline) && sparkline.length > 1 ? sparkline : undefined;
@@ -45,6 +46,17 @@ const KpiCard: React.FC<KpiCardProps> = ({ icon, label, value, deltaText, deltaD
           </svg>
         )}
       </div>
+      {typeof progress === 'number' && (
+        <div className="px-4 pb-4">
+          <div className="text-[11px] text-gray-500">Progress</div>
+          <div className="mt-1 flex items-center gap-2">
+            <div className="flex-1 h-2 bg-gray-200 rounded-full">
+              <div className="h-2 rounded-full" style={{ width: `${Math.max(0, Math.min(100, progress))}%`, backgroundColor: accent }} />
+            </div>
+            <div className="text-xs font-semibold">{Math.round(Math.max(0, Math.min(100, progress)))}%</div>
+          </div>
+        </div>
+      )}
     </button>
   );
 };

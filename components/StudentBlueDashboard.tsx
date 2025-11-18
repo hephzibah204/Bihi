@@ -10,6 +10,8 @@ import DocumentTextIcon from './icons/DocumentTextIcon';
 import BrainCircuitIcon from './icons/BrainCircuitIcon';
 import BellIcon from './icons/BellIcon';
 import StudentBottomNavBar from './StudentBottomNavBar';
+import { DashboardFilterProvider } from '../contexts/DashboardFilterContext';
+import DashboardFilterBar from './DashboardFilterBar';
 
 const StudentDashboardContent = lazy(() => import('./StudentDashboardContent'));
 
@@ -56,9 +58,12 @@ const StudentBlueDashboard: React.FC<{ onLogout: () => void; demoUserId?: string
 
   return (
     <AppShell pageTitle={headerTitle} sidebarItems={sidebarItems} onSelectSidebarItem={handleViewChange} rightPanel={rightPanel}>
-      <Suspense fallback={<div className="p-4">Loading…</div>}>
-        <StudentDashboardContent activeView={activeView as any} setActiveView={handleViewChange as any} demoUserId={resolvedDemoId} />
-      </Suspense>
+      <DashboardFilterProvider>
+        <DashboardFilterBar />
+        <Suspense fallback={<div className="p-4">Loading…</div>}>
+          <StudentDashboardContent activeView={activeView as any} setActiveView={handleViewChange as any} demoUserId={resolvedDemoId} />
+        </Suspense>
+      </DashboardFilterProvider>
       <StudentBottomNavBar activeView={activeView as any} setActiveView={handleViewChange as any} />
     </AppShell>
   );

@@ -109,6 +109,7 @@ export const TEACHER_VIEWS = {
     COMPREHENSIVE_ENTRY: 'comprehensive-entry',
     BROADSHEET: 'broadsheet',
     CLASSROOM_MONITORING: 'classroom-monitoring',
+    PROFILE: 'profile',
 } as const;
 
 export const STUDENT_VIEWS: { [key: string]: StudentView } = {

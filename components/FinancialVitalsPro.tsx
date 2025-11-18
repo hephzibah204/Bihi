@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { apiGetInvoices, apiGetPayments, apiGetExpenses, apiGetPayrollRuns, apiGetIncome, apiGetSchoolSettings } from '../services/api';
+import { useDashboardFilter } from '../contexts/DashboardFilterContext';
 import KpiCard from './ui/KpiCard';
 import WalletIcon from './icons/WalletIcon';
 import ScaleIcon from './icons/ScaleIcon';
@@ -41,10 +42,7 @@ const Donut: React.FC<{ paid: number; partial: number; unpaid: number; total: nu
 };
 
 const FinancialVitalsPro: React.FC = () => {
-  const [sessions, setSessions] = useState<string[]>([]);
-  const [terms, setTerms] = useState<string[]>([]);
-  const [selectedSession, setSelectedSession] = useState<string>('');
-  const [selectedTerm, setSelectedTerm] = useState<string>('');
+  const { session: selectedSession, term: selectedTerm } = useDashboardFilter();
 
   const [invoices, setInvoices] = useState<InvoiceLike[]>([]);
   const [payments, setPayments] = useState<PaymentLike[]>([]);
@@ -68,22 +66,11 @@ const FinancialVitalsPro: React.FC = () => {
           apiGetPayrollRuns(),
           apiGetIncome(),
         ]);
-        const currentTerm = settings?.currentTerm || settings?.term || '';
-        const currentSession = settings?.currentSession || settings?.session || '';
-        setSelectedSession(currentSession || '');
-        setSelectedTerm(currentTerm || '');
         setInvoices(inv || []);
         setPayments(pay || []);
         setExpenses(exp || []);
         setPayroll(pr || []);
         setIncome(inc || []);
-        const sessionSet = new Set<string>();
-        const termSet = new Set<string>();
-        (inv || []).forEach((i: InvoiceLike) => { if (i.session) sessionSet.add(i.session); if (i.term) termSet.add(i.term); });
-        if (currentSession) sessionSet.add(currentSession);
-        if (currentTerm) termSet.add(currentTerm);
-        setSessions(Array.from(sessionSet));
-        setTerms(Array.from(termSet));
       } finally {
         setLoading(false);
       }
@@ -167,16 +154,7 @@ const FinancialVitalsPro: React.FC = () => {
       <div className="p-6">
         <div className="flex justify-between items-start">
           <h3 className="text-lg font-semibold">Financial Vitals</h3>
-          <div className="flex items-center gap-2">
-            <select value={selectedSession} onChange={e => setSelectedSession(e.target.value)} className="input-field h-8 text-xs">
-              <option value="">All Sessions</option>
-              {sessions.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-            <select value={selectedTerm} onChange={e => setSelectedTerm(e.target.value)} className="input-field h-8 text-xs">
-              <option value="">All Terms</option>
-              {terms.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-          </div>
+          <div className="text-xs text-gray-500">Session: {selectedSession || 'All'} • Term: {selectedTerm || 'All'}</div>
         </div>
 
         {loading ? (

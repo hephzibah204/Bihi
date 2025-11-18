@@ -8,7 +8,7 @@ export type AttendanceMetrics = {
   snapshotRate: number
 }
 
-export default function useAttendanceMetrics() {
+export default function useAttendanceMetrics(session?: string, term?: string) {
   const [metrics, setMetrics] = useState<AttendanceMetrics>({ label: '', todayRate: null, termRate: 0, snapshotRate: 0 })
   const [loading, setLoading] = useState(false)
 
@@ -17,8 +17,8 @@ export default function useAttendanceMetrics() {
       setLoading(true)
       try {
         const [settings, attendance] = await Promise.all([ apiGetSchoolSettings(), apiGetAttendance() ])
-        const currentTerm = settings?.currentTerm || settings?.term || 'Current Term'
-        const currentSession = settings?.currentSession || settings?.session || ''
+        const currentTerm = term || settings?.currentTerm || settings?.term || 'Current Term'
+        const currentSession = session || settings?.currentSession || settings?.session || ''
         const label = [currentSession, currentTerm].filter(Boolean).join(' • ')
 
         const today = new Date()

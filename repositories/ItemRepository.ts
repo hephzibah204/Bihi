@@ -6,4 +6,3 @@ export class ItemRepository extends BaseRepository<CBTItem> {
     super({ table: 'cbt_items', idField: 'id', tenantField: 'tenant_id' });
   }
 }
-

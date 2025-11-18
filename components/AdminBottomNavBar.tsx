@@ -1,11 +1,5 @@
 import React, { FC } from 'react';
-import HomeIcon from './icons/HomeIcon';
-import UsersIcon from './icons/UsersIcon';
-import ClipboardListIcon from './icons/ClipboardListIcon';
-import DocumentArrowDownIcon from './icons/DocumentArrowDownIcon';
-import Cog6ToothIcon from './icons/Cog6ToothIcon';
-import BanknotesIcon from './icons/BanknotesIcon';
-import CheckIcon from './icons/CheckIcon';
+import { IconHome, IconStudents, IconScoreEntry, IconReportCards, IconSettings, IconBursary } from './icons/Standard';
 import { DashboardView, UserRole } from '../types';
 import { ADMIN_VIEWS } from '../utils/constants';
 
@@ -48,18 +42,18 @@ interface BottomNavBarProps {
 const AdminBottomNavBar: FC<BottomNavBarProps> = ({ activeView, setActiveView, userRole }) => {
     let navItems: { view: DashboardView; label: string; icon: React.ReactNode }[] = [
         // Fix: Cast string constants to DashboardView
-        { view: ADMIN_VIEWS.DASHBOARD as DashboardView, label: 'Home', icon: <HomeIcon className="h-6 w-6" /> },
-        { view: ADMIN_VIEWS.STUDENTS as DashboardView, label: 'Students', icon: <UsersIcon className="h-6 w-6" /> },
-        { view: ADMIN_VIEWS.REPORT_CARDS as DashboardView, label: 'Dossier', icon: <DocumentArrowDownIcon className="h-6 w-6" /> },
-        { view: ADMIN_VIEWS.ATTENDANCE as DashboardView, label: 'Attendance', icon: <ClipboardListIcon className="h-6 w-6" /> },
-        { view: ADMIN_VIEWS.SETTINGS as DashboardView, label: 'Settings', icon: <Cog6ToothIcon className="h-6 w-6" /> },
+        { view: ADMIN_VIEWS.DASHBOARD as DashboardView, label: 'Home', icon: <IconHome className="h-6 w-6" /> },
+        { view: ADMIN_VIEWS.STUDENTS as DashboardView, label: 'Students', icon: <IconStudents className="h-6 w-6" /> },
+        { view: ADMIN_VIEWS.REPORT_CARDS as DashboardView, label: 'Dossier', icon: <IconReportCards className="h-6 w-6" /> },
+        { view: ADMIN_VIEWS.ATTENDANCE as DashboardView, label: 'Attendance', icon: <IconScoreEntry className="h-6 w-6" /> },
+        { view: ADMIN_VIEWS.SETTINGS as DashboardView, label: 'Settings', icon: <IconSettings className="h-6 w-6" /> },
     ];
 
     // Finance-focused nav for Bursar
     if (userRole === 'Bursar') {
         navItems = [
-            { view: ADMIN_VIEWS.DASHBOARD as DashboardView, label: 'Home', icon: <HomeIcon className="h-6 w-6" /> },
-            { view: ADMIN_VIEWS.BURSARY as DashboardView, label: 'Fee Setup', icon: <BanknotesIcon className="h-6 w-6" /> },
+            { view: ADMIN_VIEWS.DASHBOARD as DashboardView, label: 'Home', icon: <IconHome className="h-6 w-6" /> },
+            { view: ADMIN_VIEWS.BURSARY as DashboardView, label: 'Fee Setup', icon: <IconBursary className="h-6 w-6" /> },
             { view: ADMIN_VIEWS.BURSARY as DashboardView, label: 'Record Payment', icon: <CheckIcon className="h-6 w-6" /> },
             { view: ADMIN_VIEWS.SETTINGS as DashboardView, label: 'Settings', icon: <Cog6ToothIcon className="h-6 w-6" /> },
         ];

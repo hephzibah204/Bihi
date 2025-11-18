@@ -10,6 +10,7 @@ import AcademicCapIcon from './icons/AcademicCapIcon';
 import ScaleIcon from './icons/ScaleIcon';
 import { apiGetStudents, apiGetTeachers, apiGetInvoices, apiGetPayments, apiGetScores, apiGetAttendance } from '../services/api';
 import useAttendanceMetrics from '../hooks/useAttendanceMetrics';
+import { useDashboardFilter } from '../contexts/DashboardFilterContext';
 
 const DashboardKPI: React.FC = () => {
   const [students, setStudents] = useState<any[]>([]);
@@ -19,7 +20,8 @@ const DashboardKPI: React.FC = () => {
   const [scores, setScores] = useState<any[]>([]);
   const [attendance, setAttendance] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const { metrics: att, loading: attLoading } = useAttendanceMetrics();
+  const { session, term } = useDashboardFilter();
+  const { metrics: att, loading: attLoading } = useAttendanceMetrics(session, term);
 
   useEffect(() => {
     const load = async () => {
@@ -161,12 +163,12 @@ const DashboardKPI: React.FC = () => {
       <KpiCard icon={<BriefcaseIcon className="w-5 h-5" />} label="Total Teachers" value={loading ? '…' : metrics.totalTeachers} accentColor="#F97316" />
       <KpiCard icon={<WalletIcon className="w-5 h-5" />} label="Fees Collected" value={loading ? '…' : `₦${metrics.feesCollected.toLocaleString()}`} deltaText={loading ? '' : metrics.feesDeltaText} deltaDirection={metrics.feesDeltaDir as any} accentColor="#06B6D4" sparkline={metrics.feesSpark} sparklineColor="#06B6D4" />
       <KpiCard icon={<ScaleIcon className="w-5 h-5" />} label="Outstanding Fees" value={loading ? '…' : `₦${metrics.outstanding.toLocaleString()}`} accentColor="#F97316" />
-      <KpiCard icon={<AcademicCapIcon className="w-5 h-5" />} label="Average Pass Rate" value={loading ? '…' : `${metrics.passRate}%`} accentColor="#2563EB" />
+      <KpiCard icon={<AcademicCapIcon className="w-5 h-5" />} label="Average Pass Rate" value={loading ? '…' : `${metrics.passRate}%`} accentColor="#2563EB" progress={metrics.passRate} />
       <KpiCard icon={<ChartBarIcon className="w-5 h-5" />} label="High-Risk Students" value={loading ? '…' : metrics.highRiskCount} accentColor="#F97316" />
       <KpiCard icon={<AcademicCapIcon className="w-5 h-5" />} label="Top Performing Students" value={loading ? '…' : metrics.topPerformingCount} accentColor="#2563EB" onClick={() => { const url = new URL(window.location.toString()); url.searchParams.set('view', ADMIN_VIEWS.LEADERBOARD_STUDENTS); window.history.pushState({}, '', url.toString()); }} />
       <KpiCard icon={<BriefcaseIcon className="w-5 h-5" />} label="Best Performing Teachers" value={loading ? '…' : metrics.bestTeachersCount} accentColor="#2563EB" onClick={() => { const url = new URL(window.location.toString()); url.searchParams.set('view', ADMIN_VIEWS.LEADERBOARD_TEACHERS); window.history.pushState({}, '', url.toString()); }} />
       <KpiCard icon={<UsersIcon className="w-5 h-5" />} label="New Students (This Term)" value={loading ? '…' : metrics.newStudentsThisMonth} accentColor="#2563EB" deltaText={loading ? '' : `${metrics.newStudentsDelta >= 0 ? '▲' : '▼'} ${Math.abs(metrics.newStudentsDelta)} vs last month`} deltaDirection={metrics.newStudentsDelta >= 0 ? 'up' : 'down'} />
-      <KpiCard icon={<UsersIcon className="w-5 h-5" />} label={att.todayRate === null ? 'Attendance (Term)' : 'Attendance (Today)'} value={(loading || attLoading) ? '…' : `${(att.todayRate ?? att.termRate)}%`} accentColor="#2563EB" />
+      <KpiCard icon={<UsersIcon className="w-5 h-5" />} label={att.todayRate === null ? 'Attendance (Term)' : 'Attendance (Today)'} value={(loading || attLoading) ? '…' : `${(att.todayRate ?? att.termRate)}%`} accentColor="#2563EB" progress={(att.todayRate ?? att.termRate)} />
       <KpiCard icon={<WalletIcon className="w-5 h-5" />} label="Top Debtors" value={loading ? '…' : metrics.topDebtorsCount} accentColor="#F97316" onClick={() => { const url = new URL(window.location.toString()); url.searchParams.set('view', ADMIN_VIEWS.LEADERBOARD_DEBTORS); window.history.pushState({}, '', url.toString()); }} />
     </div>
   );

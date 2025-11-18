@@ -39,6 +39,30 @@ export const AIProviderIndicator: React.FC<AIProviderIndicatorProps> = ({
           badge: 'Cost-Effective',
           badgeColor: 'bg-blue-500'
         };
+      case 'anthropic':
+        return {
+          icon: '🧠',
+          name: 'Anthropic',
+          color: 'bg-amber-100 text-amber-800 border-amber-300',
+          badge: 'Claude',
+          badgeColor: 'bg-amber-500'
+        };
+      case 'openrouter':
+        return {
+          icon: '🛣️',
+          name: 'OpenRouter',
+          color: 'bg-teal-100 text-teal-800 border-teal-300',
+          badge: 'Router',
+          badgeColor: 'bg-teal-500'
+        };
+      case 'openai':
+        return {
+          icon: '✨',
+          name: 'OpenAI',
+          color: 'bg-indigo-100 text-indigo-800 border-indigo-300',
+          badge: 'ChatGPT',
+          badgeColor: 'bg-indigo-500'
+        };
       case 'templates':
         return {
           icon: '📋',
@@ -157,6 +181,9 @@ export const AIProviderBadge: React.FC<{ provider: AIProvider }> = ({ provider }
   const info = {
     gemini: { icon: '🤖', color: 'bg-purple-100 text-purple-700' },
     huggingface: { icon: '🤗', color: 'bg-blue-100 text-blue-700' },
+    anthropic: { icon: '🧠', color: 'bg-amber-100 text-amber-700' },
+    openrouter: { icon: '🛣️', color: 'bg-teal-100 text-teal-700' },
+    openai: { icon: '✨', color: 'bg-indigo-100 text-indigo-700' },
     offline: { icon: '🖥️', color: 'bg-orange-100 text-orange-700' },
     templates: { icon: '📋', color: 'bg-slate-100 text-slate-700' },
     auto: { icon: '⚡', color: 'bg-green-100 text-green-700' }
@@ -183,7 +210,7 @@ export const AIProviderSwitcher: React.FC<AIProviderSwitcherProps> = ({
   onProviderChange,
   disabled = false
 }) => {
-  const providers: AIProvider[] = ['auto', 'gemini', 'huggingface', 'offline', 'templates'];
+  const providers: AIProvider[] = ['auto', 'gemini', 'huggingface', 'anthropic', 'openrouter', 'openai', 'offline', 'templates'];
 
   return (
     <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border border-slate-200">

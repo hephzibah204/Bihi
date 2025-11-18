@@ -2,11 +2,7 @@ import React, { useState } from 'react';
 import { TeacherView } from '../types';
 import Logo from './icons/Logo';
 import XIcon from './icons/XIcon';
-import HomeIcon from './icons/HomeIcon';
-import ClipboardListIcon from './icons/ClipboardListIcon';
-import CalendarDaysIcon from './icons/CalendarDaysIcon';
-import BrainCircuitIcon from './icons/BrainCircuitIcon';
-import QuestionMarkCircleIcon from './icons/QuestionMarkCircleIcon';
+import { IconHome, IconScoreEntry, IconSchedule, IconAITools, IconHelp, IconPayslips, IconStudents, IconAttendance, IconBroadsheet, IconAssignments, IconResourceHub, IconAICoach, IconMessages, IconNotifications, IconReportCards, IconMonitoring } from './icons/Standard';
 import { TEACHER_VIEWS } from '../utils/constants';
 import BookmarkSquareIcon from './icons/BookmarkSquareIcon';
 import BookOpenIcon from './icons/BookOpenIcon';
@@ -59,50 +55,51 @@ const TeacherSidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveVi
             id: 'overview',
             title: 'Overview',
             items: [
-                { view: TEACHER_VIEWS.DASHBOARD, label: 'Dashboard', icon: <HomeIcon className="h-5 w-5" /> },
-                { view: TEACHER_VIEWS.MY_SCHEDULE, label: 'My Schedule', icon: <CalendarDaysIcon className="h-5 w-5" /> },
-                { view: TEACHER_VIEWS.MY_PAYSLIPS, label: 'My Payslips', icon: <BanknotesIcon className="h-5 w-5" /> },
+                { view: TEACHER_VIEWS.DASHBOARD, label: 'Dashboard', icon: <IconHome /> },
+                { view: TEACHER_VIEWS.MY_SCHEDULE, label: 'My Schedule', icon: <IconSchedule /> },
+                { view: TEACHER_VIEWS.MY_PAYSLIPS, label: 'My Payslips', icon: <IconPayslips /> },
             ]
         },
         {
             id: 'class',
             title: 'Class & Students',
             items: [
-                { view: TEACHER_VIEWS.MY_STUDENTS, label: 'My Students', icon: <UsersIcon className="h-5 w-5" /> },
-                { view: TEACHER_VIEWS.ATTENDANCE, label: 'Attendance', icon: <DocumentTextIcon className="h-5 w-5" /> },
-                { view: TEACHER_VIEWS.ENTER_SCORES, label: 'Enter Scores', icon: <ClipboardListIcon className="h-5 w-5" /> },
-                { view: TEACHER_VIEWS.BROADSHEET, label: 'Broadsheet', icon: <ClipboardListIcon className="h-5 w-5" /> },
-                { view: TEACHER_VIEWS.ASSIGNMENTS, label: 'Assignments', icon: <MegaphoneIcon className="h-5 w-5" /> },
-                { view: TEACHER_VIEWS.BEHAVIORAL, label: 'Behavioral', icon: <DocumentTextIcon className="h-5 w-5" /> },
-                { view: TEACHER_VIEWS.REPORT_CARDS, label: 'Report Cards', icon: <ClipboardListIcon className="h-5 w-5" /> },
+                { view: TEACHER_VIEWS.MY_STUDENTS, label: 'My Students', icon: <IconStudents /> },
+                { view: TEACHER_VIEWS.ATTENDANCE, label: 'Attendance', icon: <IconAttendance /> },
+                { view: TEACHER_VIEWS.ENTER_SCORES, label: 'Enter Scores', icon: <IconScoreEntry /> },
+                { view: TEACHER_VIEWS.BROADSHEET, label: 'Broadsheet', icon: <IconBroadsheet /> },
+                { view: TEACHER_VIEWS.ASSIGNMENTS, label: 'Assignments', icon: <IconAssignments /> },
+                { view: TEACHER_VIEWS.BEHAVIORAL, label: 'Behavioral', icon: <IconReportCards /> },
+                { view: TEACHER_VIEWS.REPORT_CARDS, label: 'Report Cards', icon: <IconReportCards /> },
             ]
         },
         {
             id: 'teaching',
             title: 'Teaching & AI',
             items: [
-                { view: TEACHER_VIEWS.LESSON_TEMPLATES, label: 'Lesson Templates', icon: <DocumentTextIcon className="h-5 w-5" /> },
-                { view: TEACHER_VIEWS.RESOURCE_HUB, label: 'Resource Hub', icon: <BookmarkSquareIcon className="h-5 w-5" /> },
-                { view: TEACHER_VIEWS.OPEN_BOOKS, label: 'Open Books', icon: <BookOpenIcon className="h-5 w-5" /> },
-                { view: TEACHER_VIEWS.AI_TOOLS, label: 'AI Tools', icon: <BrainCircuitIcon className="h-5 w-5" /> },
-                { view: TEACHER_VIEWS.AI_COACH, label: 'AI Coach', icon: <DocumentTextIcon className="h-5 w-5" /> },
-                { view: TEACHER_VIEWS.CLASSROOM_MONITORING, label: 'Classroom Monitoring', icon: <HeadsetIcon className="h-5 w-5" /> },
+                { view: TEACHER_VIEWS.LESSON_TEMPLATES, label: 'Lesson Templates', icon: <IconReportCards /> },
+                { view: TEACHER_VIEWS.RESOURCE_HUB, label: 'Resource Hub', icon: <IconResourceHub /> },
+                { view: TEACHER_VIEWS.OPEN_BOOKS, label: 'Open Books', icon: <IconResourceHub /> },
+                { view: TEACHER_VIEWS.AI_TOOLS, label: 'AI Tools', icon: <IconAITools /> },
+                { view: TEACHER_VIEWS.AI_COACH, label: 'AI Coach', icon: <IconAICoach /> },
+                { view: TEACHER_VIEWS.CLASSROOM_MONITORING, label: 'Classroom Monitoring', icon: <IconMonitoring /> },
             ]
         },
         {
             id: 'communication',
             title: 'Communication',
             items: [
-                { view: TEACHER_VIEWS.MESSAGES, label: 'Messages', icon: <ChatBubbleLeftRightIcon className="h-5 w-5" /> },
-                { view: TEACHER_VIEWS.NOTIFICATIONS, label: 'Notifications', icon: <BellIcon className="h-5 w-5" /> },
+                { view: TEACHER_VIEWS.MESSAGES, label: 'Messages', icon: <IconMessages /> },
+                { view: TEACHER_VIEWS.NOTIFICATIONS, label: 'Notifications', icon: <IconNotifications /> },
             ]
         },
         {
             id: 'support',
             title: 'Support',
             items: [
-                { view: TEACHER_VIEWS.HELP, label: 'Help & Support', icon: <QuestionMarkCircleIcon className="h-5 w-5" /> },
+                { view: TEACHER_VIEWS.HELP, label: 'Help & Support', icon: <IconHelp /> },
                 { view: TEACHER_VIEWS.MORE, label: 'More', icon: <Bars3Icon className="h-5 w-5" /> },
+                { view: TEACHER_VIEWS.PROFILE, label: 'My Profile', icon: <UsersIcon className="h-5 w-5" /> },
             ]
         },
     ];

@@ -14,9 +14,12 @@ import ChatBubbleLeftRightIcon from './icons/ChatBubbleLeftRightIcon';
 import BellIcon from './icons/BellIcon';
 import QuestionMarkCircleIcon from './icons/QuestionMarkCircleIcon';
 import TeacherBottomNavBar from './TeacherBottomNavBar';
+import { DashboardFilterProvider } from '../contexts/DashboardFilterContext';
+import DashboardFilterBar from './DashboardFilterBar';
 
 const TeacherDashboardContent = lazy(() => import('./TeacherDashboardContent'));
 const TeacherMoreView = lazy(() => import('./TeacherMoreView'));
+const TeacherProfile = lazy(() => import('./TeacherProfile'));
 
 const TeacherBlueDashboard: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
   const [activeView, setActiveView] = useState<string>(new URLSearchParams(window.location.search).get('view') || TEACHER_VIEWS.DASHBOARD);
@@ -72,13 +75,18 @@ const TeacherBlueDashboard: React.FC<{ onLogout: () => void }> = ({ onLogout }) 
 
   return (
     <AppShell pageTitle={headerTitle} sidebarItems={sidebarItems} onSelectSidebarItem={handleViewChange} rightPanel={rightPanel}>
-      <Suspense fallback={<div className="p-4">Loading…</div>}>
-        {activeView === TEACHER_VIEWS.MORE ? (
-          <TeacherMoreView setActiveView={handleViewChange} />
-        ) : (
-          <TeacherDashboardContent activeView={activeView as any} setActiveView={handleViewChange as any} profileStudentId={null} onViewStudentProfile={() => {}} />
-        )}
-      </Suspense>
+      <DashboardFilterProvider>
+        <DashboardFilterBar />
+        <Suspense fallback={<div className="p-4">Loading…</div>}>
+          {activeView === TEACHER_VIEWS.MORE ? (
+            <TeacherMoreView setActiveView={handleViewChange} />
+          ) : activeView === (TEACHER_VIEWS as any).PROFILE ? (
+            <TeacherProfile />
+          ) : (
+            <TeacherDashboardContent activeView={activeView as any} setActiveView={handleViewChange as any} profileStudentId={null} onViewStudentProfile={() => {}} />
+          )}
+        </Suspense>
+      </DashboardFilterProvider>
       <TeacherBottomNavBar activeView={activeView as any} setActiveView={handleViewChange as any} />
     </AppShell>
   );

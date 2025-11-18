@@ -6,4 +6,3 @@ export class ExamRepository extends BaseRepository<CBTExam> {
     super({ table: 'cbt_exams', idField: 'id', tenantField: 'tenant_id' });
   }
 }
-
