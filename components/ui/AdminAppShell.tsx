@@ -38,7 +38,7 @@ const AdminAppShell: React.FC<PropsWithChildren<AdminAppShellProps>> = ({ pageTi
     { key: ADMIN_VIEWS.BROADSHEET, label: 'Broadsheet', icon: <TableCellsIcon className="w-5 h-5" />, active: activeView === ADMIN_VIEWS.BROADSHEET },
     { key: ADMIN_VIEWS.SUBJECTS, label: 'Subjects', icon: <BookOpenIcon className="w-5 h-5" />, active: activeView === ADMIN_VIEWS.SUBJECTS },
     { key: ADMIN_VIEWS.TIMETABLE, label: 'Timetable', icon: <TableCellsIcon className="w-5 h-5" />, active: activeView === ADMIN_VIEWS.TIMETABLE },
-    { key: ADMIN_VIEWS.ASSIGNMENTS, label: 'Assignments', icon: <MegaphoneIcon className="w-5 h-5" />, active: activeView === ADMIN_VIEWS.ASSIGNMENTS },
+    { key: ADMIN_VIEWS.COMMUNICATIONS, label: 'Announcements', icon: <MegaphoneIcon className="w-5 h-5" />, active: activeView === ADMIN_VIEWS.COMMUNICATIONS },
     { key: ADMIN_VIEWS.PROMOTIONS, label: 'Promotions', icon: <GraduationCapIcon className="w-5 h-5" />, active: activeView === ADMIN_VIEWS.PROMOTIONS },
     { key: ADMIN_VIEWS.STUDENTS, label: 'Students', icon: <UsersIcon className="w-5 h-5" />, active: activeView === ADMIN_VIEWS.STUDENTS },
     { key: ADMIN_VIEWS.ATTENDANCE, label: 'Attendance', icon: <HandRaisedIcon className="w-5 h-5" />, active: activeView === ADMIN_VIEWS.ATTENDANCE },

@@ -34,7 +34,7 @@ interface SidebarProps {
 interface NavLinkProps {
   icon: React.ReactNode;
   label: string;
-  view: DashboardView;
+  view: string;
   activeView: DashboardView;
   setActiveView: (view: DashboardView) => void;
   disabled?: boolean;
@@ -42,9 +42,9 @@ interface NavLinkProps {
 
 const NavLink: React.FC<NavLinkProps> = ({ icon, label, view, activeView, setActiveView, disabled }) => (
     <button
-        onClick={() => !disabled && setActiveView(view)}
+        onClick={() => !disabled && setActiveView(view as any)}
         className={`w-full flex items-center px-4 py-2.5 rounded-lg transition-colors duration-200 ${
-            activeView === view
+            activeView === (view as any)
                 ? 'bg-indigo-600 text-white'
                 : disabled
                 ? 'text-gray-400 cursor-not-allowed'
@@ -61,7 +61,7 @@ const NavLink: React.FC<NavLinkProps> = ({ icon, label, view, activeView, setAct
 interface NavGroupProps {
     title: string;
     items: Array<{
-        view: DashboardView;
+        view: string;
         label: string;
         icon: React.ReactNode;
     }>;
@@ -192,7 +192,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView, use
                 { view: ADMIN_VIEWS.BROADSHEET, label: 'Broadsheet', icon: <IconBroadsheet /> },
                 { view: ADMIN_VIEWS.SUBJECTS, label: 'Subjects', icon: <IconSubjects /> },
                 { view: ADMIN_VIEWS.TIMETABLE, label: 'Timetable', icon: <IconTimetable /> },
-                { view: ADMIN_VIEWS.ASSIGNMENTS, label: 'Assignments', icon: <IconAssignments /> },
+                { view: ADMIN_VIEWS.COMMUNICATIONS, label: 'Announcements', icon: <IconAssignments /> },
                 { view: ADMIN_VIEWS.PROMOTIONS, label: 'Promotions', icon: <IconPromotions /> },
                 { view: ADMIN_VIEWS.LEADERBOARD_STUDENTS, label: 'Top Students', icon: <IconStudents /> },
                 { view: ADMIN_VIEWS.LEADERBOARD_SUBJECTS, label: 'Top Subjects', icon: <IconSubjects /> },

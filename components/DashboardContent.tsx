@@ -69,7 +69,7 @@ interface DashboardContentProps {
 
 const DashboardContent: React.FC<DashboardContentProps> = ({ activeView, setActiveView, userRole, profileStudentId, onViewStudentProfile }) => {
     const { settings } = useAuth() as any;
-    switch (activeView) {
+    switch (activeView as any) {
         case ADMIN_VIEWS.DASHBOARD:
             // Show bursary KPIs for Bursar on Home
             return userRole === 'Bursar' ? <BursaryDashboard /> : <DashboardHome setActiveView={setActiveView} />;
