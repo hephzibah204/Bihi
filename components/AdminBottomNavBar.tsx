@@ -54,8 +54,8 @@ const AdminBottomNavBar: FC<BottomNavBarProps> = ({ activeView, setActiveView, u
         navItems = [
             { view: ADMIN_VIEWS.DASHBOARD as DashboardView, label: 'Home', icon: <IconHome className="h-6 w-6" /> },
             { view: ADMIN_VIEWS.BURSARY as DashboardView, label: 'Fee Setup', icon: <IconBursary className="h-6 w-6" /> },
-            { view: ADMIN_VIEWS.BURSARY as DashboardView, label: 'Record Payment', icon: <CheckIcon className="h-6 w-6" /> },
-            { view: ADMIN_VIEWS.SETTINGS as DashboardView, label: 'Settings', icon: <Cog6ToothIcon className="h-6 w-6" /> },
+            { view: ADMIN_VIEWS.BURSARY as DashboardView, label: 'Record Payment', icon: <IconBursary className="h-6 w-6" /> },
+            { view: ADMIN_VIEWS.SETTINGS as DashboardView, label: 'Settings', icon: <IconSettings className="h-6 w-6" /> },
         ];
     }
 

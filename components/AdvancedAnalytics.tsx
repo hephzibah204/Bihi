@@ -177,9 +177,9 @@ const AdminAnalyticsDashboard = () => {
         });
         const attendanceRate = totalMarked > 0 ? ((present / totalMarked) * 100) : 0;
 
-        const selectedSession = selectedSession || settings?.session || '';
+        const currentSessionSel = selectedSession || settings?.session || '';
         const selectedTermEffective = selectedTerm === 'All Terms' ? '' : (selectedTerm || settings?.term || '');
-        const sessionScores = scores.filter(s => (!selectedSession || s.session === selectedSession) && (!selectedTermEffective || s.term === selectedTermEffective));
+        const sessionScores = scores.filter(s => (!currentSessionSel || s.session === currentSessionSel) && (!selectedTermEffective || s.term === selectedTermEffective));
         const overallAvg = sessionScores.length > 0 ? (
             sessionScores.reduce((sum, s) => sum + (s.ca1 || 0) + (s.ca2 || 0) + (s.exam || 0), 0) / sessionScores.length
         ) : 0;
@@ -202,7 +202,7 @@ const AdminAnalyticsDashboard = () => {
 
         return {
             period: reportPeriod,
-            session: selectedSession,
+            session: currentSessionSel,
             term: selectedTermEffective || 'All Terms',
             studentCount: students.length,
             averageScore: Number(overallAvg.toFixed(2)),

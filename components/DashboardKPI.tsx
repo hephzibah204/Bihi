@@ -124,9 +124,9 @@ const DashboardKPI: React.FC = () => {
       bestTeachersCount = teacherAvgs.filter(a=>a>=70).length;
     } catch {}
 
-    const now = new Date();
+    const now2 = new Date();
     const feesBuckets = Array.from({ length: 8 }).map((_, i) => {
-      const d = new Date(now); d.setDate(d.getDate() - (7 - i));
+      const d = new Date(now2); d.setDate(d.getDate() - (7 - i));
       const start = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
       const end = new Date(d.getFullYear(), d.getMonth(), d.getDate()+1).getTime();
       const total = (payments||[]).filter(p=>{ const ts=new Date(p.paymentDate).getTime(); return ts>=start && ts<end; }).reduce((s,p)=>s+(Number(p.amount)||0),0);

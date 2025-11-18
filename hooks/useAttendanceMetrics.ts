@@ -52,8 +52,8 @@ export default function useAttendanceMetrics(session?: string, term?: string) {
           }
 
           // Term-to-date (filter by term/session when present)
-          const matchSession = !rec.session || rec.session === currentSession
-          const matchTerm = !rec.term || rec.term === currentTerm
+          const matchSession = !(rec as any).session || (rec as any).session === currentSession
+          const matchTerm = !(rec as any).term || (rec as any).term === currentTerm
           if (matchSession && matchTerm) {
             ids.forEach(id => { termMarked += 1; termPresent += presentValue(statuses[id]) })
           }

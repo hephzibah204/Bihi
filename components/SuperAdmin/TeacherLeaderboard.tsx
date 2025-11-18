@@ -23,7 +23,7 @@ export default function TeacherLeaderboard() {
       const startIso = new Date(Date.now() - 30*24*60*60*1000).toISOString()
       if (supabase) {
         const { data } = await supabase
-          .from<Row>('teacher_ratings')
+          .from('teacher_ratings')
           .select('*')
           .gte('created_at', startIso)
         setRows(Array.isArray(data) ? data : [])

@@ -122,7 +122,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView, use
           { id: 'verify', label: 'Verify Payments', icon: <CheckIcon className="h-5 w-5" /> },
           { id: 'expenses', label: 'Expenses', icon: <ArrowTrendingDownIcon className="h-5 w-5" /> },
           { id: 'income', label: 'Other Income', icon: <ArrowTrendingUpIcon className="h-5 w-5" /> },
-          { id: 'payroll', label: 'Payroll', icon: <UsersGroupIcon className="h-5 w-5" /> },
+          { id: 'payroll', label: 'Payroll', icon: <IconStaff /> },
           { id: 'reports', label: 'Reports', icon: <IconAnalytics /> },
           { id: 'audit', label: 'Audit Log', icon: <HistoryIcon className="h-5 w-5" /> },
           { id: 'scratch-cards', label: 'Scratch Cards', icon: <CreditCardIcon className="h-5 w-5" /> },

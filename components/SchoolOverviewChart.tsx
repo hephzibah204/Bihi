@@ -35,9 +35,9 @@ const SchoolOverviewChart: React.FC = () => {
         setSeriesA(fees); setSeriesB(passRate);
       } else if (range === 'year') {
         // Use sessions if available for pass rate; fees aggregated yearly
-        const sessions = Array.from(new Set((scores||[]).map((sc:any)=>String(sc.session||'').trim()).filter(Boolean))).slice(-6);
+        const sessions = Array.from(new Set<string>((scores||[]).map((sc:any)=>String(sc.session||'').trim()).filter(Boolean))).slice(-6) as string[];
         if (sessions.length) {
-          setLabels(sessions);
+          setLabels(sessions as string[]);
           const passRates = sessions.map(sess => {
             const scoped = (scores||[]).filter((sc:any)=>String(sc.session||'').trim()===sess);
             const total = scoped.length;

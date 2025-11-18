@@ -54,4 +54,3 @@ CREATE TABLE IF NOT EXISTS user_tenants (
 );
 CREATE INDEX IF NOT EXISTS idx_user_tenants_user ON user_tenants(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_tenants_tenant ON user_tenants(tenant_id);
-

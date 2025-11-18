@@ -22,10 +22,10 @@ export async function getIdleClassesAlerts(daysBack = 1): Promise<IdleClassAlert
   const startIso = start.toISOString().split('T')[0]
 
   const attClasses = new Set<string>()
-  attendance.forEach(a => { try { const d = String(a.date || a.timestamp || '').slice(0,10); if (d >= startIso) attClasses.add(a.class) } catch {} })
+  attendance.forEach(a => { try { const d = String(a.date || (a as any).timestamp || '').slice(0,10); if (d >= startIso) attClasses.add(a.class) } catch {} })
 
   const assignClasses = new Set<string>()
-  assignments.forEach(a => { try { const d = String(a.dueDate || a.created_at || '').slice(0,10); if (d >= startIso) assignClasses.add(a.class) } catch {} })
+  assignments.forEach(a => { try { const d = String(a.dueDate || (a as any).created_at || '').slice(0,10); if (d >= startIso) assignClasses.add(a.class) } catch {} })
 
   const scoreClasses = new Set<string>()
   scores.forEach(s => { try { const d = String((s as any).created_at || '').slice(0,10); if (!d || d >= startIso) scoreClasses.add((s as any).class || '') } catch {} })

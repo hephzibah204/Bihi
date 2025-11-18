@@ -333,7 +333,7 @@ export const AIUsageDashboard: React.FC = () => {
             onClick={() => {
               setStats({
                 totalConversations: 0,
-                providerDistribution: { gemini: 0, huggingface: 0, auto: 0, offline: 0, templates: 0 },
+                providerDistribution: { gemini: 0, huggingface: 0, anthropic: 0, openrouter: 0, openai: 0, auto: 0, offline: 0, templates: 0 },
                 averageComplexity: 0,
                 totalCost: 0
               });
