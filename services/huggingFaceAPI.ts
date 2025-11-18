@@ -54,6 +54,14 @@ export class HuggingFaceClient {
         const viteEnvKey = (typeof import.meta !== 'undefined' && (import.meta as any)?.env?.VITE_HUGGINGFACE_API_KEY) || undefined;
         if (viteEnvKey) return viteEnvKey as string;
         
+        // Sitewide Super Admin settings
+        try {
+            const raw = typeof window !== 'undefined' ? localStorage.getItem('sitewide_ai_settings') : null;
+            if (raw) {
+                const s = JSON.parse(raw || '{}');
+                if (s.huggingface_api_key) return String(s.huggingface_api_key);
+            }
+        } catch { /* ignore */ }
         // Fallback to localStorage (browser only, for user-provided keys)
         if (typeof window === 'undefined') return null;
         

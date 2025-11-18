@@ -20,7 +20,11 @@ export async function runOfflineModel(args: RunArgs): Promise<string> {
   const messages = buildPrompt(args.role, args.prompt, (args.conversationHistory || []) as any, rag, toolResults);
   if (model.engine === 'ollama') {
     try {
-      const r = await fetch('http://localhost:11434/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: model.model, prompt: `${messages[0].content}\n\nUser:\n${messages[1].content}`, stream: false }) });
+      const payload = { model: model.model, prompt: `${messages[0].content}\n\nUser:\n${messages[1].content}`, stream: false };
+      // Prefer server proxy to avoid CORS issues in cloud
+      const r0 = await fetch('/api/ai/ollama-generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (r0.ok) { const j0 = await r0.json(); return String(j0.response || j0.text || j0.output || ''); }
+      const r = await fetch('http://localhost:11434/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (r.ok) { const j = await r.json(); return String(j.response || ''); }
     } catch {}
   }

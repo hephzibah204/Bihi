@@ -8,8 +8,9 @@ export const OfflineModelToggle: React.FC = () => {
     setSelected(m);
     (async () => {
       try {
+        // Prefer server proxy to tags to avoid CORS
         const r = await Promise.race([
-          fetch('http://localhost:11434/api/tags', { method: 'GET' }),
+          fetch('/api/ai/ollama-tags', { method: 'GET' }),
           new Promise<Response>((_, reject) => setTimeout(() => reject(new Error('timeout')), 1200))
         ]);
         if (r && r.ok) {

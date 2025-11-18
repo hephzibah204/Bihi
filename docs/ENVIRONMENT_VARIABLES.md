@@ -151,6 +151,10 @@ NODE_ENV=development
 
 # API Base URL (if different from default)
 # NEXT_PUBLIC_API_URL=http://localhost:3000
+
+# Offline Model Server (optional)
+# OLLAMA_BASE_URL=https://ollama.example.com:11434
+# OLLAMA_MODEL=llama3.1
 ```
 
 ## 🔍 Checking Your Current Environment

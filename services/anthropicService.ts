@@ -1,11 +1,12 @@
 import { logger } from '../utils/logger';
+import { resolveApiKey } from './aiConfig';
 const endpoint = 'https://api.anthropic.com/v1/messages';
 function getKey(): string | undefined {
   try { return (typeof import.meta !== 'undefined' ? (import.meta as any).env?.VITE_ANTHROPIC_API_KEY : process.env.VITE_ANTHROPIC_API_KEY) || undefined; } catch { return undefined; }
 }
 function getModel(): string { try { return (typeof import.meta !== 'undefined' ? (import.meta as any).env?.VITE_ANTHROPIC_MODEL : process.env.VITE_ANTHROPIC_MODEL) || 'claude-3-haiku-20240307'; } catch { return 'claude-3-haiku-20240307'; } }
 export async function callAnthropicApi(prompt: string): Promise<string> {
-  const key = getKey();
+  const key = (await resolveApiKey('anthropic')) || getKey();
   if (!key) throw new Error('Anthropic API key not configured');
   const model = getModel();
   const body = { model, max_tokens: 2048, messages: [{ role: 'user', content: prompt }] } as any;

@@ -20,6 +20,7 @@ import DashboardFilterBar from './DashboardFilterBar';
 const TeacherDashboardContent = lazy(() => import('./TeacherDashboardContent'));
 const TeacherMoreView = lazy(() => import('./TeacherMoreView'));
 const TeacherProfile = lazy(() => import('./TeacherProfile'));
+const TeacherSettings = lazy(() => import('./TeacherSettings'));
 
 const TeacherBlueDashboard: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
   const [activeView, setActiveView] = useState<string>(new URLSearchParams(window.location.search).get('view') || TEACHER_VIEWS.DASHBOARD);
@@ -82,6 +83,8 @@ const TeacherBlueDashboard: React.FC<{ onLogout: () => void }> = ({ onLogout }) 
             <TeacherMoreView setActiveView={handleViewChange} />
           ) : activeView === (TEACHER_VIEWS as any).PROFILE ? (
             <TeacherProfile />
+          ) : activeView === (TEACHER_VIEWS as any).SETTINGS ? (
+            <TeacherSettings />
           ) : (
             <TeacherDashboardContent activeView={activeView as any} setActiveView={handleViewChange as any} profileStudentId={null} onViewStudentProfile={() => {}} />
           )}

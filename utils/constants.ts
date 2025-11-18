@@ -110,6 +110,7 @@ export const TEACHER_VIEWS = {
     BROADSHEET: 'broadsheet',
     CLASSROOM_MONITORING: 'classroom-monitoring',
     PROFILE: 'profile',
+    SETTINGS: 'settings',
 } as const;
 
 export const STUDENT_VIEWS: { [key: string]: StudentView } = {
