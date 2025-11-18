@@ -184,6 +184,9 @@ export function getSupabase() {
 
 // Test connectivity with retry logic
 export async function isSupabaseOnline(): Promise<boolean> {
+  if (!supabase || supabase._offline) {
+    try { await initSupabase(); } catch {}
+  }
   if (!supabase || supabase._offline) return false;
 
   if (typeof navigator !== 'undefined' && !navigator.onLine) return false;
