@@ -13,7 +13,7 @@ export const APP_VIEWS = {
     ALUMNI: 'alumni',
 };
 
-export const ADMIN_VIEWS: { [key: string]: DashboardView } = {
+export const ADMIN_VIEWS = {
     DASHBOARD: 'dashboard',
     STUDENTS: 'students',
     STUDENT_PROFILE: 'student-profile',
@@ -73,7 +73,7 @@ export const ADMIN_VIEWS: { [key: string]: DashboardView } = {
     LEADERBOARD_CLASSES: 'leaderboard-classes',
     LEADERBOARD_DEBTORS: 'leaderboard-debtors',
     ADMIN_PROFILE: 'admin-profile',
-};
+} as const;
 
 export const TEACHER_VIEWS = {
     DASHBOARD: 'dashboard',
