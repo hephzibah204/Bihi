@@ -21,6 +21,7 @@ import {
 } from '../services/api';
 import { generateClassNames } from '../utils/classManager';
 import SpinnerIcon from './icons/SpinnerIcon';
+import { useAuth } from '../contexts/AuthContext';
 import PencilSquareIcon from './icons/PencilSquareIcon';
 import DocumentArrowDownIcon from './icons/DocumentArrowDownIcon';
 import ClipboardListIcon from './icons/ClipboardListIcon';
@@ -47,6 +48,7 @@ const Broadsheet: React.FC<BroadsheetProps> = ({
   const [remarks, setRemarks] = useState<Remark[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [settings, setSettings] = useState<any>(null);
+  const { user, role } = useAuth();
 
   const [selectedClass, setSelectedClass] = useState<string>('');
   const [session, setSession] = useState<string>('');
@@ -83,8 +85,21 @@ const Broadsheet: React.FC<BroadsheetProps> = ({
         setAttendance(attendanceRes || []);
         setRemarks(remarksRes || []);
 
-        // Default class: first student's class if available
-        const defaultClass = studentsRes?.[0]?.class || '';
+        const effectiveRole = userRole || role || null;
+        const activeUserId = (() => {
+          try {
+            const raw = sessionStorage.getItem('activeUser');
+            const au = raw ? JSON.parse(raw) : null;
+            return au?.userId || null;
+          } catch {
+            return null;
+          }
+        })();
+        const currentId = effectiveRole === 'Student' || effectiveRole === 'Parent'
+          ? (String((user as any)?.id || activeUserId || '') || '')
+          : '';
+        const currentStudent = currentId ? (studentsRes || []).find((s) => String(s.id) === String(currentId)) : null;
+        const defaultClass = currentStudent?.class || studentsRes?.[0]?.class || '';
         setSelectedClass(defaultClass);
 
         // Build robust defaults for session/term from settings + scores
@@ -141,13 +156,24 @@ const Broadsheet: React.FC<BroadsheetProps> = ({
   );
 
   // Students in selected class
-  const classStudents = useMemo(
-    () =>
-      students.filter(
-        (s) => !selectedClass || s.class === selectedClass
-      ),
-    [students, selectedClass]
-  );
+  const classStudents = useMemo(() => {
+    const effectiveRole = userRole || role || null;
+    const activeUserId = (() => {
+      try {
+        const raw = sessionStorage.getItem('activeUser');
+        const au = raw ? JSON.parse(raw) : null;
+        return au?.userId || null;
+      } catch {
+        return null;
+      }
+    })();
+    const currentId = effectiveRole === 'Student' || effectiveRole === 'Parent'
+      ? (String((user as any)?.id || activeUserId || '') || '')
+      : '';
+    const base = students.filter((s) => !selectedClass || s.class === selectedClass);
+    if (currentId) return base.filter((s) => String(s.id) === String(currentId));
+    return base;
+  }, [students, selectedClass, user, role, userRole]);
 
   // Fast lookup for class students
   const classStudentIds = useMemo(
@@ -427,7 +453,7 @@ const Broadsheet: React.FC<BroadsheetProps> = ({
 
   if (isLoading) return <Loader />;
 
-  const isReadOnly = userRole === 'Student' || userRole === 'Parent';
+  const isReadOnly = (userRole || role) === 'Student' || (userRole || role) === 'Parent';
   const canNavigate = userRole === 'Admin' || userRole === 'Teacher';
 
   return (
@@ -470,6 +496,7 @@ const Broadsheet: React.FC<BroadsheetProps> = ({
             onChange={(e) =>
               setSelectedClass(e.target.value)
             }
+            disabled={isReadOnly}
           >
             {[selectedClass &&
             !classOptions.includes(selectedClass)

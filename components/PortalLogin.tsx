@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '../services/supabaseClient';
+import { initSupabase, getSupabase } from '../services/supabaseClient';
 import { apiGetSchoolSettings, apiGetStudents, apiGetScratchCards, apiGetParents } from '../services/api';
 import BriefcaseIcon from './icons/BriefcaseIcon';
 import UsersIcon from './icons/UsersIcon';
@@ -53,10 +53,13 @@ const PortalLogin = ({ onStudentLoginSuccess }) => {
         setError('');
         setLoading(true);
         try {
-            if (!supabase) {
+            await initSupabase();
+            const client = getSupabase();
+            const signIn = client?.auth?.signInWithPassword;
+            if (typeof signIn !== 'function') {
                 throw new Error('Authentication service not initialized.');
             }
-            const { error } = await supabase.auth.signInWithPassword({
+            const { error } = await signIn({
                 email: String(email || '').trim(),
                 password,
             });
@@ -114,10 +117,13 @@ const PortalLogin = ({ onStudentLoginSuccess }) => {
         setError('');
         setLoading(true);
         try {
-            if (!supabase) {
+            await initSupabase();
+            const client = getSupabase();
+            const signIn = client?.auth?.signInWithPassword;
+            if (typeof signIn !== 'function') {
                 throw new Error('Authentication service not initialized.');
             }
-            const { data: sessionData, error: signInError } = await supabase.auth.signInWithPassword({
+            const { data: sessionData, error: signInError } = await signIn({
                 email: String(parentEmail || '').trim(),
                 password: parentPassword,
             });
@@ -134,7 +140,7 @@ const PortalLogin = ({ onStudentLoginSuccess }) => {
                     });
                     if (!parent) {
                         setError('Parent profile not found for this account.');
-                        await supabase.auth.signOut();
+                        await client.auth.signOut();
                         return;
                     }
                     const allStudents = await apiGetStudents();
@@ -159,7 +165,7 @@ const PortalLogin = ({ onStudentLoginSuccess }) => {
                 } catch (postErr) {
                     console.error('Post-login error', postErr);
                     setError('An error occurred after login. Please try again.');
-                    await supabase.auth.signOut();
+                    await client.auth.signOut();
                 }
             }
         } catch (err) {
