@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 // Fix: Corrected import path for supabase client
-import { supabase } from '../services/supabaseClient';
+import { initSupabase, getSupabase } from '../services/supabaseClient';
 import { NetworkTraffic } from './SuperAdmin/SystemMonitoring';
 import ConnectionStatusBar from './ConnectionStatusBar';
 
@@ -31,10 +31,13 @@ const SuperAdminLoginPage = () => {
         setError('');
         setLoading(true);
         try {
-            if (!supabase) {
+            await initSupabase();
+            const client = getSupabase();
+            const signIn = client?.auth?.signInWithPassword;
+            if (typeof signIn !== 'function') {
                 throw new Error('Authentication service not initialized.');
             }
-            const { error } = await supabase.auth.signInWithPassword({
+            const { error } = await signIn({
                 email: String(email || '').trim(),
                 password,
             });
