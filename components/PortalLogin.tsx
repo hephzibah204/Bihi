@@ -150,7 +150,7 @@ const PortalLogin = ({ onStudentLoginSuccess }) => {
                     });
                     if (children.length === 0) {
                         setError('No students are linked to this parent account.');
-                        await supabase.auth.signOut();
+                        await client.auth.signOut();
                     } else if (children.length === 1) {
                         const sessionData = { 
                             role: USER_ROLES.PARENT, 

@@ -4,5 +4,5 @@ export function isSensitiveFinanceQuery(prompt: string): boolean {
 }
 export function needsStructuredOutput(prompt: string): boolean {
   const p = prompt.toLowerCase();
-  return /(json|table|schema|fields|columns)/.test(p);
+  return /(json|csv|schema|fields|columns|return as json|structured json)/.test(p);
 }

@@ -101,6 +101,21 @@ const LessonPlanner = () => {
         const combined = Array.from(new Set([...fromScheme, ...byStrand, ...preset])).filter(x => x && x.length > 2).slice(0, 12);
         setSuggestedTopics(combined);
     }, [selectedSubject, classLevel, curriculum, otherCurriculum, uploadedScheme, term, subjects]);
+
+    useEffect(() => {
+        const runAiSuggestions = async () => {
+            const subjectName = subjects.find(s => s.id === selectedSubject)?.name || '';
+            if (!subjectName || !classLevel) return;
+            const baseCurr = curriculum === 'Other' ? otherCurriculum : curriculum;
+            const ctx = `Subject: ${subjectName}\nClass: ${classLevel}\nTerm: ${term || 'Any'}\nCurriculum: ${baseCurr || 'NERDC'}`;
+            try {
+                const r = await generateResponse(`Suggest 12 concise topic titles appropriate for the given subject, class, term, and curriculum. Return one topic per line.`, ctx, 'topic_suggestions');
+                const lines = String(r.content || '').split(/\r?\n/).map(x => x.replace(/<[^>]+>/g,'').trim()).filter(Boolean).slice(0, 12);
+                if (lines.length) setSuggestedTopics(prev => Array.from(new Set([...lines, ...prev])).slice(0, 12));
+            } catch {}
+        };
+        runAiSuggestions();
+    }, [selectedSubject, classLevel, term, curriculum, otherCurriculum]);
     
     const classNames = useMemo(() => generateClassNames(settings), [settings]);
 
@@ -133,8 +148,10 @@ const LessonPlanner = () => {
 
         try {
             const isEarlyYears = /nursery|pre[- ]?kg|\bkg\b|kindergarten|primary(\s*[1-3])?|lower\s*basic|basic\s*[1-3]/i.test(classLevel);
+            const isBasic = /primary|lower\s*basic|middle\s*basic|basic\s*[1-9]/i.test(classLevel);
+            const isSenior = /ss|senior\s*secondary|ss[1-3]|waec|neco/i.test(classLevel);
             const prompt = `
-You are an expert Nigerian educator and curriculum designer. Create a deeply detailed, 21st‑century compliant lesson document grounded in the Nigerian context (NERDC, WAEC/NECO orientation; include ECCDE and Lower/Middle Basic considerations where relevant) with practical, classroom‑ready specificity.
+You are an expert Nigerian educator and curriculum designer. Create a deeply detailed, 21st‑century compliant lesson document grounded in the Nigerian context. Align with appropriate curricula for the level: use NERDC mapping for ECCDE/Lower/Middle Basic; only consider WAEC/NECO alignment for Senior Secondary classes. Avoid WAEC/NECO orientation for Nursery/Primary/Basic levels. Ensure practical, classroom‑ready specificity.
 
 <strong>Context</strong>
 • School: ${schoolName}
@@ -142,6 +159,7 @@ You are an expert Nigerian educator and curriculum designer. Create a deeply det
 • Subject: "${subjectName}"
 • Topic: "${topic}"
 • Class Level: "${classLevel}"
+• Level Guidance: ${isSenior ? 'Senior Secondary (align to WAEC/NECO as applicable)' : (isBasic ? 'Basic (NERDC-aligned; no WAEC/NECO refs)' : 'ECCDE/Foundational (age-appropriate)')}
 • Term: ${term || 'N/A'}
 • Period: ${period || 'N/A'}
 • Duration: ${duration || 'N/A'} minutes
@@ -170,7 +188,7 @@ ${selectedTemplateId ? (() => {
 • Use <h3> for sub‑sections; use <strong>, <ul>, <li> for clarity.
 • Where tables are requested, output semantic HTML tables (<table>, <thead>, <tbody>, <tr>, <th>, <td>).
 • Write extensively (aim 1200–2000 words total for plan+note where applicable).
-${isEarlyYears ? '• Tone: age‑appropriate, simple sentences, visual/kinesthetic cues.' : ''}
+${isEarlyYears ? '• Tone: age‑appropriate, simple sentences, visual/kinesthetic cues.' : '• Use class-appropriate vocabulary and depth; avoid exam-board references unless Senior Secondary.'}
 
 ${isEarlyYears ? `<strong>Early Years Guidance (Nursery/Primary 1–3)</strong>
 • Use play‑based, active learning; short activities (5–10 mins) with brain breaks.
@@ -182,7 +200,7 @@ ${isEarlyYears ? `<strong>Early Years Guidance (Nursery/Primary 1–3)</strong>
 <strong>If Output Type = plan</strong> (Teacher‑facing):
 Include ALL of the following, tailored to Nigeria’s classroom realities and resources:
 1) <h3>Standards & Alignment</h3>
-   • Map to NERDC strands and WAEC/NECO objectives relevant to the topic. If exact codes are known, include them; otherwise include best‑fit strand/objective names.
+   • Map to appropriate strands and objectives. For Nursery/Primary/Basic, align to NERDC strands and objectives only (no WAEC/NECO). For Senior Secondary, optionally include WAEC/NECO objective references.
    ${nerdd ? `<div><strong>NERDC Curriculum Map (Auto):</strong><ul>${nerdd.strands.map((s:any)=>`<li>${s.code}: ${s.name}</li>`).join('')}</ul><p><strong>Sample Objectives:</strong> ${nerdd.sampleObjectives.join('; ')}</p><p><strong>Suggested Bloom Verbs:</strong> ${nerdd.bloomVerbs.join(', ')}</p></div>` : ''}
 2) <h3>Specific Learning Objectives</h3>
    • SMART objectives across Bloom’s domains (Cognitive, Psychomotor, Affective).
