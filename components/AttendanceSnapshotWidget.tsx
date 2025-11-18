@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { apiGetAttendance, apiGetSchoolSettings } from '../services/api';
+import useAttendanceMetrics from '../hooks/useAttendanceMetrics';
 
 type ClassAttendance = { className: string; attendanceRate: number; present: number; total: number };
 
@@ -8,6 +9,7 @@ const AttendanceSnapshotWidget: React.FC = () => {
   const [overallRate, setOverallRate] = useState<number>(0);
   const [classRates, setClassRates] = useState<ClassAttendance[]>([]);
   const [label, setLabel] = useState<string>('');
+  const { metrics: att } = useAttendanceMetrics();
 
   useEffect(() => {
     const run = async () => {
@@ -55,7 +57,7 @@ const AttendanceSnapshotWidget: React.FC = () => {
         });
 
         const overall = totalMarked > 0 ? +(100 * (totalPresent / totalMarked)).toFixed(1) : 0;
-        setOverallRate(overall);
+        setOverallRate(att.snapshotRate || overall);
 
         const classList: ClassAttendance[] = Array.from(byClass.entries()).map(([cls, vals]) => ({
           className: cls,
@@ -82,8 +84,8 @@ const AttendanceSnapshotWidget: React.FC = () => {
     <div className="card mt-6">
       <div className="p-6">
         <div className="flex justify-between items-start">
-          <h3 className="text-lg font-semibold">Attendance Snapshot</h3>
-          <p className="text-xs text-gray-500">{label || 'Last 30 days'}</p>
+          <h3 className="text-lg font-semibold clamp-2" title="Attendance Snapshot">Attendance Snapshot</h3>
+          <p className="text-xs text-gray-500 ellipsis-1" title={label || 'Last 30 days'}>{label || 'Last 30 days'}</p>
         </div>
 
         {loading ? (
@@ -111,7 +113,7 @@ const AttendanceSnapshotWidget: React.FC = () => {
                 )}
                 {classRates.map(c => (
                   <li key={c.className} className="flex justify-between text-sm">
-                    <span className="truncate pr-3">{c.className}</span>
+                    <span className="ellipsis-1 pr-3" title={c.className}>{c.className}</span>
                     <span className={
                       c.attendanceRate < 75 ? 'font-semibold text-rose-600' : (c.attendanceRate < 85 ? 'font-semibold text-amber-600' : 'font-semibold text-gray-800')
                     }>{c.attendanceRate}%</span>

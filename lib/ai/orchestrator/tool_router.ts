@@ -9,14 +9,19 @@ export function detectTools(prompt: string): string[] {
   if (/(letter|sms|policy)/.test(p)) names.push('letter_generator', 'sms_generator', 'policy_summary');
   return Array.from(new Set(names));
 }
+import { getToolCache, setToolCache } from './tool_cache';
 export async function executeTools(names: string[], args: any, context: any): Promise<string[]> {
   const out: string[] = [];
   for (const n of names) {
     const tool = registry[n];
     if (!tool) continue;
     try {
-      const res = await tool.run(args?.[n] || {}, context);
+      const a = args?.[n] || {};
+      const cached = await getToolCache(context?.tenantId || 'demo', n, a);
+      if (cached) { out.push(JSON.stringify({ name: n, result: cached, cached: true })); continue; }
+      const res = await tool.run(a, context);
       out.push(JSON.stringify({ name: n, result: res }));
+      setToolCache(context?.tenantId || 'demo', n, a, res).catch(() => {});
     } catch {}
   }
   return out;

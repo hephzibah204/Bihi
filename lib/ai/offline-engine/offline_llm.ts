@@ -14,7 +14,8 @@ export async function runOfflineModel(args: RunArgs): Promise<string> {
     [fee_overview, top_debtors, payment_projection, subject_performance, student_risk_profile, weak_students, comments_generator, letter_generator, sms_generator, policy_summary].forEach(t => registerTool(t as any));
   } catch {}
   const rag = await getRagContext(args.tenantId, args.prompt, args.topK || 5);
-  const toolNames = detectTools(args.prompt);
+  let toolNames = detectTools(args.prompt);
+  if (args.role === 'Parent') toolNames = toolNames.filter(n => ['subject_performance','student_risk_profile','weak_students','comments_generator'].includes(n));
   const toolResults = await executeTools(toolNames, args.toolArgs || {}, { tenantId: args.tenantId });
   const messages = buildPrompt(args.role, args.prompt, (args.conversationHistory || []) as any, rag, toolResults);
   if (model.engine === 'ollama') {

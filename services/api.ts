@@ -127,7 +127,7 @@ const get = async <T>(table: string, options: { filter?: string, select?: string
         const demoData = (CORE_DEMO_DATA[table] as T[]) || ([] as T[]);
         return Array.isArray(demoData) ? demoData : ([] as T[]);
     }
-    if (!supabase) return [];
+    if (!supabase || (supabase as any)._offline) return [];
     
     return withRetry(async () => {
         let query = supabase.from(table).select(options.select || '*');
@@ -144,7 +144,7 @@ const get = async <T>(table: string, options: { filter?: string, select?: string
 
 const upsert = async (table: string, record: any) => {
     if (isDemo()) return record;
-    if (!supabase) return null;
+    if (!supabase || (supabase as any)._offline) return record;
     
     return withRetry(async () => {
         const { data, error } = await supabase.from(table).upsert(record).select();
@@ -160,7 +160,7 @@ const batchUpsert = async (table: string, records: any[]) => {
     }
     
     if (isDemo()) return records;
-    if (!supabase) return null;
+    if (!supabase || (supabase as any)._offline) return records;
     
     return withRetry(async () => {
         const { data, error } = await supabase.from(table).upsert(records).select();
@@ -171,7 +171,7 @@ const batchUpsert = async (table: string, records: any[]) => {
 
 const del = async (table: string, id: string) => {
     if (isDemo()) return { id };
-    if (!supabase) return null;
+    if (!supabase || (supabase as any)._offline) return { id };
     
     return withRetry(async () => {
         const { error } = await supabase.from(table).delete().eq('id', id);

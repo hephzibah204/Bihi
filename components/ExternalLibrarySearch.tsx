@@ -99,8 +99,17 @@ const ExternalLibrarySearch: React.FC = () => {
                   {r.year && <p className="text-xs text-gray-500">{r.year}</p>}
                   {r.extract && <p className="text-sm text-gray-700 mt-2">{r.extract}</p>}
                 </div>
-                <div className="border-t p-3 flex justify-end">
+                <div className="border-t p-3 flex gap-2 justify-end">
                   {r.url && <a href={r.url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary">Open</a>}
+                  <input className="input-field text-xs w-40" placeholder="Tags (comma)" value={tagInput} onChange={e => setTagInput(e.target.value)} />
+                  <button className="btn btn-primary" onClick={async () => {
+                    const tags = tagInput.split(',').map(s => s.trim()).filter(Boolean);
+                    const payload = { title: r.title, author: r.author, year: r.year, url: r.url, subject: r.subject, tags };
+                    try {
+                      const res = await fetch('/api/digital-library/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                      if (!res.ok) throw new Error('Failed');
+                    } catch {}
+                  }}>Save</button>
                 </div>
               </div>
             ))}

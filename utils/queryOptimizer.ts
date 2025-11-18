@@ -160,7 +160,6 @@ export class QueryOptimizer {
                 session
               ),
               attendance:attendance(
-                id,
                 date,
                 status,
                 reason

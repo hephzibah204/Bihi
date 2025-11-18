@@ -1,10 +1,11 @@
 import React, { useCallback, useRef, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { uploadRecording } from '../services/recordingService'
-import { connectAndPublishAudio } from '../services/livekitClient'
+import { startPublisher } from '../services/rtcRouter'
 
 type Status = 'idle' | 'recording' | 'saving' | 'saved' | 'error'
 type LiveStatus = 'not_live' | 'connecting' | 'live' | 'stopping'
+type Provider = 'livekit' | 'webrtc' | 'recorder' | null
 
 const TeacherLiveControl: React.FC = () => {
   const { user } = useAuth()
@@ -16,6 +17,7 @@ const TeacherLiveControl: React.FC = () => {
   const chunksRef = useRef<Blob[]>([])
   const liveRoomRef = useRef<any>(null)
   const [liveStatus, setLiveStatus] = useState<LiveStatus>('not_live')
+  const [provider, setProvider] = useState<Provider>(null)
 
   const startRecording = useCallback(async () => {
     setErrorMessage(null)
@@ -70,11 +72,11 @@ const TeacherLiveControl: React.FC = () => {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       streamRef.current = stream
       const roomName = `tenant_${localStorage.getItem('tenantId') || 'default'}_class_${(user as any)?.classTeacherOf || 'general'}`
-      const res = await fetch('/api/monitoring/rtc-token', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': typeof window !== 'undefined' ? `Bearer ${sessionStorage.getItem('sb:token') || ''}` : '' }, body: JSON.stringify({ room: roomName, grantRole: 'publisher' }) })
-      if (!res.ok) throw new Error('Failed to get RTC token')
-      const { token, url } = await res.json()
-      const room = await connectAndPublishAudio(url, token, stream)
-      liveRoomRef.current = room
+      const isLocalHost = typeof window !== 'undefined' && (['localhost','127.0.0.1'].includes(location.hostname))
+      const prefer = isLocalHost ? ['livekit','webrtc','recorder'] as const : ['webrtc','recorder'] as const
+      const result = await startPublisher(roomName, stream, prefer as any)
+      liveRoomRef.current = result.room
+      setProvider(result.provider as Provider)
       setLiveStatus('live')
     } catch (e: any) {
       setErrorMessage(e?.message || 'Failed to go live')
@@ -90,6 +92,7 @@ const TeacherLiveControl: React.FC = () => {
     try { streamRef.current?.getTracks().forEach(t => t.stop()) } catch {}
     liveRoomRef.current = null
     setLiveStatus('not_live')
+    setProvider(null)
   }, [])
 
   return (
@@ -98,6 +101,7 @@ const TeacherLiveControl: React.FC = () => {
       <p className="text-sm text-gray-600 mb-6">Record lesson audio and upload for Admin review.</p>
       <div className="mb-4 p-3 border rounded">
         <div className="font-medium mb-2">Live Streaming</div>
+        {provider && <div className="text-xs text-gray-600">Provider: {provider}</div>}
         {liveStatus === 'not_live' && (
           <button onClick={goLive} className="btn btn-primary">Go Live (Audio)</button>
         )}

@@ -2,6 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { apiGetInvoices, apiGetPayments, apiGetStudents, apiGetSchoolSettings, apiGetExpenses, apiGetPayrollRuns, apiGetIncome } from '../services/api';
 import SkeletonLoader from './SkeletonLoader';
 import { formatNGN } from '../utils/currency';
+import KpiCard from './ui/KpiCard';
+import WalletIcon from './icons/WalletIcon';
+import DocumentTextIcon from './icons/DocumentTextIcon';
 
 type Metric = { label: string; value: string; hint?: string; tone?: 'success' | 'warn' | 'danger' };
 
@@ -278,19 +281,25 @@ const FinancialVitalsWidget: React.FC = () => {
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-              {metrics.map(m => (
-                <div key={m.label} className="p-4 border rounded-lg">
-                  <p className="text-xs text-gray-600">{m.label}</p>
-                  <p className="mt-1 text-lg font-semibold">{m.value}</p>
-                  {m.hint && (
-                    <span className={`mt-2 inline-block text-xs px-2 py-1 rounded-full ${pillTone(m.tone)}`}>{m.hint}</span>
-                  )}
+              <KpiCard icon={<WalletIcon className="w-5 h-5" />} label={metrics[0]?.label || 'Outstanding'} value={metrics[0]?.value || '₦0'} deltaText={metrics[0]?.hint} deltaDirection={metrics[0]?.hint?.includes('down') ? 'up' : (metrics[0]?.hint?.includes('up') ? 'down' : undefined) as any} accentColor="#F97316" />
+              <KpiCard icon={<WalletIcon className="w-5 h-5" />} label={metrics[1]?.label || 'Total Billed'} value={metrics[1]?.value || '₦0'} accentColor="#2563EB" />
+              <KpiCard icon={<WalletIcon className="w-5 h-5" />} label={metrics[2]?.label || 'Amount Collected'} value={metrics[2]?.value || '₦0'} deltaText={metrics[2]?.hint} deltaDirection={'up'} accentColor="#06B6D4" />
+              <div className="kpi-card p-4">
+                <div className="flex items-center gap-3">
+                  <div className="kpi-icon" style={{ backgroundColor: 'rgba(37,99,235,0.12)', color: '#2563EB' }}>
+                    <DocumentTextIcon className="w-5 h-5" />
+                  </div>
+                    <div>
+                    <div className="kpi-label clamp-2" title={metrics[3]?.label}>{metrics[3]?.label || 'Invoices'}</div>
+                    <div className="kpi-value text-lg md:text-xl whitespace-normal break-words" title={metrics[3]?.value}>{metrics[3]?.value || ''}</div>
+                    {metrics[3]?.hint && (<div className="delta-chip bg-gray-100 text-gray-700 mt-1">{metrics[3]?.hint}</div>)}
+                  </div>
                 </div>
-              ))}
+              </div>
             </div>
 
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="p-4 border rounded-lg">
+              <div className="p-4 border rounded-3xl">
                 <p className="text-xs text-gray-600">Revenue vs. Expenses (This Term)</p>
                 <div className="mt-3 grid grid-cols-2 gap-4">
                   <div>
@@ -304,7 +313,7 @@ const FinancialVitalsWidget: React.FC = () => {
                 </div>
               </div>
 
-              <div className="p-4 border rounded-lg">
+              <div className="p-4 border rounded-3xl">
                 <p className="text-xs text-gray-600">Payment Status Breakdown</p>
                 <div className="mt-3 flex items-center gap-6">
                   <Donut paid={statusBreakdown.paid} partial={statusBreakdown.partial} unpaid={statusBreakdown.unpaid} total={statusBreakdown.total} />

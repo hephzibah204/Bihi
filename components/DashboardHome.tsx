@@ -12,7 +12,7 @@ import { ADMIN_VIEWS } from '../utils/constants';
 import PlanSelector from './PlanSelector';
 import DataChampionsWidget from './DataChampionsWidget';
 import AttendanceSnapshotWidget from './AttendanceSnapshotWidget';
-import FinancialVitalsWidget from './FinancialVitalsWidget';
+import FinancialVitalsPro from './FinancialVitalsPro';
 import IncomeExpenseTrendChart from './IncomeExpenseTrendChart';
 import ExpenseCategoryBreakdown from './ExpenseCategoryBreakdown';
 import TopDebtorsByClassAlt from './TopDebtorsByClassAlt';
@@ -52,24 +52,47 @@ const DashboardHome = ({ setActiveView }: { setActiveView: (view: DashboardView)
     return (
         <div>
             {isSubscribed && <p className="mt-2 text-gray-600">Here are some quick actions to get you started.</p>}
-            
+
             {isLoading ? (
                 <div className="card mt-6 p-6 text-center">Loading...</div>
             ) : isSubscribed ? (
                 <>
+                    {/* Quick Actions at top */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-4">
+                        {quickLinks.map(link => (
+                            <button
+                                key={link.view}
+                                onClick={() => setActiveView(link.view as DashboardView)}
+                                className="card p-6 text-center hover:shadow-lg hover:scale-105 transition-transform duration-200"
+                            >
+                                <div className="text-indigo-500 mx-auto w-16 h-16 flex items-center justify-center bg-indigo-100 rounded-full">
+                                    {link.icon}
+                                </div>
+                                <h3 className="mt-4 text-lg font-semibold">{link.title}</h3>
+                                <p className="mt-1 text-sm text-gray-500">{link.description}</p>
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Recent Activity + Data Champions just below */}
+                    <div className="grid grid-cols-1 xl:grid-cols-[3fr_2fr] gap-6 mt-6">
+                        <RecentActivityWidget />
+                        <DataChampionsWidget />
+                    </div>
+
+                    {/* Existing analytics below */}
                     <SchoolVitals />
                     <DashboardInsights />
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
                         <IdleClassesAlertWidget />
                         <TeacherPerformanceWidget />
                     </div>
-                    {/* Prominent AI Early Intervention card */}
                     <div className="mt-6">
                         <EarlyIntervention />
                     </div>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <AttendanceSnapshotWidget />
-                        <FinancialVitalsWidget />
+                        <FinancialVitalsPro />
                     </div>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <IncomeExpenseTrendChart />
@@ -83,32 +106,11 @@ const DashboardHome = ({ setActiveView }: { setActiveView: (view: DashboardView)
                         <ClassPerformanceRanking onDrillDown={setActiveView} />
                         <SubjectHotColdChart onDrillDown={setActiveView} />
                     </div>
-                    {/* AI Analyst Q&A */}
                     <div className="mt-6">
                         <AnalystQAWidget />
                     </div>
-                    {/* Financial Q&A */}
                     <div className="mt-6">
                         <FinancialQAWidget />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
-                        {quickLinks.map(link => (
-                            <button 
-                                key={link.view} 
-                                onClick={() => setActiveView(link.view as DashboardView)}
-                                className="card p-6 text-center hover:shadow-lg hover:scale-105 transition-transform duration-200"
-                            >
-                                <div className="text-indigo-500 mx-auto w-16 h-16 flex items-center justify-center bg-indigo-100 rounded-full">
-                                    {link.icon}
-                                </div>
-                                <h3 className="mt-4 text-lg font-semibold">{link.title}</h3>
-                                <p className="mt-1 text-sm text-gray-500">{link.description}</p>
-                            </button>
-                        ))}
-                    </div>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <RecentActivityWidget />
-                        <DataChampionsWidget />
                     </div>
                 </>
             ) : (

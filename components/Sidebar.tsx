@@ -1,7 +1,7 @@
 
 
 // components/Sidebar.tsx
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { DashboardView, UserRole } from '../types';
 import Logo from './icons/Logo';
 import XIcon from './icons/XIcon';
@@ -84,13 +84,18 @@ interface NavGroupProps {
     activeView: DashboardView;
     setActiveView: (view: DashboardView) => void;
     hasFeature: (feature: string) => boolean;
+    collapsed?: boolean;
+    onToggle?: () => void;
 }
 
-const NavGroup: React.FC<NavGroupProps> = ({ title, items, activeView, setActiveView, hasFeature }) => {
+const NavGroup: React.FC<NavGroupProps> = ({ title, items, activeView, setActiveView, hasFeature, collapsed, onToggle }) => {
     return (
         <div>
-            <h3 className="px-4 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{title}</h3>
-            <div className="mt-2 space-y-1">
+            <button className="w-full flex items-center justify-between px-4 text-[11px] font-semibold text-gray-400 uppercase tracking-wider" onClick={onToggle} aria-expanded={!collapsed} aria-controls={`group-${title}`}>
+                <span>{title}</span>
+                <span className={`transition-transform ${collapsed ? '-rotate-90' : 'rotate-0'}`}>›</span>
+            </button>
+            <div id={`group-${title}`} className={`mt-2 space-y-1 ${collapsed ? 'hidden' : 'block'}`}>
                 {items.map((link, index) => (
                     <NavLink 
                         key={`${title}-${link.view}-${index}`}
@@ -108,6 +113,20 @@ const NavGroup: React.FC<NavGroupProps> = ({ title, items, activeView, setActive
 
 const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView, userRole }: SidebarProps) => {
     const { hasFeature } = usePlanFeatures();
+    const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+    useEffect(() => {
+        try {
+            const raw = localStorage.getItem('sidebarCollapsedGroups');
+            if (raw) setCollapsedGroups(JSON.parse(raw));
+        } catch {}
+    }, []);
+    const toggleGroup = (id: string) => {
+        setCollapsedGroups(prev => {
+            const next = { ...prev, [id]: !prev[id] };
+            try { localStorage.setItem('sidebarCollapsedGroups', JSON.stringify(next)); } catch {}
+            return next;
+        });
+    };
 
     // Bursar: show dedicated sidebar with only Bursary tabs
     if (userRole === USER_ROLES.BURSAR) {
@@ -191,6 +210,9 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView, use
                 { view: ADMIN_VIEWS.TIMETABLE, label: 'Timetable', icon: <TableCellsIcon className="h-5 w-5" /> },
                 { view: ADMIN_VIEWS.ASSIGNMENTS, label: 'Assignments', icon: <DocumentCheckIcon className="h-5 w-5" /> },
                 { view: ADMIN_VIEWS.PROMOTIONS, label: 'Promotions', icon: <GraduationCapIcon className="h-5 w-5" /> },
+                { view: ADMIN_VIEWS.LEADERBOARD_STUDENTS, label: 'Top Students', icon: <UsersIcon className="h-5 w-5" /> },
+                { view: ADMIN_VIEWS.LEADERBOARD_SUBJECTS, label: 'Top Subjects', icon: <BookOpenIcon className="h-5 w-5" /> },
+                { view: ADMIN_VIEWS.LEADERBOARD_CLASSES, label: 'Top Classes', icon: <TableCellsIcon className="h-5 w-5" /> },
             ]
         },
         {
@@ -204,10 +226,9 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView, use
             ]
         },
         {
-            group: 'Communication',
+            group: 'Management',
             groupId: 'management',
             items: [
-                { view: ADMIN_VIEWS.COMMUNICATIONS, label: 'Communications', icon: <MegaphoneIcon className="h-5 w-5" /> },
                 { view: ADMIN_VIEWS.STAFF, label: 'Staff', icon: <BriefcaseIcon className="h-5 w-5" /> },
                 { view: ADMIN_VIEWS.PARENTS, label: 'Parents', icon: <UsersGroupIcon className="h-5 w-5" /> },
             ]
@@ -220,10 +241,12 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView, use
                 { view: ADMIN_VIEWS.AI_COACH_MANAGER, label: 'AI Coach Manager', icon: <DocumentTextIcon className="h-5 w-5" /> },
                 { view: ADMIN_VIEWS.ANALYTICS, label: 'Analytics', icon: <ChartBarIcon className="h-5 w-5" /> },
                 { view: ADMIN_VIEWS.REPORTS, label: 'Reports', icon: <DocumentTextIcon className="h-5 w-5" /> },
+                { view: ADMIN_VIEWS.OER_ADMIN, label: 'OER Admin', icon: <BookOpenIcon className="h-5 w-5" /> },
                 { view: ADMIN_VIEWS.PRINT_CENTER, label: 'Print Center', icon: <PrinterIcon className="h-5 w-5" /> },
                 { view: ADMIN_VIEWS.ID_CARDS, label: 'ID Cards', icon: <IdentificationIcon className="h-5 w-5" /> },
                 { view: ADMIN_VIEWS.ALUMNI, label: 'Alumni', icon: <GraduationCapIcon className="h-5 w-5" /> },
                 { view: ADMIN_VIEWS.CLASSROOM_MONITORING, label: 'Classroom Monitoring', icon: <HeadsetIcon className="h-5 w-5" /> },
+                { view: ADMIN_VIEWS.LEADERBOARD_TEACHERS, label: 'Top Teachers', icon: <BriefcaseIcon className="h-5 w-5" /> },
             ]
         },
         {
@@ -232,6 +255,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView, use
             items: [
                 { view: ADMIN_VIEWS.SETTINGS, label: 'Settings', icon: <Cog6ToothIcon className="h-5 w-5" /> },
                 { view: ADMIN_VIEWS.HELP, label: 'Help & Support', icon: <QuestionMarkCircleIcon className="h-5 w-5" /> },
+                { view: ADMIN_VIEWS.ADMIN_PROFILE, label: 'Admin Profile', icon: <UsersIcon className="h-5 w-5" /> },
             ]
         },
     ];
@@ -276,6 +300,8 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView, use
                             activeView={activeView}
                             setActiveView={setActiveView}
                             hasFeature={hasFeature}
+                            collapsed={!!collapsedGroups[group.groupId]}
+                            onToggle={() => toggleGroup(group.groupId)}
                         />
                      ))}
                 </nav>

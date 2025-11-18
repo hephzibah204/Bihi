@@ -88,12 +88,14 @@ const AdminProfile = () => {
                 if (authError) throw authError;
             }
 
-            // Update profile table
+            // Update profile table (exclude fields not present in schema like full_name)
+            const profileUpdates: any = { ...updates };
+            delete profileUpdates.full_name;
             const { error: profileError } = await supabase
                 .from('profiles')
                 .upsert({
                     id: profile.id,
-                    ...updates,
+                    ...profileUpdates,
                     updated_at: new Date().toISOString()
                 });
 

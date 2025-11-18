@@ -19,7 +19,7 @@ export async function onRequestGet(context: any): Promise<Response> {
   const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
   const { data, error } = await supabase
     .from('files')
-    .select('r2_key, mime_type, tenant_id, linked_type, linked_id, category')
+    .select('r2_key, mime_type, tenant_id, linked_id, category')
     .eq('id', fileId)
     .single();
 
@@ -46,4 +46,3 @@ export async function onRequestGet(context: any): Promise<Response> {
     },
   });
 }
-

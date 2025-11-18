@@ -47,3 +47,21 @@ export function getKeyType(key: string): string {
   
   return 'unknown';
 }
+
+export function getTurnEnv() {
+  const vUrl = (typeof import.meta !== 'undefined' && (import.meta as any)?.env?.VITE_TURN_URL) || undefined
+  const vUser = (typeof import.meta !== 'undefined' && (import.meta as any)?.env?.VITE_TURN_USERNAME) || undefined
+  const vPass = (typeof import.meta !== 'undefined' && (import.meta as any)?.env?.VITE_TURN_PASSWORD) || undefined
+  const w = (typeof window !== 'undefined' && (window as any)?.process?.env) || undefined
+  const wUrl = w?.VITE_TURN_URL || undefined
+  const wUser = w?.VITE_TURN_USERNAME || undefined
+  const wPass = w?.VITE_TURN_PASSWORD || undefined
+  const nUrl = (typeof process !== 'undefined' && process.env?.VITE_TURN_URL) || undefined
+  const nUser = (typeof process !== 'undefined' && process.env?.VITE_TURN_USERNAME) || undefined
+  const nPass = (typeof process !== 'undefined' && process.env?.VITE_TURN_PASSWORD) || undefined
+  return {
+    url: vUrl || wUrl || nUrl || '',
+    username: vUser || wUser || nUser || '',
+    password: vPass || wPass || nPass || ''
+  }
+}

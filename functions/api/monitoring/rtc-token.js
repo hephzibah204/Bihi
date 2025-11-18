@@ -44,6 +44,11 @@ export async function onRequest(context) {
   if (corsResponse) return corsResponse
 
   const { LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_URL } = env || {}
+  const localOnly = (env && env.LIVEKIT_LOCAL_ONLY === 'true')
+  const host = (() => { try { return new URL(request.url).hostname } catch { return '' } })()
+  if (localOnly && host !== 'localhost' && host !== '127.0.0.1') {
+    return new Response(JSON.stringify({ error: 'LiveKit restricted to local development' }), { status: 403 })
+  }
   if (!LIVEKIT_API_KEY || !LIVEKIT_API_SECRET || !LIVEKIT_URL) {
     return new Response(JSON.stringify({ error: 'LiveKit not configured' }), { status: 500 })
   }

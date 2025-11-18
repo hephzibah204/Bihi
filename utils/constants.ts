@@ -52,6 +52,7 @@ export const ADMIN_VIEWS: { [key: string]: DashboardView } = {
     GENERAL_REMARKS: 'general-remarks',
     HELP: 'help',
     RESOURCE_HUB: 'resource-hub',
+    OER_ADMIN: 'oer-admin',
     BILLING: 'billing',
     MORE: 'more',
     EVENTS: 'events',
@@ -66,6 +67,12 @@ export const ADMIN_VIEWS: { [key: string]: DashboardView } = {
     TEACHER_CERTIFICATES: 'teacher-certificates',
     CLASSROOM_MONITORING: 'classroom-monitoring',
     TEACHER_ATTENDANCE_HISTORY: 'teacher-attendance-history',
+    LEADERBOARD_TEACHERS: 'leaderboard-teachers',
+    LEADERBOARD_STUDENTS: 'leaderboard-students',
+    LEADERBOARD_SUBJECTS: 'leaderboard-subjects',
+    LEADERBOARD_CLASSES: 'leaderboard-classes',
+    LEADERBOARD_DEBTORS: 'leaderboard-debtors',
+    ADMIN_PROFILE: 'admin-profile',
 };
 
 export const TEACHER_VIEWS = {

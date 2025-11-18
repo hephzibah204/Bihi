@@ -39,6 +39,13 @@ const AdminAiCoachProgress = lazy(() => import('./AdminAiCoachProgress'));
 const PrintCenter = lazy(() => import('./PrintCenter'));
 const TeacherCertificatePrintView = lazy(() => import('./TeacherCertificatePrintView'));
 const AdminMonitorView = lazy(() => import('./AdminMonitorView'));
+const OERAdminPanel = lazy(() => import('./OERAdminPanel'));
+const LeaderboardStudents = lazy(() => import('./LeaderboardStudents'));
+const LeaderboardTeachers = lazy(() => import('./LeaderboardTeachers'));
+const LeaderboardSubjects = lazy(() => import('./LeaderboardSubjects'));
+const LeaderboardClasses = lazy(() => import('./LeaderboardClasses'));
+const LeaderboardDebtors = lazy(() => import('./LeaderboardDebtors'));
+const AdminProfile = lazy(() => import('./AdminProfile'));
 
 // AI Tool Components
 const AIChatPanel = lazy(() => import('./AIChatPanel'));
@@ -111,6 +118,8 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ activeView, setActi
                 const isEnabled = (settings?.features?.['classroom-monitoring'] ?? true) && (settings?.roleBasedFeatures?.admin?.['classroom-monitoring'] ?? true);
                 return isEnabled ? <AdminMonitorView /> : <div className="p-4 bg-yellow-50 border border-yellow-200 rounded">Classroom Monitoring is disabled for Admins.</div>;
             }
+        case ADMIN_VIEWS.OER_ADMIN:
+            return <OERAdminPanel />;
         case ADMIN_VIEWS.ALUMNI:
             return <AlumniDashboard />;
         case ADMIN_VIEWS.STAFF:
@@ -131,6 +140,18 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ activeView, setActi
             return <ResourceHub />;
         case ADMIN_VIEWS.BILLING:
             return <BillingDashboard />;
+        case ADMIN_VIEWS.LEADERBOARD_STUDENTS:
+            return <LeaderboardStudents />;
+        case ADMIN_VIEWS.LEADERBOARD_TEACHERS:
+            return <LeaderboardTeachers />;
+        case ADMIN_VIEWS.LEADERBOARD_SUBJECTS:
+            return <LeaderboardSubjects />;
+        case ADMIN_VIEWS.LEADERBOARD_CLASSES:
+            return <LeaderboardClasses />;
+        case ADMIN_VIEWS.LEADERBOARD_DEBTORS:
+            return <LeaderboardDebtors />;
+        case ADMIN_VIEWS.ADMIN_PROFILE:
+            return <AdminProfile />;
         
         // Individual AI Tool Views
                     case ADMIN_VIEWS.AI_CHAT:

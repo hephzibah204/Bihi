@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { listRecordings } from '../services/recordingService'
-import { connectAndSubscribe } from '../services/livekitClient'
+import { startSubscriber } from '../services/rtcRouter'
 
 type Rec = { url: string; path: string; name: string }
 
@@ -12,6 +12,7 @@ const AdminMonitorView: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [liveSessions, setLiveSessions] = useState<any[]>([])
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const [provider, setProvider] = useState<'livekit' | 'webrtc' | null>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -33,15 +34,14 @@ const AdminMonitorView: React.FC = () => {
 
   const joinLive = async (roomName: string) => {
     try {
-      const res = await fetch('/api/monitoring/rtc-token', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ room: roomName, grantRole: 'subscriber' }) })
-      if (!res.ok) throw new Error('Failed to get token')
-      const { token, url } = await res.json()
-      await connectAndSubscribe(url, token, el => {
+      const isLocalHost = typeof window !== 'undefined' && (['localhost','127.0.0.1'].includes(location.hostname))
+      const res = await startSubscriber(roomName, el => {
         audioRef.current = el
         el.controls = true
         el.autoplay = true
         el.className = 'w-full'
-      })
+      }, (isLocalHost ? ['livekit','webrtc'] : ['webrtc']) as any)
+      setProvider(res.provider as any)
     } catch (e: any) {
       setError(e?.message || 'Failed to join live')
     }
@@ -73,6 +73,7 @@ const AdminMonitorView: React.FC = () => {
       </div>
       <div className="space-y-2 mb-6">
         <div className="font-medium">Live Sessions</div>
+        {provider && <div className="text-xs text-gray-600">Provider: {provider}</div>}
         {liveSessions.map(s => (
           <div key={s.id} className="flex items-center justify-between p-2 border rounded">
             <div>{s.class_name} - {s.room_name}</div>

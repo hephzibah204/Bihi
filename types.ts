@@ -24,7 +24,7 @@ export type DashboardView =
   | 'print-center' | 'teacher-certificates' | 'ai-coach-progress' | 'reports'
   | 'ai-coach-manager' | 'ai-chat' | 'ai-elaboratory' | 'ai-lesson-planner' | 'ai-practice-quiz'
   | 'ai-comment-generator' | 'ai-early-intervention' | 'ai-learning-pathways' | 'ai-subject-recommender'
-  | 'ai-rubric-generator' | 'ai-parent-message-composer' | 'teacher-attendance-history';
+  | 'ai-rubric-generator' | 'ai-parent-message-composer' | 'teacher-attendance-history' | 'oer-admin';
   
 export type TeacherView = 
   | 'dashboard' | 'my-students' | 'enter-scores' | 'my-schedule' | 'ai-tools'

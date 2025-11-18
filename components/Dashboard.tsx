@@ -11,6 +11,7 @@ import AdminBottomNavBar from './AdminBottomNavBar';
 import { PlanFeaturesProvider } from '../contexts/PlanFeaturesContext';
 import GlobalNotification from './GlobalNotification';
 import { ADMIN_VIEWS, USER_ROLES } from '../utils/constants';
+import AdminAppShell from './ui/AdminAppShell';
 import { getSubdomain } from '../utils/subdomain';
 import SelectChildModal from './SelectChildModal';
 import SpinnerIcon from './icons/SpinnerIcon';
@@ -182,37 +183,22 @@ const Dashboard = () => {
             return (
                 <TenantProvider>
                     <PlanFeaturesProvider>
-                        <div className="flex h-screen bg-gray-100">
-                            <Sidebar 
-                                isSidebarOpen={isSidebarOpen} 
-                                setSidebarOpen={setSidebarOpen} 
-                                activeView={activeView}
-                                setActiveView={handleViewChange}
-                                userRole={effectiveRole}
-                            />
-                            <div className="flex-1 flex flex-col overflow-hidden main-content-mobile-padding">
-                                <Header title={headerTitle} setSidebarOpen={setSidebarOpen} onLogout={logout} isSidebarOpen={isSidebarOpen} />
-                                <main className="flex-1 overflow-x-hidden overflow-y-auto">
-                                    <div className="container mx-auto px-6 py-8">
-                                        <Suspense fallback={<ContentLoader />}>
-                                            {activeView === ADMIN_VIEWS.MORE 
-                                                ? <MoreView setActiveView={handleViewChange} /> 
-                                                : <DashboardContent 
-                                                    activeView={activeView} 
-                                                    setActiveView={handleViewChange}
-                                                    userRole={effectiveRole}
-                                                    onViewStudentProfile={handleViewStudentProfile}
-                                                    profileStudentId={profileStudentId}
-                                                />
-                                            }
-                                        </Suspense>
-                                    </div>
-                                </main>
-                            </div>
-                            <AdminBottomNavBar activeView={activeView} setActiveView={handleViewChange} userRole={effectiveRole} />
-                            <SyncStatusIndicator />
-                            <GlobalNotification />
-                        </div>
+                        <AdminAppShell pageTitle={headerTitle} activeView={activeView} onChangeView={handleViewChange}>
+                            <Suspense fallback={<ContentLoader />}>
+                                {activeView === ADMIN_VIEWS.MORE 
+                                    ? <MoreView setActiveView={handleViewChange} /> 
+                                    : <DashboardContent 
+                                        activeView={activeView} 
+                                        setActiveView={handleViewChange}
+                                        userRole={effectiveRole}
+                                        onViewStudentProfile={handleViewStudentProfile}
+                                        profileStudentId={profileStudentId}
+                                      />
+                                }
+                            </Suspense>
+                        </AdminAppShell>
+                        <SyncStatusIndicator />
+                        <GlobalNotification />
                     </PlanFeaturesProvider>
                 </TenantProvider>
             );
@@ -289,35 +275,20 @@ const Dashboard = () => {
                         />
                     </Suspense>
                 )}
-                <div className="flex h-screen bg-gray-100">
-                    <Sidebar 
-                        isSidebarOpen={isSidebarOpen} 
-                        setSidebarOpen={setSidebarOpen} 
-                        activeView={activeView}
-                        setActiveView={handleViewChange}
-                        userRole={role}
-                    />
-                    <div className="flex-1 flex flex-col overflow-hidden main-content-mobile-padding">
-                        <Header title={headerTitle} setSidebarOpen={setSidebarOpen} onLogout={logout} isSidebarOpen={isSidebarOpen} />
-                        <main className="flex-1 overflow-x-hidden overflow-y-auto">
-                            <div className="container mx-auto px-6 py-8">
-                                <Suspense fallback={<ContentLoader />}> 
-                                    {activeView === ADMIN_VIEWS.MORE 
-                                        ? <MoreView setActiveView={handleViewChange} /> 
-                                        : <DashboardContent 
-                                            activeView={activeView} 
-                                            setActiveView={handleViewChange} 
-                                            userRole={role}
-                                            profileStudentId={profileStudentId}
-                                            onViewStudentProfile={handleViewStudentProfile}
-                                          />
-                                    }
-                                </Suspense>
-                            </div>
-                        </main>
-                        <AdminBottomNavBar activeView={activeView} setActiveView={handleViewChange} userRole={role} />
-                    </div>
-                </div>
+                <AdminAppShell pageTitle={headerTitle} activeView={activeView} onChangeView={handleViewChange}>
+                    <Suspense fallback={<ContentLoader />}> 
+                        {activeView === ADMIN_VIEWS.MORE 
+                            ? <MoreView setActiveView={handleViewChange} /> 
+                            : <DashboardContent 
+                                activeView={activeView} 
+                                setActiveView={handleViewChange} 
+                                userRole={role}
+                                profileStudentId={profileStudentId}
+                                onViewStudentProfile={handleViewStudentProfile}
+                              />
+                        }
+                    </Suspense>
+                </AdminAppShell>
                 <SyncStatusIndicator />
                 <GlobalNotification />
                 </>
