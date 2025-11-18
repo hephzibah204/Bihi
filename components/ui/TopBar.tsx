@@ -70,8 +70,10 @@ const TopBar: React.FC<TopBarProps> = ({ pageTitle }) => {
         }}><BellIcon className="w-5 h-5" /></IconBtn>
         <IconBtn title="Settings" onClick={() => {
           if (role === USER_ROLES.ADMIN || role === USER_ROLES.SUPER_ADMIN) navigateView(ADMIN_VIEWS.SETTINGS);
-          else if (role === USER_ROLES.TEACHER) navigateView((TEACHER_VIEWS as any).MORE);
-          else navigateView((STUDENT_VIEWS as any).PROFILE);
+          else if (role === USER_ROLES.TEACHER) navigateView((TEACHER_VIEWS as any).SETTINGS);
+          else if (role === USER_ROLES.STUDENT) navigateView((STUDENT_VIEWS as any).PROFILE);
+          else if (role === USER_ROLES.PARENT) navigateView((PARENT_VIEWS as any).PROFILE);
+          else navigateView(ADMIN_VIEWS.SETTINGS);
         }}><Cog6ToothIcon className="w-5 h-5" /></IconBtn>
         <IconBtn title="Logout" onClick={() => logout?.()}><LogoutIcon className="w-5 h-5" /></IconBtn>
         <div className="relative flex items-center gap-2 ml-2">

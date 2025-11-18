@@ -97,6 +97,7 @@ const TeacherSidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveVi
             id: 'support',
             title: 'Support',
             items: [
+                { view: TEACHER_VIEWS.SETTINGS, label: 'Settings', icon: <DocumentTextIcon className="h-5 w-5" /> },
                 { view: TEACHER_VIEWS.HELP, label: 'Help & Support', icon: <IconHelp /> },
                 { view: TEACHER_VIEWS.MORE, label: 'More', icon: <Bars3Icon className="h-5 w-5" /> },
                 { view: TEACHER_VIEWS.PROFILE, label: 'My Profile', icon: <UsersIcon className="h-5 w-5" /> },

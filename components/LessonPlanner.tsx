@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAI } from '../hooks/useAI';
-import { generateResponse as aiGenerateResponse } from '../services/geminiAIService';
 import { apiGetSubjects, apiGetTeachers } from '../services/api';
 import { Subject, Teacher } from '../types';
 import SparklesIcon from './icons/SparklesIcon';
@@ -33,6 +32,8 @@ const LessonPlanner = () => {
     const [customPrompt, setCustomPrompt] = useState('');
     const [period, setPeriod] = useState('');
     const [duration, setDuration] = useState('');
+    const [term, setTerm] = useState('');
+    const [suggestedTopics, setSuggestedTopics] = useState<string[]>([]);
 
     // Pedagogical toggles
     const [usePBL, setUsePBL] = useState(true);
@@ -76,6 +77,30 @@ const LessonPlanner = () => {
             import('../plans/lesson-templates/project-based-learning.json'),
         ]).then(mods => setTemplates(mods.map(m => (m as any).default as LessonTemplate))).catch(() => {});
     }, []);
+    useEffect(() => {
+        const subjectName = subjects.find(s => s.id === selectedSubject)?.name || '';
+        const baseCurr = curriculum === 'Other' ? otherCurriculum : curriculum;
+        const m = subjectName && classLevel ? getMappings(subjectName, classLevel, baseCurr) : null;
+        const byStrand = m?.strands ? m.strands.map((s: any) => String(s.name || s.code || '')).filter(Boolean) : [];
+        const map: Record<string, string[]> = {
+            Mathematics: ['Number bases','Algebra','Geometry','Trigonometry','Statistics','Mensuration'],
+            English: ['Comprehension','Grammar','Essay writing','Letter writing','Literature'],
+            "Basic Science": ['Photosynthesis','States of matter','Energy','Force','Human body systems'],
+            Biology: ['Cell structure','Photosynthesis','Respiration','Reproduction','Genetics'],
+            Chemistry: ['Atomic structure','Periodic table','Bonding','Stoichiometry','Acids and bases'],
+            Physics: ['Motion','Forces','Waves','Electricity','Energy'],
+            "Civic Education": ['Rights and duties','Government','Citizenship','Democracy'],
+            "Computer Science": ['Algorithms','Data types','Networking','Databases','Spreadsheets']
+        };
+        let fromScheme: string[] = [];
+        if (uploadedScheme) {
+            const lines = String(uploadedScheme).split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+            fromScheme = lines.filter(l => l.length > 3 && !/week\s*\d+/i.test(l)).slice(0, 10);
+        }
+        const preset = map[subjectName] || [];
+        const combined = Array.from(new Set([...fromScheme, ...byStrand, ...preset])).filter(x => x && x.length > 2).slice(0, 12);
+        setSuggestedTopics(combined);
+    }, [selectedSubject, classLevel, curriculum, otherCurriculum, uploadedScheme, term, subjects]);
     
     const classNames = useMemo(() => generateClassNames(settings), [settings]);
 
@@ -117,6 +142,7 @@ You are an expert Nigerian educator and curriculum designer. Create a deeply det
 • Subject: "${subjectName}"
 • Topic: "${topic}"
 • Class Level: "${classLevel}"
+• Term: ${term || 'N/A'}
 • Period: ${period || 'N/A'}
 • Duration: ${duration || 'N/A'} minutes
 • Curriculum: ${curriculum === 'Other' ? otherCurriculum : curriculum} (default to NERDC if unclear)
@@ -204,8 +230,8 @@ ${phonics ? `<h3>Phonics Scope (Auto)</h3><p><strong>Focus/Graphemes:</strong> $
 
  Ensure strict integration of the uploaded scheme of work (topic sequencing, period/duration) and reflect local realities (power/internet availability, classroom size). Use evidence‑based pedagogy and Nigeria‑specific examples throughout. Ensure the result is thorough, practical, and immediately usable.
 `;
-            const result = await aiGenerateResponse(prompt);
-            setGeneratedPlan(normalizeAIText(result));
+            const r = await generateResponse(prompt, undefined, 'lesson_plan');
+            setGeneratedPlan(normalizeAIText(r.content));
         } catch (err) {
             const msg = (err as any)?.message || String(err);
             setError(`Failed to generate lesson plan: ${msg}`);
@@ -247,7 +273,10 @@ ${phonics ? `<h3>Phonics Scope (Auto)</h3><p><strong>Focus/Graphemes:</strong> $
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div><label className="label">Subject</label><select className="input-field" value={selectedSubject} onChange={(e) => setSelectedSubject(e.target.value)}><option value="">-- Select --</option>{subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
                     <div><label className="label">Class Level</label><select className="input-field" value={classLevel} onChange={(e) => setClassLevel(e.target.value)}><option value="">-- Select --</option>{classNames.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
-                    <div><label className="label">Topic</label><input type="text" className="input-field" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="e.g., Photosynthesis"/></div>
+                    <div><label className="label">Term</label><select className="input-field" value={term} onChange={(e) => setTerm(e.target.value)}><option value="">-- Any --</option><option>First Term</option><option>Second Term</option><option>Third Term</option></select></div>
+                    <div><label className="label">Curriculum</label><select className="input-field" value={curriculum} onChange={e => setCurriculum(e.target.value)}><option>NERDC</option><option>British</option><option>Lagos State Scheme</option><option>Ogun State Scheme</option><option>NAPPS Scheme</option><option>Other</option></select></div>
+                    {curriculum === 'Other' && (<div><label className="label">Specify Curriculum</label><input type="text" className="input-field" value={otherCurriculum} onChange={e => setOtherCurriculum(e.target.value)} /></div>)}
+                    <div className="md:col-span-2"><label className="label">Topic</label><input type="text" className="input-field" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="e.g., Photosynthesis"/>{suggestedTopics.length > 0 && (<div className="mt-2 flex flex-wrap gap-2">{suggestedTopics.map(t => (<button key={t} type="button" onClick={() => setTopic(t)} className="px-2 py-1 text-xs rounded border hover:bg-gray-100">{t}</button>))}</div>)}</div>
                     <div><label className="label">Output Type</label><select className="input-field" value={outputType} onChange={e => setOutputType(e.target.value)}><option value="plan">Lesson Plan</option><option value="note">Lesson Note</option><option value="combined">Lesson Plan & Note</option></select></div>
                     <div><label className="label">Period</label><input type="text" className="input-field" value={period} onChange={e => setPeriod(e.target.value)} placeholder="e.g., 1st & 2nd"/></div>
                     <div><label className="label">Duration (minutes)</label><input type="text" className="input-field" value={duration} onChange={e => setDuration(e.target.value)} placeholder="e.g., 80"/></div>

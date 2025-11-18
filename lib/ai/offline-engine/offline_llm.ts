@@ -4,7 +4,7 @@ import { getRagContext } from '../rag/rag_service';
 import { detectTools, executeTools, registerTool } from '../orchestrator/tool_router';
 import { generateEnhancedFallbackResponse } from '../../../services/enhancedFallbackAI';
 type Msg = { role: 'user'|'assistant'|'system'; content: string };
-type RunArgs = { prompt: string; role: 'Owner'|'Bursar'|'Teacher'|'Parent'; tenantId: string; conversationHistory?: Array<string|Msg>; topK?: number; toolArgs?: any };
+type RunArgs = { prompt: string; role: 'Owner'|'Bursar'|'Teacher'|'Parent'; tenantId: string; conversationHistory?: Array<string|Msg>; topK?: number; toolArgs?: any; context?: any };
 export async function runOfflineModel(args: RunArgs): Promise<string> {
   const model = await selectModel();
   try {
