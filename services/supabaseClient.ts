@@ -128,6 +128,14 @@ export async function initSupabase() {
 
   supabase._offline = false;
 
+  if (!supabase.auth) supabase.auth = {} as any;
+  if (typeof (supabase as any).auth.signInWithPassword !== 'function') {
+    (supabase as any).auth.signInWithPassword = async (_args: any) => ({ data: null, error: new Error('Authentication service unavailable') });
+  }
+  if (typeof (supabase as any).auth.updateUser !== 'function') {
+    (supabase as any).auth.updateUser = async (_args: any) => ({ data: null, error: new Error('Authentication service unavailable') });
+  }
+
   logger.info(`[Supabase] Client initialized. Key type: ${keySource}`);
 
   /* ---------------------------------------------------------
