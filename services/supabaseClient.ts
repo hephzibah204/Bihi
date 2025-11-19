@@ -51,7 +51,7 @@ export async function initSupabase() {
   try {
     const env = getSupabaseEnv();
     SUPABASE_URL = env.VITE_SUPABASE_URL;
-    SUPABASE_KEY = env.VITE_SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_ANON_KEY!;
+    SUPABASE_KEY = env.VITE_SUPABASE_ANON_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY!;
     keySource = getKeyType(SUPABASE_KEY);
 
     // Environment validated successfully
@@ -129,6 +129,7 @@ function createOfflineClient() {
     auth: {
       getUser: async () => ({ data: { user: null }, error: new Error('Offline') }),
       getSession: async () => ({ data: { session: null }, error: null }),
+      signInWithPassword: async (_args: any) => ({ data: null, error: new Error('Offline') }),
       signOut: async () => ({ error: null }),
       onAuthStateChange: (callback: (event: string, session: any) => void) => {
         const subscription = { unsubscribe: () => {} } as any;
