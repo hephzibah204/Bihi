@@ -91,6 +91,7 @@ const AdminProfile = () => {
             // Update profile table (exclude fields not present in schema like full_name)
             const profileUpdates: any = { ...updates };
             delete profileUpdates.full_name;
+            delete profileUpdates.avatar_url;
             const { error: profileError } = await supabase
                 .from('profiles')
                 .upsert({

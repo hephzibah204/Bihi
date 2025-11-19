@@ -1,11 +1,15 @@
 // services/supabaseClient.ts
-// Smart Supabase client: supports both "publishable" and legacy "anon" keys.
-// Prioritizes CDN client, then ESM fallback, then offline mode.
+// Smart Supabase client with fallbacks (CDN → NPM → Offline)
+// Includes automatic reconnection, environment resolution,
+// demo-mode auth shim, realtime settings, diagnostics, and safe guards.
 
 import { getSupabaseEnv, getKeyType } from '../utils/env';
 import { withRetry } from '../utils/retry';
 import { logger } from '../utils/logger';
 
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+// Global ambient declarations
 declare global {
   interface Window {
     supabase?: any;
@@ -19,31 +23,41 @@ declare global {
   }
 }
 
-let supabase: any = null;
+// Client instance + state
+let supabase: SupabaseClient & { _offline?: boolean } | any = null;
 let connectionHealthInterval: NodeJS.Timeout | null = null;
 let isMonitoring = false;
 
+/* ============================================================
+ *  INITIALIZER
+ * ============================================================ */
 export async function initSupabase() {
   if (supabase) return supabase;
 
-  let createClient: any;
+  let createClient: any = null;
 
-  // 1️⃣ Prefer CDN client (AI Studio / Cloudflare) if available
-  if (window.supabase && typeof window.supabase.createClient === "function") {
+  /* ---------------------------------------------------------
+   * 1️⃣ Prefer CDN client (AI Studio / Cloudflare, etc.)
+   * --------------------------------------------------------- */
+  if (typeof window !== 'undefined' && window.supabase?.createClient) {
     createClient = window.supabase.createClient;
     logger.info('[Supabase] Using CDN client.');
   } else {
-    // 2️⃣ Use npm package as primary fallback
+    /* -------------------------------------------------------
+     * 2️⃣ Try ESM (NPM) client
+     * ------------------------------------------------------- */
     try {
-      const { createClient: npmCreateClient } = await import("@supabase/supabase-js");
+      const { createClient: npmCreateClient } = await import('@supabase/supabase-js');
       createClient = npmCreateClient;
       logger.info('[Supabase] Using npm package client.');
     } catch (err) {
-      logger.error('[Supabase] Failed to load Supabase library', { error: err as any });
+      logger.error('[Supabase] Failed to load supabase-js.', { error: err });
     }
   }
 
-  // 2️⃣ Get and validate environment variables
+  /* ---------------------------------------------------------
+   * 3️⃣ Resolve environment variables
+   * --------------------------------------------------------- */
   let SUPABASE_URL: string;
   let SUPABASE_KEY: string;
   let keySource: string;
@@ -51,139 +65,157 @@ export async function initSupabase() {
   try {
     const env = getSupabaseEnv();
     SUPABASE_URL = env.VITE_SUPABASE_URL;
-    SUPABASE_KEY = env.VITE_SUPABASE_ANON_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY!;
+    SUPABASE_KEY = env.VITE_SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_ANON_KEY!;
     keySource = getKeyType(SUPABASE_KEY);
+  } catch (e: any) {
+    logger.error('[Supabase] Invalid environment config', { message: e.message });
 
-    // Environment validated successfully
-  } catch (error: any) {
-    logger.error('[Supabase] Config error', { message: error.message });
     const isProd = (typeof import.meta !== 'undefined' && (import.meta as any)?.env?.PROD) === true;
+
     if (isProd) {
-      // In production, fail-fast to surface misconfiguration
-      throw new Error('Supabase configuration invalid in production: ' + (error?.message || 'unknown error'));
-    } else {
-      logger.error('[Supabase] Running in offline mode due to configuration error.');
-      // 3️⃣ Offline fallback for development
-      supabase = createOfflineClient();
-      return supabase;
+      throw new Error(`Supabase config invalid in production: ${e?.message || 'unknown error'}`);
     }
+
+    logger.warn('[Supabase] Using offline mode (config error).');
+    supabase = createOfflineClient();
+    return supabase;
   }
 
-  // 3️⃣b Guard against empty envs (utils/env returns empty strings when unset)
+  /* ---------------------------------------------------------
+   * 3️⃣b Guard against empty or missing envs
+   * --------------------------------------------------------- */
   if (!SUPABASE_URL || !SUPABASE_KEY) {
-    logger.error('[Supabase] Missing SUPABASE_URL or KEY. Switching to offline mode.');
+    logger.error('[Supabase] Missing URL/KEY. Offline mode activated.');
     supabase = createOfflineClient();
     return supabase;
   }
 
-  // 4️⃣ Check if client library is available
+  /* ---------------------------------------------------------
+   * 4️⃣ Check if createClient exists
+   * --------------------------------------------------------- */
   if (!createClient) {
-    logger.error('[Supabase] Client library not available. Running in offline mode.');
+    logger.error('[Supabase] createClient not available → offline mode.');
     supabase = createOfflineClient();
     return supabase;
   }
 
-  // 5️⃣ Create client with configuration
+  /* ---------------------------------------------------------
+   * 5️⃣ Instantiate client
+   * --------------------------------------------------------- */
   supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
     auth: {
-      autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,
+      autoRefreshToken: true,
       storage: typeof window !== 'undefined' ? window.sessionStorage : undefined,
       storageKey: 'dossier-auth-token',
       flowType: 'pkce'
     },
-    db: {
-      schema: 'public'
-    },
     global: {
       headers: {
         'x-application-name': 'dossier-ng',
-        'x-client-info': 'dossier-ng@1.0.0'
+        'x-client-info': 'dossier-ng@1.0.0',
+        'x-key-type': keySource
       }
     },
+    db: { schema: 'public' },
     realtime: {
-      params: {
-        eventsPerSecond: 10
-      },
+      params: { eventsPerSecond: 10 },
       heartbeatIntervalMs: 30000,
       reconnectIntervalMs: 5000
     }
   });
-  
-  supabase._offline = false;
-  logger.info(`[Supabase] Client initialized successfully using ${keySource} key.`);
 
-  // 6️⃣ Demo auth shim: provide a fake teacher user when in demo mode
+  supabase._offline = false;
+
+  logger.info(`[Supabase] Client initialized. Key type: ${keySource}`);
+
+  /* ---------------------------------------------------------
+   * 6️⃣ Demo mode authentication stub
+   * --------------------------------------------------------- */
   setupDemoAuthShim();
 
-  // 7️⃣ Start connection health monitoring
+  /* ---------------------------------------------------------
+   * 7️⃣ Start monitoring network & Supabase connectivity
+   * --------------------------------------------------------- */
   startConnectionMonitoring();
 
   return supabase;
 }
 
+/* ============================================================
+ *  OFFLINE CLIENT FALLBACK (SAFE NO-OPS)
+ * ============================================================ */
 function createOfflineClient() {
-  return {
+  const offline = {
     _offline: true,
     auth: {
       getUser: async () => ({ data: { user: null }, error: new Error('Offline') }),
       getSession: async () => ({ data: { session: null }, error: null }),
-      signInWithPassword: async (_args: any) => ({ data: null, error: new Error('Offline') }),
+      signInWithPassword: async () => ({ data: null, error: new Error('Offline') }),
+      updateUser: async () => ({ data: null, error: new Error('Offline') }),
       signOut: async () => ({ error: null }),
-      onAuthStateChange: (callback: (event: string, session: any) => void) => {
-        const subscription = { unsubscribe: () => {} } as any;
-        try {
-          // Simulate an initial signed-out state in offline mode
-          callback('SIGNED_OUT', null);
-        } catch { /* noop */ }
-        return { data: { subscription }, error: null } as any;
+      onAuthStateChange: (cb: any) => {
+        cb('SIGNED_OUT', null);
+        return { data: { subscription: { unsubscribe: () => {} } }, error: null };
       }
     },
-    // Minimal realtime no-op stubs to avoid runtime errors in offline mode
-    channel: (_name: string) => {
-      const api = {
-        on: (_event: string, _config: any, _callback: any) => api,
-        subscribe: () => ({ data: { subscription: { unsubscribe: () => {} } }, error: null })
-      } as any;
-      return api;
-    },
-    removeChannel: (_channel: any) => { /* noop */ },
+    channel: (_name: string) => ({
+      on: () => offline,
+      subscribe: () => ({ data: { subscription: { unsubscribe: () => {} } }, error: null })
+    }),
+    removeChannel: () => {}
   };
+
+  logger.warn('[Supabase] Offline client initialized.');
+  return offline;
 }
 
+/* ============================================================
+ *  DEMO AUTH MODE (FAKE TEACHER USER)
+ * ============================================================ */
 function setupDemoAuthShim() {
   try {
-    const isDemoMode = typeof window !== 'undefined' && (
-      sessionStorage.getItem('isDemoMode') === 'true' ||
-      localStorage.getItem('isDemoMode') === 'true'
-    );
-    const demoRole = typeof window !== 'undefined' ? localStorage.getItem('demoUserRole') : null;
-    
-    if (isDemoMode && demoRole === 'Teacher') {
-      const originalGetUser = supabase.auth?.getUser?.bind(supabase.auth);
-      supabase.auth = supabase.auth || {};
+    const isDemo =
+      typeof window !== 'undefined' &&
+      (sessionStorage.getItem('isDemoMode') === 'true' ||
+        localStorage.getItem('isDemoMode') === 'true');
+
+    const role = typeof window !== 'undefined' ? localStorage.getItem('demoUserRole') : null;
+
+    if (isDemo && role === 'Teacher') {
+      const original = supabase.auth.getUser.bind(supabase.auth);
+
       supabase.auth.getUser = async () => {
         try {
-          const real = originalGetUser ? await originalGetUser() : { data: { user: null }, error: null };
+          const real = await original();
           if (real?.data?.user) return real;
-        } catch { /* noop */ }
-        return { data: { user: { id: 'auth_teacher_demo', email: 'teacher@demo.com' } }, error: null } as any;
+        } catch {}
+
+        return {
+          data: { user: { id: 'auth_teacher_demo', email: 'teacher@demo.com' } },
+          error: null
+        };
       };
+
+      logger.info('[Supabase] Demo auth shim active (Teacher).');
     }
-  } catch (e) {
-    logger.warn('[Supabase] Demo auth shim failed');
+  } catch {
+    logger.warn('[Supabase] Demo auth shim failed.');
   }
 }
 
-// Get initialized client safely
+/* ============================================================
+ *  ACCESSORS
+ * ============================================================ */
 export function getSupabase() {
-  if (!supabase)
-    throw new Error("Supabase not initialized. Call await initSupabase() first.");
+  if (!supabase) throw new Error('Supabase not initialized. Call initSupabase() first.');
   return supabase;
 }
 
-// Test connectivity with retry logic
+/* ============================================================
+ *  CONNECTIVITY CHECKER
+ * ============================================================ */
 export async function isSupabaseOnline(): Promise<boolean> {
   if (!supabase || supabase._offline) {
     try { await initSupabase(); } catch {}
@@ -192,132 +224,110 @@ export async function isSupabaseOnline(): Promise<boolean> {
 
   if (typeof navigator !== 'undefined' && !navigator.onLine) return false;
 
-  const SUPABASE_URL = (typeof window !== 'undefined')
-    ? (window.process?.env?.VITE_SUPABASE_URL || import.meta.env?.VITE_SUPABASE_URL)
-    : process.env.VITE_SUPABASE_URL;
-
-  // First try a lightweight REST query (works even if Edge Functions are not deployed)
+  // Light REST ping: `platform_settings` table
   try {
     await withRetry(
       async () => {
-        const { error } = await supabase.from("platform_settings").select("id").limit(1);
+        const { error } = await supabase.from('platform_settings').select('id').limit(1);
         if (error) throw error;
       },
-      { maxRetries: 1, initialDelay: 300 }
+      { maxRetries: 1, initialDelay: 250 }
     );
     return true;
-  } catch { /* fall through to optional functions ping */ }
+  } catch {}
 
-  // Optional: test the Edge Functions endpoint if explicitly enabled
-  const enableFunctionsPing = ((typeof window !== 'undefined')
+  // Optional: Edge Functions ping
+  const enable = ((typeof window !== 'undefined')
     ? (import.meta as any)?.env?.VITE_ENABLE_FUNCTIONS_PING
     : process.env.VITE_ENABLE_FUNCTIONS_PING) === 'true';
 
-  if (SUPABASE_URL && enableFunctionsPing) {
+  const SUPABASE_URL =
+    typeof window !== 'undefined'
+      ? window.process?.env?.VITE_SUPABASE_URL || import.meta.env?.VITE_SUPABASE_URL
+      : process.env.VITE_SUPABASE_URL;
+
+  if (SUPABASE_URL && enable) {
     try {
-      const pingCore = `RS1|SID=ping|ADM=|TS=${Date.now()}|CS=0000`;
-      const resp = await withRetry(
-        async () => fetch(`${SUPABASE_URL}/functions/v1/sign-qr`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ core: pingCore })
-        }),
-        { maxRetries: 1, initialDelay: 300 }
-      );
+      const pingCore = `RS1|SID=ping|TS=${Date.now()}|CS=0000`;
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/sign-qr`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ core: pingCore })
+      });
       if (resp.ok) return true;
-    } catch { /* ignore */ }
+    } catch {}
   }
 
-  // If both checks failed, consider offline
-  try {
-    await withRetry(
-      async () => {
-        const { error } = await supabase.from("platform_settings").select("id").limit(1);
-        if (error) throw error;
-      },
-      { maxRetries: 1, initialDelay: 300 }
-    );
-    return true;
-  } catch {
-    return false;
-  }
+  return false;
 }
 
-/**
- * Start monitoring connection health and auto-reconnect if needed
- */
+/* ============================================================
+ *  AUTO-RECONNECT + MONITORING
+ * ============================================================ */
 export function startConnectionMonitoring() {
   if (isMonitoring || !supabase || supabase._offline) return;
-  
+
   isMonitoring = true;
-  logger.info('[Supabase] Connection health monitoring started');
-  
+
   connectionHealthInterval = setInterval(async () => {
-    const isOnline = await isSupabaseOnline();
-    
-    if (!isOnline && !supabase._offline) {
-      logger.warn('[Supabase] Connection lost, attempting reconnection...');
-      await reconnectSupabase();
-    }
-  }, 30000); // Check every 30 seconds
+    const online = await isSupabaseOnline();
+    if (!online) await reconnectSupabase();
+  }, 30000);
+
+  logger.info('[Supabase] Connection monitoring started.');
 }
 
-/**
- * Stop connection health monitoring
- */
 export function stopConnectionMonitoring() {
   if (connectionHealthInterval) {
     clearInterval(connectionHealthInterval);
     connectionHealthInterval = null;
-    isMonitoring = false;
-    logger.info('[Supabase] Connection health monitoring stopped');
   }
+  isMonitoring = false;
+  logger.info('[Supabase] Connection monitoring stopped.');
 }
 
-/**
- * Attempt to reconnect to Supabase
- */
 async function reconnectSupabase() {
   try {
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      throw new Error('Network offline');
-    }
-    // Reset connection
+    if (typeof navigator !== 'undefined' && !navigator.onLine)
+      throw new Error('Device offline.');
+
     supabase = null;
     await initSupabase();
-    
-    // Verify connection
-    const isOnline = await isSupabaseOnline();
-    if (isOnline) {
-      logger.info('[Supabase] ✅ Reconnection successful');
-      // Dispatch event for UI to react
-      if (typeof window !== 'undefined') {
+
+    if (await isSupabaseOnline()) {
+      logger.info('[Supabase] Reconnected successfully.');
+
+      if (typeof window !== 'undefined')
         window.dispatchEvent(new CustomEvent('supabase-reconnected'));
-      }
-    } else {
-      throw new Error('Connection test failed after reconnection');
+
+      return;
     }
-  } catch (error) {
-    logger.error('[Supabase] ❌ Reconnection failed', { error: error as any });
-    // Dispatch event for UI to show offline state
-    if (typeof window !== 'undefined') {
+
+    throw new Error('Connection test failed after reconnection.');
+  } catch (e) {
+    logger.error('[Supabase] Reconnection failed.', { error: e });
+
+    if (typeof window !== 'undefined')
       window.dispatchEvent(new CustomEvent('supabase-connection-lost'));
-    }
   }
 }
 
-/**
- * Get connection status and metrics
- */
+/* ============================================================
+ *  STATUS DASHBOARD
+ * ============================================================ */
 export function getConnectionStatus() {
   return {
     initialized: supabase !== null,
-    offline: supabase?._offline ?? true,
+    offline: !!supabase?._offline,
     monitoring: isMonitoring
   };
 }
 
-// Auto-initialize in background on module load to reduce null usage windows
-void (async () => { try { await initSupabase(); } catch { /* noop */ } })();
+/* ============================================================
+ *  BACKGROUND AUTO-INIT
+ * ============================================================ */
+void (async () => {
+  try { await initSupabase(); } catch {}
+})();
 
 export { supabase };
