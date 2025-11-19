@@ -92,17 +92,20 @@ export const useAI = (onNotification?: AINotificationCallback) => {
     prompt: string,
     context?: string,
     type?: string,
-    forceOffline?: boolean
+    forceOfflineOrOptions?: boolean | { forceOffline?: boolean; forceOnlineOnly?: boolean }
   ): Promise<AIResponse> => {
     setIsLoading(true);
     
     try {
+      const forceOffline = typeof forceOfflineOrOptions === 'boolean' ? forceOfflineOrOptions : (forceOfflineOrOptions?.forceOffline ?? false);
+      const forceOnlineOnly = typeof forceOfflineOrOptions === 'object' ? !!forceOfflineOrOptions.forceOnlineOnly : false;
       // Use AI Gateway service for enhanced offline flow control
       const response = await generateViaGateway(prompt, {
         context,
         role: resolveCurrentRole() || 'Teacher',
         tenantId: getTenantId() || 'demo',
-        forceOffline: forceOffline || isSensitiveFinanceQuery(prompt) || detectTools(prompt).length > 0 || needsStructuredOutput(prompt)
+        forceOffline: forceOffline || isSensitiveFinanceQuery(prompt) || detectTools(prompt).length > 0 || needsStructuredOutput(prompt),
+        forceOnlineOnly
       });
 
       setIsLoading(false);
@@ -177,7 +180,8 @@ export const useAI = (onNotification?: AINotificationCallback) => {
     userProfile,
     conversationHistory,
     responseMimeType,
-    forceOffline
+    forceOffline,
+    forceOnlineOnly
   }: {
     prompt: string;
     context?: string | Record<string, unknown>;
@@ -188,6 +192,7 @@ export const useAI = (onNotification?: AINotificationCallback) => {
     conversationHistory?: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
     responseMimeType?: string;
     forceOffline?: boolean;
+    forceOnlineOnly?: boolean;
   }): Promise<void> => {
     setIsLoading(true);
     
@@ -235,7 +240,8 @@ export const useAI = (onNotification?: AINotificationCallback) => {
         responseMimeType,
         role: (resolveCurrentRole() as any) || 'Teacher',
         tenantId: getTenantId() || 'demo',
-        forceOffline: forceOffline || isSensitiveFinanceQuery(prompt) || detectTools(prompt).length > 0 || needsStructuredOutput(prompt)
+        forceOffline: forceOffline || isSensitiveFinanceQuery(prompt) || detectTools(prompt).length > 0 || needsStructuredOutput(prompt),
+        forceOnlineOnly
       });
 
       setIsLoading(false);

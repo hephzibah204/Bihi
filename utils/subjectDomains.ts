@@ -129,3 +129,46 @@ export function getSubjectDomainPresets(subjectName: string, classLevel: string,
   if (/computer|ict/.test(s)) return pickTerm(map.computer);
   return [];
 }
+
+export function getCurriculumSubjectPresets(subjectName: string, classLevel: string, curriculum: string, term?: string): string[] {
+  const curr = (curriculum || '').toLowerCase();
+  const cl = (classLevel || '').toLowerCase();
+  if (/british/.test(curr)) {
+    const ks = cl.includes('primary 1') || cl.includes('primary 2') || cl.includes('primary 3') || cl.includes('basic 1') || cl.includes('basic 2') || cl.includes('basic 3') ? 'ks1'
+      : cl.includes('primary 4') || cl.includes('primary 5') || cl.includes('primary 6') || cl.includes('basic 4') || cl.includes('basic 5') || cl.includes('basic 6') ? 'ks2'
+      : (cl.includes('jss') || cl.includes('js')) ? 'ks3' : 'any';
+    const s = (subjectName || '').toLowerCase();
+    const british: Record<string, { any: string[]; ks1?: string[]; ks2?: string[]; ks3?: string[] }> = {
+      mathematics: {
+        any: ['Number & place value','Addition & subtraction','Measurement','Geometry','Statistics'],
+        ks1: ['Number bonds','Place value to 100','Time (o’clock/half past)','Shapes: 2D/3D'],
+        ks2: ['Fractions & decimals','Area & perimeter','Angles and symmetry','Data interpretation'],
+        ks3: ['Ratios & proportion','Algebra (intro)','Probability (intro)','Graphs']
+      },
+      english: {
+        any: ['Reading comprehension','Writing composition','Grammar & punctuation','Spelling & vocabulary'],
+        ks1: ['Phonics phases','Simple sentences','Punctuation basics','Story retelling'],
+        ks2: ['Paragraph writing','Complex sentences','Summarising texts','Formal/informal writing'],
+        ks3: ['Argumentative writing','Literary analysis','Note making','Report writing']
+      },
+      science: {
+        any: ['Plants & animals','Materials & states','Forces & motion','Earth & space'],
+        ks1: ['Seasonal changes','Everyday materials','Parts of plants','Animals & habitats'],
+        ks2: ['States of matter','Electricity (intro)','Forces & magnets','Earth & space'],
+        ks3: ['Cells & systems','Chemical changes','Energy transfers','Ecology']
+      }
+    };
+    const key = /math/.test(s) ? 'mathematics' : /english|literacy|language/.test(s) ? 'english' : /science|basic\s*science|technology|bst/.test(s) ? 'science' : '';
+    const m = key ? british[key] : undefined;
+    if (!m) return [];
+    const base = m.any || [];
+    const extra = (m as any)[ks] || [];
+    return Array.from(new Set([...(extra || []), ...base])).slice(0, 12);
+  }
+  // For NERDC and state schemes (Lagos/Ogun/NAPPS), reuse NERDC-aligned presets
+  if (/nerdc|lagos|ogun|napps|scheme/.test(curr) || !curr) {
+    return getSubjectDomainPresets(subjectName, classLevel, term);
+  }
+  // Default fallback
+  return getSubjectDomainPresets(subjectName, classLevel, term);
+}

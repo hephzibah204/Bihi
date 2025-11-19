@@ -19,6 +19,7 @@ export interface AIGatewayRequest {
   userProfile?: any;
   responseMimeType?: string;
   expectedSchema?: any;
+  forceOnlineOnly?: boolean;
 }
 
 export interface AIGatewayResponse {
@@ -78,7 +79,11 @@ export class AIGatewayService {
       try {
         return await this.generateOnline(request, startTime);
       } catch (error) {
-        logger.warn('Online generation failed, falling back to offline', { error });
+        logger.warn('Online generation failed', { error });
+        if (request.forceOnlineOnly) {
+          throw error;
+        }
+        logger.warn('Falling back to offline');
         return await this.generateOffline(request, startTime, error as Error);
       }
     } catch (error) {
@@ -120,7 +125,12 @@ export class AIGatewayService {
       try {
         await this.generateOnlineStream(request, onChunk, abortController.signal);
       } catch (error) {
-        logger.warn('Online streaming failed, falling back to offline', { error });
+        logger.warn('Online streaming failed', { error });
+        if (request.forceOnlineOnly) {
+          onChunk({ error: (error as Error)?.message || 'online_only_failed', done: true });
+          return;
+        }
+        logger.warn('Falling back to offline');
         await this.generateOfflineStream(request, onChunk, error as Error);
       }
     } finally {

@@ -13,7 +13,7 @@ import { supabase } from '../services/supabaseClient';
 import { normalizeAIText } from '../utils/aiNormalize';
 import HtmlContent from './HtmlContent';
 import { getMappings, getPhonicsPlan, getStageFromClassLevel } from '../utils/nerdcMappings';
-import { getSubjectDomainPresets } from '../utils/subjectDomains';
+import { getCurriculumSubjectPresets } from '../utils/subjectDomains';
 import { buildTopicSuggestionPrompt } from '../lib/ai/prompting/topic_suggestion_templates';
 import type { LessonTemplate } from '../types/academic';
 
@@ -84,7 +84,7 @@ const LessonPlanner = () => {
         const baseCurr = curriculum === 'Other' ? otherCurriculum : curriculum;
         const m = subjectName && classLevel ? getMappings(subjectName, classLevel, baseCurr) : null;
         const byStrand = m?.strands ? m.strands.map((s: any) => String(s.name || s.code || '')).filter(Boolean) : [];
-        const preset = getSubjectDomainPresets(subjectName, classLevel, term);
+        const preset = getCurriculumSubjectPresets(subjectName, classLevel, baseCurr, term);
         let fromScheme: string[] = [];
         if (uploadedScheme) {
             const lines = String(uploadedScheme).split(/\r?\n/).map(x => x.trim()).filter(Boolean);
@@ -240,7 +240,7 @@ ${phonics ? `<h3>Phonics Scope (Auto)</h3><p><strong>Focus/Graphemes:</strong> $
 
  Ensure strict integration of the uploaded scheme of work (topic sequencing, period/duration) and reflect local realities (power/internet availability, classroom size). Use evidence‑based pedagogy and Nigeria‑specific examples throughout. Ensure the result is thorough, practical, and immediately usable.
 `;
-            const r = await generateResponse(prompt, undefined, 'lesson_plan');
+            const r = await generateResponse(prompt, undefined, 'lesson_plan', { forceOnlineOnly: true });
             setGeneratedPlan(normalizeAIText(r.content));
         } catch (err) {
             const msg = (err as any)?.message || String(err);
