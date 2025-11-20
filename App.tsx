@@ -15,7 +15,7 @@ import CBTRouter from './components/cbt/CBTRouter';
 const LandingPage = lazy(() => import('./components/LandingPage'));
 const SuperAdminDashboard = lazy(() => import('./components/SuperAdminDashboard'));
 const NotFoundPage = lazy(() => import('./components/NotFoundPage'));
-import DemoPage from './components/DemoPage';
+const DemoPage = lazy(() => import('./components/DemoPage'));
 const SubscriptionPage = lazy(() => import('./components/SubscriptionPage'));
 const PublicResultViewer = lazy(() => import('./components/PublicResultViewer'));
 const CentralLoginPage = lazy(() => import('./components/CentralLoginPage'));

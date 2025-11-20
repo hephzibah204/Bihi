@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { TeacherView } from '../types';
 import Logo from './icons/Logo';
 import XIcon from './icons/XIcon';
-import { IconHome, IconScoreEntry, IconSchedule, IconAITools, IconHelp, IconPayslips, IconStudents, IconAttendance, IconBroadsheet, IconAssignments, IconResourceHub, IconAICoach, IconMessages, IconNotifications, IconReportCards, IconMonitoring } from './icons/Standard';
+import { IconHome, IconScoreEntry, IconSchedule, IconAITools, IconHelp, IconPayslips, IconStudents, IconAttendance, IconBroadsheet, IconAssignments, IconResourceHub, IconAICoach, IconMessages, IconNotifications, IconReportCards, IconMonitoring, IconTimetable } from './icons/Standard';
 import { TEACHER_VIEWS } from '../utils/constants';
 import BookmarkSquareIcon from './icons/BookmarkSquareIcon';
 import BookOpenIcon from './icons/BookOpenIcon';
@@ -83,6 +83,10 @@ const TeacherSidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveVi
                 { view: TEACHER_VIEWS.AI_TOOLS, label: 'AI Tools', icon: <IconAITools /> },
                 { view: TEACHER_VIEWS.AI_COACH, label: 'AI Coach', icon: <IconAICoach /> },
                 { view: TEACHER_VIEWS.CLASSROOM_MONITORING, label: 'Classroom Monitoring', icon: <IconMonitoring /> },
+                { view: TEACHER_VIEWS.MONITORING_CONSENT, label: 'Monitoring Consent', icon: <IconMonitoring /> },
+                { view: TEACHER_VIEWS.CBT_ITEM_BANK, label: 'CBT Item Bank', icon: <IconResourceHub /> },
+                { view: TEACHER_VIEWS.CBT_EXAM_BUILDER, label: 'CBT Exam Builder', icon: <IconAssignments /> },
+                { view: TEACHER_VIEWS.CBT_TIMETABLE, label: 'Exam Timetable', icon: <IconTimetable /> },
             ]
         },
         {

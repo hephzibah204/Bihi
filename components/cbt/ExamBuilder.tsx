@@ -1,8 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import FileUpload from '../FileUpload';
-import FileList from '../FileList';
-import { getTenantId } from '../../services/api';
 
 type ExamSection = { id: string; title: string; itemIds?: string[]; timeLimitMinutes?: number };
 type Exam = { id?: string; title: string; description?: string; sections: ExamSection[]; rules?: any; status?: string };
@@ -195,15 +192,6 @@ const ExamBuilder = () => {
                   </div>
                 )}
               </div>
-              {!!editingExam.id && (
-                <div className="mt-4">
-                  <div className="font-medium mb-2">Support Media</div>
-                  <FileUpload tenantId={getTenantId() || ''} linkedType="cbt_exam" linkedId={String(editingExam.id)} category="cbt_media" label="Upload Media" />
-                  <div className="mt-3">
-                    <FileList tenantId={getTenantId() || ''} linkedType="cbt_exam" linkedId={String(editingExam.id)} title="Media Files" />
-                  </div>
-                </div>
-              )}
             </div>
             <div className="mt-4 flex justify-end gap-2">
               <button className="btn btn-secondary" onClick={cancelEdit}>Cancel</button>

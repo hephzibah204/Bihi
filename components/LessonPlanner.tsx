@@ -240,7 +240,7 @@ ${phonics ? `<h3>Phonics Scope (Auto)</h3><p><strong>Focus/Graphemes:</strong> $
 
  Ensure strict integration of the uploaded scheme of work (topic sequencing, period/duration) and reflect local realities (power/internet availability, classroom size). Use evidence‑based pedagogy and Nigeria‑specific examples throughout. Ensure the result is thorough, practical, and immediately usable.
 `;
-            const r = await generateResponse(prompt, undefined, 'lesson_plan', { forceOnlineOnly: true });
+            const r = await generateResponse(prompt, undefined, 'lesson_plan');
             setGeneratedPlan(normalizeAIText(r.content));
         } catch (err) {
             const msg = (err as any)?.message || String(err);

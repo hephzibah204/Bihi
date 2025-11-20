@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAI } from '../hooks/useAI';
 import { normalizeAIText } from '../utils/aiNormalize';
+import { safeHtml } from '../utils/sanitize';
 // FIX: Corrected import path for api services.
 import { apiGetStudents, apiGetSubjects } from '../services/api';
 // FIX: Corrected import path for types.
@@ -86,7 +87,7 @@ Constraints:
 - Use <strong> for emphasis where helpful.
 - No extra commentary before or after the HTML.`;
 
-            const result = await generateResponse(prompt, undefined, 'learning-pathway');
+            const result = await generateResponse(prompt, undefined, 'learning-pathway', { forceOnlineOnly: true });
             setGeneratedPathway(normalizeAIText(result.content));
         } catch (err) {
             const msg = (err as any)?.message || String(err);
@@ -164,7 +165,7 @@ Constraints:
                 {generatedPathway && (
                     <div className="mt-4 p-4 bg-gray-100 rounded-md">
                         <h4 className="font-semibold text-sm">Your Learning Pathway for "{topic}":</h4>
-        <div className="mt-1 text-gray-800 font-sans text-sm prose-content" dangerouslySetInnerHTML={{ __html: require('../utils/sanitize').safeHtml(generatedPathway) }} />
+        <div className="mt-1 text-gray-800 font-sans text-sm prose-content" dangerouslySetInnerHTML={{ __html: safeHtml(generatedPathway) }} />
                     </div>
                 )}
             </div>

@@ -109,8 +109,12 @@ export const TEACHER_VIEWS = {
     COMPREHENSIVE_ENTRY: 'comprehensive-entry',
     BROADSHEET: 'broadsheet',
     CLASSROOM_MONITORING: 'classroom-monitoring',
+    MONITORING_CONSENT: 'monitoring-consent',
     PROFILE: 'profile',
     SETTINGS: 'settings',
+    CBT_ITEM_BANK: 'cbt-items',
+    CBT_EXAM_BUILDER: 'cbt-exams',
+    CBT_TIMETABLE: 'cbt-timetable',
 } as const;
 
 export const STUDENT_VIEWS: { [key: string]: StudentView } = {

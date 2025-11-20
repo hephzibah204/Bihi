@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import TeacherSelfAttendance from './TeacherSelfAttendance';
 import FinanceFilterBar from './FinanceFilterBar';
 // types
 import { TeacherView, Teacher, Student, Subject, Assignment, AssignmentScore } from '../types';
@@ -236,6 +237,7 @@ const TeacherHome = ({ setActiveView }: { setActiveView: (view: TeacherView) => 
 
                 {/* Side content area */}
                 <div className="lg:col-span-1 space-y-6">
+                    <TeacherSelfAttendance />
                     {/* Stats Widget */}
                     <div className="card p-6">
                         <h3 className="font-semibold text-lg">Your Stats</h3>

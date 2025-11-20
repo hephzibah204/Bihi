@@ -112,4 +112,3 @@ const TeacherAttendanceHistory: React.FC = () => {
 };
 
 export default TeacherAttendanceHistory;
-

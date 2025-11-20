@@ -42,7 +42,7 @@ const BulkReportCardPrintView = ({ studentIds, allData, onClose, action, templat
     useEffect(() => {
         if (!action) return;
         if (action === 'download') {
-            handleDownload();
+            setTimeout(() => { handleDownload(); }, 50);
         } else if (action === 'print') {
             const container = document.querySelector('.printable-content') as HTMLElement | null;
             const hadOffscreen = !!container && container.classList.contains('offscreen');

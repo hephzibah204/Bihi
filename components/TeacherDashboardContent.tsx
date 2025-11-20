@@ -25,6 +25,10 @@ const StudentProfilePage = lazy(() => import('./StudentProfilePage'));
 const ComprehensiveReportEntry = lazy(() => import('./ComprehensiveReportEntry'));
 const Broadsheet = lazy(() => import('./Broadsheet'));
 const TeacherLiveControl = lazy(() => import('./TeacherLiveControl'));
+const ItemBank = lazy(() => import('./cbt/ItemBank'));
+const ExamBuilder = lazy(() => import('./cbt/ExamBuilder'));
+const ExamTimetable = lazy(() => import('./cbt/ExamTimetable'));
+const MonitoringConsent = lazy(() => import('./MonitoringConsent'));
 
 // AI Tool Components
 const AIChatPanel = lazy(() => import('./AIChatPanel'));
@@ -94,6 +98,14 @@ const TeacherDashboardContent: React.FC<TeacherDashboardContentProps> = ({ activ
                         return <Broadsheet setActiveView={setActiveView} userRole={'Teacher'} />;
                     case TEACHER_VIEWS.CLASSROOM_MONITORING:
                         return isEnabled ? <TeacherLiveControl /> : <div className="p-4 bg-yellow-50 border border-yellow-200 rounded">Classroom Monitoring is disabled for Teachers.</div>;
+                    case TEACHER_VIEWS.CBT_ITEM_BANK:
+                        return <ItemBank />;
+                    case TEACHER_VIEWS.CBT_EXAM_BUILDER:
+                        return <ExamBuilder />;
+                    case TEACHER_VIEWS.CBT_TIMETABLE:
+                        return <ExamTimetable />;
+                    case TEACHER_VIEWS.MONITORING_CONSENT:
+                        return <MonitoringConsent />;
                     case TEACHER_VIEWS.COMPREHENSIVE_ENTRY:
                         return <ComprehensiveReportEntry />;
                     case TEACHER_VIEWS.STUDENT_PROFILE:

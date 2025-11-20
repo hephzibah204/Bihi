@@ -439,11 +439,11 @@ export class AIGatewayService {
       const isDemo = sessionStorage.getItem('isDemoMode') === 'true';
       if (isDemo) {
         headers['X-Demo-Mode'] = 'true';
-      } else if (supabase) {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          headers['Authorization'] = `Bearer ${session.access_token}`;
-        }
+      } else if (supabase && supabase.auth && typeof supabase.auth.getSession === 'function') {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) headers['Authorization'] = `Bearer ${session.access_token}`;
+        } catch {}
       }
     }
 
