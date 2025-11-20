@@ -113,7 +113,7 @@ async function handlePost(request, env) {
         }
 
         // Resolve API key with school-specific override support
-        let apiKey = env.API_KEY; // Default sitewide key
+        let apiKey = env.API_KEY || env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || env.NEXT_PUBLIC_GEMINI_API_KEY || env.GOOGLE_API_KEY || env.VITE_GOOGLE_API_KEY;
         
         // If we have a tenant ID and user context, check for school-specific Gemini API key
         if (tenantId && userContext && !isDemoMode) {
