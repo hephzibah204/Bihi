@@ -21,4 +21,3 @@ export const DashboardFilterProvider: React.FC<React.PropsWithChildren<{ initial
   const value = useMemo(() => ({ session, term, setSession, setTerm }), [session, term]);
   return <DashboardFilterContext.Provider value={value}>{children}</DashboardFilterContext.Provider>;
 };
-

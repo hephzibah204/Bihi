@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { apiGetInvoices, apiGetStudents } from '../services/api';
 import Card from './ui/Card';
 
 const TopDebtorsQuickList: React.FC = () => {
+  const navigate = useNavigate();
   const [students, setStudents] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -42,7 +44,7 @@ const TopDebtorsQuickList: React.FC = () => {
   }, [students, invoices]);
 
   return (
-    <Card header={<div className="flex items-center justify-between"><div className="text-base font-semibold">Top Debtors</div><button className="toggle-pill" onClick={() => { const url = new URL(window.location.toString()); url.searchParams.set('view', 'leaderboard-debtors'); window.history.pushState({}, '', url.toString()); }}>View full</button></div>}>
+    <Card header={<div className="flex items-center justify-between"><div className="text-base font-semibold">Top Debtors</div><button className="toggle-pill" onClick={() => { const url = new URL(window.location.toString()); url.searchParams.set('view', 'leaderboard-debtors'); navigate(url.pathname + url.search + url.hash); }}>View full</button></div>}>
       {loading ? (
         <div className="text-sm text-gray-500">Loading…</div>
       ) : rows.length === 0 ? (

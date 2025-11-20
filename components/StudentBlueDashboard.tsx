@@ -12,6 +12,7 @@ import BellIcon from './icons/BellIcon';
 import StudentBottomNavBar from './StudentBottomNavBar';
 import { DashboardFilterProvider } from '../contexts/DashboardFilterContext';
 import DashboardFilterBar from './DashboardFilterBar';
+import TopBarStudent from './ui/TopBarStudent';
 
 const StudentDashboardContent = lazy(() => import('./StudentDashboardContent'));
 
@@ -57,7 +58,7 @@ const StudentBlueDashboard: React.FC<{ onLogout: () => void; demoUserId?: string
   const resolvedDemoId = demoUserId || 'stud_1';
 
   return (
-    <AppShell pageTitle={headerTitle} sidebarItems={sidebarItems} onSelectSidebarItem={handleViewChange} rightPanel={rightPanel}>
+    <AppShell pageTitle={headerTitle} sidebarItems={sidebarItems} onSelectSidebarItem={handleViewChange} rightPanel={rightPanel} topBar={<TopBarStudent pageTitle={headerTitle} />}>
       <DashboardFilterProvider>
         <DashboardFilterBar />
         <Suspense fallback={<div className="p-4">Loading…</div>}>

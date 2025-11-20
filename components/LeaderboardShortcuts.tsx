@@ -1,13 +1,17 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
-const ShortcutCard: React.FC<{ title: string; view: string }> = ({ title, view }) => (
-  <div className="card-soft p-5">
-    <div className="flex items-center justify-between">
-      <div className="text-sm font-semibold text-[#0F172A]">{title}</div>
-      <button className="toggle-pill" onClick={() => { const url = new URL(window.location.toString()); url.searchParams.set('view', view); window.history.pushState({}, '', url.toString()); }}>View full</button>
+const ShortcutCard: React.FC<{ title: string; view: string }> = ({ title, view }) => {
+  const navigate = useNavigate();
+  return (
+    <div className="card-soft p-5">
+      <div className="flex items-center justify-between">
+        <div className="text-sm font-semibold text-[#0F172A]">{title}</div>
+        <button className="toggle-pill" onClick={() => { const url = new URL(window.location.toString()); url.searchParams.set('view', view); navigate(url.pathname + url.search + url.hash); }}>View full</button>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const LeaderboardShortcuts: React.FC = () => {
   return (

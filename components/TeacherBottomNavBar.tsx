@@ -12,12 +12,21 @@ interface NavItemProps {
 }
 
 const NavItem: FC<NavItemProps> = ({ icon, label, view, isActive, onClick }) => (
-    <button 
+    <button
+        type="button"
         onClick={() => onClick(view)}
-        className={`flex flex-col items-center justify-center w-full pt-2 pb-1 transition-colors duration-200 ${isActive ? 'text-indigo-600' : 'text-gray-500'}`}
+        className={`flex-1 flex flex-col items-center justify-center pt-2 pb-1 transition-colors duration-200 relative ${
+            isActive ? 'text-indigo-600' : 'text-gray-500 hover:text-indigo-600'
+        }`}
+        aria-current={isActive ? 'page' : undefined}
     >
+        <span
+            className={`absolute top-0 h-1 w-8 bg-indigo-600 rounded-full transition-opacity duration-300 ${
+                isActive ? 'opacity-100' : 'opacity-0'
+            }`}
+        ></span>
         {icon}
-        <span className="text-xs mt-1">{label}</span>
+        <span className={`text-xs mt-1 font-semibold ${isActive ? 'text-indigo-600' : 'text-gray-600'}`}>{label}</span>
     </button>
 );
 
@@ -37,19 +46,17 @@ const TeacherBottomNavBar: FC<BottomNavBarProps> = ({ activeView, setActiveView 
     ];
 
     return (
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
-            <div className="flex justify-around">
-                {navItems.map(({ view, label, icon }) => (
-                    <NavItem 
-                        key={view}
-                        icon={icon}
-                        label={label}
-                        view={view}
-                        isActive={activeView === view}
-                        onClick={setActiveView}
-                    />
-                ))}
-            </div>
+        <nav className="bottom-nav">
+            {navItems.map(({ view, label, icon }) => (
+                <NavItem
+                    key={view}
+                    icon={icon}
+                    label={label}
+                    view={view}
+                    isActive={activeView === view}
+                    onClick={setActiveView}
+                />
+            ))}
         </nav>
     );
 };

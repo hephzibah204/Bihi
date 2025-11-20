@@ -101,7 +101,7 @@ const GradingSettings = ({ settings, onSettingsChange }) => {
                         <input type="number" placeholder="From" value={grade.from} onChange={e => handleChange(index, 'from', Number(e.target.value))} className="input-field"/>
                         <input type="number" placeholder="To" value={grade.to} onChange={e => handleChange(index, 'to', Number(e.target.value))} className="input-field"/>
                         <input type="text" placeholder="Remark" value={grade.remark} onChange={e => handleChange(index, 'remark', e.target.value)} className="input-field"/>
-                        <button onClick={() => removeGrade(index)} className="icon-button text-red-500"><TrashIcon className="w-5 h-5"/></button>
+                        <button type="button" onClick={() => removeGrade(index)} className="icon-button text-red-500"><TrashIcon className="w-5 h-5"/></button>
                     </div>
                 ))}
             </div>
@@ -223,7 +223,7 @@ const ReportCardSettingsTab = ({ settings, onSettingsChange }) => {
                     {reportCardSettings.affectiveSkills.map((skill, index) => (
                         <div key={skill.id} className="flex items-center gap-2 mt-2">
                             <input type="text" aria-label={`Affective skill ${index + 1}`} value={skill.label} onChange={e => handleSkillChange('affectiveSkills', index, e.target.value)} className="input-field" />
-                            <button onClick={() => removeSkill('affectiveSkills', index)}><TrashIcon className="w-4 h-4 text-red-500"/></button>
+                            <button type="button" onClick={() => removeSkill('affectiveSkills', index)}><TrashIcon className="w-4 h-4 text-red-500"/></button>
                         </div>
                     ))}
                     <button onClick={() => addSkill('affectiveSkills')} className="btn btn-secondary text-sm mt-2"><PlusIcon className="w-4 h-4 mr-1"/>Add</button>
@@ -233,7 +233,7 @@ const ReportCardSettingsTab = ({ settings, onSettingsChange }) => {
                     {reportCardSettings.psychomotorSkills.map((skill, index) => (
                         <div key={skill.id} className="flex items-center gap-2 mt-2">
                             <input type="text" aria-label={`Psychomotor skill ${index + 1}`} value={skill.label} onChange={e => handleSkillChange('psychomotorSkills', index, e.target.value)} className="input-field" />
-                            <button onClick={() => removeSkill('psychomotorSkills', index)}><TrashIcon className="w-4 h-4 text-red-500"/></button>
+                            <button type="button" onClick={() => removeSkill('psychomotorSkills', index)}><TrashIcon className="w-4 h-4 text-red-500"/></button>
                         </div>
                     ))}
                     <button onClick={() => addSkill('psychomotorSkills')} className="btn btn-secondary text-sm mt-2"><PlusIcon className="w-4 h-4 mr-1"/>Add</button>
@@ -523,13 +523,13 @@ const ClassSettings = ({ settings, onSettingsChange }) => {
                         <div key={level.id} className="p-3 border rounded-md">
                             <div className="flex items-center gap-2">
                                 <input type="text" value={level.name} onChange={e => handleLevelChange(levelIndex, e.target.value)} className="input-field font-semibold" placeholder="Level Name"/>
-                                <button onClick={() => removeLevel(levelIndex)} className="icon-button text-red-500"><TrashIcon className="w-5 h-5"/></button>
+                                <button type="button" onClick={() => removeLevel(levelIndex)} className="icon-button text-red-500"><TrashIcon className="w-5 h-5"/></button>
                             </div>
                             <div className="pl-4 mt-2 space-y-2">
                                 {level.classes.map((cls, classIndex) => (
                                     <div key={cls.id} className="flex items-center gap-2">
                                         <input type="text" value={cls.name} onChange={e => handleClassNameChange(levelIndex, classIndex, e.target.value)} className="input-field text-sm" placeholder="Class Name (e.g., 1, 2)"/>
-                                        <button onClick={() => removeClassFromLevel(levelIndex, classIndex)} className="icon-button text-red-500"><TrashIcon className="w-4 h-4"/></button>
+                                        <button type="button" onClick={() => removeClassFromLevel(levelIndex, classIndex)} className="icon-button text-red-500"><TrashIcon className="w-4 h-4"/></button>
                                     </div>
                                 ))}
                                 <button onClick={() => addClassToLevel(levelIndex)} className="btn btn-secondary btn-sm text-xs"><PlusIcon className="w-3 h-3 mr-1"/> Add Class</button>
@@ -546,7 +546,7 @@ const ClassSettings = ({ settings, onSettingsChange }) => {
                     {(structure.sections || []).map((section, index) => (
                         <div key={section.id} className="flex items-center gap-2">
                             <input type="text" value={section.name} onChange={e => handleSectionChange(index, e.target.value)} className="input-field" placeholder="Section Name"/>
-                            <button onClick={() => removeSection(index)} className="icon-button text-red-500" title="Remove section"><TrashIcon className="w-4 h-4"/></button>
+                            <button type="button" onClick={() => removeSection(index)} className="icon-button text-red-500" title="Remove section"><TrashIcon className="w-4 h-4"/></button>
                         </div>
                     ))}
                 </div>

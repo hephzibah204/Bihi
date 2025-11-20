@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import AppShell from './ui/AppShell';
 import Card from './ui/Card';
 import StatPill from './ui/StatPill';
@@ -45,6 +46,7 @@ import { DashboardFilterProvider } from '../contexts/DashboardFilterContext';
 import DashboardFilterBar from './DashboardFilterBar';
 
 const AdminBlueDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const sidebarItems = [
     { key: 'dashboard', label: 'Dashboard', icon: <ChartBarIcon className="w-5 h-5" />, active: true },
     { key: 'academics', label: 'Academics', icon: <BookOpenIcon className="w-5 h-5" /> },
@@ -91,7 +93,7 @@ const AdminBlueDashboard: React.FC = () => {
         ].map(link => (
           <button
             key={String(link.view)}
-            onClick={() => { const url = new URL(window.location.toString()); url.searchParams.set('view', link.view); window.history.pushState({}, '', url.toString()); }}
+            onClick={() => { const url = new URL(window.location.toString()); url.searchParams.set('view', link.view as any); navigate(url.pathname + url.search + url.hash); }}
             className="card p-6 text-center hover:shadow-lg hover:scale-105 transition-transform duration-200"
           >
             <div className="text-[#2563EB] mx-auto w-16 h-16 flex items-center justify-center bg-[#EEF2FF] rounded-full">

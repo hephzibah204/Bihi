@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { apiGetScores, apiGetStudents } from '../services/api';
 import Card from './ui/Card';
 
 const PASS_THRESHOLD = 50; // configurable
 
 const HighRiskStudentsQuickList: React.FC = () => {
+  const navigate = useNavigate();
   const [students, setStudents] = useState<any[]>([]);
   const [scores, setScores] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -43,7 +45,7 @@ const HighRiskStudentsQuickList: React.FC = () => {
   }, [students, scores]);
 
   return (
-    <Card header={<div className="flex items-center justify-between"><div className="text-base font-semibold">High-Risk Students</div><button className="toggle-pill" onClick={() => { const url = new URL(window.location.toString()); url.searchParams.set('view', 'leaderboard-students'); window.history.pushState({}, '', url.toString()); }}>View full</button></div>}>
+    <Card header={<div className="flex items-center justify-between"><div className="text-base font-semibold">High-Risk Students</div><button className="toggle-pill" onClick={() => { const url = new URL(window.location.toString()); url.searchParams.set('view', 'leaderboard-students'); navigate(url.pathname + url.search + url.hash); }}>View full</button></div>}>
       {loading ? (
         <div className="text-sm text-gray-500">Loading…</div>
       ) : rows.length === 0 ? (

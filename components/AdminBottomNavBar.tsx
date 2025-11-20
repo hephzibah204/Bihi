@@ -13,6 +13,7 @@ interface NavItemProps {
 
 const NavItem: FC<NavItemProps> = ({ icon, label, view, isActive, onClick }) => (
     <button 
+        type="button"
         onClick={() => onClick(view)}
         className={`flex-1 flex flex-col items-center justify-center pt-2 pb-1 transition-colors duration-200 relative ${
             isActive 

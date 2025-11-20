@@ -24,7 +24,7 @@ const TeacherHome = lazy(() => import('./TeacherHome'));
 const StudentProfilePage = lazy(() => import('./StudentProfilePage'));
 const ComprehensiveReportEntry = lazy(() => import('./ComprehensiveReportEntry'));
 const Broadsheet = lazy(() => import('./Broadsheet'));
-const TeacherLiveControl = lazy(() => import('./TeacherLiveControl'));
+import TeacherLiveControl from './TeacherLiveControl';
 const ItemBank = lazy(() => import('./cbt/ItemBank'));
 const ExamBuilder = lazy(() => import('./cbt/ExamBuilder'));
 const ExamTimetable = lazy(() => import('./cbt/ExamTimetable'));

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import SearchIcon from '../icons/SearchIcon';
 import BellIcon from '../icons/BellIcon';
 import Cog6ToothIcon from '../icons/Cog6ToothIcon';
@@ -24,10 +25,11 @@ const TopBar: React.FC<TopBarProps> = ({ pageTitle }) => {
   const [query, setQuery] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const navigate = useNavigate();
   const navigateView = (view: string) => {
     const url = new URL(window.location.toString());
     url.searchParams.set('view', view);
-    window.history.pushState({}, '', url.toString());
+    navigate(url.pathname + url.search + url.hash);
   };
 
   const toggleTheme = (dark: boolean) => {

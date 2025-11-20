@@ -5,6 +5,7 @@ import { useAI } from '../hooks/useAI';
 import Modal from './Modal';
 import StudentReportCardViewer from './StudentReportCardViewer';
 import { logger } from '../utils/logger';
+import { safeHtml } from '../utils/sanitize';
 
 const StudentProfile = ({ demoUserId }) => {
     const [student, setStudent] = useState(null);
@@ -122,22 +123,21 @@ const StudentProfile = ({ demoUserId }) => {
                 return `${subj}: ${total}%`;
             }).join(', ');
 
-            const prompt = `Analyze this student's academic performance and provide insights for teachers and administrators:
+            const prompt = `Analyze this student's academic performance and provide insights for teachers and administrators.
 
 Student: ${student.name}
 Class: ${student.class}
 Scores: ${formattedScores}
 
-Please provide:
-1. Academic Performance Analysis
-2. Strengths and Areas for Improvement
-3. Behavioral Insights (if applicable)
-4. Recommendations for Teachers
-5. Suggested Interventions or Support
+Return a single HTML snippet only with clear headings and short, actionable points:
+<h3>Academic Performance Analysis</h3>
+<h3>Strengths and Areas for Improvement</h3>
+<h3>Behavioral Insights</h3>
+<h3>Recommendations for Teachers</h3>
+<h3>Suggested Interventions or Support</h3>
+Use <strong> for emphasis and <ul>/<li> for bullets where helpful.`;
 
-Keep the analysis professional and actionable for educators.`;
-
-            const { content } = await generateResponse(prompt);
+            const { content } = await generateResponse(prompt, undefined, 'student_analysis');
             setAiAnalysis(content);
             setShowAIAnalysis(true);
         } catch (error) {
@@ -411,9 +411,7 @@ Keep the analysis professional and actionable for educators.`;
                 <Modal isOpen={showAIAnalysis} onClose={() => setShowAIAnalysis(false)} title="🤖 AI Student Analysis">
                     <div className="max-w-2xl mx-auto">
                         <h3 className="text-lg font-semibold mb-4">🤖 AI Student Analysis</h3>
-                        <div className="bg-gray-50 p-4 rounded-lg max-h-96 overflow-y-auto">
-                            <pre className="whitespace-pre-wrap text-sm">{aiAnalysis}</pre>
-                        </div>
+                        <div className="bg-gray-50 p-4 rounded-lg max-h-96 overflow-y-auto prose-content" dangerouslySetInnerHTML={{ __html: safeHtml(aiAnalysis) }} />
                         <div className="mt-4 flex justify-end">
                             <button onClick={() => setShowAIAnalysis(false)} className="btn btn-primary">
                                 Close

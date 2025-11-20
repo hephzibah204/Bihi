@@ -16,6 +16,7 @@ import QuestionMarkCircleIcon from './icons/QuestionMarkCircleIcon';
 import TeacherBottomNavBar from './TeacherBottomNavBar';
 import { DashboardFilterProvider } from '../contexts/DashboardFilterContext';
 import DashboardFilterBar from './DashboardFilterBar';
+import TopBarTeacher from './ui/TopBarTeacher';
 
 const TeacherDashboardContent = lazy(() => import('./TeacherDashboardContent'));
 const TeacherMoreView = lazy(() => import('./TeacherMoreView'));
@@ -75,7 +76,7 @@ const TeacherBlueDashboard: React.FC<{ onLogout: () => void }> = ({ onLogout }) 
   );
 
   return (
-    <AppShell pageTitle={headerTitle} sidebarItems={sidebarItems} onSelectSidebarItem={handleViewChange} rightPanel={rightPanel}>
+    <AppShell pageTitle={headerTitle} sidebarItems={sidebarItems} onSelectSidebarItem={handleViewChange} rightPanel={rightPanel} topBar={<TopBarTeacher pageTitle={headerTitle} />}>
       <DashboardFilterProvider>
         <DashboardFilterBar />
         <Suspense fallback={<div className="p-4">Loading…</div>}>

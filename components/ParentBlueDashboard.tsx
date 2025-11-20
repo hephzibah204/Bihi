@@ -1,6 +1,7 @@
 import React, { useEffect, useState, lazy, Suspense } from 'react';
 import AppShell from './ui/AppShell';
 import RightPanel from './ui/RightPanel';
+import TopBarParent from './ui/TopBarParent';
 import { PARENT_VIEWS } from '../utils/constants';
 import UsersIcon from './icons/UsersIcon';
 import ClipboardListIcon from './icons/ClipboardListIcon';
@@ -55,7 +56,7 @@ const ParentBlueDashboard: React.FC<{ onLogout: () => void; demoUserId?: string 
   const resolvedChildId = demoUserId || 'stud_1';
 
   return (
-    <AppShell pageTitle={headerTitle} sidebarItems={sidebarItems} onSelectSidebarItem={handleViewChange} rightPanel={rightPanel}>
+    <AppShell pageTitle={headerTitle} sidebarItems={sidebarItems} onSelectSidebarItem={handleViewChange} rightPanel={rightPanel} topBar={<TopBarParent pageTitle={headerTitle} />}>
       <Suspense fallback={<div className="p-4">Loading…</div>}>
         <ParentDashboardContent activeView={activeView as any} setActiveView={handleViewChange as any} demoUserId={resolvedChildId} />
       </Suspense>
