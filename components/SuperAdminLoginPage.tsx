@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 // Fix: Corrected import path for supabase client
-import { initSupabase, getSupabase } from '../services/supabaseClient';
+import { initSupabase, getSupabase, isSupabaseOnline } from '../services/supabaseClient';
 import { NetworkTraffic } from './SuperAdmin/SystemMonitoring';
 import ConnectionStatusBar from './ConnectionStatusBar';
 
@@ -11,6 +11,7 @@ const SuperAdminLoginPage = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [networkStats, setNetworkStats] = useState({ inbound: 0, outbound: 0 });
+    const [isDbOnline, setIsDbOnline] = useState(false);
 
     // Real-time network monitoring
     useEffect(() => {
@@ -24,6 +25,29 @@ const SuperAdminLoginPage = () => {
         updateNetwork();
         const interval = setInterval(updateNetwork, 3000);
         return () => clearInterval(interval);
+    }, []);
+
+    useEffect(() => {
+        let mounted = true;
+        const init = async () => {
+            try {
+                await initSupabase();
+                const online = await isSupabaseOnline();
+                if (mounted) setIsDbOnline(online);
+            } catch {
+                if (mounted) setIsDbOnline(false);
+            }
+        };
+        init();
+        const onReconnect = () => setIsDbOnline(true);
+        const onLost = () => setIsDbOnline(false);
+        window.addEventListener('supabase-reconnected', onReconnect as EventListener);
+        window.addEventListener('supabase-connection-lost', onLost as EventListener);
+        return () => {
+            mounted = false;
+            window.removeEventListener('supabase-reconnected', onReconnect as EventListener);
+            window.removeEventListener('supabase-connection-lost', onLost as EventListener);
+        };
     }, []);
 
     const handleLogin = async (e) => {
@@ -85,6 +109,11 @@ const SuperAdminLoginPage = () => {
                         {error}
                     </div>
                 )}
+                {!isDbOnline && (
+                    <div className="p-3 text-sm text-amber-700 bg-amber-100 rounded-lg" role="status">
+                        Database disconnected. Please check configuration or network.
+                    </div>
+                )}
 
                 <form className="space-y-6" onSubmit={handleLogin}>
                     <div>
@@ -122,11 +151,14 @@ const SuperAdminLoginPage = () => {
                     <div>
                         <button
                             type="submit"
-                            disabled={loading}
+                            disabled={loading || !isDbOnline}
                             className="w-full btn btn-primary"
                         >
                             {loading ? 'Signing in...' : 'Sign in'}
                         </button>
+                        <div className="mt-2 text-xs text-gray-600 text-center">
+                            {isDbOnline ? 'Database Connected' : 'Database Disconnected'}
+                        </div>
                     </div>
                 </form>
                 </div>
