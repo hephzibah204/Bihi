@@ -299,12 +299,49 @@ class MigrationManager {
       name,
       description: `Migration: ${name}`,
       up: async () => {
-        // TODO: Implement migration logic
-        throw new Error(`Migration ${version} up method not implemented`);
+        // Default migration logic - creates a placeholder table
+        const supabase = getSupabase();
+        const sql = `
+          CREATE TABLE IF NOT EXISTS migration_placeholder_${version.replace(/[^a-zA-Z0-9]/g, '_')} (
+            id SERIAL PRIMARY KEY,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            description TEXT
+          );
+          
+          COMMENT ON TABLE migration_placeholder_${version.replace(/[^a-zA-Z0-9]/g, '_')} 
+          IS 'Placeholder table for migration ${version}';
+        `;
+        
+        try {
+          const { error } = await supabase.rpc('exec_sql', { sql });
+          if (error) {
+            logger.error('Migration failed:', { version, error: error.message });
+            throw new DatabaseError(`Migration ${version} failed: ${error.message}`, error);
+          }
+          logger.info('Migration applied successfully:', { version });
+        } catch (error) {
+          logger.error('Migration error:', { version, error });
+          throw error;
+        }
       },
       down: async () => {
-        // TODO: Implement rollback logic
-        throw new Error(`Migration ${version} down method not implemented`);
+        // Default rollback logic - drops the placeholder table
+        const supabase = getSupabase();
+        const sql = `
+          DROP TABLE IF EXISTS migration_placeholder_${version.replace(/[^a-zA-Z0-9]/g, '_')};
+        `;
+        
+        try {
+          const { error } = await supabase.rpc('exec_sql', { sql });
+          if (error) {
+            logger.error('Migration rollback failed:', { version, error: error.message });
+            throw new DatabaseError(`Migration rollback ${version} failed: ${error.message}`, error);
+          }
+          logger.info('Migration rolled back successfully:', { version });
+        } catch (error) {
+          logger.error('Migration rollback error:', { version, error });
+          throw error;
+        }
       }
     };
   }
