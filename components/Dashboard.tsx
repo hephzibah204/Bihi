@@ -21,7 +21,7 @@ import Bursary from './Bursary';
 
 const DashboardContent = lazy(() => import('./DashboardContent'));
 const MoreView = lazy(() => import('./MoreView'));
-const TeacherBlueDashboard = lazy(() => import('./TeacherBlueDashboard'));
+import TeacherBlueDashboard from './TeacherBlueDashboard';
 const StudentBlueDashboard = lazy(() => import('./StudentBlueDashboard'));
 const ParentBlueDashboard = lazy(() => import('./ParentBlueDashboard'));
 const WelcomeModal = lazy(() => import('./WelcomeModal'));

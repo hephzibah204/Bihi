@@ -18,7 +18,7 @@ import { DashboardFilterProvider } from '../contexts/DashboardFilterContext';
 import DashboardFilterBar from './DashboardFilterBar';
 import TopBarTeacher from './ui/TopBarTeacher';
 
-const TeacherDashboardContent = lazy(() => import('./TeacherDashboardContent'));
+import TeacherDashboardContent from './TeacherDashboardContent';
 const TeacherMoreView = lazy(() => import('./TeacherMoreView'));
 const TeacherProfile = lazy(() => import('./TeacherProfile'));
 const TeacherSettings = lazy(() => import('./TeacherSettings'));

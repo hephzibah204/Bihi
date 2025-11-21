@@ -1691,59 +1691,53 @@ What specific financial aspect would you like to explore?`;
     }
 
     private static generateGeneralResponse(prompt: string, context: any): AIResponse {
-        const normalizedPrompt = (prompt || '').trim();
-        const subject = (context?.subject || 'General').toLowerCase();
-        const classLevel = context?.class || 'SS2';
-
-        let response = `**Structured Response**\n\n` +
-            `**Request Summary:** ${normalizedPrompt || 'General inquiry'}\n\n` +
-            `**Guided Approach:**\n` +
-            `• Clarify objectives and desired outcome\n` +
-            `• Break request into smaller, solvable parts\n` +
-            `• Apply step-by-step reasoning to reach conclusions\n\n` +
-            `**Suggested Plan (${subject}, ${classLevel}):**\n` +
-            `1. Identify key concepts involved in the request\n` +
-            `2. Provide concise explanations and relevant examples\n` +
-            `3. Outline steps or methodology to achieve the goal\n` +
-            `4. Recommend practice activities or follow-ups\n\n` +
-            `**Study Plan (Sample Week):**\n` +
-            `- Mon: Concept review + 20 min practice\n` +
-            `- Tue: Past questions (WAEC-style) + error analysis\n` +
-            `- Wed: Apply concepts to Nigerian real-world scenarios\n` +
-            `- Thu: Timed practice + self-check\n` +
-            `- Fri: Summary notes + mini-quiz\n\n` +
-            `**Answer Structure (Exam Tips):**\n` +
-            `• Define terms clearly before using them\n` +
-            `• Show all steps in calculations\n` +
-            `• Use labeled diagrams where appropriate\n` +
-            `• Conclude with a short summary or justification\n\n` +
-            `**Nigerian Education Alignment (WAEC/NECO):**\n` +
-            `• Use curriculum-relevant terminology and formats\n` +
-            `• Encourage exam-style practice and structured answers\n` +
-            `• Emphasize clarity, accuracy, and cultural context\n\n` +
-            `**Next Steps:**\n` +
-            `• If you need a lesson plan, specify the topic (e.g., "SS2 Biology: Cell Division")\n` +
-            `• For report comments, share strengths and improvement areas\n` +
-            `• For tutoring, state the concept and difficulty level\n` +
-            `• For parent support, describe the specific concern`;
-
-        response += `\n\n*Offline mode active — connect to the internet for enhanced, real-time results.*`;
-
-        if (normalizedPrompt.toLowerCase().includes('grading')) {
-            const grades = Object.keys(NIGERIAN_CURRICULUM.gradingSystem).join(', ');
-            response += `\n\n**Nigerian Grading System:**\n• Common grades: ${grades}\n• WAEC/NECO use A1 (Excellent) through F9 (Fail)`;
+        const p = (prompt || '').trim();
+        const pl = p.toLowerCase();
+        const className = context?.class || '';
+        const scorePairs: Array<{ subject: string; value: number }> = [];
+        const scoresMatch = p.match(/Scores:\s*([\s\S]*)/i);
+        if (scoresMatch) {
+            const part = scoresMatch[1] || '';
+            const re = /([A-Za-z ]+):\s*(\d{1,3})%/g;
+            let m;
+            while ((m = re.exec(part)) !== null) {
+                const subj = m[1].trim();
+                const val = Math.min(100, Math.max(0, parseInt(m[2], 10)));
+                scorePairs.push({ subject: subj, value: val });
+            }
         }
-        
-        return {
-            content: mdToHtmlLite(response),
-            confidence: 0.7,
-            templateUsed: 'generalStructured',
-            suggestions: [
-                'Specify the task type (lesson plan, tutoring, report comments)',
-                'Provide subject, class level, and topic if applicable',
-                'Ask for examples or step-by-step solutions for clarity'
-            ]
-        };
+        const avg = scorePairs.length ? +(scorePairs.reduce((a, b) => a + b.value, 0) / scorePairs.length).toFixed(1) : undefined;
+        const strengths = scorePairs.filter(s => s.value >= 85).map(s => s.subject);
+        const needs = scorePairs.filter(s => s.value < 70).map(s => s.subject);
+        const html = `
+          <h3>Academic Performance Analysis</h3>
+          <ul>
+            ${avg !== undefined ? `<li>Average: ${avg}%</li>` : ''}
+            ${scorePairs.length ? `<li>Top: ${strengths.slice(0,3).join(', ') || '—'}</li>` : ''}
+          </ul>
+          <h3>Strengths and Areas for Improvement</h3>
+          <ul>
+            <li>Strengths: ${strengths.length ? strengths.join(', ') : '—'}</li>
+            <li>Needs Improvement: ${needs.length ? needs.join(', ') : '—'}</li>
+          </ul>
+          <h3>Behavioral Insights</h3>
+          <ul>
+            <li>Attendance: ${context?.attendance ?? '—'}</li>
+            <li>Engagement: ${context?.engagement ?? '—'}</li>
+          </ul>
+          <h3>Recommendations for Teachers</h3>
+          <ul>
+            <li>Target low-scoring subjects with focused practice</li>
+            <li>Use short formative checks to track progress weekly</li>
+            <li>Provide tailored feedback and encourage self-review</li>
+          </ul>
+          <h3>Suggested Interventions or Support</h3>
+          <ul>
+            <li>Peer support groups for challenging subjects</li>
+            <li>Daily 20-minute practice plan; error analysis Fridays</li>
+            <li>Parent update with concrete action points</li>
+          </ul>`;
+        return { content: html, confidence: 0.8, templateUsed: 'studentAnalysis' };
     }
     private static generateRubricResponse(prompt: string, context: any): AIResponse {
         const subject = context.subject || 'Subject';

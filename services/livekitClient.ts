@@ -1,5 +1,19 @@
+async function getLivekitModule(): Promise<any> {
+  try {
+    const spec = '@livekit/client'
+    // @vite-ignore
+    return await import(/* @vite-ignore */ spec)
+  } catch {
+    try {
+      return await import(/* @vite-ignore */ 'https://esm.sh/@livekit/client')
+    } catch {
+      return {}
+    }
+  }
+}
+
 export async function connectAndPublishAudio(url: string, token: string, stream: MediaStream) {
-  const mod: any = await import('@livekit/client').catch(() => ({}))
+  const mod: any = await getLivekitModule()
   const Room = mod.Room
   const createLocalAudioTrack = mod.createLocalAudioTrack
   const LocalAudioTrack = mod.LocalAudioTrack
@@ -20,7 +34,7 @@ export async function connectAndPublishAudio(url: string, token: string, stream:
 }
 
 export async function connectAndSubscribe(url: string, token: string, onAudio: (el: HTMLAudioElement) => void) {
-  const mod: any = await import('@livekit/client').catch(() => ({}))
+  const mod: any = await getLivekitModule()
   const Room = mod.Room
   const RoomEvent = mod.RoomEvent
   if (!Room) throw new Error('livekit_client_unavailable')

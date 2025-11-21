@@ -12,7 +12,7 @@ import BrainCircuitIcon from './icons/BrainCircuitIcon';
 import BellIcon from './icons/BellIcon';
 import ParentBottomNavBar from './ParentBottomNavBar';
 
-const ParentDashboardContent = lazy(() => import('./ParentDashboardContent'));
+import ParentDashboardContent from './ParentDashboardContent';
 
 const ParentBlueDashboard: React.FC<{ onLogout: () => void; demoUserId?: string | null }> = ({ onLogout, demoUserId }) => {
   const [activeView, setActiveView] = useState<string>(new URLSearchParams(window.location.search).get('view') || PARENT_VIEWS.DASHBOARD);

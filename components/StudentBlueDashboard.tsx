@@ -14,7 +14,7 @@ import { DashboardFilterProvider } from '../contexts/DashboardFilterContext';
 import DashboardFilterBar from './DashboardFilterBar';
 import TopBarStudent from './ui/TopBarStudent';
 
-const StudentDashboardContent = lazy(() => import('./StudentDashboardContent'));
+import StudentDashboardContent from './StudentDashboardContent';
 
 const StudentBlueDashboard: React.FC<{ onLogout: () => void; demoUserId?: string }> = ({ onLogout, demoUserId }) => {
   const [activeView, setActiveView] = useState<string>(new URLSearchParams(window.location.search).get('view') || STUDENT_VIEWS.DASHBOARD);

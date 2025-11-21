@@ -121,6 +121,8 @@ export function getSubjectDomainPresets(subjectName: string, classLevel: string,
   if (/math/.test(s)) return pickTerm(map.mathematics);
   if (/english|literacy|language/.test(s)) return pickTerm(map.english);
   if (/science|basic\s*science|technology|bst/.test(s)) return pickTerm(map.science);
+  if (/basic\s*technology|technology\s*studies|tech\b/.test(s)) return pickTerm(map.basic_technology);
+  if (/religious|crs|christian/.test(s)) return pickTerm(map.religious_studies);
   if (/agric/.test(s)) return pickTerm(map.agricultural);
   if (/home\s*economics|home\s*eco/.test(s)) return pickTerm(map.home_economics);
   if (/business|commerce/.test(s)) return pickTerm(map.business_studies);
