@@ -12,20 +12,7 @@ function readEnv(keys: string[]): string | undefined {
 }
 
 function readSitewide(provider: Provider): string | undefined {
-  try {
-    if (typeof window === 'undefined') return undefined;
-    const raw = localStorage.getItem('sitewide_ai_settings');
-    if (!raw) return undefined;
-    const s = JSON.parse(raw || '{}');
-    const key = {
-      gemini: s.gemini_api_key,
-      huggingface: s.huggingface_api_key,
-      anthropic: s.anthropic_api_key,
-      openrouter: s.openrouter_api_key,
-      openai: s.openai_api_key,
-    }[provider];
-    return key ? String(key) : undefined;
-  } catch { return undefined; }
+  return undefined;
 }
 
 async function readSchool(provider: Provider, tenantId?: string): Promise<string | undefined> {
@@ -57,7 +44,6 @@ export async function resolveApiKey(provider: Provider, tenantId?: string): Prom
   );
   if (envKey) return envKey;
 
-  // 2) Sitewide (Super Admin) settings
   const siteKey = readSitewide(provider);
   if (siteKey) return siteKey;
 

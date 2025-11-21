@@ -140,8 +140,20 @@ serve(async (req: Request) => {
     const defaultSource = env.AI_SIMULATIONS_FUNCTION_URL
       ? `${env.AI_SIMULATIONS_FUNCTION_URL}?limit=${limit}`
       : `https://phet.colorado.edu/services/metadata/1.6/simulations?format=json`;
-
-    const sourceUrl = (sourceOverride && sourceOverride.trim()) || defaultSource;
+    let sourceUrl = defaultSource;
+    if (sourceOverride && sourceOverride.trim()) {
+      try {
+        const candidate = new URL(sourceOverride.trim());
+        const allowedHosts = new Set<string>();
+        allowedHosts.add('phet.colorado.edu');
+        if (env.AI_SIMULATIONS_FUNCTION_URL) {
+          try { allowedHosts.add(new URL(env.AI_SIMULATIONS_FUNCTION_URL).hostname); } catch {}
+        }
+        if (candidate.protocol === 'https:' && allowedHosts.has(candidate.hostname)) {
+          sourceUrl = candidate.toString();
+        }
+      } catch {}
+    }
     const rawList = await fetchSourceList(sourceUrl);
     const normalized = rawList
       .map(normalizeSim)

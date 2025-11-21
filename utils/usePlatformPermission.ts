@@ -17,11 +17,17 @@ export function usePlatformPermission() {
         const { data: { user } } = await supabase.auth.getUser();
         const roleName = user?.user_metadata?.platform_role || user?.user_metadata?.role || 'Super Admin';
         if (mounted) setRole(roleName);
-      } catch {}
+      } catch (error) {
+        console.warn('Failed to get user platform role:', error.message);
+        if (mounted) setRole('Super Admin'); // Fallback to default role
+      }
       try {
         const s = await apiGetPlatformSettings();
         if (mounted) setSettings(s);
-      } catch {}
+      } catch (error) {
+        console.warn('Failed to get platform settings:', error.message);
+        if (mounted) setSettings({}); // Fallback to empty settings
+      }
       if (mounted) setLoaded(true);
     })();
     return () => { mounted = false; };

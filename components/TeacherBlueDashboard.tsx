@@ -87,7 +87,19 @@ const TeacherBlueDashboard: React.FC<{ onLogout: () => void }> = ({ onLogout }) 
           ) : activeView === (TEACHER_VIEWS as any).SETTINGS ? (
             <TeacherSettings />
           ) : (
-            <TeacherDashboardContent activeView={activeView as any} setActiveView={handleViewChange as any} profileStudentId={null} onViewStudentProfile={() => {}} />
+            <TeacherDashboardContent activeView={activeView as any} setActiveView={handleViewChange as any} profileStudentId={null} onViewStudentProfile={(studentId: string) => {
+              // Navigate to student profile view
+              const url = new URL(window.location.href);
+              url.searchParams.set('view', 'STUDENT_PROFILE');
+              url.searchParams.set('studentId', studentId);
+              window.history.pushState({}, '', url.toString());
+              
+              // Update active view to trigger profile display
+              setActiveView('STUDENT_PROFILE');
+              
+              // Log the action for debugging
+              console.log('Viewing student profile:', studentId);
+            }} />
           )}
         </Suspense>
       </DashboardFilterProvider>

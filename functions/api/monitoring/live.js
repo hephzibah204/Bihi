@@ -1,5 +1,9 @@
+import { requirePlatformRoles } from '../_lib/auth.js'
+
 export async function onRequest(context) {
-  const { env } = context
+  const { request, env } = context
+  const auth = await requirePlatformRoles(request, env, ['Super Admin','Admin','Teacher'])
+  if (!auth.ok) return auth.res
   const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = env || {}
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return new Response(JSON.stringify({ error: 'Server not configured' }), { status: 500 })
   const headers = { 'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`, 'apikey': SUPABASE_SERVICE_ROLE_KEY }

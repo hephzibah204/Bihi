@@ -4,6 +4,7 @@
 
 // deno-lint-ignore-file no-explicit-any
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import { schoolRegistrationSchema, validateAndSanitize, getSecurityHeaders } from "../_shared/validation.ts";
 
 const allowedOriginPatterns = [
   /^https?:\/\/localhost(:\d+)?$/,
@@ -185,13 +186,30 @@ serve(async (req: Request) => {
       return res;
     }
 
-    const body = await req.json();
-    const { schoolName, subdomain, adminEmail, adminPassword, adminName, schoolType } = body || {};
-    if (!schoolName || !subdomain || !adminEmail || !adminPassword || !adminName) {
-      const res = new Response(JSON.stringify({ error: "Missing required fields." }), { status: 400 });
+    // Parse and validate request body
+    let body;
+    try {
+      body = await req.json();
+    } catch (parseError) {
+      const res = new Response(JSON.stringify({ error: "Invalid JSON in request body" }), { status: 400 });
       Object.entries(corsHeaders).forEach(([k, v]) => res.headers.set(k, v));
       return res;
     }
+
+    // Validate and sanitize input using Zod schema
+    let validatedData;
+    try {
+      validatedData = validateAndSanitize(schoolRegistrationSchema, body);
+    } catch (validationError) {
+      const res = new Response(JSON.stringify({ 
+        error: "Validation failed", 
+        details: validationError instanceof Error ? validationError.message : "Invalid input data"
+      }), { status: 400 });
+      Object.entries(corsHeaders).forEach(([k, v]) => res.headers.set(k, v));
+      return res;
+    }
+
+    const { schoolName, subdomain, adminEmail, adminPassword, adminName, schoolType } = validatedData;
 
     const adminHeaders = {
       Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
@@ -403,22 +421,43 @@ serve(async (req: Request) => {
 
     console.log('Registration completed successfully for:', subdomain);
     
+    const responseData = {
+      success: true,
+      tenantId: subdomain,
+      tenantCreated: true,
+      teacherProfileCreated: true,
+      userCreated: true,
+    };
+    
     const res = new Response(
-      JSON.stringify({
-        success: true,
-        tenantId: subdomain,
-        tenantCreated: true,
-        teacherProfileCreated: true,
-        userCreated: true,
-      }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } },
+      JSON.stringify(responseData),
+      { 
+        status: 200, 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...getSecurityHeaders()
+        } 
+      },
     );
     Object.entries(corsHeaders).forEach(([k, v]) => res.headers.set(k, v));
     return res;
   } catch (err: any) {
+    // Log the error for debugging (in production, use proper logging service)
+    console.error('Registration error:', err);
+    
     const res = new Response(
-      JSON.stringify({ success: false, error: "Registration failed", details: err?.message || String(err) }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } },
+      JSON.stringify({ 
+        success: false, 
+        error: "Registration failed", 
+        details: "An internal error occurred during registration. Please try again or contact support if the issue persists."
+      }),
+      { 
+        status: 500, 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...getSecurityHeaders()
+        } 
+      },
     );
     // Add CORS headers to the error response too
     const { corsHeaders } = handleCors(req);

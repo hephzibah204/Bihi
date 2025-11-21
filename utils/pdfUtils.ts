@@ -16,7 +16,10 @@ function triggerPdfDownload(pdf: any, filename: string) {
     URL.revokeObjectURL(url);
   } catch (e) {
     // Fallback to built-in save if necessary
-    try { pdf.save(sanitizeFilename(filename) + '.pdf'); } catch {}
+    try { pdf.save(sanitizeFilename(filename) + '.pdf'); } catch (error) {
+      console.error('Failed to save PDF:', error.message);
+      // Final fallback - could show user notification here
+    }
   }
 }
 

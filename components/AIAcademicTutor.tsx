@@ -276,7 +276,11 @@ const AIAcademicTutor = ({ demoUserId }) => {
         return () => { cleanupRef.current && cleanupRef.current(); }; // Full cleanup on component unmount
     }, [session]);
 
-    const cleanupRef = useRef<() => void>(() => {});
+    const cleanupRef = useRef<() => void>(() => {
+      // Default cleanup function - logs cleanup attempt
+      console.log('AI Tutor cleanup initiated');
+      // This will be replaced by the actual cleanup function
+    });
     useEffect(() => {
         cleanupRef.current = () => { void cleanup(); };
     }, [cleanup]);

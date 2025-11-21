@@ -62,7 +62,19 @@ export const useTeacherPresenceWatcher = () => {
           } catch {}
         }
       };
-      const id = navigator.geolocation.watchPosition(onPos, () => {}, { enableHighAccuracy: true, maximumAge: 10000, timeout: 8000 });
+      const id = navigator.geolocation.watchPosition(onPos, (error) => {
+        // Log geolocation error for debugging
+        console.warn('Geolocation error:', error.message, 'Code:', error.code);
+        
+        // Handle specific error types
+        if (error.code === error.PERMISSION_DENIED) {
+          console.warn('Location permission denied - teacher presence tracking disabled');
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          console.warn('Location unavailable - network or GPS issue');
+        } else if (error.code === error.TIMEOUT) {
+          console.warn('Location request timed out');
+        }
+      }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 8000 });
       watchId.current = typeof id === 'number' ? id : null;
     };
     init();

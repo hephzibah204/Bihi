@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import KpiCard from './ui/KpiCard';
 import { ADMIN_VIEWS } from '../utils/constants';
-import UsersIcon from './icons/UsersIcon';
+import UsersGroupIcon from './icons/UsersGroupIcon';
 import BriefcaseIcon from './icons/BriefcaseIcon';
 import WalletIcon from './icons/WalletIcon';
 import CalendarDaysIcon from './icons/CalendarDaysIcon';

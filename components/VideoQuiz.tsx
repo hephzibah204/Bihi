@@ -46,7 +46,11 @@ const VideoQuiz: React.FC<Props> = ({ courseId, title, description, videoUrl }) 
           if (!mounted) return;
           setTranscriptText(String(text).trim());
         }
-      } catch {}
+      } catch (error) {
+        console.error('Failed to generate transcript:', error.message);
+        if (!mounted) return;
+        setError('Failed to generate transcript. Please try again.');
+      }
     };
     run();
     return () => { mounted = false; };
@@ -131,9 +135,15 @@ Return JSON: { "quiz": [ { "question": "string", "options": { "A": "string", "B"
               score: correct,
             });
           }
-        } catch {}
+        } catch (error) {
+          console.error('Failed to save quiz result:', error.message);
+          // Non-critical error - don't interrupt user experience
+        }
       })();
-    } catch {}
+    } catch (error) {
+      console.error('Failed to grade quiz:', error.message);
+      setError('Failed to grade quiz. Please try again.');
+    }
   };
 
   const percent = useMemo(() => {

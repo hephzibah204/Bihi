@@ -1,5 +1,9 @@
+import { requirePlatformRoles } from '../_lib/auth.js'
+
 export async function onRequest(context) {
   const { request, env } = context
+  const auth = await requirePlatformRoles(request, env, ['Super Admin','Admin','Teacher'])
+  if (!auth.ok) return auth.res
   let body
   try { body = await request.json() } catch { return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400 }) }
   const { session_id, room } = body || {}

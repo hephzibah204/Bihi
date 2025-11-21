@@ -354,7 +354,10 @@ class ConnectionManager {
       const online = typeof navigator !== 'undefined' ? navigator.onLine : this.state.network.online;
       this.state.network.online = online;
       this.state.network.lastCheck = new Date();
-    } catch {}
+    } catch (error) {
+      // Log connection check error but don't fail the state update
+      console.warn('Connection check failed:', error.message);
+    }
     return JSON.parse(JSON.stringify(this.state));
   }
 

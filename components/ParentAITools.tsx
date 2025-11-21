@@ -18,7 +18,12 @@ const ParentAITools: React.FC<ParentAIToolsProps> = ({ demoUserId }) => {
                 </div>
                 <ChatbotPanel 
                     isOpen={true}
-                    onClose={() => {}}
+                    onClose={() => {
+                      // Log the close action for analytics
+                      console.log('Parent AI Coach closed');
+                      // Could add analytics tracking here
+                      // Could also trigger a save of chat state if needed
+                    }}
                     userRole={USER_ROLES.PARENT}
                     demoUserId={demoUserId ?? undefined}
                     activeView={PARENT_VIEWS.AI_TOOLS}

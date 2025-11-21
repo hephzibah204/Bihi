@@ -77,7 +77,12 @@ const LessonPlanner = () => {
             import('../plans/lesson-templates/design-thinking.json'),
             import('../plans/lesson-templates/flipped-classroom.json'),
             import('../plans/lesson-templates/project-based-learning.json'),
-        ]).then(mods => setTemplates(mods.map(m => (m as any).default as LessonTemplate))).catch(() => {});
+        ]).then(mods => setTemplates(mods.map(m => (m as any).default as LessonTemplate))).catch((error) => {
+            console.error('Failed to load lesson templates:', error.message);
+            // Set empty templates to prevent UI from breaking
+            setTemplates([]);
+            // Could show user notification here
+        });
     }, []);
     useEffect(() => {
         const subjectName = subjects.find(s => s.id === selectedSubject)?.name || '';

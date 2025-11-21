@@ -77,7 +77,12 @@ const StudentAITools = ({ setActiveView, demoUserId }: StudentAIToolsProps) => {
                 </div>
                 <ChatbotPanel 
                     isOpen={true}
-                    onClose={() => {}}
+                    onClose={() => {
+                      // Log the close action for analytics
+                      console.log('Student AI Assistant closed');
+                      // Could add analytics tracking here
+                      // Could also trigger a save of chat state if needed
+                    }}
                     userRole={USER_ROLES.STUDENT}
                     demoUserId={resolvedStudentId ?? undefined}
                     activeView={STUDENT_VIEWS.AI_TOOLS}

@@ -610,6 +610,8 @@ function extractSpecificMetric(metric: string, contextData: ContextData, userRol
     case 'childScores':
       return extractStudentPerformance(contextData.performanceContext);
     default:
-      return 'Metric not implemented';
+      // Handle unknown metrics gracefully
+      console.warn(`Unknown metric requested: ${metric}`);
+      return `Metric "${metric}" is not available. Please try a different metric or contact support.`;
   }
 }

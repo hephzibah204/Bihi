@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { requirePlatformRoles } from '../_lib/auth.js';
 
 type R2Bucket = {
   get: (key: string) => Promise<any>;
@@ -6,6 +7,8 @@ type R2Bucket = {
 
 export async function onRequestGet(context: any): Promise<Response> {
   const { request, env } = context;
+  const auth = await requirePlatformRoles(request, env, ['Super Admin','Admin','Teacher','Student','Parent']);
+  if (!auth.ok) return auth.res;
 
   const url = new URL(request.url);
   const fileId = url.searchParams.get('fileId');
@@ -28,6 +31,13 @@ export async function onRequestGet(context: any): Promise<Response> {
       status: 404,
       headers: { 'Content-Type': 'application/json' },
     });
+  }
+
+  const userTenant = auth.user?.user_metadata?.tenant_id || auth.user?.user_metadata?.tenantId || null;
+  const platformRole = auth.user?.user_metadata?.platform_role || auth.user?.user_metadata?.role;
+  const isSuperAdmin = platformRole === 'Super Admin';
+  if (!isSuperAdmin && data.tenant_id && userTenant && data.tenant_id !== userTenant) {
+    return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
   }
 
   const bucket = env.R2_BUCKET as R2Bucket;

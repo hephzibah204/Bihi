@@ -21,8 +21,24 @@ export async function executeTools(names: string[], args: any, context: any): Pr
       if (cached) { out.push(JSON.stringify({ name: n, result: cached, cached: true })); continue; }
       const res = await tool.run(a, context);
       out.push(JSON.stringify({ name: n, result: res }));
-      setToolCache(context?.tenantId || 'demo', n, a, res).catch(() => {});
-    } catch {}
+      setToolCache(context?.tenantId || 'demo', n, a, res).catch((error) => {
+        // Log cache set error but don't fail the tool execution
+        console.warn('Failed to cache tool result:', error.message, {
+          toolName: n,
+          tenantId: context?.tenantId || 'demo',
+          args: a
+        });
+      });
+    } catch (error) {
+      // Log tool execution error but continue with other tools
+      console.error('Tool execution failed:', error.message, {
+        toolName: n,
+        args: a,
+        context: context?.tenantId || 'demo'
+      });
+      // Optionally add error result to output
+      out.push(JSON.stringify({ name: n, error: error.message, status: 'failed' }));
+    }
   }
   return out;
 }

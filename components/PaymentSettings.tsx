@@ -58,7 +58,12 @@ const PaymentSettings = () => {
             email: userEmail,
             amount: 5000, // Authorize card with ₦50 (in kobo)
             ref: 'auth_' + Math.floor((Math.random() * 1000000000) + 1),
-            onClose: () => {},
+            onClose: () => {
+              // Log the payment cancellation for analytics
+              console.log('Paystack authorization cancelled by user');
+              // Could add analytics tracking here
+              // Could also show a user-friendly message
+            },
             callback: async (response) => {
                 if (response.status === 'success') {
                     const { authorization } = response;
