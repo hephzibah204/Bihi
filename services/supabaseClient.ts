@@ -3,7 +3,7 @@
 // Includes automatic reconnection, environment resolution,
 // demo-mode auth shim, realtime settings, diagnostics, and safe guards.
 
-import { getSupabaseEnv, getKeyType } from '../utils/env';
+import { getSupabaseConfig, getSupabaseEnv, getKeyType } from '../utils/env';
 import { withRetry } from '../utils/retry';
 import { logger } from '../utils/logger';
 
@@ -63,9 +63,9 @@ export async function initSupabase() {
   let keySource: string;
 
   try {
-    const env = getSupabaseEnv();
-    SUPABASE_URL = env.VITE_SUPABASE_URL;
-    SUPABASE_KEY = env.VITE_SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_ANON_KEY!;
+    const config = getSupabaseConfig();
+    SUPABASE_URL = config.url;
+    SUPABASE_KEY = config.anonKey!;
     keySource = getKeyType(SUPABASE_KEY);
   } catch (e: any) {
     logger.error('[Supabase] Invalid environment config', { message: e.message });
@@ -249,10 +249,8 @@ export async function isSupabaseOnline(): Promise<boolean> {
     ? (import.meta as any)?.env?.VITE_ENABLE_FUNCTIONS_PING
     : process.env.VITE_ENABLE_FUNCTIONS_PING) === 'true';
 
-  const SUPABASE_URL =
-    typeof window !== 'undefined'
-      ? window.process?.env?.VITE_SUPABASE_URL || import.meta.env?.VITE_SUPABASE_URL
-      : process.env.VITE_SUPABASE_URL;
+  const config = getSupabaseConfig();
+  const SUPABASE_URL = config.url;
 
   if (SUPABASE_URL && enable) {
     try {

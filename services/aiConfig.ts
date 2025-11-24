@@ -1,5 +1,6 @@
 import { getSupabase } from './supabaseClient';
 import { getTenantId } from './api';
+import { getGeminiConfig, getHuggingFaceConfig, getOpenAIConfig, getOpenRouterConfig } from '../utils/env';
 
 type Provider = 'gemini' | 'huggingface' | 'anthropic' | 'openrouter' | 'openai';
 
@@ -34,14 +35,26 @@ async function readSchool(provider: Provider, tenantId?: string): Promise<string
 }
 
 export async function resolveApiKey(provider: Provider, tenantId?: string): Promise<string | undefined> {
-  // 1) Environment variables
-  const envKey = readEnv(
-    provider === 'gemini' ? ['VITE_GEMINI_API_KEY','GEMINI_API_KEY','NEXT_PUBLIC_GEMINI_API_KEY'] :
-    provider === 'huggingface' ? ['VITE_HUGGINGFACE_API_KEY','HUGGINGFACE_API_KEY','NEXT_PUBLIC_HUGGINGFACE_API_KEY'] :
-    provider === 'anthropic' ? ['VITE_ANTHROPIC_API_KEY'] :
-    provider === 'openrouter' ? ['VITE_OPENROUTER_API_KEY'] :
-    ['VITE_OPENAI_API_KEY']
-  );
+  // 1) Environment variables (use centralized helpers)
+  let envKey: string | undefined;
+  switch (provider) {
+    case 'gemini':
+      envKey = getGeminiConfig().apiKey;
+      break;
+    case 'huggingface':
+      envKey = getHuggingFaceConfig().apiKey;
+      break;
+    case 'openai':
+      envKey = getOpenAIConfig().apiKey;
+      break;
+    case 'openrouter':
+      envKey = getOpenRouterConfig().apiKey;
+      break;
+    case 'anthropic':
+      // Anthropic not in main env helper yet, use direct readEnv for now
+      envKey = readEnv(['VITE_ANTHROPIC_API_KEY']);
+      break;
+  }
   if (envKey) return envKey;
 
   const siteKey = readSitewide(provider);

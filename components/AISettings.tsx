@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { getAIRouter, type AISettings, type AIProvider } from '../services/aiRouter';
-import { getSupabaseEnv } from '../utils/env';
+import { getSupabaseConfig } from '../utils/env';
 
 interface AISettingsProps {
   onSettingsChange?: (settings: AISettings) => void;
@@ -382,8 +382,8 @@ export const AISettingsPanel: React.FC<AISettingsProps> = ({
               setIsSyncing(true);
               setSyncMessage(null);
               try {
-                const { VITE_SUPABASE_URL } = getSupabaseEnv();
-                const url = `${VITE_SUPABASE_URL}/functions/v1/sync-ai-simulations`;
+                const config = getSupabaseConfig();
+                const url = `${config.url}/functions/v1/sync-ai-simulations`;
                 const res = await fetch(url, { method: 'POST' });
                 const json = await res.json();
                 if (!res.ok) throw new Error(json?.error || 'Sync failed');

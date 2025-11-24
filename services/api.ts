@@ -899,7 +899,9 @@ export const apiGetConversationSummaries = async (userId: string, userRole: User
     if (convoError) throw convoError;
     if (!convos) return [];
 
-    const [teachers, parents] = await Promise.all([apiGetTeachers(), apiGetParents()]);
+    const results = await Promise.allSettled([apiGetTeachers(), apiGetParents()]);
+    const teachers = results[0].status === 'fulfilled' ? results[0].value : [];
+    const parents = results[1].status === 'fulfilled' ? results[1].value : [];
     const userMap = new Map<string, { name: string, role: UserRole }>();
     teachers.forEach(t => userMap.set(t.id, { name: t.name, role: t.role }));
     parents.forEach(p => userMap.set(p.id, { name: p.name, role: USER_ROLES.PARENT as UserRole }));
@@ -1105,10 +1107,12 @@ export const getCurrentUser = async (): Promise<any> => {
 };
 
 export const apiGetMessagableUsers = async (currentUser) => {
-    const [teachers, parents] = await Promise.all([
+    const results = await Promise.allSettled([
         apiGetTeachers({ limit: 500 }),
         apiGetParents({ limit: 500 })
     ]);
+    const teachers = results[0].status === 'fulfilled' ? results[0].value : [];
+    const parents = results[1].status === 'fulfilled' ? results[1].value : [];
     return [...teachers, ...parents].filter(u => u.id !== currentUser.id);
 };
 

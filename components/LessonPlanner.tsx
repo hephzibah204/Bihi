@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useAI } from '../hooks/useAI';
+import { useAIRouter } from '../hooks/useAIRouter';
 import { apiGetSubjects, apiGetTeachers } from '../services/api';
 import { Subject, Teacher } from '../types';
 import SparklesIcon from './icons/SparklesIcon';
@@ -48,15 +48,16 @@ const LessonPlanner = () => {
 
     // AI & UI State
     const [generatedPlan, setGeneratedPlan] = useState('');
-    const { generateResponse, status } = useAI();
-    const [isLoading, setIsLoading] = useState(false);
+    const { generate, isLoading, status, lastResponse } = useAIRouter();
     const [error, setError] = useState('');
     const [showAdvanced, setShowAdvanced] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [subjectsData, teachersData] = await Promise.all([apiGetSubjects(), apiGetTeachers()]);
+                const results = await Promise.allSettled([apiGetSubjects(), apiGetTeachers()]);
+                const subjectsData = results[0].status === 'fulfilled' ? results[0].value : [];
+                const teachersData = results[1].status === 'fulfilled' ? results[1].value : [];
                 setSubjects(subjectsData);
                 setTeachers(teachersData);
 
@@ -78,6 +79,7 @@ const LessonPlanner = () => {
             import('../plans/lesson-templates/flipped-classroom.json'),
             import('../plans/lesson-templates/project-based-learning.json'),
         ]).then(mods => setTemplates(mods.map(m => (m as any).default as LessonTemplate))).catch((error) => {
+            logger.warn('Failed to load lesson templates', { error });
             console.error('Failed to load lesson templates:', error.message);
             // Set empty templates to prevent UI from breaking
             setTemplates([]);
@@ -106,13 +108,16 @@ const LessonPlanner = () => {
             const baseCurr = curriculum === 'Other' ? otherCurriculum : curriculum;
             const prompt = buildTopicSuggestionPrompt(subjectName, classLevel, baseCurr || 'NERDC', term || 'Any');
             try {
-                const r = await generateResponse(prompt, undefined, 'topic_suggestions');
+                const r = await generate(prompt, { 
+                    service: 'text-completion', 
+                    context: 'topic-suggestions' 
+                });
                 const lines = String(r.content || '').split(/\r?\n/).map(x => x.replace(/<[^>]+>/g,'').trim()).filter(Boolean).slice(0, 12);
                 if (lines.length) setSuggestedTopics(prev => Array.from(new Set([...lines, ...prev])).slice(0, 12));
             } catch {}
         };
         runAiSuggestions();
-    }, [selectedSubject, classLevel, term, curriculum, otherCurriculum]);
+    }, [selectedSubject, classLevel, term, curriculum, otherCurriculum, generate]);
     
     const classNames = useMemo(() => generateClassNames(settings), [settings]);
 
@@ -132,7 +137,6 @@ const LessonPlanner = () => {
             setError('Please provide a subject, topic, and class level.');
             return;
         }
-        setIsLoading(true);
         setError('');
         setGeneratedPlan('');
         
@@ -245,13 +249,14 @@ ${phonics ? `<h3>Phonics Scope (Auto)</h3><p><strong>Focus/Graphemes:</strong> $
 
  Ensure strict integration of the uploaded scheme of work (topic sequencing, period/duration) and reflect local realities (power/internet availability, classroom size). Use evidence‑based pedagogy and Nigeria‑specific examples throughout. Ensure the result is thorough, practical, and immediately usable.
 `;
-            const r = await generateResponse(prompt, undefined, 'lesson_plan');
+            const r = await generate(prompt, { 
+                service: 'text-completion', 
+                context: 'lesson-plan-generation' 
+            });
             setGeneratedPlan(normalizeAIText(r.content));
         } catch (err) {
             const msg = (err as any)?.message || String(err);
             setError(`Failed to generate lesson plan: ${msg}`);
-        } finally {
-            setIsLoading(false);
         }
     };
     
@@ -279,8 +284,8 @@ ${phonics ? `<h3>Phonics Scope (Auto)</h3><p><strong>Focus/Graphemes:</strong> $
                         <h2 className="text-xl font-semibold">AI Lesson Planner</h2>
                     </div>
                      <div className="flex items-center text-xs text-gray-500">
-                         <span className={`w-2 h-2 rounded-full mr-2 ${status === 'gemini' ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
-                         {status === 'gemini' ? 'Online' : 'Offline'}
+                         <span className={`w-2 h-2 rounded-full mr-2 ${lastResponse?.provider && lastResponse.provider !== 'offline' && lastResponse.provider !== 'templates' ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
+                         {lastResponse?.provider && lastResponse.provider !== 'offline' && lastResponse.provider !== 'templates' ? 'Online' : 'Offline'}
                     </div>
                 </div>
                 <p className="mt-2 text-sm text-gray-500">Instantly generate a structured lesson plan or note for any topic.</p>

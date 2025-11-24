@@ -199,7 +199,11 @@ const ItemBank = () => {
                     if (!editing) return;
                     const tagsPart = (editing.tags||[]).join(', ');
                     const prompt = `Generate a ${editing.type} item stem for Nigerian curriculum. Tags: ${tagsPart}. Return concise stem.`;
-                    const res = await generate(prompt, { domain: 'cbt_item_authoring' });
+                    const res = await generate(prompt, { 
+                        service: 'text-completion', 
+                        context: 'cbt-item-authoring',
+                        metadata: { domain: 'cbt_item_authoring' }
+                    });
                     if (res?.content) setEditing({ ...editing, stem: res.content });
                   }}>{aiLoading?'Generating...':'Generate with AI'}</button>
                 </div>
@@ -217,7 +221,11 @@ Stem: "${editing.stem}"
 Difficulty: ${diff}
 Tags: ${tagsPart}
 Return JSON: { options: [{ id:'A', text:'...' },{ id:'B', text:'...' },{ id:'C', text:'...' },{ id:'D', text:'...' }], answer_key: { correct: 'A' }, rubric: { maxPoints: 1, criteria: ['Choose the best answer'] } }`;
-                      const res = await generate(prompt, { domain: 'cbt_item_options' });
+                      const res = await generate(prompt, { 
+                        service: 'text-completion', 
+                        context: 'cbt-item-options',
+                        metadata: { domain: 'cbt_item_options' }
+                      });
                       const text = res?.content || '';
                       const m = text.match(/\{[\s\S]*\}/);
                       if (m) {
@@ -273,7 +281,11 @@ Stem: "${editing.stem}"
 Difficulty: ${diff}
 Tags: ${tagsPart}
 Return JSON: { options: [{ id:'A', text:'...' },{ id:'B', text:'...' },{ id:'C', text:'...' },{ id:'D', text:'...' },{ id:'E', text:'...' }], answer_key: { correct: ['A','C'] }, rubric: { maxPoints: 2, criteria: ['Select all that apply'] } }`;
-                      const res = await generate(prompt, { domain: 'cbt_item_options_multi' });
+                      const res = await generate(prompt, { 
+                        service: 'text-completion', 
+                        context: 'cbt-item-options-multi',
+                        metadata: { domain: 'cbt_item_options_multi' }
+                      });
                       const text = res?.content || '';
                       const m = text.match(/\{[\s\S]*\}/);
                       if (m) {

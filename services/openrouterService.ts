@@ -1,12 +1,14 @@
 import { logger } from '../utils/logger';
 import { resolveApiKey } from './aiConfig';
 import { postJson, safeJson } from './http';
+import { getOpenRouterConfig } from '../utils/env';
 
 const endpoint = 'https://openrouter.ai/api/v1/chat/completions';
 
 function getKey(): string | undefined { 
   try { 
-    return (typeof import.meta !== 'undefined' ? (import.meta as any).env?.VITE_OPENROUTER_API_KEY : process.env.VITE_OPENROUTER_API_KEY) || undefined; 
+    const config = getOpenRouterConfig();
+    return config.apiKey || undefined; 
   } catch { 
     return undefined; 
   } 

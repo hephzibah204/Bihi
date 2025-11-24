@@ -11,9 +11,16 @@ export interface UseAIRouterOptions {
   settings?: Partial<AISettings>;
 }
 
+export type GenerateOptions = {
+  service?: 'text-completion' | 'chat' | string;
+  context?: string;          // e.g. 'lesson-plan-generation', 'topic-suggestions'
+  conversationId?: string;
+  metadata?: any;            // arbitrary extra data
+};
+
 export interface UseAIRouterReturn {
-  generate: (prompt: string, metadata?: any) => Promise<AIRouterResponse>;
-  generateStream: (prompt: string, onChunk: (chunk: string) => void, metadata?: any) => Promise<void>;
+  generate: (prompt: string, options?: GenerateOptions) => Promise<AIRouterResponse>;
+  generateStream: (prompt: string, onChunk: (chunk: string) => void, options?: GenerateOptions) => Promise<void>;
   isLoading: boolean;
   lastResponse: AIRouterResponse | null;
   settings: AISettings;
@@ -21,11 +28,13 @@ export interface UseAIRouterReturn {
   analyzeComplexity: (prompt: string) => TaskComplexity;
   clearConversation: () => void;
   usageStats: ReturnType<typeof getAIRouter>['getUsageStats'];
+  status: 'idle' | 'loading' | 'success' | 'error';
 }
 
 export const useAIRouter = (options: UseAIRouterOptions = {}): UseAIRouterReturn => {
   const [isLoading, setIsLoading] = useState(false);
   const [lastResponse, setLastResponse] = useState<AIRouterResponse | null>(null);
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [router] = useState(() => getAIRouter(options.settings));
   const [settings, setSettings] = useState<AISettings>(router.getSettings());
 
@@ -41,17 +50,32 @@ export const useAIRouter = (options: UseAIRouterOptions = {}): UseAIRouterReturn
    * Generate AI response with intelligent routing
    */
   const generate = useCallback(
-    async (prompt: string, metadata?: any): Promise<AIRouterResponse> => {
+    async (prompt: string, generateOptions?: GenerateOptions): Promise<AIRouterResponse> => {
       setIsLoading(true);
+      setStatus('loading');
 
       try {
+        // Extract options
+        const { conversationId, context, service, metadata: extraMetadata } = generateOptions || {};
+        
+        // Build metadata object with context and service
+        const metadata = {
+          ...extraMetadata,
+          context,
+          service,
+        };
+
+        // Use conversationId from options or fallback to hook-level conversationId
+        const finalConversationId = conversationId || options.conversationId;
+
         const response = await router.generate(
           prompt,
-          options.conversationId,
+          finalConversationId,
           metadata
         );
 
         setLastResponse(response);
+        setStatus('success');
 
         // Notify callbacks
         if (options.onProviderChange) {
@@ -65,6 +89,7 @@ export const useAIRouter = (options: UseAIRouterOptions = {}): UseAIRouterReturn
         return response;
       } catch (error) {
         setIsLoading(false);
+        setStatus('error');
         throw error;
       }
     },
@@ -74,16 +99,17 @@ export const useAIRouter = (options: UseAIRouterOptions = {}): UseAIRouterReturn
   /**
    * Generate streaming response (simulated for now)
    */
-const generateStream = useCallback(
+  const generateStream = useCallback(
     async (
       prompt: string,
       onChunk: (chunk: string) => void,
-      metadata?: any
+      generateOptions?: GenerateOptions
     ): Promise<void> => {
       setIsLoading(true);
+      setStatus('loading');
 
       try {
-        const response = await generate(prompt, metadata);
+        const response = await generate(prompt, generateOptions);
 
         // Simulate streaming by chunking the response
         const chunkSize = 10;
@@ -94,8 +120,10 @@ const generateStream = useCallback(
         }
 
         setIsLoading(false);
+        setStatus('success');
       } catch (error) {
         setIsLoading(false);
+        setStatus('error');
         throw error;
       }
     },
@@ -150,7 +178,8 @@ const generateStream = useCallback(
     updateSettings,
     analyzeComplexity,
     clearConversation,
-    usageStats
+    usageStats,
+    status
   };
 };
 

@@ -11,11 +11,9 @@ import { logger } from '../utils/logger';
 import { generateEnhancedFallbackResponse } from './enhancedFallbackAI';
 
 // Prefer Supabase Edge Function if configured; otherwise use local proxy
-const AI_ENDPOINT = (
-    typeof window !== 'undefined'
-        ? (window.process?.env?.VITE_SUPABASE_AI_CHAT_URL || import.meta.env?.VITE_SUPABASE_AI_CHAT_URL)
-        : process.env.VITE_SUPABASE_AI_CHAT_URL
-  ) || '/api/ai/generate';
+import { getSupabaseConfig } from '../utils/env';
+const supabaseConfig = getSupabaseConfig();
+const AI_ENDPOINT = supabaseConfig.aiChatUrl || '/api/ai/generate';
 
 /**
  * Generates text content by sending a prompt to a secure, server-side proxy

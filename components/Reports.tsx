@@ -30,7 +30,7 @@ const Reports: React.FC = () => {
     const run = async () => {
       setLoading(true);
       try {
-        const [studentData, subjectData, teacherData, scoreData, settingsData, attendanceData, behavioralData]: [Student[], Subject[], any[], Score[], any, any[], BehavioralLogEntry[]] = await Promise.all([
+        const results = await Promise.allSettled([
           apiGetStudents(),
           apiGetSubjects(),
           apiGetTeachers(),
@@ -39,6 +39,16 @@ const Reports: React.FC = () => {
           apiGetAttendance(),
           apiGetBehavioralRecords(),
         ]);
+        
+        // Extract values, defaulting to empty arrays/objects on failure
+        const studentData = results[0].status === 'fulfilled' ? results[0].value : [];
+        const subjectData = results[1].status === 'fulfilled' ? results[1].value : [];
+        const teacherData = results[2].status === 'fulfilled' ? results[2].value : [];
+        const scoreData = results[3].status === 'fulfilled' ? results[3].value : [];
+        const settingsData = results[4].status === 'fulfilled' ? results[4].value : null;
+        const attendanceData = results[5].status === 'fulfilled' ? results[5].value : [];
+        const behavioralData = results[6].status === 'fulfilled' ? results[6].value : [];
+        
         setStudents(studentData);
         setSubjects(subjectData);
         setTeachers(teacherData);
@@ -139,7 +149,9 @@ const Reports: React.FC = () => {
   }, [teacherAttendance, reportPeriod, reportDate, weekStartDate]);
 
   const exportCsv = async () => {
-    const [payments, invoices] = await Promise.all([apiGetPayments(), apiGetInvoices()]);
+    const results = await Promise.allSettled([apiGetPayments(), apiGetInvoices()]);
+    const payments = results[0].status === 'fulfilled' ? results[0].value : [];
+    const invoices = results[1].status === 'fulfilled' ? results[1].value : [];
     const range = computeDateRange();
     const relevantPayments = payments.filter(p => filterByDate(p.paymentDate, range));
     const totalCollected = relevantPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
@@ -250,7 +262,9 @@ const Reports: React.FC = () => {
     if (financeChartRef.current) {
       const range = computeDateRange();
       const buildFinance = async () => {
-        const [payments, invoices] = await Promise.all([apiGetPayments(), apiGetInvoices()]);
+        const results = await Promise.allSettled([apiGetPayments(), apiGetInvoices()]);
+        const payments = results[0].status === 'fulfilled' ? results[0].value : [];
+        const invoices = results[1].status === 'fulfilled' ? results[1].value : [];
         const relevantPayments = payments.filter(p => filterByDate(p.paymentDate, range));
         const totalCollected = relevantPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
         const outstanding = invoices.reduce((sum, inv) => sum + Math.max((inv.totalAmount || 0) - (inv.amountPaid || 0), 0), 0);

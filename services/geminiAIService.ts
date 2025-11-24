@@ -3,6 +3,7 @@
 import { analyzeWithFallback } from '../utils/aiAdapter';
 import { generateEnhancedFallbackResponse } from './enhancedFallbackAI';
 import { logger } from '../utils/logger';
+import { getGeminiConfig, getSupabaseConfig } from '../utils/env';
 
 export function normalizePrompt(input: unknown): string {
   if (typeof input === 'string') return input;
@@ -105,11 +106,8 @@ export class GeminiAIService {
     // Resolve AI proxy endpoint: prefer Supabase Function URL if provided
     private getAiEndpoint(): string {
         try {
-            const fromClient = (typeof window !== 'undefined')
-                ? ((window as any).process?.env?.VITE_SUPABASE_AI_CHAT_URL || (import.meta as any)?.env?.VITE_SUPABASE_AI_CHAT_URL)
-                : undefined;
-            const fromServer = process.env.VITE_SUPABASE_AI_CHAT_URL;
-            return (fromClient || fromServer || '/api/ai/generate') as string;
+            const supabaseConfig = getSupabaseConfig();
+            return (supabaseConfig.aiChatUrl || '/api/ai/generate') as string;
         } catch {
             return '/api/ai/generate';
         }
@@ -137,14 +135,9 @@ export class GeminiAIService {
      * Load Gemini API key from environment or storage
      */
     private loadGeminiKey(): string | null {
-        // Try common env variable names (server and client)
-        const fromEnv =
-            process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
-            process.env.VITE_GEMINI_API_KEY ||
-            process.env.GEMINI_API_KEY ||
-            process.env.GOOGLE_API_KEY ||
-            process.env.VITE_GOOGLE_API_KEY;
-        if (fromEnv) return fromEnv;
+        // Use centralized env helper
+        const config = getGeminiConfig();
+        if (config.apiKey) return config.apiKey;
 
         // Try localStorage (browser only)
         if (typeof window !== 'undefined') {
@@ -478,12 +471,9 @@ export class GeminiAIService {
      * Resolve supported model name with back-compat mapping
      */
     private resolveModelName(): string {
-        // Prefer env-configured model; support both server and client envs
-        const rawModel =
-            (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_GEMINI_MODEL) ||
-            process.env.NEXT_PUBLIC_GEMINI_MODEL ||
-            process.env.VITE_GEMINI_MODEL ||
-            process.env.GEMINI_MODEL ||
+        // Use centralized env helper
+        const config = getGeminiConfig();
+        const rawModel = config.model ||
             (typeof window !== 'undefined' ? window.localStorage?.getItem('gemini_model') || undefined : undefined);
 
         const candidate = (rawModel || '').toLowerCase().trim();

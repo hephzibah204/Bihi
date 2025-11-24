@@ -3,6 +3,7 @@
 import { logger } from '../utils/logger';
 import { isValidGeminiApiKey, GEMINI_KEY_ERRORS } from '../utils/geminiKeyResolver';
 import { withRetry } from '../utils/retry';
+import { getGeminiConfig } from '../utils/env';
 
 interface AIServiceConfig {
   geminiApiKey?: string | undefined;
@@ -56,14 +57,9 @@ class AIService {
   }
 
   private getGeminiApiKey(): string | undefined {
-    // Check process.env first (mapped from GEMINI_API_KEY in vite.config.ts)
-    if (typeof process !== 'undefined' && process.env?.GEMINI_API_KEY) {
-      return process.env.GEMINI_API_KEY;
-    }
-    // Fallback to import.meta.env for direct Vite env access
-    if (typeof import.meta !== 'undefined' && (import.meta.env as any).VITE_GEMINI_API_KEY) {
-      return (import.meta.env as any).VITE_GEMINI_API_KEY;
-    }
+    // Use centralized env helper
+    const config = getGeminiConfig();
+    if (config.apiKey) return config.apiKey;
     // Optional browser storage fallback
     try {
       if (typeof window !== 'undefined') {
@@ -75,15 +71,9 @@ class AIService {
   }
 
   private getGeminiModel(): string | undefined {
-    // Prefer explicit model envs
-    if (typeof process !== 'undefined') {
-      const m = process.env?.GEMINI_MODEL || process.env?.NEXT_PUBLIC_GEMINI_MODEL;
-      if (m) return m;
-    }
-    if (typeof import.meta !== 'undefined') {
-      const m = (import.meta.env as any).VITE_GEMINI_MODEL || (import.meta.env as any).NEXT_PUBLIC_GEMINI_MODEL;
-      if (m) return m as string;
-    }
+    // Use centralized env helper
+    const config = getGeminiConfig();
+    if (config.model) return config.model;
     // Optional browser storage fallback
     try {
       if (typeof window !== 'undefined') {
@@ -312,8 +302,7 @@ class AIService {
     const serverKey = await this.fetchServerGeminiKey();
     const apiKey = serverKey
       || this.config.geminiApiKey
-      || (typeof process !== 'undefined' && process.env?.GEMINI_API_KEY)
-      || (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_GEMINI_API_KEY);
+      || getGeminiConfig().apiKey;
     if (!apiKey) {
       throw new Error('Gemini API key not configured');
     }

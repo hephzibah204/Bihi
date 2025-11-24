@@ -40,8 +40,10 @@ const ParentDashboard = ({ onLogout, demoUserId }) => {
     }, [activeView]);
 
     // Resolve a valid child (student) id for parent views
+    const [resolvingChild, setResolvingChild] = useState(true);
     useEffect(() => {
         const resolveChild = async () => {
+            setResolvingChild(true);
             try {
                 const students = await apiGetStudents();
                 const effectiveId: string | null = demoUserId || null;
@@ -91,6 +93,8 @@ const ParentDashboard = ({ onLogout, demoUserId }) => {
                 }
             } catch {
                 setResolvedChildId(demoUserId || null);
+            } finally {
+                setResolvingChild(false);
             }
         };
         resolveChild();
@@ -113,9 +117,13 @@ const ParentDashboard = ({ onLogout, demoUserId }) => {
                 <Header title={headerTitle} setSidebarOpen={setSidebarOpen} onLogout={onLogout} isSidebarOpen={isSidebarOpen} />
                 <main className="flex-1 overflow-x-hidden overflow-y-auto">
                     <div className="container mx-auto px-6 py-8">
-                        <Suspense fallback={<ContentLoader />}>
-                            <ParentDashboardContent activeView={activeView} setActiveView={handleViewChange} demoUserId={resolvedChildId} />
-                        </Suspense>
+                        {resolvingChild ? (
+                            <ContentLoader />
+                        ) : (
+                            <Suspense fallback={<ContentLoader />}>
+                                <ParentDashboardContent activeView={activeView} setActiveView={handleViewChange} demoUserId={resolvedChildId} />
+                            </Suspense>
+                        )}
                     </div>
                 </main>
                 <ParentBottomNavBar activeView={activeView} setActiveView={handleViewChange} />

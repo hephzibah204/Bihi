@@ -4,12 +4,14 @@ import { postJson, safeJson } from './http';
 
 const endpoint = 'https://api.anthropic.com/v1/messages';
 
-function getKey(): string | undefined {
+function getKey(): string | undefined { 
   try { 
+    // Use resolveApiKey which now uses centralized env helpers
+    // For direct access, fallback to direct env read (Anthropic not in main helper yet)
     return (typeof import.meta !== 'undefined' ? (import.meta as any).env?.VITE_ANTHROPIC_API_KEY : process.env.VITE_ANTHROPIC_API_KEY) || undefined; 
   } catch { 
     return undefined; 
-  }
+  } 
 }
 
 function getModel(): string { 

@@ -2,6 +2,7 @@
 // Integration with Hugging Face Inference API for dynamic content generation
 
 import { logger } from '../utils/logger';
+import { getHuggingFaceConfig } from '../utils/env';
 
 export interface HuggingFaceConfig {
     apiKey?: string;
@@ -41,18 +42,11 @@ export class HuggingFaceClient {
      * Load API key from environment or localStorage
      */
     private loadApiKeyFromStorage(): string | null {
-        // Try environment variable first (server-side or build-time)
-        // Support Vite and Next-style public keys
-        if (process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY) {
-            return process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY;
+        // Use centralized env helper
+        const config = getHuggingFaceConfig();
+        if (config.apiKey) {
+            return config.apiKey;
         }
-        // Vite define for non-VITE_ env
-        if (process.env.HUGGINGFACE_API_KEY) {
-            return process.env.HUGGINGFACE_API_KEY;
-        }
-        // Vite public env (recommended)
-        const viteEnvKey = (typeof import.meta !== 'undefined' && (import.meta as any)?.env?.VITE_HUGGINGFACE_API_KEY) || undefined;
-        if (viteEnvKey) return viteEnvKey as string;
         
         // Sitewide Super Admin settings
         try {

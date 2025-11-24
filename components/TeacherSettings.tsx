@@ -65,7 +65,9 @@ const TeacherSettings: React.FC = () => {
         </div>
       </Card>
       <div className="xl:col-span-2">
-        <button className="btn btn-primary" onClick={save} disabled={loading}>Save Changes</button>
+        <button className="btn btn-primary" onClick={save} disabled={loading}>
+          {loading ? 'Saving...' : 'Save Changes'}
+        </button>
       </div>
     </div>
   );

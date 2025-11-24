@@ -313,10 +313,13 @@ export class ConversationService {
         conversationId: string
     ): Promise<{ conversation: Conversation; messages: Message[] } | null> {
         try {
-            const [conversation, messages] = await Promise.all([
+            const results = await Promise.allSettled([
                 this.getConversation(conversationId),
                 this.getMessages(conversationId)
             ]);
+
+            const conversation = results[0].status === 'fulfilled' ? results[0].value : null;
+            const messages = results[1].status === 'fulfilled' ? results[1].value : [];
 
             if (!conversation) return null;
 
