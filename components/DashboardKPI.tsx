@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import KpiCard from './ui/KpiCard';
 import { ADMIN_VIEWS } from '../utils/constants';
 import UsersGroupIcon from './icons/UsersGroupIcon';
+import UsersIcon from './icons/UsersIcon';
 import BriefcaseIcon from './icons/BriefcaseIcon';
 import WalletIcon from './icons/WalletIcon';
 import CalendarDaysIcon from './icons/CalendarDaysIcon';
@@ -161,7 +162,7 @@ const DashboardKPI: React.FC = () => {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-      <KpiCard icon={<UsersIcon className="w-5 h-5" />} label="Total Students" value={loading ? '…' : metrics.totalStudents} accentColor="#2563EB" />
+      <KpiCard icon={<UsersGroupIcon className="w-5 h-5" />} label="Total Students" value={loading ? '…' : metrics.totalStudents} accentColor="#2563EB" />
       <KpiCard icon={<BriefcaseIcon className="w-5 h-5" />} label="Total Teachers" value={loading ? '…' : metrics.totalTeachers} accentColor="#F97316" />
       <KpiCard icon={<WalletIcon className="w-5 h-5" />} label="Fees Collected" value={loading ? '…' : `₦${metrics.feesCollected.toLocaleString()}`} deltaText={loading ? '' : metrics.feesDeltaText} deltaDirection={metrics.feesDeltaDir as any} accentColor="#06B6D4" sparkline={metrics.feesSpark} sparklineColor="#06B6D4" />
       <KpiCard icon={<ScaleIcon className="w-5 h-5" />} label="Outstanding Fees" value={loading ? '…' : `₦${metrics.outstanding.toLocaleString()}`} accentColor="#F97316" />
@@ -169,8 +170,8 @@ const DashboardKPI: React.FC = () => {
       <KpiCard icon={<ChartBarIcon className="w-5 h-5" />} label="High-Risk Students" value={loading ? '…' : metrics.highRiskCount} accentColor="#F97316" />
       <KpiCard icon={<AcademicCapIcon className="w-5 h-5" />} label="Top Performing Students" value={loading ? '…' : metrics.topPerformingCount} accentColor="#2563EB" onClick={() => { const url = new URL(window.location.toString()); url.searchParams.set('view', ADMIN_VIEWS.LEADERBOARD_STUDENTS); navigate(url.pathname + url.search + url.hash); }} />
       <KpiCard icon={<BriefcaseIcon className="w-5 h-5" />} label="Best Performing Teachers" value={loading ? '…' : metrics.bestTeachersCount} accentColor="#2563EB" onClick={() => { const url = new URL(window.location.toString()); url.searchParams.set('view', ADMIN_VIEWS.LEADERBOARD_TEACHERS); navigate(url.pathname + url.search + url.hash); }} />
-      <KpiCard icon={<UsersIcon className="w-5 h-5" />} label="New Students (This Term)" value={loading ? '…' : metrics.newStudentsThisMonth} accentColor="#2563EB" deltaText={loading ? '' : `${metrics.newStudentsDelta >= 0 ? '▲' : '▼'} ${Math.abs(metrics.newStudentsDelta)} vs last month`} deltaDirection={metrics.newStudentsDelta >= 0 ? 'up' : 'down'} />
-      <KpiCard icon={<UsersIcon className="w-5 h-5" />} label={att.todayRate === null ? 'Attendance (Term)' : 'Attendance (Today)'} value={(loading || attLoading) ? '…' : `${(att.todayRate ?? att.termRate)}%`} accentColor="#2563EB" progress={(att.todayRate ?? att.termRate)} />
+      <KpiCard icon={<UsersGroupIcon className="w-5 h-5" />} label="New Students (This Term)" value={loading ? '…' : metrics.newStudentsThisMonth} accentColor="#2563EB" deltaText={loading ? '' : `${metrics.newStudentsDelta >= 0 ? '▲' : '▼'} ${Math.abs(metrics.newStudentsDelta)} vs last month`} deltaDirection={metrics.newStudentsDelta >= 0 ? 'up' : 'down'} />
+      <KpiCard icon={<UsersGroupIcon className="w-5 h-5" />} label={att.todayRate === null ? 'Attendance (Term)' : 'Attendance (Today)'} value={(loading || attLoading) ? '…' : `${(att.todayRate ?? att.termRate)}%`} accentColor="#2563EB" progress={(att.todayRate ?? att.termRate)} />
       <KpiCard icon={<WalletIcon className="w-5 h-5" />} label="Top Debtors" value={loading ? '…' : metrics.topDebtorsCount} accentColor="#F97316" onClick={() => { const url = new URL(window.location.toString()); url.searchParams.set('view', ADMIN_VIEWS.LEADERBOARD_DEBTORS); navigate(url.pathname + url.search + url.hash); }} />
     </div>
   );

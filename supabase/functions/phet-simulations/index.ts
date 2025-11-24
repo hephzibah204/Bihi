@@ -4,6 +4,7 @@
 
 // deno-lint-ignore-file no-explicit-any
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import { phetSimulationQuerySchema, validateAndSanitize, getSecurityHeaders } from "../_shared/validation.ts";
 
 const allowedOriginPatterns = [
   /^https?:\/\/localhost(:\d+)?$/,
@@ -127,13 +128,32 @@ serve(async (req: Request) => {
 
   try {
     const url = new URL(req.url);
-    const q = url.searchParams.get("q") || "";
-    const limitParam = url.searchParams.get("limit");
-    const limit = Math.max(1, Math.min(50, Number(limitParam) || 0)) || undefined;
+    const rawQuery = url.searchParams.get("q") || "";
+    const rawLimit = url.searchParams.get("limit");
+    
+    // Validate query parameters
+    let validatedQuery;
+    try {
+      validatedQuery = validateAndSanitize(phetSimulationQuerySchema, {
+        q: rawQuery,
+        limit: rawLimit ? Number(rawLimit) : undefined,
+      });
+    } catch (validationError) {
+      const res = new Response(JSON.stringify({ 
+        error: "Invalid query parameters", 
+        details: validationError instanceof Error ? validationError.message : "Invalid parameters"
+      }), { status: 400 });
+      Object.entries(corsHeaders).forEach(([k, v]) => res.headers.set(k, v));
+      res.headers.set("Content-Type", "application/json");
+      return res;
+    }
+
+    const { q, limit } = validatedQuery;
+    const effectiveLimit = limit || 50; // Default to 50 if not specified
 
     const sims = await fetchPhETSims();
     let filtered = q ? sims.filter((s) => matchesQuery(s, q)) : sims;
-    if (limit) filtered = filtered.slice(0, limit);
+    if (effectiveLimit) filtered = filtered.slice(0, effectiveLimit);
 
     const res = new Response(JSON.stringify(filtered), { status: 200 });
     Object.entries(corsHeaders).forEach(([k, v]) => res.headers.set(k, v));

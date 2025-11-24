@@ -168,7 +168,7 @@ const StudentReportCardViewer = ({ demoUserId }) => {
             (subjects || []).filter((sub: any) => (sub.classes || []).includes(effectiveClass)).map((s: any) => s.id)
         );
         const terms = scores
-            .filter((s: any) => s.studentId === studentId && (!!selectedSession ? s.session === selectedSession : true) && subjectIdsForClass.has(s.subjectId))
+            .filter((s: any) => s.studentId === studentId && (selectedSession ? s.session === selectedSession : true) && subjectIdsForClass.has(s.subjectId))
             .map((s: any) => s.term)
             .filter(Boolean);
         const set = new Set<string>(terms);

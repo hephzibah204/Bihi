@@ -16,7 +16,7 @@ interface RateLimitStore {
 
 class RateLimiter {
   private store: RateLimitStore = {};
-  private config: RateLimitConfig;
+  private readonly config: RateLimitConfig;
 
   constructor(config: RateLimitConfig) {
     this.config = {
@@ -155,7 +155,7 @@ export function createRateLimitMiddleware(limiterType: keyof typeof rateLimiters
 // Client-side rate limiting for fetch requests
 export class ClientRateLimiter {
   private static instance: ClientRateLimiter;
-  private store: Map<string, { count: number; resetTime: number }> = new Map();
+  private readonly store: Map<string, { count: number; resetTime: number }> = new Map();
 
   static getInstance(): ClientRateLimiter {
     if (!ClientRateLimiter.instance) {

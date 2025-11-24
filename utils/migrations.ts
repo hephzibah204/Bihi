@@ -24,8 +24,8 @@ export interface MigrationRecord {
 }
 
 class MigrationManager {
-  private supabase = getSupabase();
-  private migrations: Map<string, Migration> = new Map();
+  private readonly supabase = getSupabase();
+  private readonly migrations: Map<string, Migration> = new Map();
 
   /**
    * Register a migration

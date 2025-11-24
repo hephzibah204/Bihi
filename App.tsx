@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import GlobalSuccessNotification from './components/GlobalSuccessNotification';
 import GlobalNotification from './components/GlobalNotification';
 import GlobalBroadcast from './components/GlobalBroadcast';
+import ErrorBoundary from './components/ErrorBoundary';
 import { applyThemeToDocument, defaultTheme, ThemeSettings } from './hooks/useTheme';
 import { getConnectionManager } from './utils/connectionManager';
 import { DEFAULT_LANDING_PAGE_CONTENT, DEFAULT_MENU_ITEMS } from './utils/landingPageContent';
@@ -167,7 +168,9 @@ const App = () => {
     
     return (
         <AppWrapper>
-            <AppRouter />
+            <ErrorBoundary>
+                <AppRouter />
+            </ErrorBoundary>
         </AppWrapper>
     );
 };

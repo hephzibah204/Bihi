@@ -1,4 +1,5 @@
 import type { UserRole } from '../types';
+import { logger } from '../utils/logger';
 
 export interface FinanceContext {
   outstandingFees: number;
@@ -150,7 +151,7 @@ function extractRecentPayments(performanceContext: any): any[] {
         return JSON.parse(match[1]);
       }
     } catch (e) {
-      console.warn('Failed to parse recent payments:', e);
+      logger.warn('Failed to parse recent payments:', { error: e.message });
     }
   }
   return [];
@@ -193,7 +194,7 @@ function extractTeacherClasses(performanceContext: any): any[] {
         }));
       }
     } catch (e) {
-      console.warn('Failed to parse teacher classes:', e);
+      logger.warn('Failed to parse teacher classes:', { error: e.message });
     }
   }
   return [];
@@ -257,7 +258,7 @@ function extractChildrenData(performanceContext: any): any[] {
         return JSON.parse(match[1]);
       }
     } catch (e) {
-      console.warn('Failed to parse children data:', e);
+      logger.warn('Failed to parse children data:', { error: e.message });
     }
   }
   return [{ name: 'Child', class: 'Unknown', id: 'unknown' }];
@@ -281,7 +282,7 @@ function extractChildPerformanceData(performanceContext: any): any[] {
         return JSON.parse(match[1]);
       }
     } catch (e) {
-      console.warn('Failed to parse child performance:', e);
+      logger.warn('Failed to parse child performance:', { error: e.message });
     }
   }
   return [];

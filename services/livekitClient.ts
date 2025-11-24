@@ -5,6 +5,7 @@ async function getLivekitModule(): Promise<any> {
     return await import(/* @vite-ignore */ spec)
   } catch {
     try {
+      // @ts-ignore - Dynamic import from CDN
       return await import(/* @vite-ignore */ 'https://esm.sh/@livekit/client')
     } catch {
       return {}

@@ -61,8 +61,8 @@ export interface AIRouterResponse {
  */
 export class AIRouterService {
   private settings: AISettings;
-  private conversations: Map<string, ConversationContext> = new Map();
-  private providerHealth: Map<AIProvider, { available: boolean; lastCheck: Date }> = new Map();
+  private readonly conversations: Map<string, ConversationContext> = new Map();
+  private readonly providerHealth: Map<AIProvider, { available: boolean; lastCheck: Date }> = new Map();
 
   constructor(settings?: Partial<AISettings>) {
     // Load site-wide settings set by Super Admin

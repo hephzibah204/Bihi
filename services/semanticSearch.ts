@@ -23,7 +23,7 @@ interface SemanticMatch {
 export class SemanticSearchEngine {
     private vocabulary: Map<string, number> = new Map();
     private idfScores: Map<string, number> = new Map();
-    private documentVectors: Map<string, Vector> = new Map();
+    private readonly documentVectors: Map<string, Vector> = new Map();
     private documents: Map<string, any> = new Map();
     
     constructor() {
@@ -356,7 +356,7 @@ export function getSemanticSearchEngine(): SemanticSearchEngine {
  * Hybrid search: Combines keyword matching with semantic search
  */
 export class HybridSearchEngine {
-    private semanticEngine: SemanticSearchEngine;
+    private readonly semanticEngine: SemanticSearchEngine;
     
     constructor() {
         this.semanticEngine = getSemanticSearchEngine();

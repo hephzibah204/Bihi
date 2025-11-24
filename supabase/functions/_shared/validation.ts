@@ -29,6 +29,25 @@ export const aiGatewayInputSchema = z.object({
   useOffline: z.boolean().default(false),
 });
 
+// Offline AI input schema (simplified version of AI Gateway)
+export const offlineAiInputSchema = z.object({
+  input: z.string().min(1).max(10000).trim(), // Limit input length
+  prompt: z.string().min(1).max(10000).trim().optional(),
+  role: z.enum(['Teacher', 'Student', 'Parent', 'Admin']).default('Teacher'),
+  tenantId: z.string().max(100).optional(),
+});
+
+// PhET Simulations query schema
+export const phetSimulationQuerySchema = z.object({
+  q: z.string().max(200).trim().optional(), // Search query
+  limit: z.number().int().min(1).max(100).optional(), // Results limit (max 100)
+});
+
+// QR Code signing schema
+export const qrSigningSchema = z.object({
+  core: z.string().min(1).max(500).regex(/^RS1\|/, 'Core must start with RS1|'), // RS1 format validation
+});
+
 // Sanitization utilities
 export const sanitizeString = (str: string): string => {
   return str

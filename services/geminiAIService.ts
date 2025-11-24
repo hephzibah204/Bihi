@@ -94,10 +94,10 @@ export interface ServiceStatus {
  */
 export class GeminiAIService {
     private geminiApiKey: string | null = null;
-    private geminiApiVersion = this.resolveApiVersion();
-    private model = this.resolveModelName();
-    private geminiEndpoint = `https://generativelanguage.googleapis.com/${this.geminiApiVersion}/models/${this.model}:generateContent`;
-    private status: ServiceStatus = {
+    private readonly geminiApiVersion = this.resolveApiVersion();
+    private readonly model = this.resolveModelName();
+    private readonly geminiEndpoint = `https://generativelanguage.googleapis.com/${this.geminiApiVersion}/models/${this.model}:generateContent`;
+    private readonly status: ServiceStatus = {
         geminiAvailable: false,
         fallbackAvailable: true,
         lastGeminiCheck: 0
@@ -177,22 +177,34 @@ export class GeminiAIService {
                         const { data: { session } } = await supabase.auth.getSession();
                         if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
                     }
-                } catch { /* ignore */ }
+                } catch (sessionError) {
+                    logger.debug('Failed to get user session for client key request', { error: sessionError.message });
+                }
             }
             const resp = await fetch('/api/ai/client-key', { headers });
             if (resp.ok) {
                 const ct = resp.headers.get('content-type') || '';
                 if (ct.includes('application/json')) {
-                    const data = await resp.json().catch(() => ({}));
-                    if (data?.key) {
-                        this.geminiApiKey = String(data.key);
-                        return this.geminiApiKey;
+                    try {
+                        const data = await resp.json();
+                        if (data?.key) {
+                            this.geminiApiKey = String(data.key);
+                            return this.geminiApiKey;
+                        }
+                    } catch (jsonError) {
+                        logger.warn('Failed to parse client key response as JSON', { error: jsonError.message });
                     }
                 } else {
-                    await resp.text().catch(() => '');
+                    try {
+                        await resp.text();
+                    } catch (textError) {
+                        logger.warn('Failed to read client key response as text', { error: textError.message });
+                    }
                 }
             }
-        } catch { /* ignore */ }
+        } catch (fetchError) {
+            logger.warn('Failed to fetch client key from API', { error: fetchError.message });
+        }
         // Fallback to existing env/local resolution
         this.geminiApiKey = this.loadGeminiKey();
         return this.geminiApiKey;

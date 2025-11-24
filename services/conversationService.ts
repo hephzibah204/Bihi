@@ -65,7 +65,7 @@ export interface ConversationListOptions {
 // ============================================================================
 
 export class ConversationService {
-    private supabase: any;
+    private readonly supabase: any;
 
     constructor() {
         this.supabase = getSupabase();

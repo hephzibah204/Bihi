@@ -9,6 +9,7 @@ import { generateEnhancedFallbackResponse } from './enhancedFallbackAI';
 import { HybridSearchEngine, getSemanticSearchEngine, type SemanticMatch } from './semanticSearch';
 import { getHuggingFaceClient } from './huggingFaceAPI';
 import { getAIResponseCache } from './aiResponseCache';
+import { logger } from '../utils/logger';
 
 // Enhanced fallback AI service with improved training data and context awareness
 // Now uses the new enhanced AI system with 500+ templates and Nigerian curriculum support
@@ -162,29 +163,35 @@ const searchSemanticCache = (prompt: string, _context?: Record<string, unknown>)
  * Cache a response for future semantic retrieval
  */
 const cacheResponse = (prompt: string, response: string, context?: Record<string, unknown>): void => {
+    const cacheId = `cache_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    let confidence = 0.5;
     try {
         const searchEngine = getSemanticSearchEngine();
-        const cacheId = `cache_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        
-        // Calculate confidence based on response quality indicators
-        const confidence = calculateResponseConfidence(response, context);
-        
+        confidence = calculateResponseConfidence(response, context);
         searchEngine.indexDocument(cacheId, prompt, response, {
             confidence,
             timestamp: Date.now(),
-            context: context?.userRole || 'general',
+            context: (context as any)?.userRole || 'general',
             cached: true
         });
+    } catch (searchError: any) {
+        logger.warn('Failed to index document in semantic search', { error: searchError?.message, prompt: prompt.substring(0, 50), cacheId });
         try {
             const rc = getAIResponseCache();
             rc.cacheResponse(prompt, response, 'fallback', context, { confidence });
-        } catch {}
+        } catch (cacheError: any) {
+            logger.warn('Failed to cache response', { error: cacheError?.message, prompt: prompt.substring(0, 50) });
+        }
         try {
-            const tenantId = (typeof window !== 'undefined' ? (localStorage.getItem('tenant_id') || 'demo') : 'demo');
-            import('../lib/ai/rag/embedder').then(m => m.upsertEmbedding(tenantId, cacheId, response)).catch(() => {});
-        } catch {}
-    } catch (_error) {
-        // ignore cache failures
+            const tenantId = typeof window !== 'undefined' ? (localStorage.getItem('tenant_id') || 'demo') : 'demo';
+            import('../lib/ai/rag/embedder')
+              .then(m => m.upsertEmbedding(tenantId, cacheId, response))
+              .catch((embedError: any) => {
+                logger.warn('Failed to upsert embedding', { error: embedError?.message, tenantId, cacheId });
+              });
+        } catch (embedImportError: any) {
+            logger.warn('Failed to import embedder module', { error: embedImportError?.message });
+        }
     }
 };
 

@@ -52,11 +52,11 @@ export interface JoinConfig {
 }
 
 export class QueryBuilder {
-  private supabase = getSupabase();
+  private readonly supabase = getSupabase();
   private query: any;
-  private tableName: string;
-  private tenantField?: string;
-  private tenantId?: string;
+  private readonly tableName: string;
+  private readonly tenantField?: string;
+  private readonly tenantId?: string;
 
   constructor(tableName: string, tenantField?: string, tenantId?: string) {
     this.tableName = tableName;

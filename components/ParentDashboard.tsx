@@ -44,7 +44,7 @@ const ParentDashboard = ({ onLogout, demoUserId }) => {
         const resolveChild = async () => {
             try {
                 const students = await apiGetStudents();
-                let effectiveId: string | null = demoUserId || null;
+                const effectiveId: string | null = demoUserId || null;
 
                 // If the provided demoUserId is a student id, use it directly
                 if (effectiveId && students.some(s => s.id === effectiveId)) {

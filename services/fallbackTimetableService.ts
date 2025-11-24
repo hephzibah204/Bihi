@@ -31,15 +31,15 @@ export interface Timetable {
 }
 
 export class FallbackTimetableGenerator {
-    private teachers: Teacher[];
-    private subjects: Subject[];
-    private classes: string[];
-    private days: string[];
-    private timeSlots: TimeSlot[];
+    private readonly teachers: Teacher[];
+    private readonly subjects: Subject[];
+    private readonly classes: string[];
+    private readonly days: string[];
+    private readonly timeSlots: TimeSlot[];
     
     // Track assignments to detect conflicts
-    private teacherAssignments: Map<string, Set<string>> = new Map(); // key: "teacher_day_slot"
-    private classAssignments: Map<string, Set<string>> = new Map(); // key: "class_day_slot"
+    private readonly teacherAssignments: Map<string, Set<string>> = new Map(); // key: "teacher_day_slot"
+    private readonly classAssignments: Map<string, Set<string>> = new Map(); // key: "class_day_slot"
     
     constructor(
         teachers: Teacher[],

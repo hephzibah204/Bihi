@@ -38,7 +38,7 @@ export const useFilesList = (opts: UseFilesListOptions) => {
     try {
       await initSupabase();
       const supabase = getSupabase();
-      let q = supabase
+      const q = supabase
         .from('files')
         .select('*')
         .eq('tenant_id', opts.tenantId)

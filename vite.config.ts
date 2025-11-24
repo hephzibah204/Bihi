@@ -28,10 +28,15 @@ export default defineConfig(({ mode }) => {
           output: {
             manualChunks: {
               vendor: ['react', 'react-dom'],
-              supabase: ['@supabase/supabase-js']
+              supabase: ['@supabase/supabase-js'],
+              router: ['react-router-dom']
             }
           }
-        }
+        },
+        minify: 'esbuild',
+        sourcemap: mode === 'development',
+        chunkSizeWarningLimit: 1000,
+        target: 'es2020'
       }
     };
     

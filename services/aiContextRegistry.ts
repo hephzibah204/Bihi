@@ -14,9 +14,9 @@ interface Entry {
 
 class AIContextRegistryImpl {
   private static _instance: AIContextRegistryImpl | null = null;
-  private store: Map<string, Entry> = new Map();
-  private persist = true;
-  private baseStorageKey = '__ai_feature_contexts__';
+  private readonly store: Map<string, Entry> = new Map();
+  private readonly persist = true;
+  private readonly baseStorageKey = '__ai_feature_contexts__';
   private currentStorageKey: string = '__ai_feature_contexts__';
 
   static get instance(): AIContextRegistryImpl {

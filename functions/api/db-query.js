@@ -10,6 +10,12 @@ function parseSelect(sql) {
   const columns = m[1].trim();
   const table = m[2].trim();
   const limit = m[3] ? Math.min(parseInt(m[3], 10), 1000) : 100;
+  
+  // Reject SELECT * queries for security - require explicit column specification
+  if (columns === '*') {
+    return null;
+  }
+  
   return { columns, table, limit };
 }
 
@@ -32,7 +38,7 @@ export async function onRequest(context) {
     const sql = body?.sql || '';
     const parsed = parseSelect(sql);
     if (!parsed) {
-      const res = new Response(JSON.stringify({ error: 'Only simple SELECT queries are supported, e.g., SELECT * FROM students LIMIT 50' }), { status: 400 });
+      const res = new Response(JSON.stringify({ error: 'Only simple SELECT queries with explicit columns are supported, e.g., SELECT id, name FROM students LIMIT 50 (SELECT * is not allowed for security reasons)' }), { status: 400 });
       Object.entries(corsHeaders).forEach(([k, v]) => res.headers.set(k, v));
       return res;
     }

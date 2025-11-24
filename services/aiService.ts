@@ -27,12 +27,12 @@ interface AIResponse {
 }
 
 class AIService {
-  private config: AIServiceConfig;
+  private readonly config: AIServiceConfig;
   private status: AIServiceStatus;
   private healthCheckInterval: ReturnType<typeof setInterval> | null = null;
-  private logger: typeof logger;
+  private readonly logger: typeof logger;
   private isMonitoring = false;
-  private fallbackResponses: Map<string, string> = new Map();
+  private readonly fallbackResponses: Map<string, string> = new Map();
 
   constructor(config: Partial<AIServiceConfig> = {}) {
     this.config = {

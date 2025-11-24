@@ -102,7 +102,7 @@ export async function computeTeacherRatings(): Promise<TeacherRating[]> {
         const submitted = (s as any).submitted_at ? new Date((s as any).submitted_at) : null
         const assignment = teacherAssignments.find(a => a.id === (s as any).assignmentId)
         const due = assignment?.dueDate ? new Date(assignment.dueDate as any) : null
-        let base: Date | null = submitted || due
+        const base: Date | null = submitted || due
         if (graded && base) return Math.max(0, Math.floor((graded.getTime() - base.getTime())/(24*60*60*1000)))
         return null
       })

@@ -15,8 +15,8 @@ interface CacheOptions {
 }
 
 class QueryCache {
-  private cache = new Map<string, CacheEntry<any>>();
-  private defaultTTL = 5 * 60 * 1000; // 5 minutes default
+  private readonly cache = new Map<string, CacheEntry<any>>();
+  private readonly defaultTTL = 5 * 60 * 1000; // 5 minutes default
 
   /**
    * Get cached data or execute query function

@@ -1,7 +1,11 @@
 import { handleCors } from '../_lib/cors';
 import { requireSuperAdmin, requirePlatformRoles } from '../_lib/auth';
 
-async function fetchRows(env, table, filters = [], select = '*') {
+async function fetchRows(env, table, filters = [], select = null) {
+  // Security: Require explicit column selection, no broad SELECT *
+  if (!select || select.trim() === '*') {
+    throw new Error('Explicit column selection required for security reasons');
+  }
   const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = env;
   const headers = {
     'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
@@ -80,10 +84,10 @@ function computeAttendanceMetrics(records, days = 30) {
 }
 
 async function snapshotTenant(env, tenantId) {
-  const settings = await fetchRows(env, 'settings', [['tenant_id', tenantId]], '*').catch(() => []);
+  const settings = await fetchRows(env, 'settings', [['tenant_id', tenantId]], 'id,schoolName,session,term,gradingSystem,maxCa1,maxCa2,maxExam,reportCardSettings').catch(() => []);
   const current = settings[0] || {};
-  const invoices = await fetchRows(env, 'invoices', [['tenant_id', tenantId]], '*').catch(() => []);
-  const attendance = await fetchRows(env, 'attendance', [['tenant_id', tenantId]], '*').catch(() => []);
+  const invoices = await fetchRows(env, 'invoices', [['tenant_id', tenantId]], 'id,totalAmount,amountPaid,status,createdAt,dueDate').catch(() => []);
+  const attendance = await fetchRows(env, 'attendance', [['tenant_id', tenantId]], 'id,studentId,date,status,classId').catch(() => []);
   const finance = computeFinanceMetrics(invoices);
   const att = computeAttendanceMetrics(attendance, 30);
   const alerts = [];
@@ -141,7 +145,7 @@ export async function onRequest(context) {
         const snap = await snapshotTenant(env, singleTenant);
         res = new Response(JSON.stringify(snap), { status: 200 });
       } else {
-        const tenants = await fetchRows(env, 'tenants', [], '*').catch(() => []);
+        const tenants = await fetchRows(env, 'tenants', [], 'id,name,slug,subdomain,subscriptionStatus,trialEndDate,planId').catch(() => []);
         const out = [];
         for (const t of tenants) {
           const id = String(t.id || t.slug || t.subdomain || '').trim();
@@ -157,7 +161,7 @@ export async function onRequest(context) {
         await notifyAlerts(env, singleTenant, snap.alerts);
         res = new Response(JSON.stringify(snap), { status: 201 });
       } else {
-        const tenants = await fetchRows(env, 'tenants', [], '*').catch(() => []);
+        const tenants = await fetchRows(env, 'tenants', [], 'id,name,slug,subdomain,subscriptionStatus,trialEndDate,planId').catch(() => []);
         const out = [];
         for (const t of tenants) {
           const id = String(t.id || t.slug || t.subdomain || '').trim();

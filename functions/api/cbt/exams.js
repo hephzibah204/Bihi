@@ -27,7 +27,17 @@ export async function onRequest(context) {
 
     if (request.method === 'GET') {
       const limit = Math.min(parseInt(url.searchParams.get('limit') || '50', 10), 200);
-      const select = url.searchParams.get('select') || '*';
+      // Default to safe column selection instead of *
+      const defaultColumns = 'id,title,description,subject,grade_level,duration_minutes,total_marks,pass_mark,status,created_at,updated_at,tenant_id';
+      const select = url.searchParams.get('select') || defaultColumns;
+      
+      // Security: Reject broad select queries
+      if (select.trim() === '*') {
+        const res = new Response(JSON.stringify({ error: 'Broad SELECT * queries are not allowed. Please specify explicit columns.' }), { status: 400 });
+        Object.entries(corsHeaders).forEach(([k, v]) => res.headers.set(k, v));
+        return res;
+      }
+      
       const q = new URL(`${env.SUPABASE_URL}/rest/v1/cbt_exams`);
       q.searchParams.set('select', select);
       q.searchParams.set('limit', String(limit));

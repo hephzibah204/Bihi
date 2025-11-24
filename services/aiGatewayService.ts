@@ -47,7 +47,7 @@ const AI_GENERATE_URL = '/api/ai/generate';
  */
 export class AIGatewayService {
   private static instance: AIGatewayService;
-  private abortControllers: Map<string, AbortController> = new Map();
+  private readonly abortControllers: Map<string, AbortController> = new Map();
 
   private constructor() {}
 

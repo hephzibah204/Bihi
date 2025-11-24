@@ -3,6 +3,7 @@ import { supabase } from './supabaseClient';
 import { DEMO_TENANT_ID, CORE_DEMO_DATA } from '../utils/demoData';
 import { withRetry } from '../utils/retry';
 import { parseSupabaseError, DatabaseError, NotFoundError } from '../utils/errors';
+import { postJson, safeJson } from './http';
 import { 
   validateInput, 
   studentSchema, 
@@ -1361,16 +1362,8 @@ export const apiSaveRolePermissions = async (rolePermissions: Record<string, Rec
 export const apiCreatePlatformUser = async (payload: { email: string; role: string; name?: string; password?: string }) => {
   if (!supabase) throw new Error('Auth client not available.');
   const { data: { session } } = await supabase.auth.getSession();
-  const res = await fetch('/api/platform-users', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}) },
-    body: JSON.stringify(payload)
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err?.error || 'Failed to create user');
-  }
-  const body = await res.json();
+  const headers = { 'Content-Type': 'application/json', ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}) };
+  const body = await postJson('/api/platform-users', payload, headers);
   // Do not persist tempPassword anywhere; caller may handle clipboard
   return body as { user: any; tempPassword?: string };
 };
@@ -1378,16 +1371,20 @@ export const apiCreatePlatformUser = async (payload: { email: string; role: stri
 export const apiDeletePlatformUser = async (id: string) => {
   if (!supabase) throw new Error('Auth client not available.');
   const { data: { session } } = await supabase.auth.getSession();
-  const res = await fetch('/api/platform-users', {
+  const headers = { 'Content-Type': 'application/json', ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}) };
+  
+  const response = await fetch('/api/platform-users', {
     method: 'DELETE',
-    headers: { 'Content-Type': 'application/json', ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}) },
+    headers,
     body: JSON.stringify({ id })
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err?.error || 'Failed to delete user');
+  
+  if (!response.ok) {
+    const errorData = await safeJson(response);
+    throw new Error(errorData?.error || 'Failed to delete user');
   }
-  return res.json();
+  
+  return await safeJson(response);
 };
 
 // --- Super Admin (platform) ---

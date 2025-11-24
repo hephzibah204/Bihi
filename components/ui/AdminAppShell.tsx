@@ -19,7 +19,6 @@ import PrinterIcon from '../icons/PrinterIcon';
 import IdentificationIcon from '../icons/IdentificationIcon';
 import WalletIcon from '../icons/WalletIcon';
 import MegaphoneIcon from '../icons/MegaphoneIcon';
-import UsersGroupIcon from '../icons/UsersGroupIcon';
 import BriefcaseIcon from '../icons/BriefcaseIcon';
 import Cog6ToothIcon from '../icons/Cog6ToothIcon';
 import { ADMIN_VIEWS } from '../../utils/constants';

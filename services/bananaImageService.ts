@@ -32,9 +32,9 @@ function getEnv(key: string): string | undefined {
  * and finally to a placeholder image.
  */
 export class BananaImageService {
-  private apiKey?: string;
-  private modelKey?: string;
-  private hfKey?: string;
+  private readonly apiKey?: string;
+  private readonly modelKey?: string;
+  private readonly hfKey?: string;
 
   constructor() {
     this.apiKey = getEnv('BANANA_API_KEY') || getEnv('VITE_BANANA_API_KEY');

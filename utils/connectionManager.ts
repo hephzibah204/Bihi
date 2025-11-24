@@ -31,12 +31,12 @@ interface HandshakeResult {
 }
 
 class ConnectionManager {
-  private state: ConnectionState;
-  private logger = logger;
+  private readonly state: ConnectionState;
+  private readonly logger = logger;
   private monitoringInterval: NodeJS.Timeout | null = null;
   private isMonitoring = false;
-  private maxReconnectAttempts = 5;
-  private reconnectDelay = 2000; // Start with 2 seconds
+  private readonly maxReconnectAttempts = 5;
+  private readonly reconnectDelay = 2000; // Start with 2 seconds
 
   constructor() {
         this.state = {

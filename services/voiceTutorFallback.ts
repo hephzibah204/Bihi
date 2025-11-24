@@ -1,6 +1,7 @@
 // services/voiceTutorFallback.ts
 // Fallback system for voice tutor when Gemini Live API is unavailable
 
+import { logger } from '../utils/logger';
 import { generateFallbackResponse } from './fallbackAiService';
 
 export interface VoiceTutorFallbackConfig {
@@ -28,7 +29,7 @@ export class VoiceTutorFallback {
     private synthesis: SpeechSynthesis | null = null;
     private isListening: boolean = false;
     private isSpeaking: boolean = false;
-    private config: VoiceTutorFallbackConfig;
+    private readonly config: VoiceTutorFallbackConfig;
     private onTranscriptCallback: ((transcript: VoiceTranscript) => void) | null = null;
     private onStatusChangeCallback: ((status: 'listening' | 'speaking' | 'idle' | 'error') => void) | null = null;
     private currentUtterance: SpeechSynthesisUtterance | null = null;
@@ -62,7 +63,7 @@ export class VoiceTutorFallback {
             this.recognition.lang = 'en-NG'; // Nigerian English
 
             this.recognition.onstart = () => {
-                console.log('🎤 Voice recognition started (fallback mode)');
+                logger.info('Voice recognition started (fallback mode)');
                 this.isListening = true;
                 this.onStatusChangeCallback?.('listening');
             };
@@ -104,12 +105,12 @@ export class VoiceTutorFallback {
             };
 
             this.recognition.onerror = (event: any) => {
-                console.error('Voice recognition error:', event.error);
+                logger.error('Voice recognition error:', { error: event.error });
                 this.onStatusChangeCallback?.('error');
             };
 
             this.recognition.onend = () => {
-                console.log('Voice recognition ended');
+                logger.info('Voice recognition ended');
                 if (this.isListening) {
                     // Restart if we're still supposed to be listening
                     this.recognition.start();

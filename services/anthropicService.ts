@@ -32,7 +32,7 @@ export async function callAnthropicApi(prompt: string): Promise<string> {
   };
   
   try {
-    const response = await postJson(
+    const data = await postJson(
       endpoint,
       body,
       { 
@@ -41,7 +41,6 @@ export async function callAnthropicApi(prompt: string): Promise<string> {
       }
     );
     
-    const data = await safeJson(response);
     const blocks = data?.content || [];
     const text = Array.isArray(blocks) ? blocks.map((b: any) => b.text || '').join('') : '';
     return String(text || data?.output || '');

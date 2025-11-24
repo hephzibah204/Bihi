@@ -33,7 +33,7 @@ export type TeacherView =
   | 'ai-comment-generator' | 'ai-early-intervention' | 'ai-learning-pathways' | 'ai-subject-recommender'
   | 'ai-rubric-generator' | 'ai-parent-message-composer' | 'lesson-templates' | 'ai-coach'
   | 'attendance' | 'messages' | 'notifications' | 'report-cards' | 'comprehensive-entry' | 'student-profile'
-  | 'classroom-monitoring' | 'cbt-items' | 'cbt-exams' | 'cbt-timetable';
+  | 'classroom-monitoring' | 'monitoring-consent' | 'cbt-items' | 'cbt-exams' | 'cbt-timetable';
   
 export type StudentView = 
   | 'dashboard' | 'results' | 'assignments' | 'timetable' | 'ai-tools'

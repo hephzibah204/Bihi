@@ -33,8 +33,8 @@ interface CacheStats {
 
 class AIResponseCache {
     private cache: Map<string, CachedResponse> = new Map();
-    private maxCacheSize: number = 1000; // Maximum number of cached responses
-    private similarityThreshold: number = 0.55; // Lowered to allow broader reuse offline
+    private readonly maxCacheSize: number = 1000; // Maximum number of cached responses
+    private readonly similarityThreshold: number = 0.55; // Lowered to allow broader reuse offline
     private stats: CacheStats = {
         totalCached: 0,
         geminiResponses: 0,

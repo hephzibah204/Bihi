@@ -22,8 +22,8 @@ interface LogEntry {
 
 export class Logger {
   private static instance: Logger;
-  private queue: LogEntry[] = [];
-  private flushInterval: number = 15_000; // 15s batch send
+  private readonly queue: LogEntry[] = [];
+  private readonly flushInterval: number = 15_000; // 15s batch send
   private initialized = false;
 
   private constructor() {}

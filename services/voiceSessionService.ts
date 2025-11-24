@@ -42,7 +42,7 @@ export interface UpdateVoiceSessionParams {
 }
 
 export class VoiceSessionService {
-    private supabase: any;
+    private readonly supabase: any;
 
     constructor() {
         this.supabase = getSupabase();

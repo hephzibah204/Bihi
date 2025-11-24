@@ -15,7 +15,7 @@ interface State {
 }
 
 class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
-  private maxRetries = 3;
+  private readonly maxRetries = 3;
 
   constructor(props: ErrorBoundaryProps) {
     super(props);
@@ -74,7 +74,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
     // Example: Sentry.captureException(error, { contexts: { react: errorInfo } });
   }
 
-  private handleRetry = () => {
+  private readonly handleRetry = () => {
     if (this.state.retryCount < this.maxRetries) {
       this.setState(prevState => ({
         hasError: false,
@@ -85,7 +85,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
     }
   };
 
-  private handleRefresh = () => {
+  private readonly handleRefresh = () => {
     window.location.reload();
   };
 

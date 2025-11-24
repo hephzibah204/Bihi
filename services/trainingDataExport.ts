@@ -42,7 +42,7 @@ export interface ExportStats {
  * Prepares cached responses for model fine-tuning
  */
 export class TrainingDataExporter {
-    private searchEngine = getSemanticSearchEngine();
+    private readonly searchEngine = getSemanticSearchEngine();
     
     /**
      * Export training data in specified format

@@ -32,13 +32,12 @@ export async function callOpenAI(prompt: string): Promise<string> {
   };
   
   try {
-    const response = await postJson(
+    const data = await postJson(
       endpoint,
       body,
       { 'Authorization': `Bearer ${key}` }
     );
     
-    const data = await safeJson(response);
     const content = data?.choices?.[0]?.message?.content || '';
     return String(content || '');
   } catch (error) {

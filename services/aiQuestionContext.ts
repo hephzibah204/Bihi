@@ -1,4 +1,5 @@
 import type { UserRole } from "../types";
+import { logger } from '../utils/logger';
 import { 
   buildFinanceContext, 
   buildTeacherContext, 
@@ -232,7 +233,7 @@ export function analyzeQuestionIntent(question: string): QuestionIntent {
   // Check each intent category
   Object.entries(INTENT_PATTERNS).forEach(([category, pattern]) => {
     let categoryScore = 0;
-    let categoryKeywords: string[] = [];
+    const categoryKeywords: string[] = [];
 
     // Direct keyword matching (weight: 1)
     pattern.keywords.forEach(keyword => {
@@ -611,7 +612,7 @@ function extractSpecificMetric(metric: string, contextData: ContextData, userRol
       return extractStudentPerformance(contextData.performanceContext);
     default:
       // Handle unknown metrics gracefully
-      console.warn(`Unknown metric requested: ${metric}`);
+      logger.warn(`Unknown metric requested: ${metric}`);
       return `Metric "${metric}" is not available. Please try a different metric or contact support.`;
   }
 }

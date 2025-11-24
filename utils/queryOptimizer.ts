@@ -24,7 +24,7 @@ interface BatchQueryOptions {
  * Execute batch queries to avoid N+1 patterns
  */
 export class QueryOptimizer {
-  private supabase = getSupabase();
+  private readonly supabase = getSupabase();
 
   /**
    * Fetch multiple entities with their related data in a single query

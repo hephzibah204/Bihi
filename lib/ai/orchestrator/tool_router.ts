@@ -26,14 +26,14 @@ export async function executeTools(names: string[], args: any, context: any): Pr
         console.warn('Failed to cache tool result:', error.message, {
           toolName: n,
           tenantId: context?.tenantId || 'demo',
-          args: a
+          args: args?.[n] || {}
         });
       });
     } catch (error) {
       // Log tool execution error but continue with other tools
       console.error('Tool execution failed:', error.message, {
         toolName: n,
-        args: a,
+        args: args?.[n] || {},
         context: context?.tenantId || 'demo'
       });
       // Optionally add error result to output

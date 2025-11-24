@@ -10,7 +10,7 @@ async function listTenants(env) {
     'apikey': SUPABASE_SERVICE_ROLE_KEY,
     'Accept': 'application/json'
   };
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/tenants?select=*`, { headers });
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/tenants?select=id,name`, { headers });
   if (!res.ok) throw new Error(await res.text());
   return await res.json();
 }

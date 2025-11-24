@@ -200,7 +200,7 @@ const Reports: React.FC = () => {
 
   const scheduleEmailReport = async () => {
     const now = new Date();
-    let next = new Date(now);
+    const next = new Date(now);
     if (reportPeriod === 'daily') {
       next.setDate(next.getDate() + 1);
     } else if (reportPeriod === 'weekly') {

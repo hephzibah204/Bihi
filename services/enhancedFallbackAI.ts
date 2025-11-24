@@ -907,7 +907,7 @@ function mdToHtmlLite(md: string): string {
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;');
         // Bold **text**
-        let html = md.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        const html = md.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
         const lines = html.split(/\r?\n/);
         const out: string[] = [];
         let inUl = false, inOl = false;

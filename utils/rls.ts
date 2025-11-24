@@ -22,7 +22,7 @@ export interface TenantContext {
 }
 
 class RLSManager {
-  private supabase = getSupabase();
+  private readonly supabase = getSupabase();
 
   /**
    * Set tenant context for RLS policies

@@ -24,14 +24,14 @@ export interface GenerationResponse {
  */
 export class HuggingFaceClient {
     private apiKey: string | null;
-    private baseUrl = 'https://router.huggingface.co/hf-inference/models/';
-    private requestCache: Map<string, { response: string; timestamp: number }> = new Map();
-    private cacheTimeout = 60 * 60 * 1000; // 1 hour
+    private readonly baseUrl = 'https://router.huggingface.co/hf-inference/models/';
+    private readonly requestCache: Map<string, { response: string; timestamp: number }> = new Map();
+    private readonly cacheTimeout = 60 * 60 * 1000; // 1 hour
     
     // Rate limiting
     private requestCount = 0;
     private requestWindow = Date.now();
-    private maxRequestsPerMinute = 30; // Conservative limit for free tier
+    private readonly maxRequestsPerMinute = 30; // Conservative limit for free tier
     
     constructor(apiKey?: string) {
         this.apiKey = apiKey || this.loadApiKeyFromStorage();
