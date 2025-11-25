@@ -44,8 +44,13 @@ import DataChampionsWidget from './DataChampionsWidget';
 import { ADMIN_VIEWS } from '../utils/constants';
 import { DashboardFilterProvider } from '../contexts/DashboardFilterContext';
 import DashboardFilterBar from './DashboardFilterBar';
+import { DashboardView } from '../types';
 
-const AdminBlueDashboard: React.FC = () => {
+interface AdminBlueDashboardProps {
+  setActiveView?: (view: DashboardView) => void;
+}
+
+const AdminBlueDashboard: React.FC<AdminBlueDashboardProps> = ({ setActiveView }) => {
   const navigate = useNavigate();
   const sidebarItems = [
     { key: 'dashboard', label: 'Dashboard', icon: <ChartBarIcon className="w-5 h-5" />, active: true },
@@ -93,7 +98,15 @@ const AdminBlueDashboard: React.FC = () => {
         ].map(link => (
           <button
             key={String(link.view)}
-            onClick={() => { const url = new URL(window.location.toString()); url.searchParams.set('view', link.view as any); navigate(url.pathname + url.search + url.hash); }}
+            onClick={() => {
+              if (setActiveView) {
+                setActiveView(link.view as DashboardView);
+              } else {
+                const url = new URL(window.location.toString());
+                url.searchParams.set('view', link.view as any);
+                navigate(url.pathname + url.search + url.hash);
+              }
+            }}
             className="card p-6 text-center hover:shadow-lg hover:scale-105 transition-transform duration-200"
           >
             <div className="text-[#2563EB] mx-auto w-16 h-16 flex items-center justify-center bg-[#EEF2FF] rounded-full">
@@ -105,8 +118,13 @@ const AdminBlueDashboard: React.FC = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[3fr_2fr] gap-6 mt-6">
+      {/* Recent Activity */}
+      <div className="mt-6">
         <RecentActivityWidget />
+      </div>
+
+      {/* Data Champions Leaderboard */}
+      <div className="mt-6">
         <DataChampionsWidget />
       </div>
 

@@ -6,7 +6,7 @@ import { ADMIN_VIEWS } from '../utils/constants';
 import { useAuth } from '../contexts/AuthContext';
 
 // Lazy load all the components
-const DashboardHome = lazy(() => import('./DashboardHome'));
+const AdminBlueDashboard = lazy(() => import('./AdminBlueDashboard'));
 const Students = lazy(() => import('./Students'));
 const StudentProfilePage = lazy(() => import('./StudentProfilePage'));
 const Subjects = lazy(() => import('./Subjects'));
@@ -72,7 +72,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ activeView, setActi
     switch (activeView as any) {
         case ADMIN_VIEWS.DASHBOARD:
             // Show bursary KPIs for Bursar on Home
-            return userRole === 'Bursar' ? <BursaryDashboard /> : <DashboardHome setActiveView={setActiveView} />;
+            return userRole === 'Bursar' ? <BursaryDashboard /> : <AdminBlueDashboard setActiveView={setActiveView} />;
         case ADMIN_VIEWS.STUDENTS:
             return <Students onViewProfile={onViewStudentProfile} />;
         case ADMIN_VIEWS.STUDENT_PROFILE:
@@ -178,7 +178,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ activeView, setActi
             return <ParentMessageComposer />;
             
         default:
-            return <DashboardHome setActiveView={setActiveView} />;
+            return <AdminBlueDashboard setActiveView={setActiveView} />;
     }
 };
 

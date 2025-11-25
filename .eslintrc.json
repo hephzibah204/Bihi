@@ -118,7 +118,8 @@
     {
       "files": ["**/*.{test,spec}.{ts,tsx}"],
       "env": {
-        "jest": true
+        "jest": true,
+        "vitest": true
       },
       "rules": {
         "no-console": "off",
