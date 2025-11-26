@@ -55,10 +55,15 @@ interface AdminBlueDashboardProps {
 // Safe wrapper for potentially problematic widgets
 const SafeWidget: React.FC<{ children: React.ReactNode; fallback?: React.ReactNode }> = ({ 
   children, 
-  fallback = <div className="p-4 text-gray-500">Widget temporarily unavailable</div> 
+  fallback = <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-600">
+    <div className="text-sm font-medium">Widget Error</div>
+    <div className="text-xs mt-1">This widget failed to load. Check console for details.</div>
+  </div> 
 }) => (
   <ErrorBoundary fallback={fallback}>
-    {children}
+    <div className="widget-container">
+      {children}
+    </div>
   </ErrorBoundary>
 );
 
@@ -345,6 +350,13 @@ const AdminBlueDashboard: React.FC<AdminBlueDashboardProps> = ({ setActiveView }
             <DashboardKPI />
           </SafeWidget>
         </div>
+        
+        {/* Financial Widgets (moved inside DashboardFilterProvider) */}
+        <div className="mt-6">
+          <SafeWidget>
+            <FinancialVitalsPro />
+          </SafeWidget>
+        </div>
       </DashboardFilterProvider>
 
       {/* Charts Row */}
@@ -402,12 +414,6 @@ const AdminBlueDashboard: React.FC<AdminBlueDashboardProps> = ({ setActiveView }
         </SafeWidget>
       </div>
 
-      {/* Financial Widgets */}
-      <div className="mt-6">
-        <SafeWidget>
-          <FinancialVitalsPro />
-        </SafeWidget>
-      </div>
 
       {/* Financial Charts Row */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">

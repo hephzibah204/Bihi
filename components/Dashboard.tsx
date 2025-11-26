@@ -34,7 +34,13 @@ import ErrorBoundary from './ErrorBoundary';
 // Admin Dashboard with fallback to simple version if complex one fails
 const AdminDashboardWithFallback: React.FC<{ setActiveView?: (view: DashboardView) => void }> = ({ setActiveView }) => {
     return (
-        <ErrorBoundary fallback={<SimpleAdminDashboard setActiveView={setActiveView} />}>
+        <ErrorBoundary fallback={
+            <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
+                <h2 className="text-lg font-semibold text-red-800 mb-2">AdminBlueDashboard Failed to Load</h2>
+                <p className="text-red-600 mb-4">The main admin dashboard encountered an error. Using fallback dashboard.</p>
+                <SimpleAdminDashboard setActiveView={setActiveView} />
+            </div>
+        }>
             <AdminBlueDashboard setActiveView={setActiveView} />
         </ErrorBoundary>
     );

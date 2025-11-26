@@ -3,14 +3,21 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import PublicAdmissionForm from './PublicAdmissionForm';
 import SEOHead from './SEOHead';
+import VirtualTour from './VirtualTour';
+import LanguageSelector from './LanguageSelector';
+import { LanguageProvider, useLanguage } from '../contexts/LanguageContext';
 import { SchoolLandingPageContent, SchoolInfo } from '../types/school';
 
 // Hero Section Component
-const HeroSection = ({ content, schoolInfo, onApplyClick }: { 
+const HeroSection = ({ content, schoolInfo, onApplyClick, onVirtualTourClick }: { 
   content: SchoolLandingPageContent['hero'], 
   schoolInfo: SchoolInfo,
-  onApplyClick: () => void 
-}) => (
+  onApplyClick: () => void,
+  onVirtualTourClick: () => void
+}) => {
+  const { t } = useLanguage();
+  
+  return (
   <section 
     className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-indigo-800 to-purple-900"
     style={{
@@ -35,10 +42,13 @@ const HeroSection = ({ content, schoolInfo, onApplyClick }: {
             onClick={onApplyClick}
             className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-4 px-8 rounded-full text-lg transition-all transform hover:scale-105"
           >
-            Apply for Admission
+            {t('nav.apply')}
           </button>
-          <button className="border-2 border-white text-white hover:bg-white hover:text-gray-900 font-bold py-4 px-8 rounded-full text-lg transition-all">
-            Take Virtual Tour
+          <button 
+            onClick={onVirtualTourClick}
+            className="border-2 border-white text-white hover:bg-white hover:text-gray-900 font-bold py-4 px-8 rounded-full text-lg transition-all"
+          >
+            {t('nav.tour')}
           </button>
         </div>
       </div>
@@ -51,7 +61,8 @@ const HeroSection = ({ content, schoolInfo, onApplyClick }: {
       </div>
     </div>
   </section>
-);
+  );
+};
 
 // About Section
 const AboutSection = ({ content, schoolInfo }: { 
@@ -268,13 +279,15 @@ const ContactSection = ({ content, schoolInfo, onApplyClick }: {
 );
 
 // Main School Landing Page Component
-const SchoolLandingPage = () => {
+const SchoolLandingPageInner = () => {
   const { schoolSlug } = useParams();
   const navigate = useNavigate();
   const [schoolInfo, setSchoolInfo] = useState<SchoolInfo | null>(null);
   const [landingContent, setLandingContent] = useState<SchoolLandingPageContent | null>(null);
   const [isAdmissionFormOpen, setIsAdmissionFormOpen] = useState(false);
+  const [isVirtualTourOpen, setIsVirtualTourOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { t } = useLanguage();
 
   useEffect(() => {
     const loadSchoolData = async () => {
@@ -304,6 +317,10 @@ const SchoolLandingPage = () => {
 
   const handleApplyClick = () => {
     setIsAdmissionFormOpen(true);
+  };
+
+  const handleVirtualTourClick = () => {
+    setIsVirtualTourOpen(true);
   };
 
   const handleAdmissionSuccess = () => {
@@ -358,19 +375,20 @@ const SchoolLandingPage = () => {
             )}
             <span className="text-xl font-bold text-gray-900">{schoolInfo.name}</span>
           </div>
-          <div className="hidden md:flex space-x-6">
-            <a href="#about" className="text-gray-600 hover:text-blue-600 transition-colors">About</a>
-            <a href="#programs" className="text-gray-600 hover:text-blue-600 transition-colors">Programs</a>
-            <a href="#facilities" className="text-gray-600 hover:text-blue-600 transition-colors">Facilities</a>
+          <div className="hidden md:flex items-center space-x-6">
+            <a href="#about" className="text-gray-600 hover:text-blue-600 transition-colors">{t('nav.about')}</a>
+            <a href="#programs" className="text-gray-600 hover:text-blue-600 transition-colors">{t('nav.programs')}</a>
+            <a href="#facilities" className="text-gray-600 hover:text-blue-600 transition-colors">{t('nav.facilities')}</a>
             <a href="#testimonials" className="text-gray-600 hover:text-blue-600 transition-colors">Testimonials</a>
-            <a href="#contact" className="text-gray-600 hover:text-blue-600 transition-colors">Contact</a>
+            <a href="#contact" className="text-gray-600 hover:text-blue-600 transition-colors">{t('nav.contact')}</a>
+            <LanguageSelector className="mr-2" showLabel={false} />
+            <button 
+              onClick={handleApplyClick}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              {t('nav.apply')}
+            </button>
           </div>
-          <button 
-            onClick={handleApplyClick}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Apply Now
-          </button>
         </div>
       </nav>
 
@@ -379,6 +397,7 @@ const SchoolLandingPage = () => {
         content={landingContent.hero} 
         schoolInfo={schoolInfo} 
         onApplyClick={handleApplyClick}
+        onVirtualTourClick={handleVirtualTourClick}
       />
       
       <div id="about">
@@ -468,6 +487,13 @@ const SchoolLandingPage = () => {
         onClose={() => setIsAdmissionFormOpen(false)}
         onSuccess={handleAdmissionSuccess}
       />
+
+      {/* Virtual Tour Modal */}
+      <VirtualTour 
+        isOpen={isVirtualTourOpen}
+        onClose={() => setIsVirtualTourOpen(false)}
+        schoolInfo={schoolInfo}
+      />
     </div>
   );
 };
@@ -530,5 +556,14 @@ const getDefaultLandingContent = (school: SchoolInfo): SchoolLandingPageContent 
     subtitle: 'Ready to join our school community? Contact us today!'
   }
 });
+
+// Wrapper component with LanguageProvider
+const SchoolLandingPage = () => {
+  return (
+    <LanguageProvider>
+      <SchoolLandingPageInner />
+    </LanguageProvider>
+  );
+};
 
 export default SchoolLandingPage;
