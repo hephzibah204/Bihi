@@ -428,15 +428,7 @@ const SuperAdminHeader = ({ activeView, onLogout, onQuickAction, can, roleLabel 
     );
 };
 
-// Loading component
-const ContentLoader = () => (
-    <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-            <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-slate-600">Loading component...</p>
-        </div>
-    </div>
-);
+import { ContentLoader } from './ui/LoadingSpinner';
 
 // Main SuperAdmin Dashboard Component
 const SuperAdminDashboard = () => {

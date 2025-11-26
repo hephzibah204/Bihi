@@ -26,12 +26,19 @@ const StudentBlueDashboard = lazy(() => import('./StudentBlueDashboard'));
 const ParentBlueDashboard = lazy(() => import('./ParentBlueDashboard'));
 const WelcomeModal = lazy(() => import('./WelcomeModal'));
 const AdminBlueDashboard = lazy(() => import('./AdminBlueDashboard'));
+const SimpleAdminDashboard = lazy(() => import('./SimpleAdminDashboard'));
 
-const ContentLoader = () => (
-    <div className="flex items-center justify-center p-8">
-        <SpinnerIcon className="w-8 h-8 animate-spin text-indigo-500" />
-    </div>
-);
+import { ContentLoader } from './ui/LoadingSpinner';
+import ErrorBoundary from './ErrorBoundary';
+
+// Admin Dashboard with fallback to simple version if complex one fails
+const AdminDashboardWithFallback: React.FC<{ setActiveView?: (view: DashboardView) => void }> = ({ setActiveView }) => {
+    return (
+        <ErrorBoundary fallback={<SimpleAdminDashboard setActiveView={setActiveView} />}>
+            <AdminBlueDashboard setActiveView={setActiveView} />
+        </ErrorBoundary>
+    );
+};
 
 const Dashboard = () => {
     const { user, role, session, loading, logout } = useAuth();
@@ -176,6 +183,20 @@ const Dashboard = () => {
                     <TenantProvider>
                         <PlanFeaturesProvider>
                             <Bursary />
+                        </PlanFeaturesProvider>
+                    </TenantProvider>
+                );
+            }
+            // For Admin demo, try AdminBlueDashboard with fallback to simple dashboard
+            if (effectiveRole === USER_ROLES.ADMIN) {
+                return (
+                    <TenantProvider>
+                        <PlanFeaturesProvider>
+                            <Suspense fallback={<ContentLoader />}>
+                                <AdminDashboardWithFallback setActiveView={handleViewChange} />
+                            </Suspense>
+                            <SyncStatusIndicator />
+                            <GlobalNotification />
                         </PlanFeaturesProvider>
                     </TenantProvider>
                 );

@@ -49,11 +49,7 @@ interface TeacherDashboardContentProps {
     onViewStudentProfile?: (studentId: string) => void;
 }
 
-const ContentLoader = () => (
-    <div className="flex items-center justify-center p-8">
-        <SpinnerIcon className="w-8 h-8 animate-spin text-indigo-500" />
-    </div>
-);
+import { ContentLoader } from './ui/LoadingSpinner';
 
 const TeacherDashboardContent: React.FC<TeacherDashboardContentProps> = ({ activeView, setActiveView, profileStudentId, onViewStudentProfile }) => {
     const { settings } = useAuth();

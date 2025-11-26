@@ -31,11 +31,7 @@ interface BroadsheetProps {
   userRole?: UserRole | null;
 }
 
-const Loader = () => (
-  <div className="flex items-center justify-center p-8">
-    <SpinnerIcon className="w-8 h-8 animate-spin text-indigo-500" />
-  </div>
-);
+import { ContentLoader as Loader } from './ui/LoadingSpinner';
 
 const Broadsheet: React.FC<BroadsheetProps> = ({
   setActiveView,

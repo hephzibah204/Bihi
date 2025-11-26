@@ -46,6 +46,7 @@ const LeaderboardSubjects = lazy(() => import('./LeaderboardSubjects'));
 const LeaderboardClasses = lazy(() => import('./LeaderboardClasses'));
 const LeaderboardDebtors = lazy(() => import('./LeaderboardDebtors'));
 const AdminProfile = lazy(() => import('./AdminProfile'));
+const SchoolManagement = lazy(() => import('./SchoolManagement'));
 
 // AI Tool Components
 const AIChatPanel = lazy(() => import('./AIChatPanel'));
@@ -152,6 +153,10 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ activeView, setActi
             return <LeaderboardDebtors />;
         case ADMIN_VIEWS.ADMIN_PROFILE:
             return <AdminProfile />;
+        case ADMIN_VIEWS.SCHOOL_MANAGEMENT:
+            return <SchoolManagement setActiveView={setActiveView} />;
+        case ADMIN_VIEWS.LANDING_PAGES:
+            return <SchoolManagement setActiveView={setActiveView} />;
         
         // Individual AI Tool Views
                     case ADMIN_VIEWS.AI_CHAT:

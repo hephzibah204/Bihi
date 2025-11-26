@@ -12,27 +12,27 @@ interface StatCardProps {
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend, className }) => {
     return (
-        <div className={`card p-6 ${className || ''}`}>
-            <div className="flex items-center">
-                <div className="p-3 rounded-full bg-indigo-100 text-indigo-600">
+        <div className={`card p-6 md:p-8 min-h-[120px] md:min-h-[140px] ${className || ''}`}>
+            <div className="flex items-start gap-4">
+                <div className="p-3 md:p-4 rounded-xl bg-indigo-100 text-indigo-600 flex-shrink-0">
                     {icon}
                 </div>
-                <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-500 truncate">{title}</p>
-                    <p className="text-2xl font-semibold text-gray-900">{value}</p>
+                <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-500 leading-relaxed mb-2">{title}</p>
+                    <p className="text-xl md:text-2xl font-semibold text-gray-900 leading-tight break-words">{value}</p>
                 </div>
             </div>
             {trend && (
-                <div className="mt-4 flex items-baseline">
-                    <div className={`flex items-center text-sm font-semibold ${trend.direction === 'up' ? 'text-green-600' : 'text-red-600'}`}>
+                <div className="mt-4 flex items-center gap-2">
+                    <div className={`flex items-center text-sm font-semibold px-2.5 py-1 rounded-full ${trend.direction === 'up' ? 'text-green-700 bg-green-100' : 'text-red-700 bg-red-100'}`}>
                         {trend.direction === 'up' ? (
-                            <ArrowTrendingUpIcon className="h-5 w-5 mr-1" />
+                            <ArrowTrendingUpIcon className="h-4 w-4 mr-1" />
                         ) : (
-                            <ArrowTrendingDownIcon className="h-5 w-5 mr-1" />
+                            <ArrowTrendingDownIcon className="h-4 w-4 mr-1" />
                         )}
                         {trend.value}
                     </div>
-                    <div className="ml-2 text-sm text-gray-500">
+                    <div className="text-xs text-gray-500">
                         from last period
                     </div>
                 </div>

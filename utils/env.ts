@@ -208,3 +208,23 @@ export function getRoutingConfig(): RoutingConfig {
     useSubdomains: import.meta.env.VITE_USE_SUBDOMAINS === "true",
   };
 }
+
+/**
+ * Get TURN server configuration for WebRTC
+ */
+export function getTurnEnv(): { urls: string[]; username?: string; credential?: string } {
+  const turnUrl = import.meta.env.VITE_TURN_URL || (isServer ? process.env.TURN_URL : undefined);
+  const turnUsername = import.meta.env.VITE_TURN_USERNAME || (isServer ? process.env.TURN_USERNAME : undefined);
+  const turnCredential = import.meta.env.VITE_TURN_CREDENTIAL || (isServer ? process.env.TURN_CREDENTIAL : undefined);
+
+  if (!turnUrl) {
+    logger.warn("[Env] Missing TURN server URL");
+    return { urls: [] };
+  }
+
+  return {
+    urls: [turnUrl],
+    username: turnUsername,
+    credential: turnCredential,
+  };
+}

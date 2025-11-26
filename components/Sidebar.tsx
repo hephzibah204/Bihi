@@ -6,6 +6,8 @@ import { DashboardView, UserRole } from '../types';
 import Logo from './icons/Logo';
 import XIcon from './icons/XIcon';
 import { IconHome, IconStudents, IconScoreEntry, IconReportCards, IconBroadsheet, IconSubjects, IconTimetable, IconAssignments, IconPromotions, IconAttendance, IconStaff, IconParents, IconCommunications, IconBursary, IconAITools, IconAICoach, IconAnalytics, IconPrintCenter, IconIDCards, IconAlumni, IconSettings, IconHelp, IconMonitoring } from './icons/Standard';
+import DocumentTextIcon from './icons/DocumentTextIcon';
+import GlobeAltIcon from './icons/GlobeAltIcon';
 import { ADMIN_VIEWS, USER_ROLES } from '../utils/constants';
 import { usePlanFeatures } from '../contexts/PlanFeaturesContext';
 import LockIcon from './icons/LockIcon';
@@ -197,6 +199,14 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen, activeView, setActiveView, use
                 { view: ADMIN_VIEWS.LEADERBOARD_STUDENTS, label: 'Top Students', icon: <IconStudents /> },
                 { view: ADMIN_VIEWS.LEADERBOARD_SUBJECTS, label: 'Top Subjects', icon: <IconSubjects /> },
                 { view: ADMIN_VIEWS.LEADERBOARD_CLASSES, label: 'Top Classes', icon: <IconBroadsheet /> },
+            ]
+        },
+        {
+            group: 'Website & Marketing',
+            groupId: 'marketing',
+            items: [
+                { view: ADMIN_VIEWS.SCHOOL_MANAGEMENT, label: 'School Management', icon: <IconSettings /> },
+                { view: ADMIN_VIEWS.LANDING_PAGES, label: 'Landing Pages', icon: <DocumentTextIcon className="h-5 w-5" /> },
             ]
         },
         {

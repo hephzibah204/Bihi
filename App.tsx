@@ -20,10 +20,9 @@ const DemoPage = lazy(() => import('./components/DemoPage'));
 const SubscriptionPage = lazy(() => import('./components/SubscriptionPage'));
 const PublicResultViewer = lazy(() => import('./components/PublicResultViewer'));
 const CentralLoginPage = lazy(() => import('./components/CentralLoginPage'));
+const SchoolLandingPage = lazy(() => import('./components/SchoolLandingPage'));
 
-const FullPageLoader = () => (
-    <div className="flex items-center justify-center h-screen">Loading...</div>
-);
+import { FullPageLoader } from './components/ui/LoadingSpinner';
 
 // Component to handle path-based tenant routing
 const TenantRouter = () => {
@@ -124,6 +123,7 @@ const AppRouter = () => {
                 <Route path="/results" element={<PublicResultViewer />} />
                 <Route path="/controlhub" element={<SuperAdminDashboard />} />
                 <Route path="/cbt/*" element={<CBTRouter />} />
+                <Route path="/schools/:schoolSlug" element={<SchoolLandingPage />} />
                 {/* Path-based tenant routing */}
                 <Route path="/:tenantSlug/*" element={<TenantRouter />} />
                 {/* Catch-all route for unknown paths (non-tenant) */}

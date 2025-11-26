@@ -73,6 +73,8 @@ export const ADMIN_VIEWS = {
     LEADERBOARD_CLASSES: 'leaderboard-classes',
     LEADERBOARD_DEBTORS: 'leaderboard-debtors',
     ADMIN_PROFILE: 'admin-profile',
+    SCHOOL_MANAGEMENT: 'school-management',
+    LANDING_PAGES: 'landing-pages',
 } as const;
 
 export const TEACHER_VIEWS = {

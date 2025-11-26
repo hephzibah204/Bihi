@@ -291,7 +291,7 @@ const FinancialVitalsWidget: React.FC = () => {
                   </div>
                     <div>
                     <div className="kpi-label clamp-2" title={metrics[3]?.label}>{metrics[3]?.label || 'Invoices'}</div>
-                    <div className="kpi-value text-lg md:text-xl whitespace-normal break-words" title={metrics[3]?.value}>{metrics[3]?.value || ''}</div>
+                    <div className="text-lg font-semibold text-gray-900 leading-tight whitespace-normal break-words" title={metrics[3]?.value}>{metrics[3]?.value || ''}</div>
                     {metrics[3]?.hint && (<div className="delta-chip bg-gray-100 text-gray-700 mt-1">{metrics[3]?.hint}</div>)}
                   </div>
                 </div>

@@ -1,17 +1,30 @@
 import React, { PropsWithChildren, useState } from 'react';
-import BlueSidebar from './BlueSidebar';
+import GroupedSidebar from './GroupedSidebar';
 import TopBar from './TopBar';
 import Bars3Icon from '../icons/Bars3Icon';
 
-interface AppShellProps {
+interface SidebarGroup {
+  title: string;
+  items: Array<{ key: string; label: string; icon: React.ReactNode; active?: boolean }>;
+  defaultExpanded?: boolean;
+}
+
+interface AdminAppShellWithGroupsProps {
   pageTitle: string;
-  sidebarItems: Array<{ key: string; label: string; icon: React.ReactNode; active?: boolean }>;
+  sidebarGroups: SidebarGroup[];
   onSelectSidebarItem?: (key: string) => void;
   rightPanel?: React.ReactNode;
   topBar?: React.ReactNode;
 }
 
-const AppShell: React.FC<PropsWithChildren<AppShellProps>> = ({ pageTitle, sidebarItems, onSelectSidebarItem, rightPanel, topBar, children }) => {
+const AdminAppShellWithGroups: React.FC<PropsWithChildren<AdminAppShellWithGroupsProps>> = ({ 
+  pageTitle, 
+  sidebarGroups, 
+  onSelectSidebarItem, 
+  rightPanel, 
+  topBar, 
+  children 
+}) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const toggleMobileMenu = () => {
@@ -24,8 +37,8 @@ const AppShell: React.FC<PropsWithChildren<AppShellProps>> = ({ pageTitle, sideb
 
   return (
     <div className="min-h-screen flex bg-[#EEF2FF]">
-      <BlueSidebar 
-        items={sidebarItems} 
+      <GroupedSidebar 
+        groups={sidebarGroups} 
         onSelect={onSelectSidebarItem}
         isOpen={isMobileMenuOpen}
         onClose={closeMobileMenu}
@@ -54,4 +67,4 @@ const AppShell: React.FC<PropsWithChildren<AppShellProps>> = ({ pageTitle, sideb
   );
 };
 
-export default AppShell;
+export default AdminAppShellWithGroups;

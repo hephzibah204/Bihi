@@ -11,11 +11,7 @@ import { apiGetStudents, getCurrentUser } from '../services/api';
 
 const ParentDashboardContent = lazy(() => import('./ParentDashboardContent'));
 
-const ContentLoader = () => (
-    <div className="flex items-center justify-center p-8">
-        <SpinnerIcon className="w-8 h-8 animate-spin text-indigo-500" />
-    </div>
-);
+import { ContentLoader } from './ui/LoadingSpinner';
 
 const getViewFromUrl = () => new URLSearchParams(window.location.search).get('view');
 
@@ -120,9 +116,9 @@ const ParentDashboard = ({ onLogout, demoUserId }) => {
                         {resolvingChild ? (
                             <ContentLoader />
                         ) : (
-                            <Suspense fallback={<ContentLoader />}>
-                                <ParentDashboardContent activeView={activeView} setActiveView={handleViewChange} demoUserId={resolvedChildId} />
-                            </Suspense>
+                        <Suspense fallback={<ContentLoader />}>
+                            <ParentDashboardContent activeView={activeView} setActiveView={handleViewChange} demoUserId={resolvedChildId} />
+                        </Suspense>
                         )}
                     </div>
                 </main>
