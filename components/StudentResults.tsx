@@ -225,8 +225,16 @@ const StudentResults = ({ demoUserId }) => {
                                             </tbody>
                                         </table>
                                     </div>
-                                    <div className="text-right mt-4">
-                                        <button onClick={() => handleViewReport(termKey)} className="btn btn-secondary">View Full Report Card</button>
+                                    <div className="text-right mt-4 space-x-2">
+                                        <button onClick={() => handleViewReport(termKey)} className="btn btn-secondary">View Report Card</button>
+                                        <a 
+                                            href={`?print=report-card&student=${student?.id}&session=${encodeURIComponent(termKey.split(' - ')[0])}&term=${encodeURIComponent(termKey.split(' - ')[1])}`}
+                                            className="btn btn-primary"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            Print & Download
+                                        </a>
                                     </div>
                                 </div>
                             )}

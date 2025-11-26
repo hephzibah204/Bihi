@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { apiGetStudents, apiGetSubjects, apiGetScores, apiGetSchoolSettings, apiGetRemarks, apiGetAttendance } from '../services/api';
 import { Student, Subject, Score, Remark, AttendanceRecord, SchoolSettings } from '../types';
-import BulkReportCardPrintView from './BulkReportCardPrintView';
+import BulkReportCardPrintViewer from './BulkReportCardPrintViewer';
 import ArrowLeftIcon from './icons/ArrowLeftIcon';
 import PrinterIcon from './icons/PrinterIcon';
 import ArrowDownTrayIcon from './icons/ArrowDownTrayIcon';
@@ -100,11 +100,10 @@ const ReportCardDashboard: React.FC<ReportCardDashboardProps> = ({ onBack }) => 
 
     if (printAction) {
         return (
-            <BulkReportCardPrintView
+            <BulkReportCardPrintViewer
                 studentIds={Array.from(selectedStudents)}
                 allData={allData}
                 onClose={() => setPrintAction(null)}
-                action={printAction}
                 templateKey={templateKey}
                 sessionOverride={selectedSession}
                 termOverride={selectedTerm}

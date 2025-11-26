@@ -17,6 +17,11 @@ import BookOpenIcon from './icons/BookOpenIcon';
 import ClipboardListIcon from './icons/ClipboardListIcon';
 import MegaphoneIcon from './icons/MegaphoneIcon';
 import Cog6ToothIcon from './icons/Cog6ToothIcon';
+import AcademicKPIGroup from './kpi/AcademicKPIGroup';
+import FinancialKPIGroup from './kpi/FinancialKPIGroup';
+import AttendanceKPIGroup from './kpi/AttendanceKPIGroup';
+import OperationalKPIGroup from './kpi/OperationalKPIGroup';
+import EngagementKPIGroup from './kpi/EngagementKPIGroup';
 import SchoolVitals from './SchoolVitals';
 import DashboardInsights from './DashboardInsights';
 import IdleClassesAlertWidget from './IdleClassesAlertWidget';
@@ -87,6 +92,16 @@ const AdminBlueDashboard: React.FC<AdminBlueDashboardProps> = ({ setActiveView }
       // Fallback to URL navigation
       const url = new URL(window.location.toString());
       url.searchParams.set('view', key);
+      navigate(url.pathname + url.search + url.hash);
+    }
+  };
+
+  const handleViewChange = (view: string) => {
+    if (setActiveView) {
+      setActiveView(view as DashboardView);
+    } else {
+      const url = new URL(window.location.toString());
+      url.searchParams.set('view', view);
       navigate(url.pathname + url.search + url.hash);
     }
   };
@@ -257,107 +272,320 @@ const AdminBlueDashboard: React.FC<AdminBlueDashboardProps> = ({ setActiveView }
 
   return (
     <AdminAppShellWithGroups pageTitle="Dashboard" sidebarGroups={sidebarGroups} onSelectSidebarItem={handleSidebarClick} rightPanel={rightPanel}>
-      {/* Welcome Message */}
-      <div className="text-sm text-gray-600 mb-6">Here are some quick actions to get you started.</div>
-      
-      {/* Quick Action Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {[
-          { view: ADMIN_VIEWS.STUDENTS, title: 'Manage Students', icon: <UsersIcon className="w-7 h-7" />, description: 'Add, edit, or import student records.' },
-          { view: ADMIN_VIEWS.RESULTS, title: 'Enter Scores', icon: <ClipboardListIcon className="w-7 h-7" />, description: 'Input the latest CA and exam scores.' },
-          { view: ADMIN_VIEWS.REPORT_CARDS, title: 'Generate Reports', icon: <DocumentArrowDownIcon className="w-7 h-7" />, description: 'Create and print report cards.' },
-          { view: ADMIN_VIEWS.PROMOTIONS, title: 'Promote Students', icon: <GraduationCapIcon className="w-7 h-7" />, description: 'Move students to the next class.' },
-        ].map(link => (
-          <button
-            key={String(link.view)}
-            onClick={() => {
-              if (setActiveView) {
-                setActiveView(link.view as DashboardView);
-              } else {
-                const url = new URL(window.location.toString());
-                url.searchParams.set('view', link.view as any);
-                navigate(url.pathname + url.search + url.hash);
-              }
-            }}
-            className="card p-6 md:p-8 text-center hover:shadow-lg hover:scale-105 transition-all duration-200 min-h-[140px] md:min-h-[160px] flex flex-col justify-center"
-          >
-            <div className="text-[#2563EB] mx-auto w-14 h-14 md:w-16 md:h-16 flex items-center justify-center bg-[#EEF2FF] rounded-xl mb-4">
-              {link.icon}
+      {/* Modern Desktop Dashboard Layout */}
+      <div className="space-y-8">
+        {/* Header Section */}
+        <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 rounded-3xl p-8 text-white shadow-2xl">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold mb-3">Good morning, Admin! 👋</h1>
+              <p className="text-blue-100 text-lg">Here's what's happening at your school today</p>
             </div>
-            <div className="space-y-2">
-              <h3 className="text-sm md:text-base font-semibold text-gray-900 leading-snug">{link.title}</h3>
-              <p className="text-xs md:text-sm text-gray-500 leading-relaxed px-2">{link.description}</p>
+            <div className="hidden lg:flex items-center space-x-6">
+              <div className="text-center">
+                <div className="text-3xl font-bold">1,247</div>
+                <div className="text-blue-200 text-sm">Total Students</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold">89</div>
+                <div className="text-blue-200 text-sm">Teachers</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold">₦2.4M</div>
+                <div className="text-blue-200 text-sm">Monthly Revenue</div>
+              </div>
             </div>
-          </button>
-        ))}
-      </div>
+          </div>
+        </div>
 
-      {/* School Vitals */}
-      <SafeWidget>
-        <SchoolVitals />
-      </SafeWidget>
+        {/* Quick Actions Grid - Desktop Optimized */}
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Quick Actions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <button 
+              onClick={() => {
+                if (setActiveView) {
+                  setActiveView(ADMIN_VIEWS.STUDENTS);
+                } else {
+                  const url = new URL(window.location.toString());
+                  url.searchParams.set('view', ADMIN_VIEWS.STUDENTS);
+                  navigate(url.pathname + url.search + url.hash);
+                }
+              }}
+              className="group bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-blue-200 hover:-translate-y-1"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                  <UsersIcon className="w-7 h-7 text-blue-600" />
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-gray-900">1,247</div>
+                  <div className="text-sm text-gray-500">Students</div>
+                </div>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Manage Students</h3>
+              <p className="text-gray-600 text-sm">Add, edit, or import student records and manage enrollment.</p>
+            </button>
+        
+            <button 
+              onClick={() => {
+                if (setActiveView) {
+                  setActiveView(ADMIN_VIEWS.RESULTS);
+                } else {
+                  const url = new URL(window.location.toString());
+                  url.searchParams.set('view', ADMIN_VIEWS.RESULTS);
+                  navigate(url.pathname + url.search + url.hash);
+                }
+              }}
+              className="group bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-green-200 hover:-translate-y-1"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center group-hover:bg-green-200 transition-colors">
+                  <ClipboardListIcon className="w-7 h-7 text-green-600" />
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-gray-900">89%</div>
+                  <div className="text-sm text-gray-500">Avg Score</div>
+                </div>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Enter Scores</h3>
+              <p className="text-gray-600 text-sm">Input CA and exam scores for all subjects and classes.</p>
+            </button>
+        
+            <button 
+              onClick={() => {
+                if (setActiveView) {
+                  setActiveView(ADMIN_VIEWS.REPORT_CARDS);
+                } else {
+                  const url = new URL(window.location.toString());
+                  url.searchParams.set('view', ADMIN_VIEWS.REPORT_CARDS);
+                  navigate(url.pathname + url.search + url.hash);
+                }
+              }}
+              className="group bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-purple-200 hover:-translate-y-1"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 bg-purple-100 rounded-2xl flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+                  <DocumentArrowDownIcon className="w-7 h-7 text-purple-600" />
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-gray-900">342</div>
+                  <div className="text-sm text-gray-500">Reports</div>
+                </div>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Generate Reports</h3>
+              <p className="text-gray-600 text-sm">Create and print professional report cards and transcripts.</p>
+            </button>
+        
+            <button 
+              onClick={() => {
+                if (setActiveView) {
+                  setActiveView(ADMIN_VIEWS.PROMOTIONS);
+                } else {
+                  const url = new URL(window.location.toString());
+                  url.searchParams.set('view', ADMIN_VIEWS.PROMOTIONS);
+                  navigate(url.pathname + url.search + url.hash);
+                }
+              }}
+              className="group bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-indigo-200 hover:-translate-y-1"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 bg-indigo-100 rounded-2xl flex items-center justify-center group-hover:bg-indigo-200 transition-colors">
+                  <GraduationCapIcon className="w-7 h-7 text-indigo-600" />
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-gray-900">156</div>
+                  <div className="text-sm text-gray-500">To Promote</div>
+                </div>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Promote Students</h3>
+              <p className="text-gray-600 text-sm">Move students to the next class level efficiently.</p>
+            </button>
+          </div>
+        </div>
 
-      {/* Dashboard Insights */}
-      <div className="mt-6">
-        <SafeWidget>
-          <DashboardInsights />
-        </SafeWidget>
-      </div>
+        {/* Main Dashboard Content Grid */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+          {/* Left Column - Main Content */}
+          <div className="xl:col-span-2 space-y-8">
+            {/* Alert Widgets Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <SafeWidget>
+                <IdleClassesAlertWidget />
+              </SafeWidget>
+              <SafeWidget>
+                <EarlyIntervention />
+              </SafeWidget>
+            </div>
 
-      {/* Alert Widgets Row */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
-        <SafeWidget>
-          <IdleClassesAlertWidget />
-        </SafeWidget>
-        <SafeWidget>
-          <EarlyIntervention />
-        </SafeWidget>
-      </div>
+            {/* Recent Activities */}
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Recent Activities</h2>
+              <SafeWidget>
+                <RecentActivityWidget />
+              </SafeWidget>
+            </div>
+          </div>
 
-      {/* Performance Widgets Row */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
-        <SafeWidget>
-          <TeacherPerformanceWidget />
-        </SafeWidget>
-        <SafeWidget>
-          <AttendanceSnapshotWidget />
-        </SafeWidget>
-      </div>
+          {/* Right Column - Sidebar Widgets */}
+          <div className="space-y-6">
+            {/* Today's Summary */}
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Today's Summary</h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Present Students</span>
+                  <span className="font-semibold text-green-600">1,189 / 1,247</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Active Teachers</span>
+                  <span className="font-semibold text-blue-600">87 / 89</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Pending Fees</span>
+                  <span className="font-semibold text-orange-600">₦450K</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">New Applications</span>
+                  <span className="font-semibold text-purple-600">23</span>
+                </div>
+              </div>
+            </div>
 
-      {/* Recent Activity */}
-      <div className="mt-6">
-        <SafeWidget>
-          <RecentActivityWidget />
-        </SafeWidget>
-      </div>
+            {/* Upcoming Events */}
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Upcoming Events</h3>
+              <div className="space-y-3">
+                <div className="flex items-start space-x-3">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                  <div>
+                    <p className="font-medium text-gray-900">Parent-Teacher Meeting</p>
+                    <p className="text-sm text-gray-600">Tomorrow, 2:00 PM</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+                  <div>
+                    <p className="font-medium text-gray-900">Mid-term Exams</p>
+                    <p className="text-sm text-gray-600">Next Week</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
+                  <div>
+                    <p className="font-medium text-gray-900">Sports Day</p>
+                    <p className="text-sm text-gray-600">March 15, 2024</p>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-      {/* Data Champions Leaderboard */}
-      <div className="mt-6">
+            {/* Quick Actions Sidebar */}
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+              <div className="space-y-3">
+                <button className="w-full text-left p-3 rounded-xl bg-blue-50 hover:bg-blue-100 transition-colors">
+                  <div className="font-medium text-blue-900">Send Announcement</div>
+                  <div className="text-sm text-blue-700">Notify all parents</div>
+                </button>
+                <button className="w-full text-left p-3 rounded-xl bg-green-50 hover:bg-green-100 transition-colors">
+                  <div className="font-medium text-green-900">Generate Report</div>
+                  <div className="text-sm text-green-700">Monthly summary</div>
+                </button>
+                <button className="w-full text-left p-3 rounded-xl bg-purple-50 hover:bg-purple-100 transition-colors">
+                  <div className="font-medium text-purple-900">Backup Data</div>
+                  <div className="text-sm text-purple-700">Secure your records</div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Secondary Content Section */}
+        <div className="mt-12 space-y-8">
+          <h2 className="text-2xl font-bold text-gray-900">Performance Analytics</h2>
+          
+          {/* KPI Categories Section */}
+          <div className="space-y-8">
+            {/* Academic Performance KPIs */}
+            <SafeWidget>
+              <AcademicKPIGroup />
+            </SafeWidget>
+
+            {/* Financial Health KPIs */}
+            <SafeWidget>
+              <FinancialKPIGroup />
+            </SafeWidget>
+
+            {/* Attendance & Behavior KPIs */}
+            <SafeWidget>
+              <AttendanceKPIGroup />
+            </SafeWidget>
+
+            {/* Operational Metrics KPIs */}
+            <SafeWidget>
+              <OperationalKPIGroup />
+            </SafeWidget>
+
+            {/* Engagement KPIs */}
+            <SafeWidget>
+              <EngagementKPIGroup />
+            </SafeWidget>
+          </div>
+
+          {/* School Vitals */}
+          <DashboardFilterProvider>
+            <div className="mb-8">
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">School Overview</h3>
+              <SchoolVitals />
+            </div>
+
+            {/* Financial Vitals */}
+            <div className="mb-8">
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Financial Performance</h3>
+              <FinancialVitalsPro />
+            </div>
+          </DashboardFilterProvider>
+
+          {/* Charts and Analytics Section */}
+          <div className="space-y-8">
+            <h3 className="text-xl font-semibold text-gray-900">Analytics & Reports</h3>
+
+            {/* Performance Widgets Row */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <SafeWidget>
+                <TeacherPerformanceWidget teachers={teacherData} />
+              </SafeWidget>
+              <SafeWidget>
+                <AttendanceSnapshotWidget />
+              </SafeWidget>
+            </div>
+
+            {/* Data Champions Leaderboard */}
+            <SafeWidget>
+              <DataChampionsWidget />
+            </SafeWidget>
+          </div>
+        </div>
+
+      {/* Charts and Analytics Section */}
+      <div className="space-y-6 md:space-y-8">
+
+        {/* Performance Widgets Row */}
+        <div className="mobile-widget-grid">
+          <SafeWidget>
+            <TeacherPerformanceWidget teachers={teacherData} />
+          </SafeWidget>
+          <SafeWidget>
+            <AttendanceSnapshotWidget />
+          </SafeWidget>
+        </div>
+
+        {/* Data Champions Leaderboard */}
         <SafeWidget>
           <DataChampionsWidget />
         </SafeWidget>
       </div>
-
-      {/* Dashboard KPI and Filters */}
-      <DashboardFilterProvider>
-        <div className="mt-6">
-          <SafeWidget>
-            <DashboardFilterBar />
-          </SafeWidget>
-        </div>
-        <div className="mt-6">
-          <SafeWidget>
-            <DashboardKPI />
-          </SafeWidget>
-        </div>
-        
-        {/* Financial Widgets (moved inside DashboardFilterProvider) */}
-        <div className="mt-6">
-          <SafeWidget>
-            <FinancialVitalsPro />
-          </SafeWidget>
-        </div>
-      </DashboardFilterProvider>
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">

@@ -27,6 +27,7 @@ const ParentBlueDashboard = lazy(() => import('./ParentBlueDashboard'));
 const WelcomeModal = lazy(() => import('./WelcomeModal'));
 const AdminBlueDashboard = lazy(() => import('./AdminBlueDashboard'));
 const SimpleAdminDashboard = lazy(() => import('./SimpleAdminDashboard'));
+const ReportCardPrintViewer = lazy(() => import('./ReportCardPrintViewer'));
 
 import { ContentLoader } from './ui/LoadingSpinner';
 import ErrorBoundary from './ErrorBoundary';
@@ -34,13 +35,7 @@ import ErrorBoundary from './ErrorBoundary';
 // Admin Dashboard with fallback to simple version if complex one fails
 const AdminDashboardWithFallback: React.FC<{ setActiveView?: (view: DashboardView) => void }> = ({ setActiveView }) => {
     return (
-        <ErrorBoundary fallback={
-            <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
-                <h2 className="text-lg font-semibold text-red-800 mb-2">AdminBlueDashboard Failed to Load</h2>
-                <p className="text-red-600 mb-4">The main admin dashboard encountered an error. Using fallback dashboard.</p>
-                <SimpleAdminDashboard setActiveView={setActiveView} />
-            </div>
-        }>
+        <ErrorBoundary fallback={<SimpleAdminDashboard setActiveView={setActiveView} />}>
             <AdminBlueDashboard setActiveView={setActiveView} />
         </ErrorBoundary>
     );
@@ -61,6 +56,13 @@ const Dashboard = () => {
     const navigate = useNavigate();
     const activeView = (searchParams.get('view') as DashboardView) || ADMIN_VIEWS.DASHBOARD;
     const profileStudentId = searchParams.get('studentId');
+    
+    // Check for report card print view
+    const isPrintView = searchParams.get('print') === 'report-card';
+    const printStudentId = searchParams.get('student');
+    const printSession = searchParams.get('session');
+    const printTerm = searchParams.get('term');
+    const printClass = searchParams.get('class');
 
     const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage('onboardingComplete_v1', false);
     const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
@@ -118,6 +120,25 @@ const Dashboard = () => {
     
     if (loading) {
         return <div className="flex items-center justify-center h-screen">Authenticating...</div>;
+    }
+
+    // Handle report card print view
+    if (isPrintView && printStudentId) {
+        return (
+            <TenantProvider>
+                <PlanFeaturesProvider>
+                    <Suspense fallback={<ContentLoader />}>
+                        <ReportCardPrintViewer
+                            studentId={printStudentId}
+                            session={printSession || undefined}
+                            term={printTerm || undefined}
+                            className={printClass || undefined}
+                            onBack={() => navigate(-1)}
+                        />
+                    </Suspense>
+                </PlanFeaturesProvider>
+            </TenantProvider>
+        );
     }
 
     if (!session && !user) {

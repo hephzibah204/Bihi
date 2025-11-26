@@ -299,10 +299,19 @@ const StudentReportCardViewer = ({ demoUserId }) => {
                                 <ArrowDownTrayIcon className="w-5 h-5 mr-2" />
                                 {exporting ? 'Generating…' : 'Download PDF'}
                             </button>
-                            <button onClick={() => window.print()} className="btn btn-primary flex-1 md:flex-none">
+                            <button onClick={() => window.print()} className="btn btn-secondary flex-1 md:flex-none">
                                 <PrinterIcon className="w-5 h-5 mr-2" />
                                 Print
                             </button>
+                            <a 
+                                href={`?print=report-card&student=${reportData?.student?.id}&session=${encodeURIComponent(selectedSession)}&term=${encodeURIComponent(selectedTerm)}&class=${encodeURIComponent(selectedClass)}`}
+                                className="btn btn-primary flex-1 md:flex-none"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                <PrinterIcon className="w-5 h-5 mr-2" />
+                                Print & Download
+                            </a>
                         </div>
                     </div>
                 </div>

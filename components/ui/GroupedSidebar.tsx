@@ -40,21 +40,11 @@ const GroupedSidebar: React.FC<GroupedSidebarProps> = ({ groups, onSelect, isOpe
   };
 
   return (
-    <>
-      {/* Mobile Overlay */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
-          onClick={onClose}
-        />
-      )}
-      
-      {/* Sidebar */}
-      <aside className={`
-        fixed md:static inset-y-0 left-0 z-50 w-64 bg-[#1E3A8A] text-white p-4 transform transition-transform duration-300 ease-in-out overflow-y-auto
-        md:translate-x-0 md:flex md:flex-col
-        ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-      `}>
+    <aside className={`
+      fixed md:static inset-y-0 left-0 z-40 w-72 sm:w-64 bg-[#1E3A8A] text-white p-3 sm:p-4 transform transition-transform duration-300 ease-in-out overflow-y-auto
+      md:translate-x-0 md:flex md:flex-col
+      ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+    `}>
         {/* Header */}
         <div className="flex items-center justify-between mb-6 md:justify-start">
           <div className="flex items-center gap-3">
@@ -117,7 +107,6 @@ const GroupedSidebar: React.FC<GroupedSidebarProps> = ({ groups, onSelect, isOpe
           <div className="text-[11px] text-white/50">Made with ♥ by ReportSheet</div>
         </div>
       </aside>
-    </>
   );
 };
 
