@@ -24,6 +24,9 @@
   "dependencies": {
     "@google/genai": "0.14.0",
     "@heroicons/react": "^2.2.0",
+    "@progress/kendo-drawing": "^1.23.1",
+    "@progress/kendo-licensing": "^1.7.2",
+    "@progress/kendo-react-pdf": "^13.1.0",
     "@react-pdf/renderer": "^4.3.1",
     "@supabase/supabase-js": "^2.39.0",
     "cors": "^2.8.5",

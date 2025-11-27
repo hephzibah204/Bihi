@@ -28,6 +28,8 @@ const WelcomeModal = lazy(() => import('./WelcomeModal'));
 const AdminBlueDashboard = lazy(() => import('./AdminBlueDashboard'));
 const SimpleAdminDashboard = lazy(() => import('./SimpleAdminDashboard'));
 const ReportCardPrintViewer = lazy(() => import('./ReportCardPrintViewer'));
+const ReportCardReactPDFViewer = lazy(() => import('./ReportCardReactPDFViewer'));
+const MultiPDFViewer = lazy(() => import('./MultiPDFViewer'));
 
 import { ContentLoader } from './ui/LoadingSpinner';
 import ErrorBoundary from './ErrorBoundary';
@@ -59,6 +61,8 @@ const Dashboard = () => {
     
     // Check for report card print view
     const isPrintView = searchParams.get('print') === 'report-card';
+    const isReactPdfView = searchParams.get('pdf') === 'react';
+    const isMultiPdfView = searchParams.get('pdf') === 'multi';
     const printStudentId = searchParams.get('student');
     const printSession = searchParams.get('session');
     const printTerm = searchParams.get('term');
@@ -124,21 +128,50 @@ const Dashboard = () => {
 
     // Handle report card print view
     if (isPrintView && printStudentId) {
-        return (
-            <TenantProvider>
-                <PlanFeaturesProvider>
-                    <Suspense fallback={<ContentLoader />}>
-                        <ReportCardPrintViewer
-                            studentId={printStudentId}
-                            session={printSession || undefined}
-                            term={printTerm || undefined}
-                            className={printClass || undefined}
-                            onBack={() => navigate(-1)}
-                        />
-                    </Suspense>
-                </PlanFeaturesProvider>
-            </TenantProvider>
-        );
+        if (isMultiPdfView) {
+            // Multi-PDF viewer will fetch its own data
+            return (
+                <TenantProvider>
+                    <PlanFeaturesProvider>
+                        <Suspense fallback={<ContentLoader />}>
+                            <div>Multi-PDF viewer would go here - needs data integration</div>
+                        </Suspense>
+                    </PlanFeaturesProvider>
+                </TenantProvider>
+            );
+        } else if (isReactPdfView) {
+            return (
+                <TenantProvider>
+                    <PlanFeaturesProvider>
+                        <Suspense fallback={<ContentLoader />}>
+                            <ReportCardReactPDFViewer
+                                studentId={printStudentId}
+                                session={printSession || undefined}
+                                term={printTerm || undefined}
+                                className={printClass || undefined}
+                                onBack={() => navigate(-1)}
+                            />
+                        </Suspense>
+                    </PlanFeaturesProvider>
+                </TenantProvider>
+            );
+        } else {
+            return (
+                <TenantProvider>
+                    <PlanFeaturesProvider>
+                        <Suspense fallback={<ContentLoader />}>
+                            <ReportCardPrintViewer
+                                studentId={printStudentId}
+                                session={printSession || undefined}
+                                term={printTerm || undefined}
+                                className={printClass || undefined}
+                                onBack={() => navigate(-1)}
+                            />
+                        </Suspense>
+                    </PlanFeaturesProvider>
+                </TenantProvider>
+            );
+        }
     }
 
     if (!session && !user) {

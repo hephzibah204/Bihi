@@ -303,15 +303,28 @@ const StudentReportCardViewer = ({ demoUserId }) => {
                                 <PrinterIcon className="w-5 h-5 mr-2" />
                                 Print
                             </button>
-                            <a 
-                                href={`?print=report-card&student=${reportData?.student?.id}&session=${encodeURIComponent(selectedSession)}&term=${encodeURIComponent(selectedTerm)}&class=${encodeURIComponent(selectedClass)}`}
-                                className="btn btn-primary flex-1 md:flex-none"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                <PrinterIcon className="w-5 h-5 mr-2" />
-                                Print & Download
-                            </a>
+                            <div className="flex space-x-1">
+                                <a 
+                                    href={`?print=report-card&pdf=react&student=${reportData?.student?.id}&session=${encodeURIComponent(selectedSession)}&term=${encodeURIComponent(selectedTerm)}&class=${encodeURIComponent(selectedClass)}`}
+                                    className="btn btn-primary flex-1 md:flex-none text-sm"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title="React PDF - Professional quality"
+                                >
+                                    <PrinterIcon className="w-4 h-4 mr-1" />
+                                    React PDF
+                                </a>
+                                <a 
+                                    href={`?print=report-card&student=${reportData?.student?.id}&session=${encodeURIComponent(selectedSession)}&term=${encodeURIComponent(selectedTerm)}&class=${encodeURIComponent(selectedClass)}`}
+                                    className="btn btn-secondary flex-1 md:flex-none text-sm"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title="HTML to PDF - Fallback option"
+                                >
+                                    <PrinterIcon className="w-4 h-4 mr-1" />
+                                    HTML PDF
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>

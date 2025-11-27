@@ -227,14 +227,26 @@ const StudentResults = ({ demoUserId }) => {
                                     </div>
                                     <div className="text-right mt-4 space-x-2">
                                         <button onClick={() => handleViewReport(termKey)} className="btn btn-secondary">View Report Card</button>
-                                        <a 
-                                            href={`?print=report-card&student=${student?.id}&session=${encodeURIComponent(termKey.split(' - ')[0])}&term=${encodeURIComponent(termKey.split(' - ')[1])}`}
-                                            className="btn btn-primary"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                        >
-                                            Print & Download
-                                        </a>
+                                        <div className="inline-flex space-x-1">
+                                            <a 
+                                                href={`?print=report-card&pdf=react&student=${student?.id}&session=${encodeURIComponent(termKey.split(' - ')[0])}&term=${encodeURIComponent(termKey.split(' - ')[1])}`}
+                                                className="btn btn-primary text-xs px-2 py-1"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                title="React PDF - Recommended"
+                                            >
+                                                React PDF
+                                            </a>
+                                            <a 
+                                                href={`?print=report-card&student=${student?.id}&session=${encodeURIComponent(termKey.split(' - ')[0])}&term=${encodeURIComponent(termKey.split(' - ')[1])}`}
+                                                className="btn btn-secondary text-xs px-2 py-1"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                title="HTML to PDF - Fallback"
+                                            >
+                                                HTML PDF
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                             )}
