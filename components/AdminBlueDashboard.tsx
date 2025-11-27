@@ -22,7 +22,6 @@ import FinancialKPIGroup from './kpi/FinancialKPIGroup';
 import AttendanceKPIGroup from './kpi/AttendanceKPIGroup';
 import OperationalKPIGroup from './kpi/OperationalKPIGroup';
 import SchoolVitals from './SchoolVitals';
-import DashboardInsights from './DashboardInsights';
 import IdleClassesAlertWidget from './IdleClassesAlertWidget';
 import TeacherPerformanceWidget from './TeacherPerformanceWidget';
 import EarlyIntervention from './EarlyIntervention';
@@ -40,14 +39,12 @@ import LineChartMini from './ui/LineChartMini';
 import BarChartMini from './ui/BarChartMini';
 import SchoolOverviewChart from './SchoolOverviewChart';
 import LeaderboardShortcuts from './LeaderboardShortcuts';
-import DashboardKPI from './DashboardKPI';
 import HighRiskStudentsQuickList from './HighRiskStudentsQuickList';
 import TopDebtorsQuickList from './TopDebtorsQuickList';
 import RecentActivityWidget from './RecentActivityWidget';
 import DataChampionsWidget from './DataChampionsWidget';
 import { ADMIN_VIEWS } from '../utils/constants';
 import { DashboardFilterProvider } from '../contexts/DashboardFilterContext';
-import DashboardFilterBar from './DashboardFilterBar';
 import { DashboardView } from '../types';
 import ErrorBoundary from './ErrorBoundary';
 import { ContentLoader } from './ui/LoadingSpinner';
@@ -70,6 +67,14 @@ const SafeWidget: React.FC<{ children: React.ReactNode; fallback?: React.ReactNo
     </div>
   </ErrorBoundary>
 );
+
+// Helper function to get dynamic greeting
+const getGreeting = (): string => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+};
 
 const AdminBlueDashboard: React.FC<AdminBlueDashboardProps> = ({ setActiveView }) => {
   const navigate = useNavigate();
@@ -271,51 +276,44 @@ const AdminBlueDashboard: React.FC<AdminBlueDashboardProps> = ({ setActiveView }
 
   return (
     <AdminAppShellWithGroups pageTitle="Dashboard" sidebarGroups={sidebarGroups} onSelectSidebarItem={handleSidebarClick} rightPanel={rightPanel}>
-      {/* Modern Desktop Dashboard Layout */}
-      <div className="space-y-8">
-        {/* Header Section */}
-        <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 rounded-3xl p-8 text-white shadow-2xl">
+      {/* Centered content wrapper with max width */}
+      <div className="space-y-10 max-w-6xl mx-auto pb-10">
+        
+        {/* Header Hero Section */}
+        <div className="bg-gradient-to-br from-brand to-indigo-800 rounded-3xl p-8 text-white shadow-2xl">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold mb-3">Good morning, Admin! 👋</h1>
-              <p className="text-blue-100 text-lg">Here's what's happening at your school today</p>
+              <h1 className="text-4xl md:text-5xl font-bold mb-3">{getGreeting()}, Admin! 👋</h1>
+              <p className="text-purple-100 text-lg">Here's what's happening at your school today</p>
             </div>
             <div className="hidden lg:flex items-center space-x-6">
               <div className="text-center">
                 <div className="text-3xl font-bold">1,247</div>
-                <div className="text-blue-200 text-sm">Total Students</div>
+                <div className="text-purple-200 text-sm">Total Students</div>
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold">89</div>
-                <div className="text-blue-200 text-sm">Teachers</div>
+                <div className="text-purple-200 text-sm">Teachers</div>
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold">₦2.4M</div>
-                <div className="text-blue-200 text-sm">Monthly Revenue</div>
+                <div className="text-purple-200 text-sm">Monthly Revenue</div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Quick Actions Grid - Desktop Optimized */}
+        {/* Quick Actions Grid */}
         <div>
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <button 
-              onClick={() => {
-                if (setActiveView) {
-                  setActiveView(ADMIN_VIEWS.STUDENTS);
-                } else {
-                  const url = new URL(window.location.toString());
-                  url.searchParams.set('view', ADMIN_VIEWS.STUDENTS);
-                  navigate(url.pathname + url.search + url.hash);
-                }
-              }}
-              className="group bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-blue-200 hover:-translate-y-1"
+              onClick={() => handleViewChange(ADMIN_VIEWS.STUDENTS)}
+              className="group bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-purple-200 hover:-translate-y-1"
             >
               <div className="flex items-center justify-between mb-4">
-                <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                  <UsersIcon className="w-7 h-7 text-blue-600" />
+                <div className="w-14 h-14 bg-purple-100 rounded-2xl flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+                  <UsersIcon className="w-7 h-7 text-brand" />
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-bold text-gray-900">1,247</div>
@@ -327,15 +325,7 @@ const AdminBlueDashboard: React.FC<AdminBlueDashboardProps> = ({ setActiveView }
             </button>
         
             <button 
-              onClick={() => {
-                if (setActiveView) {
-                  setActiveView(ADMIN_VIEWS.RESULTS);
-                } else {
-                  const url = new URL(window.location.toString());
-                  url.searchParams.set('view', ADMIN_VIEWS.RESULTS);
-                  navigate(url.pathname + url.search + url.hash);
-                }
-              }}
+              onClick={() => handleViewChange(ADMIN_VIEWS.RESULTS)}
               className="group bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-green-200 hover:-translate-y-1"
             >
               <div className="flex items-center justify-between mb-4">
@@ -352,20 +342,12 @@ const AdminBlueDashboard: React.FC<AdminBlueDashboardProps> = ({ setActiveView }
             </button>
         
             <button 
-              onClick={() => {
-                if (setActiveView) {
-                  setActiveView(ADMIN_VIEWS.REPORT_CARDS);
-                } else {
-                  const url = new URL(window.location.toString());
-                  url.searchParams.set('view', ADMIN_VIEWS.REPORT_CARDS);
-                  navigate(url.pathname + url.search + url.hash);
-                }
-              }}
-              className="group bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-purple-200 hover:-translate-y-1"
+              onClick={() => handleViewChange(ADMIN_VIEWS.REPORT_CARDS)}
+              className="group bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-orange-200 hover:-translate-y-1"
             >
               <div className="flex items-center justify-between mb-4">
-                <div className="w-14 h-14 bg-purple-100 rounded-2xl flex items-center justify-center group-hover:bg-purple-200 transition-colors">
-                  <DocumentArrowDownIcon className="w-7 h-7 text-purple-600" />
+                <div className="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center group-hover:bg-orange-200 transition-colors">
+                  <DocumentArrowDownIcon className="w-7 h-7 text-orange-600" />
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-bold text-gray-900">342</div>
@@ -377,15 +359,7 @@ const AdminBlueDashboard: React.FC<AdminBlueDashboardProps> = ({ setActiveView }
             </button>
         
             <button 
-              onClick={() => {
-                if (setActiveView) {
-                  setActiveView(ADMIN_VIEWS.PROMOTIONS);
-                } else {
-                  const url = new URL(window.location.toString());
-                  url.searchParams.set('view', ADMIN_VIEWS.PROMOTIONS);
-                  navigate(url.pathname + url.search + url.hash);
-                }
-              }}
+              onClick={() => handleViewChange(ADMIN_VIEWS.PROMOTIONS)}
               className="group bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-indigo-200 hover:-translate-y-1"
             >
               <div className="flex items-center justify-between mb-4">
@@ -446,7 +420,7 @@ const AdminBlueDashboard: React.FC<AdminBlueDashboardProps> = ({ setActiveView }
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">New Applications</span>
-                  <span className="font-semibold text-purple-600">23</span>
+                  <span className="font-semibold text-brand">23</span>
                 </div>
               </div>
             </div>
@@ -470,7 +444,7 @@ const AdminBlueDashboard: React.FC<AdminBlueDashboardProps> = ({ setActiveView }
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
+                  <div className="w-2 h-2 bg-brand rounded-full mt-2"></div>
                   <div>
                     <p className="font-medium text-gray-900">Sports Day</p>
                     <p className="text-sm text-gray-600">March 15, 2024</p>
@@ -479,213 +453,191 @@ const AdminBlueDashboard: React.FC<AdminBlueDashboardProps> = ({ setActiveView }
               </div>
             </div>
 
-            {/* Quick Actions Sidebar */}
+            {/* Quick Tools */}
             <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Tools</h3>
               <div className="space-y-3">
-                <button className="w-full text-left p-3 rounded-xl bg-blue-50 hover:bg-blue-100 transition-colors">
-                  <div className="font-medium text-blue-900">Send Announcement</div>
-                  <div className="text-sm text-blue-700">Notify all parents</div>
+                <button className="w-full text-left p-3 rounded-xl bg-brand-soft hover:bg-purple-100 transition-colors">
+                  <div className="font-medium text-brand">Send Announcement</div>
+                  <div className="text-sm text-purple-700">Notify all parents</div>
                 </button>
                 <button className="w-full text-left p-3 rounded-xl bg-green-50 hover:bg-green-100 transition-colors">
                   <div className="font-medium text-green-900">Generate Report</div>
                   <div className="text-sm text-green-700">Monthly summary</div>
                 </button>
-                <button className="w-full text-left p-3 rounded-xl bg-purple-50 hover:bg-purple-100 transition-colors">
-                  <div className="font-medium text-purple-900">Backup Data</div>
-                  <div className="text-sm text-purple-700">Secure your records</div>
+                <button className="w-full text-left p-3 rounded-xl bg-blue-50 hover:bg-blue-100 transition-colors">
+                  <div className="font-medium text-blue-900">Backup Data</div>
+                  <div className="text-sm text-blue-700">Secure your records</div>
                 </button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Secondary Content Section */}
-        <div className="mt-12 space-y-8">
-          <h2 className="text-2xl font-bold text-gray-900">Performance Analytics</h2>
+        {/* School Overview Section */}
+        <section className="space-y-8">
+          <h2 className="text-2xl font-bold text-gray-900">School Overview</h2>
           
-          {/* KPI Categories Section */}
-          <div className="space-y-8">
-            {/* Academic Performance KPIs */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             <SafeWidget>
-              <AcademicKPIGroup />
+              <Card header={<div className="bg-brand-soft rounded-xl px-4 py-3">
+                <div className="text-base font-semibold">School Performance</div>
+                <div className="mt-1 flex items-center gap-2">
+                  <span className="chip chip-blue">This Week 1,245</span>
+                  <span className="chip chip-orange">Last Week 1,356</span>
+                </div>
+              </div>}>
+                <LineChartMini />
+              </Card>
             </SafeWidget>
-
-            {/* Financial Health KPIs */}
             <SafeWidget>
-              <FinancialKPIGroup />
+              <SchoolOverviewChart />
             </SafeWidget>
-
-            {/* Attendance & Behavior KPIs */}
-            <SafeWidget>
-              <AttendanceKPIGroup />
-            </SafeWidget>
-
-            {/* Operational Metrics KPIs */}
-            <SafeWidget>
-              <OperationalKPIGroup />
-            </SafeWidget>
-
           </div>
 
-          {/* School Vitals */}
-          <DashboardFilterProvider>
-            <div className="mb-8">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">School Overview</h3>
-              <SchoolVitals />
-            </div>
+          <SafeWidget>
+            <LeaderboardShortcuts />
+          </SafeWidget>
+        </section>
 
-            {/* Financial Vitals */}
-            <div className="mb-8">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Financial Performance</h3>
-              <FinancialVitalsPro />
+        {/* Academic Performance Section */}
+        <section className="space-y-8">
+          <h2 className="text-2xl font-bold text-gray-900">Academic Performance</h2>
+          
+          <SafeWidget>
+            <AcademicKPIGroup />
+          </SafeWidget>
+
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <SafeWidget>
+              <ClassPerformanceRanking />
+            </SafeWidget>
+            <SafeWidget>
+              <SubjectHotColdChart />
+            </SafeWidget>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <SafeWidget>
+              <TeacherPerformanceWidget />
+            </SafeWidget>
+            <SafeWidget>
+              <AttendanceSnapshotWidget />
+            </SafeWidget>
+          </div>
+        </section>
+
+        {/* Financial Health & Debtors Section */}
+        <section className="space-y-8">
+          <h2 className="text-2xl font-bold text-gray-900">Financial Health & Debtors</h2>
+          
+          <SafeWidget>
+            <FinancialKPIGroup />
+          </SafeWidget>
+
+          <DashboardFilterProvider>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">School Vitals</h3>
+                <SafeWidget>
+                  <SchoolVitals />
+                </SafeWidget>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Financial Vitals</h3>
+                <SafeWidget>
+                  <FinancialVitalsPro />
+                </SafeWidget>
+              </div>
             </div>
           </DashboardFilterProvider>
 
-          {/* Charts and Analytics Section */}
-          <div className="space-y-8">
-            <h3 className="text-xl font-semibold text-gray-900">Analytics & Reports</h3>
-
-            {/* Performance Widgets Row */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              <SafeWidget>
-                <TeacherPerformanceWidget teachers={teacherData} />
-              </SafeWidget>
-              <SafeWidget>
-                <AttendanceSnapshotWidget />
-              </SafeWidget>
-            </div>
-
-            {/* Data Champions Leaderboard */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             <SafeWidget>
-              <DataChampionsWidget />
+              <IncomeExpenseTrendChart />
+            </SafeWidget>
+            <SafeWidget>
+              <ExpenseCategoryBreakdown />
             </SafeWidget>
           </div>
-        </div>
 
-      {/* Charts and Analytics Section */}
-      <div className="space-y-6 md:space-y-8">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <SafeWidget>
+              <TopDebtorsByClassAlt />
+            </SafeWidget>
+            <SafeWidget>
+              <HighPriorityDebtorsWidget />
+            </SafeWidget>
+          </div>
 
-        {/* Performance Widgets Row */}
-        <div className="mobile-widget-grid">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <SafeWidget>
+              <TopDebtorsQuickList />
+            </SafeWidget>
+            <SafeWidget>
+              <FinancialQAWidget />
+            </SafeWidget>
+          </div>
+        </section>
+
+        {/* Student Risk & Attendance Section */}
+        <section className="space-y-8">
+          <h2 className="text-2xl font-bold text-gray-900">Student Risk & Attendance</h2>
+          
           <SafeWidget>
-            <TeacherPerformanceWidget teachers={teacherData} />
+            <AttendanceKPIGroup />
           </SafeWidget>
+
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <SafeWidget>
+              <HighRiskStudentsQuickList />
+            </SafeWidget>
+          </div>
+        </section>
+
+        {/* Operations & AI Insights Section */}
+        <section className="space-y-8">
+          <h2 className="text-2xl font-bold text-gray-900">Operations & AI Insights</h2>
+          
           <SafeWidget>
-            <AttendanceSnapshotWidget />
+            <OperationalKPIGroup />
           </SafeWidget>
-        </div>
 
-        {/* Data Champions Leaderboard */}
-        <SafeWidget>
-          <DataChampionsWidget />
-        </SafeWidget>
-      </div>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <SafeWidget>
+              <CalendarMini />
+            </SafeWidget>
+            <SafeWidget>
+              <Card header={<div className="text-base font-semibold">Teacher Details</div>} footer={<div className="text-xs text-gray-500">Showing 1 to 4 of 14 entries</div>}>
+                <Table
+                  columns={[
+                    { key: 'name', header: 'Name' },
+                    { key: 'subject', header: 'Subject' },
+                    { key: 'qualification', header: 'Qualification' },
+                    { key: 'salary', header: 'Fees / Salary' },
+                  ]}
+                  data={teacherData}
+                />
+              </Card>
+            </SafeWidget>
+          </div>
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
-        <SafeWidget>
-          <Card header={<div className="bg-[#F5F7FF] rounded-xl px-4 py-3">
-            <div className="text-base font-semibold">School Performance</div>
-            <div className="mt-1 flex items-center gap-2">
-              <span className="chip chip-blue">This Week 1,245</span>
-              <span className="chip chip-orange">Last Week 1,356</span>
-            </div>
-          </div>}>
-            <LineChartMini />
-          </Card>
-        </SafeWidget>
-        <SafeWidget>
-          <SchoolOverviewChart />
-        </SafeWidget>
-      </div>
+          <SafeWidget>
+            <DataChampionsWidget />
+          </SafeWidget>
 
-      {/* Academic Performance Charts */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
-        <SafeWidget>
-          <ClassPerformanceRanking />
-        </SafeWidget>
-        <SafeWidget>
-          <SubjectHotColdChart />
-        </SafeWidget>
-      </div>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <SafeWidget>
+              <AnalystQAWidget />
+            </SafeWidget>
+            <SafeWidget>
+              <Card header={<div className="text-base font-semibold">Performance Metrics</div>}>
+                <BarChartMini />
+              </Card>
+            </SafeWidget>
+          </div>
+        </section>
 
-      {/* Leaderboard Shortcuts */}
-      <div className="mt-6">
-        <SafeWidget>
-          <LeaderboardShortcuts />
-        </SafeWidget>
-      </div>
-
-      {/* Calendar and Teacher Details */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
-        <SafeWidget>
-          <CalendarMini />
-        </SafeWidget>
-        <SafeWidget>
-          <Card header={<div className="text-base font-semibold">Teacher Details</div>} footer={<div className="text-xs text-gray-500">Showing 1 to 4 of 14 entries</div>}>
-            <Table
-              columns={[
-                { key: 'name', header: 'Name' },
-                { key: 'subject', header: 'Subject' },
-                { key: 'qualification', header: 'Qualification' },
-                { key: 'salary', header: 'Fees / Salary' },
-              ]}
-              data={teacherData}
-            />
-          </Card>
-        </SafeWidget>
-      </div>
-
-
-      {/* Financial Charts Row */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
-        <SafeWidget>
-          <IncomeExpenseTrendChart />
-        </SafeWidget>
-        <SafeWidget>
-          <ExpenseCategoryBreakdown />
-        </SafeWidget>
-      </div>
-
-      {/* Debtors Widgets */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
-        <SafeWidget>
-          <TopDebtorsByClassAlt />
-        </SafeWidget>
-        <SafeWidget>
-          <HighPriorityDebtorsWidget />
-        </SafeWidget>
-      </div>
-
-      {/* Quick Lists */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
-        <SafeWidget>
-          <HighRiskStudentsQuickList />
-        </SafeWidget>
-        <SafeWidget>
-          <TopDebtorsQuickList />
-        </SafeWidget>
-      </div>
-
-      {/* AI-Powered Widgets */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
-        <SafeWidget>
-          <FinancialQAWidget />
-        </SafeWidget>
-        <SafeWidget>
-          <AnalystQAWidget />
-        </SafeWidget>
-      </div>
-
-      {/* Additional Chart */}
-      <div className="mt-6">
-        <SafeWidget>
-          <Card header={<div className="text-base font-semibold">Performance Metrics</div>}>
-            <BarChartMini />
-          </Card>
-        </SafeWidget>
-      </div>
       </div>
     </AdminAppShellWithGroups>
   );

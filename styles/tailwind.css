@@ -1,13 +1,18 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @layer base {
   :root {
-    --brand-color-primary: #2563EB; /* blue-600 */
-    --brand-color-secondary: #1E3A8A; /* blue-800 (sidebar) */
+    --brand-color-primary: #6D28D9; /* Akadémi purple */
+    --brand-color-secondary: #3B0B92; /* Deep sidebar purple */
     --brand-color-accent: #06B6D4; /* teal-500 */
+    --brand-soft: #EEE8FF; /* brand soft */
     --brand-font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Ubuntu, Cantarell, 'Noto Sans', sans-serif;
   }
-  body { font-family: var(--brand-font-family); }
+  body { 
+    font-family: var(--brand-font-family);
+    @apply bg-[#F4F5FF] font-sans text-gray-900;
+  }
   /* Dark mode hook */
   body[data-theme='dark'] {
     background-color: #0b1220;
@@ -25,6 +30,15 @@
   .btn-primary {
     @apply text-white hover:brightness-95 focus:ring-[var(--brand-color-primary)];
     background-color: var(--brand-color-primary);
+  }
+  .bg-brand {
+    background-color: var(--brand-color-primary);
+  }
+  .bg-brand-soft {
+    background-color: var(--brand-soft);
+  }
+  .text-brand {
+    color: var(--brand-color-primary);
   }
   .btn-secondary {
     @apply text-white hover:brightness-95 focus:ring-[var(--brand-color-primary)];
