@@ -1,7 +1,7 @@
 import React, { useState, useEffect, PropsWithChildren } from 'react';
 import { apiGetStudents, apiGetSubjects, apiSendMessage, apiGetMessageTemplates, apiGetInvoices } from '../services/api';
 import { Student, MessageTemplate, Invoice } from '../types';
-import AIAnnouncementGenerator from '../AIAnnouncementGenerator';
+// import AIAnnouncementGenerator from '../AIAnnouncementGenerator'; // Temporarily commented out
 import MessageTemplates from './MessageTemplates';
 import AutomatedReminders from './AutomatedReminders';
 import ScheduledCampaigns from './ScheduledCampaigns';
@@ -39,7 +39,7 @@ const CommunicationsDashboard = ({ setActiveView }) => {
     const renderContent = () => {
         switch (activeTab) {
             case 'compose': return <ComposeAnnouncement setSetupModalInfo={setSetupModalInfo} sharedMessage={sharedMessage} setSharedMessage={setSharedMessage} />;
-            case 'ai-generator': return <AIAnnouncementGenerator onUseMessage={handleUseMessage} />;
+            case 'ai-generator': return <div className="p-4 text-center text-gray-500">AI Generator temporarily unavailable</div>;
             case 'templates': return <MessageTemplates />;
             case 'reminders': return <AutomatedReminders />;
             case 'campaigns': return <ScheduledCampaigns />;

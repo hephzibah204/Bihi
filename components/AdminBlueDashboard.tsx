@@ -21,7 +21,6 @@ import AcademicKPIGroup from './kpi/AcademicKPIGroup';
 import FinancialKPIGroup from './kpi/FinancialKPIGroup';
 import AttendanceKPIGroup from './kpi/AttendanceKPIGroup';
 import OperationalKPIGroup from './kpi/OperationalKPIGroup';
-import EngagementKPIGroup from './kpi/EngagementKPIGroup';
 import SchoolVitals from './SchoolVitals';
 import DashboardInsights from './DashboardInsights';
 import IdleClassesAlertWidget from './IdleClassesAlertWidget';
@@ -527,10 +526,6 @@ const AdminBlueDashboard: React.FC<AdminBlueDashboardProps> = ({ setActiveView }
               <OperationalKPIGroup />
             </SafeWidget>
 
-            {/* Engagement KPIs */}
-            <SafeWidget>
-              <EngagementKPIGroup />
-            </SafeWidget>
           </div>
 
           {/* School Vitals */}
@@ -690,6 +685,7 @@ const AdminBlueDashboard: React.FC<AdminBlueDashboardProps> = ({ setActiveView }
             <BarChartMini />
           </Card>
         </SafeWidget>
+      </div>
       </div>
     </AdminAppShellWithGroups>
   );
