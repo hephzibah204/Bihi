@@ -48,6 +48,9 @@
     @apply text-white hover:brightness-95 focus:ring-[var(--brand-color-primary)];
     background-color: var(--brand-color-accent);
   }
+  .btn-outline {
+    @apply text-gray-700 bg-white border-gray-300 hover:bg-gray-50 focus:ring-gray-500;
+  }
   .card {
     @apply bg-white rounded-3xl border border-gray-200 shadow-sm;
   }

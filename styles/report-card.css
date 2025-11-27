@@ -127,6 +127,22 @@
   .a4-thumbnail-inner { transform: scale(0.38); }
 }
 
+/* PDF Generation Compatibility */
+.printable-content * {
+  /* Ensure all colors use hex values for PDF generation compatibility */
+  color: inherit;
+}
+
+.printable-content .text-indigo-600 { color: #4f46e5; }
+.printable-content .bg-indigo-600 { background-color: #4f46e5; }
+.printable-content .text-gray-900 { color: #111827; }
+.printable-content .text-gray-600 { color: #4b5563; }
+.printable-content .text-gray-500 { color: #6b7280; }
+.printable-content .bg-gray-100 { background-color: #f3f4f6; }
+.printable-content .bg-gray-50 { background-color: #f9fafb; }
+.printable-content .border-gray-300 { border-color: #d1d5db; }
+.printable-content .border-gray-200 { border-color: #e5e7eb; }
+
 /* PDF Viewer Styles */
 .pdf-viewer-container {
   min-height: 100vh;

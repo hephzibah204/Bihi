@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { downloadElementAsPdf, renderElementAsPdfBlob } from '../utils/pdfUtils';
+import { generateSimplePDF, showPrintInstructions } from '../utils/simplePdfUtils';
+import { generateCleanPDF, showAdvancedPrintInstructions } from '../utils/cleanPdfGenerator';
 import ArrowDownTrayIcon from './icons/ArrowDownTrayIcon';
 import PrinterIcon from './icons/PrinterIcon';
 import EyeIcon from './icons/EyeIcon';
 import XMarkIcon from './icons/XMarkIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
+import QuestionMarkCircleIcon from './icons/QuestionMarkCircleIcon';
 
 interface PDFViewerProps {
   elementId: string;
@@ -28,6 +31,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string>('');
   const [showPdfViewer, setShowPdfViewer] = useState(false);
+  const [isForceDownloading, setIsForceDownloading] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const generatePDF = async () => {
@@ -42,7 +46,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({
 
       const blob = await renderElementAsPdfBlob(element);
       if (!blob) {
-        throw new Error('Failed to generate PDF');
+        throw new Error('Failed to generate PDF. This may be due to unsupported CSS features. Please try using the Print button instead.');
       }
 
       setPdfBlob(blob);
@@ -50,7 +54,13 @@ const PDFViewer: React.FC<PDFViewerProps> = ({
       setPdfUrl(url);
     } catch (err: any) {
       console.error('PDF generation error:', err);
-      setError(err.message || 'Failed to generate PDF');
+      const errorMessage = err.message || 'Failed to generate PDF';
+      setError(errorMessage);
+      
+      // If it's a CSS-related error, provide more specific guidance
+      if (errorMessage.includes('oklch') || errorMessage.includes('color function')) {
+        setError('PDF generation failed due to unsupported CSS color functions. Please try using the Print button instead, or contact support if the issue persists.');
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -66,8 +76,26 @@ const PDFViewer: React.FC<PDFViewerProps> = ({
       a.click();
       a.remove();
     } else {
-      // Fallback to direct download
-      await downloadElementAsPdf(`#${elementId}`, filename);
+      // Try multiple fallback methods
+      try {
+        await downloadElementAsPdf(`#${elementId}`, filename);
+      } catch (error) {
+        console.error('Standard download failed, trying simple PDF:', error);
+        
+        // Try simple PDF generation
+        const simpleSuccess = await generateSimplePDF(elementId, filename);
+        if (!simpleSuccess) {
+          console.error('Simple PDF also failed, trying clean PDF generator');
+          
+          // Try clean PDF generation as final attempt
+          const cleanSuccess = await generateCleanPDF(elementId, filename);
+          if (!cleanSuccess) {
+            console.error('All PDF generation methods failed');
+            setError('PDF download failed with all methods. Please use the "Print to PDF" button below for a reliable alternative.');
+            showAdvancedPrintInstructions();
+          }
+        }
+      }
     }
   };
 
@@ -90,6 +118,24 @@ const PDFViewer: React.FC<PDFViewerProps> = ({
       }, 500);
     } else {
       window.print();
+    }
+  };
+
+  const forceDownload = async () => {
+    setIsForceDownloading(true);
+    setError('');
+    
+    try {
+      const success = await generateCleanPDF(elementId, filename);
+      if (!success) {
+        setError('Force download failed. Please try the Print to PDF method.');
+        showAdvancedPrintInstructions();
+      }
+    } catch (err: any) {
+      console.error('Force download error:', err);
+      setError('Force download failed. Please try the Print to PDF method.');
+    } finally {
+      setIsForceDownloading(false);
     }
   };
 
@@ -159,6 +205,20 @@ const PDFViewer: React.FC<PDFViewerProps> = ({
               </button>
               
               <button
+                onClick={forceDownload}
+                disabled={isForceDownloading}
+                className="btn btn-accent"
+                title="Force download with simplified formatting"
+              >
+                {isForceDownloading ? (
+                  <SpinnerIcon className="w-5 h-5 animate-spin mr-2" />
+                ) : (
+                  <ArrowDownTrayIcon className="w-5 h-5 mr-2" />
+                )}
+                {isForceDownloading ? 'Generating...' : 'Force Download'}
+              </button>
+              
+              <button
                 onClick={printDocument}
                 className="btn btn-secondary"
                 title="Print Document"
@@ -166,12 +226,29 @@ const PDFViewer: React.FC<PDFViewerProps> = ({
                 <PrinterIcon className="w-5 h-5 mr-2" />
                 Print
               </button>
+              
+              <button
+                onClick={showAdvancedPrintInstructions}
+                className="btn btn-outline"
+                title="Help with PDF generation"
+              >
+                <QuestionMarkCircleIcon className="w-5 h-5 mr-2" />
+                Help
+              </button>
             </div>
           </div>
           
           {error && (
             <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-600">{error}</p>
+              <p className="text-sm text-red-600 mb-2">{error}</p>
+              <div className="text-xs text-red-500">
+                <p className="font-medium">Alternative options:</p>
+                <ul className="list-disc list-inside mt-1 space-y-1">
+                  <li>Use the Print button and select "Save as PDF" in your browser</li>
+                  <li>Try a different browser (Chrome/Edge usually work best)</li>
+                  <li>Disable browser extensions that might interfere with PDF generation</li>
+                </ul>
+              </div>
             </div>
           )}
         </div>
@@ -266,6 +343,14 @@ const PDFViewer: React.FC<PDFViewerProps> = ({
                     >
                       <ArrowDownTrayIcon className="w-5 h-5 mr-2" />
                       Download
+                    </button>
+                    <button
+                      onClick={printDocument}
+                      className="btn btn-accent"
+                      title="Print and save as PDF from browser"
+                    >
+                      <PrinterIcon className="w-5 h-5 mr-2" />
+                      Print to PDF
                     </button>
                   </div>
                 </div>
