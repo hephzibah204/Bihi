@@ -9,109 +9,135 @@ interface KpiCardProps {
   accentColor?: string;
   sparkline?: number[];
   sparklineColor?: string;
-  progress?: number; // 0-100 for percentage metrics
+  progress?: number;
   onClick?: () => void;
 }
 
-const KpiCard: React.FC<KpiCardProps> = ({ icon, label, value, deltaText, deltaDirection, accentColor, sparkline, sparklineColor, progress, onClick }) => {
-  const accent = accentColor || 'var(--brand-color-primary)';
-  const spColor = sparklineColor || accent;
-  const data = Array.isArray(sparkline) && sparkline.length > 1 ? sparkline : undefined;
-  let min = 0, max = 0;
-  if (data) { min = Math.min(...data); max = Math.max(...data); if (min === max) { max = min + 1; } }
-  const points = data ? data.map((v, i) => {
-    const x = 10 + (i * (120 / (data.length - 1)));
-    const y = 40 - ((v - min) / (max - min)) * 30;
+const KpiCard: React.FC<KpiCardProps> = ({ 
+  icon, 
+  label, 
+  value, 
+  deltaText, 
+  deltaDirection, 
+  accentColor = '#6D28D9', 
+  sparkline, 
+  sparklineColor, 
+  progress, 
+  onClick 
+}) => {
+  const hasSparkline = Array.isArray(sparkline) && sparkline.length > 1;
+  const spColor = sparklineColor || accentColor;
+  
+  // Generate sparkline path
+  let sparklinePath = '';
+  if (hasSparkline) {
+    const min = Math.min(...sparkline);
+    const max = Math.max(...sparkline);
+    const range = max - min || 1;
+    
+    const points = sparkline.map((value, index) => {
+      const x = (index / (sparkline.length - 1)) * 100;
+      const y = 100 - ((value - min) / range) * 100;
     return `${x},${y}`;
-  }).join(' ') : '';
+    }).join(' ');
+    
+    sparklinePath = points;
+  }
 
   return (
-    <button 
+    <div
+      className={`
+        relative bg-white rounded-2xl border border-gray-100 shadow-sm 
+        hover:shadow-lg hover:border-gray-200 transition-all duration-300
+        p-6 group cursor-pointer overflow-hidden
+        ${onClick ? 'hover:-translate-y-1' : ''}
+      `}
       onClick={onClick} 
-      className="kpi-card w-full text-left group transition-all duration-200 hover:shadow-lg active:scale-95 md:hover:scale-105 touch-manipulation"
-      disabled={!onClick}
     >
-      <div className="p-4 md:p-6 grid grid-cols-[auto_1fr_auto] items-start gap-3 md:gap-4 min-h-[120px] sm:min-h-[140px] md:min-h-[160px]">
-        {/* Icon */}
-        <div 
-          className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110" 
-          style={{ backgroundColor: `${accent}20`, color: accent }}
-        >
-          {icon}
-        </div>
-        
-        {/* Content */}
-        <div className="flex min-w-0 flex-col justify-center flex-1">
-          <div className="min-w-0 space-y-1 md:space-y-2">
-            {/* Label with ellipsis */}
+      {/* Background Accent */}
+      <div 
+        className="absolute top-0 left-0 w-full h-1 rounded-t-2xl"
+        style={{ backgroundColor: accentColor }}
+      />
+      
+      {/* Header Row */}
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center space-x-3">
+          {icon && (
             <div 
-              className="text-xs sm:text-sm font-medium text-gray-600 leading-relaxed truncate"
-              title={typeof label === 'string' ? label : undefined}
+              className="w-12 h-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110"
+              style={{ 
+                backgroundColor: `${accentColor}15`,
+                color: accentColor 
+              }}
             >
-              {label}
-            </div>
-            
-            {/* Value with responsive sizing */}
-            <div 
-              className="text-lg sm:text-xl md:text-2xl font-semibold text-gray-900 leading-tight break-words"
-              title={typeof value === 'string' ? value : undefined}
-            >
-              {value}
-            </div>
-            
-            {/* Delta indicator */}
-            {deltaText && (
-              <div className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium transition-colors ${
-                deltaDirection === 'down' 
-                  ? 'bg-red-100 text-red-700 group-hover:bg-red-200' 
-                  : 'bg-green-100 text-green-700 group-hover:bg-green-200'
-              }`}>
-                <span className="truncate">{deltaText}</span>
+              {icon}
               </div>
             )}
+          <div>
+            <p className="text-sm font-medium text-gray-600 mb-1">{label}</p>
+            <p className="text-2xl font-bold text-gray-900">{value}</p>
           </div>
         </div>
         
+        {/* Delta Badge */}
+        {deltaText && (
+          <div className={`
+            px-3 py-1 rounded-full text-xs font-semibold
+            ${deltaDirection === 'down' 
+              ? 'bg-red-50 text-red-600 border border-red-200' 
+              : 'bg-green-50 text-green-600 border border-green-200'
+            }
+          `}>
+            {deltaDirection === 'down' ? '↓' : '↑'} {deltaText}
+          </div>
+        )}
+        </div>
+        
         {/* Sparkline */}
-        {data && (
-          <div className="flex-shrink-0">
+      {hasSparkline && (
+        <div className="mb-4">
             <svg 
-              viewBox="0 0 140 50" 
-              className="w-20 h-8 sm:w-24 sm:h-10 md:w-32 md:h-12 transition-opacity group-hover:opacity-80"
+            viewBox="0 0 100 40" 
+            className="w-full h-10 opacity-60 group-hover:opacity-80 transition-opacity"
             >
               <polyline 
                 fill="none" 
                 stroke={spColor} 
                 strokeWidth="2" 
-                points={points}
-                className="transition-all duration-300"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              points={sparklinePath}
+              className="drop-shadow-sm"
               />
             </svg>
           </div>
         )}
-      </div>
       
-      {/* Progress bar */}
+      {/* Progress Bar */}
       {typeof progress === 'number' && (
-        <div className="px-4 md:px-6 pb-4 md:pb-6">
-          <div className="text-xs text-gray-500 mb-2 font-medium">Progress</div>
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-2.5 bg-gray-200 rounded-full overflow-hidden">
-              <div 
-                className="h-2.5 rounded-full transition-all duration-500 ease-out" 
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <span className="text-xs font-medium text-gray-500">Progress</span>
+            <span className="text-xs font-bold text-gray-700">{Math.round(progress)}%</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+            <div
+              className="h-2 rounded-full transition-all duration-700 ease-out"
                 style={{ 
                   width: `${Math.max(0, Math.min(100, progress))}%`, 
-                  backgroundColor: accent 
+                backgroundColor: accentColor
                 }} 
               />
-            </div>
-            <div className="text-sm font-semibold text-gray-700 min-w-[3rem] text-right tabular-nums">
-              {Math.round(Math.max(0, Math.min(100, progress)))}%
-            </div>
           </div>
         </div>
       )}
-    </button>
+
+      {/* Hover Effect Overlay */}
+      {onClick && (
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent to-gray-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
+      )}
+    </div>
   );
 };
 

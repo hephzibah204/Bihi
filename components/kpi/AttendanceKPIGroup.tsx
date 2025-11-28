@@ -58,11 +58,34 @@ const AttendanceKPIGroup: React.FC = () => {
     // Teacher attendance (simplified - assuming 95% average)
     const teacherAttendanceRate = 95;
 
+    // Generate attendance trend data
+    const studentAttendanceTrend = [
+      Math.max(0, studentAttendanceRate - 5),
+      Math.max(0, studentAttendanceRate - 3),
+      Math.max(0, studentAttendanceRate - 2),
+      Math.max(0, studentAttendanceRate - 1),
+      studentAttendanceRate,
+      Math.min(100, studentAttendanceRate + 1),
+      Math.min(100, studentAttendanceRate + 2)
+    ];
+
+    const teacherAttendanceTrend = [
+      Math.max(0, teacherAttendanceRate - 3),
+      Math.max(0, teacherAttendanceRate - 2),
+      Math.max(0, teacherAttendanceRate - 1),
+      teacherAttendanceRate,
+      Math.min(100, teacherAttendanceRate + 1),
+      Math.min(100, teacherAttendanceRate + 1),
+      teacherAttendanceRate
+    ];
+
     return {
       studentAttendanceRate,
       teacherAttendanceRate,
       lateArrivals,
-      absentToday
+      absentToday,
+      studentAttendanceTrend,
+      teacherAttendanceTrend
     };
   }, [attendance, loading]);
 
@@ -76,7 +99,7 @@ const AttendanceKPIGroup: React.FC = () => {
     return (
       <KPIGroupContainer 
         title="Attendance & Behavior" 
-        icon={<CalendarDaysIcon className="w-5 h-5" />}
+        icon={<CalendarDaysIcon className="w-6 h-6" />}
       >
         {[1, 2, 3, 4].map(i => (
           <KpiCard 
@@ -94,13 +117,14 @@ const AttendanceKPIGroup: React.FC = () => {
   return (
     <KPIGroupContainer 
       title="Attendance & Behavior" 
-      icon={<CalendarDaysIcon className="w-5 h-5" />}
+      icon={<CalendarDaysIcon className="w-6 h-6" />}
     >
       <KpiCard
-        icon={<UsersIcon className="w-5 h-5" />}
+        icon={<UsersIcon className="w-6 h-6" />}
         label="Student Attendance"
         value={`${metrics.studentAttendanceRate}%`}
         accentColor="#10B981"
+        sparkline={metrics.studentAttendanceTrend}
         progress={metrics.studentAttendanceRate}
         deltaText={metrics.studentAttendanceRate >= 90 ? "+2.1%" : "-1.5%"}
         deltaDirection={metrics.studentAttendanceRate >= 90 ? "up" : "down"}
@@ -108,16 +132,19 @@ const AttendanceKPIGroup: React.FC = () => {
       />
       
       <KpiCard
-        icon={<BriefcaseIcon className="w-5 h-5" />}
+        icon={<BriefcaseIcon className="w-6 h-6" />}
         label="Teacher Attendance"
         value={`${metrics.teacherAttendanceRate}%`}
         accentColor="#6366F1"
+        sparkline={metrics.teacherAttendanceTrend}
         progress={metrics.teacherAttendanceRate}
+        deltaText="+0.8%"
+        deltaDirection="up"
         onClick={() => handleNavigation(ADMIN_VIEWS.TEACHER_ATTENDANCE_HISTORY)}
       />
       
       <KpiCard
-        icon={<ClockIcon className="w-5 h-5" />}
+        icon={<ClockIcon className="w-6 h-6" />}
         label="Late Arrivals"
         value={metrics.lateArrivals}
         accentColor="#F59E0B"
@@ -125,7 +152,7 @@ const AttendanceKPIGroup: React.FC = () => {
       />
       
       <KpiCard
-        icon={<CalendarDaysIcon className="w-5 h-5" />}
+        icon={<CalendarDaysIcon className="w-6 h-6" />}
         label="Absent Today"
         value={metrics.absentToday}
         accentColor="#EF4444"

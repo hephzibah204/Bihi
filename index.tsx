@@ -1,6 +1,7 @@
 import React, { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import { getSubdomain } from './utils/subdomain';
@@ -71,11 +72,13 @@ const main = async () => {
       const root = createRoot(container);
       root.render(
         <StrictMode>
-          <BrowserRouter>
-            <ErrorBoundary>
-              <App />
-            </ErrorBoundary>
-          </BrowserRouter>
+          <HelmetProvider>
+            <BrowserRouter>
+              <ErrorBoundary>
+                <App />
+              </ErrorBoundary>
+            </BrowserRouter>
+          </HelmetProvider>
         </StrictMode>
       );
     } else {

@@ -133,25 +133,11 @@
     stroke-dashoffset: 0;
     transition: stroke-dashoffset 0.3s ease-in-out;
   }
-  .kpi-card { 
-    @apply bg-white rounded-3xl border border-gray-200 shadow-sm transition-all duration-200;
-    @apply hover:shadow-lg hover:border-gray-300;
-  }
-  .kpi-card:disabled { @apply cursor-default; }
-  .kpi-card:not(:disabled):hover { @apply -translate-y-1; }
-  .kpi-icon { @apply h-10 w-10 md:h-12 md:w-12 rounded-xl flex items-center justify-center; }
-  .kpi-label { 
-    @apply text-xs text-gray-600 font-medium leading-relaxed;
-    @apply truncate;
-  }
-  .kpi-value { 
-    @apply text-lg sm:text-xl md:text-2xl font-semibold text-gray-900 leading-tight;
-    @apply break-words;
-  }
+  /* KPI card styles are now handled directly in the component */
   .delta-chip { @apply inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium; }
   .delta-up { @apply bg-green-100 text-green-700; }
   .delta-down { @apply bg-red-100 text-red-700; }
-  .kpi-spark { @apply w-20 h-8 sm:w-24 sm:h-10 md:w-32 md:h-12; }
+  /* Sparkline styles are now handled directly in the component */
   .ellipsis-1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .square-card { @apply bg-white rounded-3xl border border-gray-200 shadow-sm p-5 md:p-6 grid grid-cols-2 gap-4 min-h-[140px] md:min-h-[160px]; }

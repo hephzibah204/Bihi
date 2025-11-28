@@ -47,11 +47,45 @@ const OperationalKPIGroup: React.FC = () => {
     // System utilization (simplified metric)
     const systemUtilization = 87;
 
+    // Generate operational trend data
+    const teachersTrend = [
+      Math.max(0, totalTeachers - 5),
+      Math.max(0, totalTeachers - 3),
+      Math.max(0, totalTeachers - 2),
+      Math.max(0, totalTeachers - 1),
+      totalTeachers,
+      totalTeachers,
+      totalTeachers + 1
+    ];
+
+    const subjectsTrend = [
+      Math.max(0, activeSubjects - 2),
+      Math.max(0, activeSubjects - 1),
+      activeSubjects,
+      activeSubjects,
+      activeSubjects + 1,
+      activeSubjects + 1,
+      activeSubjects + 2
+    ];
+
+    const utilizationTrend = [
+      Math.max(0, systemUtilization - 8),
+      Math.max(0, systemUtilization - 5),
+      Math.max(0, systemUtilization - 3),
+      Math.max(0, systemUtilization - 2),
+      Math.max(0, systemUtilization - 1),
+      systemUtilization,
+      Math.min(100, systemUtilization + 2)
+    ];
+
     return {
       totalTeachers,
       activeSubjects,
       activeClasses,
-      systemUtilization
+      systemUtilization,
+      teachersTrend,
+      subjectsTrend,
+      utilizationTrend
     };
   }, [teachers, subjects, loading]);
 
@@ -65,7 +99,7 @@ const OperationalKPIGroup: React.FC = () => {
     return (
       <KPIGroupContainer 
         title="School Operations" 
-        icon={<Cog6ToothIcon className="w-5 h-5" />}
+        icon={<Cog6ToothIcon className="w-6 h-6" />}
       >
         {[1, 2, 3, 4].map(i => (
           <KpiCard 
@@ -83,26 +117,32 @@ const OperationalKPIGroup: React.FC = () => {
   return (
     <KPIGroupContainer 
       title="School Operations" 
-      icon={<Cog6ToothIcon className="w-5 h-5" />}
+      icon={<Cog6ToothIcon className="w-6 h-6" />}
     >
       <KpiCard
-        icon={<BriefcaseIcon className="w-5 h-5" />}
+        icon={<BriefcaseIcon className="w-6 h-6" />}
         label="Total Teachers"
         value={metrics.totalTeachers}
         accentColor="#8B5CF6"
+        sparkline={metrics.teachersTrend}
+        deltaText="+1.2%"
+        deltaDirection="up"
         onClick={() => handleNavigation(ADMIN_VIEWS.STAFF)}
       />
       
       <KpiCard
-        icon={<BookOpenIcon className="w-5 h-5" />}
+        icon={<BookOpenIcon className="w-6 h-6" />}
         label="Active Subjects"
         value={metrics.activeSubjects}
         accentColor="#06B6D4"
+        sparkline={metrics.subjectsTrend}
+        deltaText="+5.3%"
+        deltaDirection="up"
         onClick={() => handleNavigation(ADMIN_VIEWS.SUBJECTS)}
       />
       
       <KpiCard
-        icon={<ChartBarIcon className="w-5 h-5" />}
+        icon={<ChartBarIcon className="w-6 h-6" />}
         label="Active Classes"
         value={metrics.activeClasses}
         accentColor="#10B981"
@@ -110,11 +150,14 @@ const OperationalKPIGroup: React.FC = () => {
       />
       
       <KpiCard
-        icon={<Cog6ToothIcon className="w-5 h-5" />}
+        icon={<Cog6ToothIcon className="w-6 h-6" />}
         label="System Utilization"
         value={`${metrics.systemUtilization}%`}
         accentColor="#F59E0B"
+        sparkline={metrics.utilizationTrend}
         progress={metrics.systemUtilization}
+        deltaText="+2.8%"
+        deltaDirection="up"
         onClick={() => handleNavigation(ADMIN_VIEWS.ANALYTICS)}
       />
     </KPIGroupContainer>

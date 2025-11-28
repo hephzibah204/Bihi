@@ -48,6 +48,17 @@ import { DashboardFilterProvider } from '../contexts/DashboardFilterContext';
 import { DashboardView } from '../types';
 import ErrorBoundary from './ErrorBoundary';
 import { ContentLoader } from './ui/LoadingSpinner';
+import { 
+  apiGetStudents, 
+  apiGetTeachers, 
+  apiGetInvoices, 
+  apiGetPayments, 
+  apiGetAttendance, 
+  apiGetEvents,
+  apiGetActivityLog,
+  apiGetCommunicationLogs,
+  apiGetScores
+} from '../services/api';
 
 interface AdminBlueDashboardProps {
   setActiveView?: (view: DashboardView) => void;
@@ -76,14 +87,143 @@ const getGreeting = (): string => {
   return 'Good evening';
 };
 
+// Helper function to format time ago
+const getTimeAgo = (dateString: string): string => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+  
+  if (diffInMinutes < 60) return `${diffInMinutes}m`;
+  if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h`;
+  return `${Math.floor(diffInMinutes / 1440)}d`;
+};
+
 const AdminBlueDashboard: React.FC<AdminBlueDashboardProps> = ({ setActiveView }) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Dashboard data state
+  const [dashboardData, setDashboardData] = useState({
+    students: [],
+    teachers: [],
+    invoices: [],
+    payments: [],
+    attendance: [],
+    events: [],
+    activities: [],
+    communications: [],
+    scores: []
+  });
+
+  // Computed statistics
+  const [stats, setStats] = useState({
+    totalStudents: 0,
+    totalTeachers: 0,
+    monthlyRevenue: 0,
+    presentStudents: 0,
+    activeTeachers: 0,
+    pendingFees: 0,
+    newApplications: 0,
+    averageScore: 0,
+    totalReports: 0,
+    studentsToPromote: 0
+  });
   
   useEffect(() => {
-    // Simulate loading time for dashboard initialization
-    const timer = setTimeout(() => setLoading(false), 1000);
-    return () => clearTimeout(timer);
+    const fetchDashboardData = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        // Fetch all required data in parallel
+        const [
+          students,
+          teachers,
+          invoices,
+          payments,
+          attendance,
+          events,
+          activities,
+          communications,
+          scores
+        ] = await Promise.all([
+          apiGetStudents(),
+          apiGetTeachers(),
+          apiGetInvoices(),
+          apiGetPayments(),
+          apiGetAttendance(),
+          apiGetEvents(),
+          apiGetActivityLog(),
+          apiGetCommunicationLogs(),
+          apiGetScores()
+        ]);
+
+        setDashboardData({
+          students,
+          teachers,
+          invoices,
+          payments,
+          attendance,
+          events,
+          activities,
+          communications,
+          scores
+        });
+
+        // Calculate statistics
+        const totalStudents = students.length;
+        const totalTeachers = teachers.length;
+        
+        // Calculate monthly revenue from payments
+        const currentMonth = new Date().getMonth();
+        const currentYear = new Date().getFullYear();
+        const monthlyPayments = payments.filter(payment => {
+          const paymentDate = new Date(payment.paymentDate || payment.createdAt);
+          return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
+        });
+        const monthlyRevenue = monthlyPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+
+        // Calculate attendance statistics
+        const today = new Date().toISOString().split('T')[0];
+        const todayAttendance = attendance.find(record => record.date === today);
+        const presentStudents = todayAttendance ? 
+          Object.values(todayAttendance.statuses || {}).filter(status => status === 'present').length : 0;
+
+        // Calculate pending fees
+        const unpaidInvoices = invoices.filter(invoice => 
+          invoice.status === 'unpaid' || invoice.status === 'partially-paid' || invoice.status === 'overdue'
+        );
+        const pendingFees = unpaidInvoices.reduce((sum, invoice) => 
+          sum + ((invoice.totalAmount || 0) - (invoice.amountPaid || 0)), 0);
+
+        // Calculate average score
+        const validScores = scores.filter(score => score.totalScore && score.totalScore > 0);
+        const averageScore = validScores.length > 0 ? 
+          validScores.reduce((sum, score) => sum + score.totalScore, 0) / validScores.length : 0;
+
+        setStats({
+          totalStudents,
+          totalTeachers,
+          monthlyRevenue,
+          presentStudents,
+          activeTeachers: totalTeachers, // Assume all teachers are active for now
+          pendingFees,
+          newApplications: 23, // This would come from admissions API
+          averageScore: Math.round(averageScore),
+          totalReports: scores.length,
+          studentsToPromote: Math.floor(totalStudents * 0.85) // Estimate based on typical promotion rate
+        });
+
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
   }, []);
   
   const handleSidebarClick = (key: string) => {
@@ -247,31 +387,57 @@ const AdminBlueDashboard: React.FC<AdminBlueDashboardProps> = ({ setActiveView }
     },
   ];
 
+  // Get recent students and messages for right panel
+  const recentStudents = dashboardData.students.slice(0, 4).map(student => ({
+    id: student.id,
+    name: student.name || `${student.firstName} ${student.lastName}`,
+    className: student.class || 'N/A'
+  }));
+
+  const recentMessages = dashboardData.communications.slice(0, 3).map(comm => ({
+    id: comm.id,
+    sender: comm.sender || 'System',
+    snippet: comm.content ? comm.content.substring(0, 50) + '...' : 'No content',
+    time: comm.sentAt ? getTimeAgo(comm.sentAt) : 'N/A'
+  }));
+
   const rightPanel = (
     <RightPanel
-      students={[
-        { id: 's1', name: 'Jane Doe', className: 'JSS2 Blue' },
-        { id: 's2', name: 'John Smith', className: 'SS1 Science' },
-        { id: 's3', name: 'Amina Bello', className: 'JSS3 Red' },
-        { id: 's4', name: 'Chinedu Okeke', className: 'SS2 Arts' },
-      ]}
-      messages={[
-        { id: 'm1', sender: 'Principal', snippet: 'Meeting at 2PM today.', time: '2h' },
-        { id: 'm2', sender: 'Bursar', snippet: 'Fees summary available.', time: '5h' },
-        { id: 'm3', sender: 'Teacher Funke', snippet: 'Updated lesson plan.', time: '1d' },
-      ]}
+      students={recentStudents}
+      messages={recentMessages}
     />
   );
 
-  const teacherData = [
-    { name: 'Mr. Ade', subject: 'Mathematics', qualification: 'B.Sc', salary: '₦200,000' },
-    { name: 'Mrs. Uche', subject: 'English', qualification: 'B.Ed', salary: '₦180,000' },
-    { name: 'Mr. Musa', subject: 'Physics', qualification: 'M.Sc', salary: '₦220,000' },
-    { name: 'Ms. Grace', subject: 'Biology', qualification: 'B.Sc', salary: '₦190,000' },
-  ];
+  // Get teacher data for table
+  const teacherData = dashboardData.teachers.slice(0, 4).map(teacher => ({
+    name: teacher.name || teacher.full_name || 'N/A',
+    subject: Array.isArray(teacher.subjects) ? teacher.subjects.join(', ') : (teacher.subjects || 'N/A'),
+    qualification: teacher.qualification || 'N/A',
+    salary: teacher.baseSalary ? `₦${teacher.baseSalary.toLocaleString()}` : 'N/A'
+  }));
 
   if (loading) {
     return <ContentLoader />;
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6">
+          <div className="text-center">
+            <div className="text-red-500 text-6xl mb-4">⚠️</div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Failed to Load Dashboard</h2>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="bg-brand text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -288,15 +454,15 @@ const AdminBlueDashboard: React.FC<AdminBlueDashboardProps> = ({ setActiveView }
             </div>
             <div className="hidden lg:flex items-center space-x-6">
               <div className="text-center">
-                <div className="text-3xl font-bold">1,247</div>
+                <div className="text-3xl font-bold">{stats.totalStudents.toLocaleString()}</div>
                 <div className="text-purple-200 text-sm">Total Students</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold">89</div>
+                <div className="text-3xl font-bold">{stats.totalTeachers}</div>
                 <div className="text-purple-200 text-sm">Teachers</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold">₦2.4M</div>
+                <div className="text-3xl font-bold">₦{(stats.monthlyRevenue / 1000000).toFixed(1)}M</div>
                 <div className="text-purple-200 text-sm">Monthly Revenue</div>
               </div>
             </div>
@@ -316,7 +482,7 @@ const AdminBlueDashboard: React.FC<AdminBlueDashboardProps> = ({ setActiveView }
                   <UsersIcon className="w-7 h-7 text-brand" />
                 </div>
                 <div className="text-right">
-                  <div className="text-2xl font-bold text-gray-900">1,247</div>
+                  <div className="text-2xl font-bold text-gray-900">{stats.totalStudents.toLocaleString()}</div>
                   <div className="text-sm text-gray-500">Students</div>
                 </div>
               </div>
@@ -333,7 +499,7 @@ const AdminBlueDashboard: React.FC<AdminBlueDashboardProps> = ({ setActiveView }
                   <ClipboardListIcon className="w-7 h-7 text-green-600" />
                 </div>
                 <div className="text-right">
-                  <div className="text-2xl font-bold text-gray-900">89%</div>
+                  <div className="text-2xl font-bold text-gray-900">{stats.averageScore}%</div>
                   <div className="text-sm text-gray-500">Avg Score</div>
                 </div>
               </div>
@@ -350,7 +516,7 @@ const AdminBlueDashboard: React.FC<AdminBlueDashboardProps> = ({ setActiveView }
                   <DocumentArrowDownIcon className="w-7 h-7 text-orange-600" />
                 </div>
                 <div className="text-right">
-                  <div className="text-2xl font-bold text-gray-900">342</div>
+                  <div className="text-2xl font-bold text-gray-900">{stats.totalReports}</div>
                   <div className="text-sm text-gray-500">Reports</div>
                 </div>
               </div>
@@ -367,7 +533,7 @@ const AdminBlueDashboard: React.FC<AdminBlueDashboardProps> = ({ setActiveView }
                   <GraduationCapIcon className="w-7 h-7 text-indigo-600" />
                 </div>
                 <div className="text-right">
-                  <div className="text-2xl font-bold text-gray-900">156</div>
+                  <div className="text-2xl font-bold text-gray-900">{stats.studentsToPromote}</div>
                   <div className="text-sm text-gray-500">To Promote</div>
                 </div>
               </div>
@@ -408,19 +574,19 @@ const AdminBlueDashboard: React.FC<AdminBlueDashboardProps> = ({ setActiveView }
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">Present Students</span>
-                  <span className="font-semibold text-green-600">1,189 / 1,247</span>
+                  <span className="font-semibold text-green-600">{stats.presentStudents} / {stats.totalStudents}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">Active Teachers</span>
-                  <span className="font-semibold text-blue-600">87 / 89</span>
+                  <span className="font-semibold text-blue-600">{stats.activeTeachers} / {stats.totalTeachers}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">Pending Fees</span>
-                  <span className="font-semibold text-orange-600">₦450K</span>
+                  <span className="font-semibold text-orange-600">₦{(stats.pendingFees / 1000).toFixed(0)}K</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">New Applications</span>
-                  <span className="font-semibold text-brand">23</span>
+                  <span className="font-semibold text-brand">{stats.newApplications}</span>
                 </div>
               </div>
             </div>
@@ -429,27 +595,29 @@ const AdminBlueDashboard: React.FC<AdminBlueDashboardProps> = ({ setActiveView }
             <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Upcoming Events</h3>
               <div className="space-y-3">
-                <div className="flex items-start space-x-3">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-                  <div>
-                    <p className="font-medium text-gray-900">Parent-Teacher Meeting</p>
-                    <p className="text-sm text-gray-600">Tomorrow, 2:00 PM</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-                  <div>
-                    <p className="font-medium text-gray-900">Mid-term Exams</p>
-                    <p className="text-sm text-gray-600">Next Week</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-2 h-2 bg-brand rounded-full mt-2"></div>
-                  <div>
-                    <p className="font-medium text-gray-900">Sports Day</p>
-                    <p className="text-sm text-gray-600">March 15, 2024</p>
-                  </div>
-                </div>
+                {dashboardData.events.length > 0 ? (
+                  dashboardData.events.slice(0, 3).map((event, index) => {
+                    const colors = ['bg-blue-500', 'bg-green-500', 'bg-brand'];
+                    const eventDate = new Date(event.date || event.startDate);
+                    const formattedDate = eventDate.toLocaleDateString('en-US', { 
+                      month: 'short', 
+                      day: 'numeric',
+                      year: eventDate.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
+                    });
+                    
+                    return (
+                      <div key={event.id} className="flex items-start space-x-3">
+                        <div className={`w-2 h-2 ${colors[index % colors.length]} rounded-full mt-2`}></div>
+                        <div>
+                          <p className="font-medium text-gray-900">{event.title || event.name}</p>
+                          <p className="text-sm text-gray-600">{formattedDate}</p>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-gray-500 text-sm">No upcoming events scheduled</div>
+                )}
               </div>
             </div>
 
