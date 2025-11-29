@@ -144,6 +144,7 @@ const SubscriptionPage = () => {
 
             let response: Response | null = null;
             let lastError: string | null = null;
+            let corsError = false;
             for (const url of candidates) {
                 try {
                     const res = await tryRequest(url);
@@ -156,6 +157,19 @@ const SubscriptionPage = () => {
                             throw new Error('Subdomain taken');
                         }
                     }
+                    // Check for CORS errors (403 Forbidden)
+                    if (res.status === 403) {
+                        corsError = true;
+                        try {
+                            const j = await res.json();
+                            if (j?.error?.toLowerCase().includes('origin') || j?.error?.toLowerCase().includes('forbidden')) {
+                                lastError = `CORS error: Your domain is not allowed to access the registration endpoint. Please contact support.`;
+                                continue;
+                            }
+                        } catch {}
+                        lastError = `Access forbidden (403). This may be a CORS issue. Please contact support.`;
+                        continue;
+                    }
                     // Collect detailed error for diagnostics
                     let details = `HTTP ${res.status}: ${res.statusText}`;
                     try {
@@ -166,12 +180,26 @@ const SubscriptionPage = () => {
                     }
                     lastError = `${url} -> ${details}`;
                 } catch (e: any) {
-                    lastError = `${url} -> ${e?.message || 'Network error'}`;
+                    // Check if it's a CORS/network error
+                    const errorMsg = String(e?.message || '');
+                    if (errorMsg.toLowerCase().includes('failed to fetch') || 
+                        errorMsg.toLowerCase().includes('networkerror') ||
+                        errorMsg.toLowerCase().includes('cors')) {
+                        corsError = true;
+                        lastError = `Network error: Unable to connect to registration server. This may be a CORS issue or the server is unreachable. Please check your connection and try again, or contact support if the problem persists.`;
+                    } else if (errorMsg.toLowerCase().includes('timeout')) {
+                        lastError = `Request timeout: The server took too long to respond. Please try again.`;
+                    } else {
+                        lastError = `${url} -> ${errorMsg || 'Network error'}`;
+                    }
                 }
             }
 
             if (!response) {
-                throw new Error(lastError || 'Registration failed');
+                if (corsError) {
+                    throw new Error(lastError || 'CORS error: Unable to access registration endpoint. Please contact support.');
+                }
+                throw new Error(lastError || 'Registration failed: Could not connect to any registration endpoint.');
             }
 
             const data: any = await response.json().catch(() => ({} as any));
@@ -243,12 +271,23 @@ const SubscriptionPage = () => {
             setStep(3); // Show "Success! Your Portal is Ready!"
         } catch (err: any) {
             let errorMessage = String(err?.message || 'Registration failed');
-            if (String(err?.message || '').toLowerCase().includes('failed to fetch')) {
-                errorMessage = "A network error occurred. Please check your connection and try again.";
-            }
-            if (/subdomain taken/i.test(String(err?.message || ''))) {
+            const errLower = errorMessage.toLowerCase();
+            
+            // Handle specific error types
+            if (errLower.includes('cors') || errLower.includes('forbidden')) {
+                errorMessage = "Access denied: Your domain is not authorized to use the registration service. Please contact support.";
+            } else if (errLower.includes('failed to fetch') || errLower.includes('networkerror')) {
+                errorMessage = "Network error: Unable to connect to the registration server. Please check your internet connection and try again. If the problem persists, the server may be down or your domain may not be configured correctly.";
+            } else if (errLower.includes('timeout')) {
+                errorMessage = "Request timeout: The server took too long to respond. Please try again.";
+            } else if (/subdomain taken/i.test(errorMessage)) {
                 errorMessage = 'Subdomain taken. Please choose a different portal address.';
+            } else if (errLower.includes('server is not configured')) {
+                errorMessage = "Server configuration error: The registration service is not properly configured. Please contact support.";
+            } else if (errLower.includes('missing required fields')) {
+                errorMessage = "Please fill in all required fields.";
             }
+            
             setError(errorMessage);
         } finally {
             setLoading(false);

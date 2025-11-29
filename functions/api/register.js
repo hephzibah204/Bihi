@@ -351,7 +351,15 @@ export async function onRequest(context) {
     }
 
     if (!isAllowed) {
-        return new Response(JSON.stringify({ error: "Forbidden: Invalid Origin" }), { status: 403 });
+        const origin = request.headers.get("Origin") || "unknown";
+        return new Response(JSON.stringify({ 
+            error: "Forbidden: Invalid Origin",
+            message: `Your origin (${origin}) is not allowed to access this endpoint. Please contact support to add your domain to the allowed origins list.`,
+            origin: origin
+        }), { 
+            status: 403,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
     
     let response;
