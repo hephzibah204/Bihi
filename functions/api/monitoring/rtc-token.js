@@ -78,7 +78,7 @@ export async function onRequest(context) {
     return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403 })
   }
 
-  const { AccessToken, RoomServiceClient } = await import('@livekit/server-sdk')
+  const { AccessToken, RoomServiceClient } = await import('livekit-server-sdk')
   const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, { identity })
   at.addGrant({ room: roomName, roomJoin: true, canPublish: grantRole === 'publisher', canSubscribe: true })
   const token = await at.toJwt()
