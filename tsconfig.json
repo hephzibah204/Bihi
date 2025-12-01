@@ -21,12 +21,15 @@
     "allowJs": true,
     "jsx": "react-jsx",
     "paths": {
-      "@/*": [
-        "./*"
-      ],
-      "@jest/globals": [
-        "./types/jest-globals-shim"
-      ]
+      "@/*": ["./*"],
+      "@/components/*": ["./components/*"],
+      "@/services/*": ["./services/*"],
+      "@/utils/*": ["./utils/*"],
+      "@/hooks/*": ["./hooks/*"],
+      "@/types/*": ["./types/*"],
+      "@/contexts/*": ["./contexts/*"],
+      "@/repositories/*": ["./repositories/*"],
+      "@jest/globals": ["./types/jest-globals-shim"]
     },
     "allowImportingTsExtensions": true,
     "noEmit": true,

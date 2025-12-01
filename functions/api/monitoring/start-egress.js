@@ -17,7 +17,7 @@ export async function onRequest(context) {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return new Response(JSON.stringify({ error: 'Server not configured' }), { status: 500 })
   if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) return new Response(JSON.stringify({ error: 'LiveKit not configured' }), { status: 500 })
   try {
-    const { EgressClient } = await import('@livekit/server-sdk')
+    const { EgressClient } = await import('livekit-server-sdk')
     const client = new EgressClient(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET)
     const res = await client.startRoomCompositeEgress({ roomName: room }, { hls: { playlistName: 'index.m3u8' } })
     const url = res?.hls?.playlistUrl || res?.hls?.url || ''
