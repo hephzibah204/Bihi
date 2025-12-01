@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 // Fix: Corrected import path for supabase client
 import { initSupabase, getSupabase, isSupabaseOnline } from '../services/supabaseClient';
+import { getSupabaseConfig } from '../utils/env';
 import { NetworkTraffic } from './SuperAdmin/SystemMonitoring';
 import ConnectionStatusBar from './ConnectionStatusBar';
 
@@ -12,6 +13,9 @@ const SuperAdminLoginPage = () => {
     const [error, setError] = useState('');
     const [networkStats, setNetworkStats] = useState({ inbound: 0, outbound: 0 });
     const [isDbOnline, setIsDbOnline] = useState(false);
+    const [dbError, setDbError] = useState<string | null>(null);
+    const [showDiagnostics, setShowDiagnostics] = useState(false);
+    const [testingConnection, setTestingConnection] = useState(false);
 
     // Real-time network monitoring
     useEffect(() => {
@@ -33,14 +37,26 @@ const SuperAdminLoginPage = () => {
             try {
                 await initSupabase();
                 const online = await isSupabaseOnline();
-                if (mounted) setIsDbOnline(online);
-            } catch {
-                if (mounted) setIsDbOnline(false);
+                if (mounted) {
+                    setIsDbOnline(online);
+                    setDbError(null);
+                }
+            } catch (err: any) {
+                if (mounted) {
+                    setIsDbOnline(false);
+                    setDbError(err?.message || 'Failed to connect to database');
+                }
             }
         };
         init();
-        const onReconnect = () => setIsDbOnline(true);
-        const onLost = () => setIsDbOnline(false);
+        const onReconnect = () => {
+            setIsDbOnline(true);
+            setDbError(null);
+        };
+        const onLost = () => {
+            setIsDbOnline(false);
+            setDbError('Connection lost');
+        };
         window.addEventListener('supabase-reconnected', onReconnect as EventListener);
         window.addEventListener('supabase-connection-lost', onLost as EventListener);
         return () => {
@@ -49,6 +65,43 @@ const SuperAdminLoginPage = () => {
             window.removeEventListener('supabase-connection-lost', onLost as EventListener);
         };
     }, []);
+
+    const testConnection = async () => {
+        setTestingConnection(true);
+        setDbError(null);
+        try {
+            await initSupabase();
+            const online = await isSupabaseOnline();
+            setIsDbOnline(online);
+            if (!online) {
+                setDbError('Connection test failed. Check your network and configuration.');
+            }
+        } catch (err: any) {
+            setIsDbOnline(false);
+            setDbError(err?.message || 'Connection test failed');
+        } finally {
+            setTestingConnection(false);
+        }
+    };
+
+    const getConfigStatus = () => {
+        try {
+            const config = getSupabaseConfig();
+            return {
+                hasUrl: !!config.url,
+                hasKey: !!config.anonKey,
+                url: config.url ? `${config.url.substring(0, 20)}...` : 'Not set',
+                keyType: config.anonKey ? (config.anonKey.length > 200 ? 'service_role' : 'anon') : 'none'
+            };
+        } catch {
+            return {
+                hasUrl: false,
+                hasKey: false,
+                url: 'Error reading config',
+                keyType: 'none'
+            };
+        }
+    };
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -110,8 +163,80 @@ const SuperAdminLoginPage = () => {
                     </div>
                 )}
                 {!isDbOnline && (
-                    <div className="p-3 text-sm text-amber-700 bg-amber-100 rounded-lg" role="status">
-                        Database disconnected. Please check configuration or network.
+                    <div className="p-4 text-sm bg-amber-50 border border-amber-200 rounded-lg" role="status">
+                        <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                                <div className="font-semibold text-amber-800 mb-1">
+                                    Database Disconnected
+                                </div>
+                                <div className="text-amber-700 mb-2">
+                                    {dbError || 'Please check configuration or network.'}
+                                </div>
+                                {typeof navigator !== 'undefined' && !navigator.onLine && (
+                                    <div className="text-xs text-amber-600 mb-2">
+                                        ⚠️ Your device appears to be offline. Check your internet connection.
+                                    </div>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => setShowDiagnostics(!showDiagnostics)}
+                                    className="text-xs text-amber-700 underline hover:text-amber-900"
+                                >
+                                    {showDiagnostics ? 'Hide' : 'Show'} Diagnostics
+                                </button>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={testConnection}
+                                disabled={testingConnection}
+                                className="ml-2 px-3 py-1 text-xs bg-amber-200 hover:bg-amber-300 text-amber-800 rounded disabled:opacity-50"
+                            >
+                                {testingConnection ? 'Testing...' : 'Test Connection'}
+                            </button>
+                        </div>
+                        
+                        {showDiagnostics && (
+                            <div className="mt-3 pt-3 border-t border-amber-200">
+                                <div className="text-xs font-semibold text-amber-800 mb-2">Configuration Status:</div>
+                                <div className="space-y-1 text-xs text-amber-700">
+                                    {(() => {
+                                        const config = getConfigStatus();
+                                        return (
+                                            <>
+                                                <div className="flex items-center">
+                                                    <span className="w-32">Supabase URL:</span>
+                                                    <span className={config.hasUrl ? 'text-green-700' : 'text-red-700'}>
+                                                        {config.hasUrl ? '✓ Set' : '✗ Missing'}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center">
+                                                    <span className="w-32">API Key:</span>
+                                                    <span className={config.hasKey ? 'text-green-700' : 'text-red-700'}>
+                                                        {config.hasKey ? `✓ Set (${config.keyType})` : '✗ Missing'}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center">
+                                                    <span className="w-32">Network:</span>
+                                                    <span className={typeof navigator !== 'undefined' && navigator.onLine ? 'text-green-700' : 'text-red-700'}>
+                                                        {typeof navigator !== 'undefined' && navigator.onLine ? '✓ Online' : '✗ Offline'}
+                                                    </span>
+                                                </div>
+                                            </>
+                                        );
+                                    })()}
+                                </div>
+                                <div className="mt-3 pt-2 border-t border-amber-200">
+                                    <div className="text-xs font-semibold text-amber-800 mb-1">Troubleshooting Steps:</div>
+                                    <ol className="text-xs text-amber-700 space-y-1 list-decimal list-inside">
+                                        <li>Verify environment variables are set (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY)</li>
+                                        <li>Check your internet connection</li>
+                                        <li>Verify Supabase project is active and accessible</li>
+                                        <li>Check browser console for detailed error messages</li>
+                                        <li>Try refreshing the page or clearing browser cache</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 

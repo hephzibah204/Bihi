@@ -102,31 +102,50 @@ export async function initSupabase() {
   /* ---------------------------------------------------------
    * 5️⃣ Instantiate client
    * --------------------------------------------------------- */
-  supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
-    auth: {
-      persistSession: true,
-      detectSessionInUrl: true,
-      autoRefreshToken: true,
-      storage: typeof window !== 'undefined' ? window.sessionStorage : undefined,
-      storageKey: 'dossier-auth-token',
-      flowType: 'pkce'
-    },
-    global: {
-      headers: {
-        'x-application-name': 'dossier-ng',
-        'x-client-info': 'dossier-ng@1.0.0',
-        'x-key-type': keySource
+  try {
+    supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: {
+        persistSession: true,
+        detectSessionInUrl: true,
+        autoRefreshToken: true,
+        storage: typeof window !== 'undefined' ? window.sessionStorage : undefined,
+        storageKey: 'dossier-auth-token',
+        flowType: 'pkce'
+      },
+      global: {
+        headers: {
+          'x-application-name': 'dossier-ng',
+          'x-client-info': 'dossier-ng@1.0.0',
+          'x-key-type': keySource
+        },
+        // Ensure fetch is available
+        fetch: typeof window !== 'undefined' ? window.fetch : (typeof global !== 'undefined' ? global.fetch : undefined)
+      },
+      db: { schema: 'public' },
+      realtime: {
+        params: { eventsPerSecond: 10 },
+        heartbeatIntervalMs: 30000,
+        reconnectIntervalMs: 5000
       }
-    },
-    db: { schema: 'public' },
-    realtime: {
-      params: { eventsPerSecond: 10 },
-      heartbeatIntervalMs: 30000,
-      reconnectIntervalMs: 5000
-    }
-  });
+    });
 
-  supabase._offline = false;
+    // Validate client was created properly
+    if (!supabase) {
+      throw new Error('Failed to create Supabase client');
+    }
+
+    // Ensure client has required methods
+    if (typeof supabase.from !== 'function') {
+      logger.error('[Supabase] Client missing .from() method');
+      throw new Error('Supabase client not properly initialized');
+    }
+
+    supabase._offline = false;
+  } catch (clientErr: any) {
+    logger.error('[Supabase] Failed to create client', { error: clientErr });
+    supabase = createOfflineClient();
+    return supabase;
+  }
 
   if (!supabase.auth) supabase.auth = {} as any;
   if (typeof (supabase as any).auth.signInWithPassword !== 'function') {
@@ -155,6 +174,17 @@ export async function initSupabase() {
  *  OFFLINE CLIENT FALLBACK (SAFE NO-OPS)
  * ============================================================ */
 function createOfflineClient() {
+  // Create a safe query builder that returns errors instead of crashing
+  const createQueryBuilder = () => ({
+    select: () => createQueryBuilder(),
+    insert: () => createQueryBuilder(),
+    update: () => createQueryBuilder(),
+    delete: () => createQueryBuilder(),
+    limit: () => createQueryBuilder(),
+    eq: () => createQueryBuilder(),
+    then: async () => ({ data: null, error: new Error('Database offline - check configuration') })
+  });
+
   const offline = {
     _offline: true,
     auth: {
@@ -168,6 +198,7 @@ function createOfflineClient() {
         return { data: { subscription: { unsubscribe: () => {} } }, error: null };
       }
     },
+    from: (_table: string) => createQueryBuilder(),
     channel: (_name: string) => ({
       on: () => offline,
       subscribe: () => ({ data: { subscription: { unsubscribe: () => {} } }, error: null })
@@ -225,24 +256,63 @@ export function getSupabase() {
  *  CONNECTIVITY CHECKER
  * ============================================================ */
 export async function isSupabaseOnline(): Promise<boolean> {
+  // Ensure client is initialized
   if (!supabase || supabase._offline) {
-    try { await initSupabase(); } catch {}
+    try { 
+      await initSupabase(); 
+      // Double-check after initialization
+      if (!supabase || supabase._offline) return false;
+    } catch (initErr: any) {
+      logger.error('[Supabase] Initialization failed in isSupabaseOnline', { error: initErr?.message });
+      return false;
+    }
   }
+  
   if (!supabase || supabase._offline) return false;
 
   if (typeof navigator !== 'undefined' && !navigator.onLine) return false;
+  
+  // Ensure fetch is available (required for Supabase client)
+  if (typeof window !== 'undefined' && typeof window.fetch === 'undefined') {
+    logger.error('[Supabase] Fetch API not available');
+    return false;
+  }
+
+  // Ensure supabase has the 'from' method before using it
+  if (!supabase || typeof supabase.from !== 'function') {
+    logger.warn('[Supabase] Client missing query methods');
+    return false;
+  }
 
   // Light REST ping: `platform_settings` table
   try {
     await withRetry(
       async () => {
-        const { error } = await supabase.from('platform_settings').select('id').limit(1);
+        if (!supabase || typeof supabase.from !== 'function') {
+          throw new Error('Supabase client not properly initialized');
+        }
+        
+        // Additional safety check - ensure the query builder exists
+        const queryBuilder = supabase.from('platform_settings');
+        if (!queryBuilder || typeof queryBuilder.select !== 'function') {
+          throw new Error('Query builder not available');
+        }
+        
+        const { error } = await queryBuilder.select('id').limit(1);
         if (error) throw error;
       },
       { maxRetries: 1, initialDelay: 250 }
     );
     return true;
-  } catch {}
+  } catch (err: any) {
+    const errorMsg = err?.message || 'Unknown error';
+    // Check for fetch-related errors
+    if (errorMsg.includes('fetch') || errorMsg.includes('undefined')) {
+      logger.error('[Supabase] Fetch error - client may not be properly initialized', { error: errorMsg });
+    } else {
+      logger.warn('[Supabase] Connection test failed', { error: errorMsg });
+    }
+  }
 
   // Optional: Edge Functions ping
   const enable = ((typeof window !== 'undefined')

@@ -1,5 +1,4 @@
 import React from 'react';
-import { Helmet } from 'react-helmet-async';
 import { SchoolInfo } from '../types/school';
 
 interface SEOHeadProps {
