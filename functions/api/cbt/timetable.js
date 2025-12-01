@@ -1,5 +1,5 @@
-import { handleCors } from '../_lib/cors'
-import { requirePlatformRoles } from '../_lib/auth'
+import { handleCors } from '../../_lib/cors'
+import { requirePlatformRoles } from '../../_lib/auth'
 
 function json(headers) {
   const res = new Response('', { status: 200 })

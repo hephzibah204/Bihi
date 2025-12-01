@@ -24,6 +24,7 @@
   "dependencies": {
     "@google/genai": "0.14.0",
     "@heroicons/react": "^2.2.0",
+    "@livekit/server-sdk": "^2.5.0",
     "@progress/kendo-drawing": "^1.23.1",
     "@progress/kendo-file-saver": "^1.0.1",
     "@progress/kendo-licensing": "^1.7.2",
