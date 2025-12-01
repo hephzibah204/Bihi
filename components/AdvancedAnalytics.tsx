@@ -50,6 +50,7 @@ const AdminAnalyticsDashboard = () => {
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [aiAnalysisResult, setAiAnalysisResult] = useState('');
     const [analysisError, setAnalysisError] = useState('');
+    const [chartError, setChartError] = useState<string | null>(null);
 
 
     const subjectHotspotChartRef = useRef<HTMLCanvasElement>(null);
@@ -165,6 +166,8 @@ const AdminAnalyticsDashboard = () => {
         };
 
         try {
+            setChartError(null);
+            
             if (subjectHotspotChartRef.current && chartData.subjectHotspot && chartData.subjectHotspot.labels && chartData.subjectHotspot.labels.length > 0) {
                 chartInstances.current.subjectHotspot = new window.Chart(subjectHotspotChartRef.current, { 
                     type: 'bar', 
@@ -197,7 +200,9 @@ const AdminAnalyticsDashboard = () => {
                 });
             }
         } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to initialize charts';
             console.error('Error initializing charts:', error);
+            setChartError(errorMessage);
         }
     }, [loading, chartData]);
 
@@ -528,6 +533,14 @@ const AdminAnalyticsDashboard = () => {
                 </div>
             </div>
             
+            {chartError && (
+                <div className="card p-4 mb-4 bg-yellow-50 border border-yellow-200">
+                    <p className="text-yellow-800 text-sm">
+                        <strong>Chart Error:</strong> {chartError}. Some charts may not display correctly.
+                    </p>
+                </div>
+            )}
+
             <div className="flex justify-between items-center">
                 <h2 className="text-xl font-semibold">Visual Dashboards</h2>
                  <div className="flex gap-4">
@@ -542,23 +555,61 @@ const AdminAnalyticsDashboard = () => {
                 <StatCard title="Total Subjects" value={stats.subjects} />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-                <ChartCard title="Class Subject Averages">
-                     <select value={selectedClassForCharts} onChange={e => setSelectedClassForCharts(e.target.value)} className="input-field mb-4"><option value="">Select a Class</option>{allClasses.map(c => <option key={c} value={c}>{c}</option>)}</select>
-                    <canvas ref={classAverageChartRef}></canvas>
-                </ChartCard>
-                <ChartCard title="Subject Performance Hotspots">
-                    <canvas ref={subjectHotspotChartRef}></canvas>
-                </ChartCard>
-                 <ChartCard title="Term-over-Term Performance">
-                     <select value={selectedClassForCharts} onChange={e => setSelectedClassForCharts(e.target.value)} className="input-field mb-4"><option value="">Select a Class</option>{allClasses.map(c => <option key={c} value={c}>{c}</option>)}</select>
-                    <canvas ref={termPerformanceChartRef}></canvas>
-                </ChartCard>
-                <ChartCard title="Student Academic Trajectory">
-                     <select value={selectedStudentId} onChange={e => setSelectedStudentId(e.target.value)} className="input-field mb-4"><option value="">Select a Student</option>{allData.students.map(s => <option key={s.id} value={s.id}>{s.name} ({s.class})</option>)}</select>
-                    <canvas ref={studentTrajectoryChartRef}></canvas>
-                </ChartCard>
-            </div>
+            {allData.scores.length === 0 ? (
+                <div className="card p-6 mt-6 text-center">
+                    <p className="text-gray-600 mb-4">No performance data available yet.</p>
+                    <p className="text-sm text-gray-500">Start by entering student scores to see analytics.</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                    <ChartCard title="Class Subject Averages">
+                        <select value={selectedClassForCharts} onChange={e => setSelectedClassForCharts(e.target.value)} className="input-field mb-4">
+                            <option value="">Select a Class</option>
+                            {allClasses.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                        {chartData.classAverages && chartData.classAverages.labels && chartData.classAverages.labels.length > 0 ? (
+                            <canvas ref={classAverageChartRef}></canvas>
+                        ) : (
+                            <div className="text-center text-gray-500 py-8">
+                                {selectedClassForCharts ? 'No data available for selected class' : 'Please select a class to view averages'}
+                            </div>
+                        )}
+                    </ChartCard>
+                    <ChartCard title="Subject Performance Hotspots">
+                        {chartData.subjectHotspot && chartData.subjectHotspot.labels && chartData.subjectHotspot.labels.length > 0 ? (
+                            <canvas ref={subjectHotspotChartRef}></canvas>
+                        ) : (
+                            <div className="text-center text-gray-500 py-8">No subject performance data available</div>
+                        )}
+                    </ChartCard>
+                    <ChartCard title="Term-over-Term Performance">
+                        <select value={selectedClassForCharts} onChange={e => setSelectedClassForCharts(e.target.value)} className="input-field mb-4">
+                            <option value="">Select a Class</option>
+                            {allClasses.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                        {chartData.termPerformance && chartData.termPerformance.labels && chartData.termPerformance.labels.length > 0 ? (
+                            <canvas ref={termPerformanceChartRef}></canvas>
+                        ) : (
+                            <div className="text-center text-gray-500 py-8">
+                                {selectedClassForCharts ? 'No data available for selected class' : 'Please select a class to view performance'}
+                            </div>
+                        )}
+                    </ChartCard>
+                    <ChartCard title="Student Academic Trajectory">
+                        <select value={selectedStudentId} onChange={e => setSelectedStudentId(e.target.value)} className="input-field mb-4">
+                            <option value="">Select a Student</option>
+                            {allData.students.map(s => <option key={s.id} value={s.id}>{s.name} ({s.class})</option>)}
+                        </select>
+                        {chartData.studentTrajectory && chartData.studentTrajectory.labels && chartData.studentTrajectory.labels.length > 0 ? (
+                            <canvas ref={studentTrajectoryChartRef}></canvas>
+                        ) : (
+                            <div className="text-center text-gray-500 py-8">
+                                {selectedStudentId ? 'No trajectory data available for selected student' : 'Please select a student to view trajectory'}
+                            </div>
+                        )}
+                    </ChartCard>
+                </div>
+            )}
         </div>
     );
 };
