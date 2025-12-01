@@ -95,39 +95,109 @@ const AdminAnalyticsDashboard = () => {
     }, []);
 
     useEffect(() => {
-        if (loading || !allData.scores.length) return;
+        if (loading || !allData.scores.length || !allData.students.length || !allData.subjects.length) return;
 
-        setChartData({
-            subjectHotspot: processSubjectHotspotData(allData.students, allData.subjects, allData.scores, selectedSession, selectedTerm),
-            termPerformance: processTermPerformanceData(allData.scores, selectedClassForCharts),
-            studentTrajectory: processStudentTrajectoryData(allData.scores, allData.subjects, selectedStudentId, allData.students),
-            classAverages: processClassSubjectAverages(allData.students, allData.subjects, allData.scores, selectedClassForCharts, selectedSession, selectedTerm)
-        });
+        try {
+            setChartData({
+                subjectHotspot: processSubjectHotspotData(allData.students, allData.subjects, allData.scores, selectedSession, selectedTerm),
+                termPerformance: processTermPerformanceData(allData.scores, selectedClassForCharts),
+                studentTrajectory: processStudentTrajectoryData(allData.scores, allData.subjects, selectedStudentId, allData.students),
+                classAverages: processClassSubjectAverages(allData.students, allData.subjects, allData.scores, selectedClassForCharts, selectedSession, selectedTerm)
+            });
+        } catch (error) {
+            console.error('Error processing chart data:', error);
+        }
 
     }, [loading, allData, selectedSession, selectedTerm, selectedClassForCharts, selectedStudentId]);
 
     useEffect(() => {
-        if (loading || !window.Chart) return;
+        // Wait for Chart.js to load
+        if (loading || !window.Chart) {
+            // If Chart.js is not loaded, try to load it
+            if (!window.Chart && typeof window !== 'undefined') {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
+                script.crossOrigin = 'anonymous';
+                script.onload = () => {
+                    // Retry after Chart.js loads
+                    setTimeout(() => {
+                        if (window.Chart && !loading) {
+                            // Trigger chart initialization
+                            setChartData(prev => ({ ...prev }));
+                        }
+                    }, 100);
+                };
+                document.head.appendChild(script);
+            }
+            return;
+        }
+
         const gridColor = 'rgba(0, 0, 0, 0.1)';
         const labelColor = '#4B5563';
 
+        // Clean up existing charts
         Object.values(chartInstances.current).forEach((chart: any) => {
-            if (chart && typeof chart.destroy === 'function') chart.destroy();
+            if (chart && typeof chart.destroy === 'function') {
+                try {
+                    chart.destroy();
+                } catch (error) {
+                    console.warn('Error destroying chart:', error);
+                }
+            }
         });
+        chartInstances.current = {};
 
-        const commonOptions = { responsive: true, scales: { y: { beginAtZero: true, max: 100, grid: { color: gridColor }, ticks: { color: labelColor } }, x: { grid: { color: gridColor }, ticks: { color: labelColor } } } };
+        const commonOptions = { 
+            responsive: true, 
+            maintainAspectRatio: true,
+            scales: { 
+                y: { 
+                    beginAtZero: true, 
+                    max: 100, 
+                    grid: { color: gridColor }, 
+                    ticks: { color: labelColor } 
+                }, 
+                x: { 
+                    grid: { color: gridColor }, 
+                    ticks: { color: labelColor } 
+                } 
+            } 
+        };
 
-        if (subjectHotspotChartRef.current && chartData.subjectHotspot) {
-            chartInstances.current.subjectHotspot = new window.Chart(subjectHotspotChartRef.current, { type: 'bar', data: chartData.subjectHotspot, options: commonOptions });
-        }
-        if (termPerformanceChartRef.current && chartData.termPerformance) {
-            chartInstances.current.termPerformance = new window.Chart(termPerformanceChartRef.current, { type: 'line', data: chartData.termPerformance, options: commonOptions });
-        }
-        if (studentTrajectoryChartRef.current && chartData.studentTrajectory) {
-            chartInstances.current.studentTrajectory = new window.Chart(studentTrajectoryChartRef.current, { type: 'line', data: chartData.studentTrajectory, options: { ...commonOptions, plugins: { legend: { display: true } } } });
-        }
-        if (classAverageChartRef.current && chartData.classAverages) {
-            chartInstances.current.classAverages = new window.Chart(classAverageChartRef.current, { type: 'bar', data: chartData.classAverages, options: commonOptions });
+        try {
+            if (subjectHotspotChartRef.current && chartData.subjectHotspot && chartData.subjectHotspot.labels && chartData.subjectHotspot.labels.length > 0) {
+                chartInstances.current.subjectHotspot = new window.Chart(subjectHotspotChartRef.current, { 
+                    type: 'bar', 
+                    data: chartData.subjectHotspot, 
+                    options: commonOptions 
+                });
+            }
+            if (termPerformanceChartRef.current && chartData.termPerformance && chartData.termPerformance.labels && chartData.termPerformance.labels.length > 0) {
+                chartInstances.current.termPerformance = new window.Chart(termPerformanceChartRef.current, { 
+                    type: 'line', 
+                    data: chartData.termPerformance, 
+                    options: commonOptions 
+                });
+            }
+            if (studentTrajectoryChartRef.current && chartData.studentTrajectory && chartData.studentTrajectory.labels && chartData.studentTrajectory.labels.length > 0) {
+                chartInstances.current.studentTrajectory = new window.Chart(studentTrajectoryChartRef.current, { 
+                    type: 'line', 
+                    data: chartData.studentTrajectory, 
+                    options: { 
+                        ...commonOptions, 
+                        plugins: { legend: { display: true } } 
+                    } 
+                });
+            }
+            if (classAverageChartRef.current && chartData.classAverages && chartData.classAverages.labels && chartData.classAverages.labels.length > 0) {
+                chartInstances.current.classAverages = new window.Chart(classAverageChartRef.current, { 
+                    type: 'bar', 
+                    data: chartData.classAverages, 
+                    options: commonOptions 
+                });
+            }
+        } catch (error) {
+            console.error('Error initializing charts:', error);
         }
     }, [loading, chartData]);
 
@@ -341,7 +411,34 @@ const AdminAnalyticsDashboard = () => {
     };
 
 
-    if (loading) return <div className="card p-6 text-center">Loading analytics...</div>;
+    if (loading) {
+        return (
+            <div className="card p-6 text-center">
+                <div className="flex flex-col items-center justify-center space-y-4">
+                    <SpinnerIcon className="w-8 h-8 animate-spin text-brand" />
+                    <p className="text-gray-600">Loading analytics data...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Check if Chart.js is available
+    if (!window.Chart) {
+        return (
+            <div className="card p-6 text-center">
+                <div className="text-red-600 mb-4">
+                    <p className="font-semibold">Chart Library Not Loaded</p>
+                    <p className="text-sm mt-2">Please refresh the page to load Chart.js</p>
+                </div>
+                <button 
+                    onClick={() => window.location.reload()} 
+                    className="btn btn-primary"
+                >
+                    Refresh Page
+                </button>
+            </div>
+        );
+    }
     
     const { students: allStudents } = allData;
     const allClasses = [...new Set(allStudents.map(s => s.class))].sort();
@@ -486,37 +583,97 @@ const ChartCard = ({ title, children, fullWidth = false }: PropsWithChildren<{ t
 const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#6366F1', '#8B5CF6', '#EC4899'];
 
 const processClassSubjectAverages = (students: Student[], subjects: Subject[], scores: Score[], className: string, session: string, term: string) => {
-    if (!className) return { labels: [], datasets: [] };
-    const studentsInClass = students.filter(s => s.class === className);
-    const classStudentIds = new Set(studentsInClass.map(s => s.id));
-    const subjectsForClass = subjects.filter(s => s.classes.includes(className));
-    const labels = subjectsForClass.map(s => s.name);
-    const data = labels.map(subjectName => {
-        const subject = subjects.find(s => s.name === subjectName); if (!subject) return 0;
-        const relevantScores = scores.filter(score => classStudentIds.has(score.studentId) && score.subjectId === subject.id && (!session || score.session === session) && (term === 'All Terms' || score.term === term));
-        if (relevantScores.length === 0) return 0;
-        const total = relevantScores.reduce((sum, s) => sum + (s.ca1 || 0) + (s.ca2 || 0) + (s.exam || 0), 0);
-        return (total / relevantScores.length).toFixed(2);
-    });
-    return { labels, datasets: [{ label: `Avg Score for ${className}`, data, backgroundColor: COLORS }] };
+    if (!className || !students.length || !subjects.length || !scores.length) {
+        return { labels: [], datasets: [] };
+    }
+    try {
+        const studentsInClass = students.filter(s => s.class === className);
+        if (studentsInClass.length === 0) return { labels: [], datasets: [] };
+        
+        const classStudentIds = new Set(studentsInClass.map(s => s.id));
+        const subjectsForClass = subjects.filter(s => s.classes && Array.isArray(s.classes) && s.classes.includes(className));
+        
+        if (subjectsForClass.length === 0) return { labels: [], datasets: [] };
+        
+        const labels = subjectsForClass.map(s => s.name).filter(Boolean);
+        const data = labels.map(subjectName => {
+            const subject = subjects.find(s => s.name === subjectName);
+            if (!subject) return 0;
+            const relevantScores = scores.filter(score => 
+                classStudentIds.has(score.studentId) && 
+                score.subjectId === subject.id && 
+                (!session || score.session === session) && 
+                (term === 'All Terms' || !term || score.term === term)
+            );
+            if (relevantScores.length === 0) return 0;
+            const total = relevantScores.reduce((sum, s) => sum + (s.ca1 || 0) + (s.ca2 || 0) + (s.exam || 0), 0);
+            return Number((total / relevantScores.length).toFixed(2));
+        });
+        
+        if (labels.length === 0 || data.every(d => d === 0)) {
+            return { labels: [], datasets: [] };
+        }
+        
+        return { 
+            labels, 
+            datasets: [{ 
+                label: `Avg Score for ${className}`, 
+                data, 
+                backgroundColor: COLORS[0] 
+            }] 
+        };
+    } catch (error) {
+        console.error('Error processing class subject averages:', error);
+        return { labels: [], datasets: [] };
+    }
 };
 
 const processSubjectHotspotData = (students: Student[], subjects: Subject[], scores: Score[], session: string, term: string) => {
-    const classGroups = students.reduce((acc, student) => { if (!acc[student.class]) acc[student.class] = []; acc[student.class].push(student.id); return acc; }, {});
-    const labels = [...new Set(subjects.map(s => s.name))].sort();
-    const datasets = Object.keys(classGroups).sort().map((className, index) => {
-        const studentIdsInClass = classGroups[className];
-        const idSet = new Set(studentIdsInClass);
-        const data = labels.map(subjectName => {
-            const subject = subjects.find(s => s.name === subjectName); if (!subject) return 0;
-            const relevantScores = scores.filter(score => idSet.has(score.studentId) && score.subjectId === subject.id && (!session || score.session === session) && (term === 'All Terms' || score.term === term));
-            if (relevantScores.length === 0) return 0;
-            const total = relevantScores.reduce((sum, s) => sum + (s.ca1 || 0) + (s.ca2 || 0) + (s.exam || 0), 0);
-            return (total / relevantScores.length).toFixed(2);
-        });
-        return { label: className, data, backgroundColor: COLORS[index % COLORS.length] };
-    });
-    return { labels, datasets };
+    if (!students.length || !subjects.length || !scores.length) {
+        return { labels: [], datasets: [] };
+    }
+    try {
+        const classGroups = students.reduce((acc: Record<string, string[]>, student) => { 
+            if (!acc[student.class]) acc[student.class] = []; 
+            acc[student.class].push(student.id); 
+            return acc; 
+        }, {});
+        
+        if (Object.keys(classGroups).length === 0) return { labels: [], datasets: [] };
+        
+        const labels = [...new Set(subjects.map(s => s.name).filter(Boolean))].sort();
+        if (labels.length === 0) return { labels: [], datasets: [] };
+        
+        const datasets = Object.keys(classGroups).sort().map((className, index) => {
+            const studentIdsInClass = classGroups[className];
+            const idSet = new Set(studentIdsInClass);
+            const data = labels.map(subjectName => {
+                const subject = subjects.find(s => s.name === subjectName);
+                if (!subject) return 0;
+                const relevantScores = scores.filter(score => 
+                    idSet.has(score.studentId) && 
+                    score.subjectId === subject.id && 
+                    (!session || score.session === session) && 
+                    (term === 'All Terms' || !term || score.term === term)
+                );
+                if (relevantScores.length === 0) return 0;
+                const total = relevantScores.reduce((sum, s) => sum + (s.ca1 || 0) + (s.ca2 || 0) + (s.exam || 0), 0);
+                return Number((total / relevantScores.length).toFixed(2));
+            });
+            return { 
+                label: className, 
+                data, 
+                backgroundColor: COLORS[index % COLORS.length] 
+            };
+        }).filter(ds => ds.data.some(d => d > 0)); // Only include datasets with data
+        
+        if (datasets.length === 0) return { labels: [], datasets: [] };
+        
+        return { labels, datasets };
+    } catch (error) {
+        console.error('Error processing subject hotspot data:', error);
+        return { labels: [], datasets: [] };
+    }
 };
 
 const processTermPerformanceData = (scores: Score[], className: string) => {
