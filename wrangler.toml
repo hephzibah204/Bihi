@@ -1,9 +1,6 @@
 # Cloudflare Pages configuration
 name = "bihi"
+pages_build_output_dir = "dist"
 
 [build]
 command = "npm install && npm run build"
-cwd = ""
-
-[build.upload]
-format = "service-worker"
