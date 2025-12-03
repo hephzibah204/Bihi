@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Exclude package-lock.json to force npm install instead of npm ci
+# This works around an npm bug with legacy-peer-deps and optional dependencies
+package-lock.json
+
 # Environment files - NEVER commit these!
 .env.local
 .env.production.local
