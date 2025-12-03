@@ -1,6 +1,6 @@
 // functions/api/ai/client-key.js
 
-import { handleCors } from '../../../_lib/cors';
+import { handleCors } from '../../_lib/cors';
 
 async function handleGet(request, env) {
     const headers = { 'Content-Type': 'application/json' };
