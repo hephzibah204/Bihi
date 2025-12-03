@@ -32,7 +32,7 @@ const AppShell: React.FC<PropsWithChildren<AppShellProps>> = ({ pageTitle, sideb
       />
       <div className="flex-1 flex flex-col">
         {/* Mobile Menu Button */}
-        <div className="md:hidden bg-white border-b border-gray-200 px-4 py-3">
+        <div className="md:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
           <button
             onClick={toggleMobileMenu}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -40,14 +40,21 @@ const AppShell: React.FC<PropsWithChildren<AppShellProps>> = ({ pageTitle, sideb
           >
             <Bars3Icon className="w-6 h-6" />
           </button>
+          <span className="text-sm font-semibold text-gray-700">{pageTitle}</span>
         </div>
         
         {topBar ? topBar : <TopBar pageTitle={pageTitle} />}
-        <div className="flex-1 grid grid-cols-1 xl:grid-cols-[1fr_18rem] gap-6 p-6">
-          <div>{children}</div>
-          {rightPanel && (
-            <aside className="hidden xl:block bg-white border-l border-gray-200 rounded-3xl p-4">{rightPanel}</aside>
-          )}
+        <div className="flex-1 overflow-y-auto">
+          <div className="mx-auto w-full max-w-7xl px-4 py-6 lg:px-8">
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
+              <div className="min-w-0">{children}</div>
+              {rightPanel && (
+                <aside className="hidden xl:block bg-white border border-gray-200 rounded-3xl p-5 shadow-sm">
+                  {rightPanel}
+                </aside>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -56,7 +56,7 @@ const Dashboard = () => {
     
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
-    const activeView = (searchParams.get('view') as DashboardView) || ADMIN_VIEWS.DASHBOARD;
+    const [activeView, setActiveView] = useState<DashboardView>(() => (searchParams.get('view') as DashboardView) || ADMIN_VIEWS.DASHBOARD);
     const profileStudentId = searchParams.get('studentId');
     
     // Check for report card print view
@@ -103,7 +103,13 @@ const Dashboard = () => {
         document.title = `${title} | ReportSheet`;
     }, [activeView]);
 
+    useEffect(() => {
+        const viewFromParams = (searchParams.get('view') as DashboardView) || ADMIN_VIEWS.DASHBOARD;
+        setActiveView(prev => (prev === viewFromParams ? prev : viewFromParams));
+    }, [searchParams]);
+
     const handleViewChange = (view: DashboardView) => {
+        setActiveView(view);
         const newSearchParams = new URLSearchParams(searchParams);
         newSearchParams.set('view', view);
         if (view !== ADMIN_VIEWS.STUDENT_PROFILE) {
@@ -120,6 +126,7 @@ const Dashboard = () => {
         newSearchParams.set('view', ADMIN_VIEWS.STUDENT_PROFILE);
         newSearchParams.set('studentId', studentId);
         setSearchParams(newSearchParams);
+        setActiveView(ADMIN_VIEWS.STUDENT_PROFILE);
     };
     
     if (loading) {

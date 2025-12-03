@@ -37,17 +37,6 @@ const AdminAppShellWithGroups: React.FC<PropsWithChildren<AdminAppShellWithGroup
 
   return (
     <div className="min-h-screen flex bg-[#EEF2FF]">
-      {/* Mobile menu button - Fixed positioning */}
-      <div className="md:hidden fixed top-0 left-0 z-50 p-4">
-        <button
-          onClick={toggleMobileMenu}
-          className="p-2 rounded-md text-gray-700 bg-white shadow-sm hover:bg-gray-50 transition-colors"
-          aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
-        >
-          <Bars3Icon className="w-6 h-6" />
-        </button>
-      </div>
-
       <GroupedSidebar 
         groups={sidebarGroups} 
         onSelect={onSelectSidebarItem}
@@ -63,13 +52,30 @@ const AdminAppShellWithGroups: React.FC<PropsWithChildren<AdminAppShellWithGroup
         />
       )}
 
-      <div className="flex-1 flex flex-col md:ml-64">
+      <div className="flex-1 flex flex-col">
+        <div className="md:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+          <button
+            onClick={toggleMobileMenu}
+            className="p-2 rounded-md text-gray-700 bg-white shadow-sm hover:bg-gray-50 transition-colors"
+            aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
+          >
+            <Bars3Icon className="w-6 h-6" />
+          </button>
+          <span className="text-sm font-semibold text-gray-700">{pageTitle}</span>
+        </div>
+
         {topBar ? topBar : <TopBar pageTitle={pageTitle} />}
-        <div className="flex-1 grid grid-cols-1 xl:grid-cols-[1fr_18rem] gap-4 md:gap-6 p-3 md:p-6 pt-16 md:pt-6">
-          <div className="min-w-0">{children}</div>
-          {rightPanel && (
-            <aside className="hidden xl:block bg-white border-l border-gray-200 rounded-3xl p-4">{rightPanel}</aside>
-          )}
+        <div className="flex-1 overflow-y-auto">
+          <div className="mx-auto w-full max-w-7xl px-4 py-6 lg:px-8">
+            <div className="grid grid-cols-1 gap-4 md:gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
+              <div className="min-w-0">{children}</div>
+              {rightPanel && (
+                <aside className="hidden xl:block bg-white border border-gray-200 rounded-3xl p-5 shadow-sm">
+                  {rightPanel}
+                </aside>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
