@@ -8,11 +8,20 @@ import { useReportCardExporter } from '../hooks/useReportCardExporter';
 import '../styles/report-card.css';
 import ZoomablePreview from './ZoomablePreview';
 import { USER_ROLES } from '../utils/constants';
+import EyeIcon from './icons/EyeIcon';
+import ReportCardPDF from '../components/pdf/ReportCardPDF'; // Added import
+import KendoReportCardPDF from '../components/pdf/KendoReportCardPDF'; // Added import
 
-const StudentReportCardViewer = ({ demoUserId }) => {
+interface StudentReportCardViewerProps {
+    demoUserId?: string;
+    reportCardId?: string;
+}
+
+const StudentReportCardViewer = ({ demoUserId, reportCardId }: StudentReportCardViewerProps) => {
     const [reportData, setReportData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [previewMode, setPreviewMode] = useState(false);
 
     // Filters
     const [selectedSession, setSelectedSession] = useState('');
@@ -35,25 +44,16 @@ const StudentReportCardViewer = ({ demoUserId }) => {
             setLoading(true);
             setError('');
             try {
-                // Use Promise.allSettled() for graceful degradation if one API fails
-                const results = await Promise.allSettled([
-                    apiGetScores(),
-                    apiGetSubjects(),
+                // Stage 1: Fetch students and school settings concurrently
+                const [studentsResult, settingsResult] = await Promise.allSettled([
                     apiGetStudents(),
-                    apiGetSchoolSettings(),
-                    apiGetAttendance(),
-                    apiGetRemarks()
+                    apiGetSchoolSettings()
                 ]);
 
-                // Extract values, defaulting to empty arrays on failure
-                const scores = results[0].status === 'fulfilled' ? results[0].value : [];
-                const subjects = results[1].status === 'fulfilled' ? results[1].value : [];
-                const students = results[2].status === 'fulfilled' ? results[2].value : [];
-                const settings = results[3].status === 'fulfilled' ? results[3].value : null;
-                const attendance = results[4].status === 'fulfilled' ? results[4].value : [];
-                const remarks = results[5].status === 'fulfilled' ? results[5].value : [];
+                const students = studentsResult.status === 'fulfilled' ? studentsResult.value : [];
+                const settings = settingsResult.status === 'fulfilled' ? settingsResult.value : null;
 
-                // Resolve a student to show: prefer prop; otherwise try activeUser; else fall back to first student; finally hardcode demo id.
+                // Resolve currentStudent
                 let effectiveId = demoUserId as string | undefined;
                 if (!effectiveId) {
                     try {
@@ -68,48 +68,45 @@ const StudentReportCardViewer = ({ demoUserId }) => {
                 }
                 if (!currentStudent) {
                     // Last resort demo fallback
-                    currentStudent = { id: 'stud_1', class: '' } as any;
+                    currentStudent = { id: 'stud_1', class: '' } as any; // Fallback with minimal structure
                 }
+
                 if (!students || students.length === 0) {
                     throw new Error('No student data available.');
                 }
-
                 if (!currentStudent || !currentStudent.id) {
                     throw new Error('Student profile not selected.');
                 }
 
-                // Log warnings if critical data is missing
-                if (!subjects || subjects.length === 0) {
-                    console.warn('Warning: No subject data available');
-                }
                 if (!settings) {
                     console.warn('Warning: No school settings available');
                 }
 
-                // Initialize filters
-                const allSessions = Array.from(new Set([
-                    ...scores.map(s => s.session).filter(Boolean),
-                    ...remarks.map(r => r.session).filter(Boolean),
-                    settings?.session
-                ].filter(Boolean)));
-                const initialSession = allSessions.includes(settings?.session) ? settings.session : (allSessions[0] || settings?.session || '');
+                // Determine initial filter values based on currentStudent and settings
+                const initialClass = currentStudent.class || '';
+                const initialSession = settings?.session || '';
+                const initialTerm = settings?.term || '';
 
-                const termsForSession = Array.from(new Set([
-                    ...scores.filter(s => s.session === initialSession).map(s => s.term).filter(Boolean),
-                    ...remarks.filter(r => r.session === initialSession).map(r => r.term).filter(Boolean),
-                    settings?.term
-                ].filter(Boolean)));
-                const initialTerm = termsForSession.includes(settings?.term) ? settings.term : (termsForSession[0] || settings?.term || '');
+                // Stage 2: Fetch remaining data concurrently with determined filters
+                const subsequentResults = await Promise.allSettled([
+                    apiGetScores({ studentId: currentStudent.id, session: initialSession, term: initialTerm }),
+                    apiGetSubjects({ classId: initialClass }),
+                    apiGetAttendance({ studentId: currentStudent.id, session: initialSession, term: initialTerm }),
+                    apiGetRemarks({ studentId: currentStudent.id, session: initialSession, term: initialTerm })
+                ]);
 
-                const allClasses = Array.from(new Set([
-                    currentStudent.class,
-                    ...subjects.flatMap(sub => sub.classes || [])
-                ].filter(Boolean)));
-                const initialClass = allClasses.includes(currentStudent.class) ? currentStudent.class : (allClasses[0] || currentStudent.class || '');
+                const scores = subsequentResults[0].status === 'fulfilled' ? subsequentResults[0].value : [];
+                const subjects = subsequentResults[1].status === 'fulfilled' ? subsequentResults[1].value : [];
+                const attendance = subsequentResults[2].status === 'fulfilled' ? subsequentResults[2].value : [];
+                const remarks = subsequentResults[3].status === 'fulfilled' ? subsequentResults[3].value : [];
 
-                setSelectedSession(initialSession || '');
-                setSelectedTerm(initialTerm || '');
-                setSelectedClass(initialClass || currentStudent.class || '');
+                if (!subjects || subjects.length === 0) {
+                    console.warn('Warning: No subject data available for the student\'s class');
+                }
+
+                setSelectedSession(initialSession);
+                setSelectedTerm(initialTerm);
+                setSelectedClass(initialClass);
 
                 setReportData({
                     student: currentStudent,
@@ -137,63 +134,50 @@ const StudentReportCardViewer = ({ demoUserId }) => {
     // Lock options to only values available for the current student and effective class
     const sessionOptions = useMemo(() => {
         if (!reportData) return [] as string[];
-        const { scores, subjects } = reportData as any;
-        const studentId = reportData.student?.id;
-        const effectiveClass = (reportData.student?.classHistory || [])
-            .find((h: any) => (!selectedSession || h.session === selectedSession) && (!selectedTerm || h.term === selectedTerm))?.class
-            || selectedClass
-            || reportData.student?.class;
-        const subjectIdsForClass = new Set(
-            (subjects || []).filter((sub: any) => (sub.classes || []).includes(effectiveClass)).map((s: any) => s.id)
-        );
-        const sessions = scores
-            .filter((s: any) => s.studentId === studentId && subjectIdsForClass.has(s.subjectId))
-            .map((s: any) => s.session)
-            .filter(Boolean);
-        const set = new Set<string>(sessions);
-        if (reportData?.session) set.add(reportData.session as string);
-        if (reportData?.settings?.session) set.add((reportData.settings as any).session as string);
-        return Array.from(set);
-    }, [reportData, selectedClass, selectedTerm, selectedSession, reportData?.session, reportData?.settings?.session]);
+        // Filter sessions based on reportData which now contains filtered scores/remarks
+        const { scores, remarks, settings } = reportData as any;
+        const allSessions = Array.from(new Set([
+            ...scores.map((s: any) => s.session).filter(Boolean),
+            ...remarks.map((r: any) => r.session).filter(Boolean),
+            settings?.session // Include default setting session if applicable
+        ].filter(Boolean)));
+        return allSessions.sort();
+    }, [reportData]);
 
     const termOptions = useMemo(() => {
         if (!reportData) return [] as string[];
-        const { scores, subjects } = reportData as any;
-        const studentId = reportData.student?.id;
-        const effectiveClass = (reportData.student?.classHistory || [])
-            .find((h: any) => (!selectedSession || h.session === selectedSession) && (!selectedTerm || h.term === selectedTerm))?.class
-            || selectedClass
-            || reportData.student?.class;
-        const subjectIdsForClass = new Set(
-            (subjects || []).filter((sub: any) => (sub.classes || []).includes(effectiveClass)).map((s: any) => s.id)
-        );
-        const terms = scores
-            .filter((s: any) => s.studentId === studentId && (selectedSession ? s.session === selectedSession : true) && subjectIdsForClass.has(s.subjectId))
-            .map((s: any) => s.term)
-            .filter(Boolean);
-        const set = new Set<string>(terms);
-        if (reportData?.term) set.add(reportData.term as string);
-        if (reportData?.settings?.term) set.add((reportData.settings as any).term as string);
-        return Array.from(set);
-    }, [reportData, selectedClass, selectedSession, selectedTerm, reportData?.term, reportData?.settings?.term]);
+        const { scores, remarks, settings } = reportData as any;
+        const termsForSession = Array.from(new Set([
+            ...scores.filter((s: any) => s.session === selectedSession).map((s: any) => s.term).filter(Boolean),
+            ...remarks.filter((r: any) => r.session === selectedSession).map((r: any) => r.term).filter(Boolean),
+            settings?.term // Include default setting term if applicable
+        ].filter(Boolean)));
+        return termsForSession.sort();
+    }, [reportData, selectedSession]);
 
     // Keep selected session/term valid when options change
     useEffect(() => {
         if (selectedSession && !sessionOptions.includes(selectedSession)) {
             setSelectedSession(sessionOptions[0] || '');
+        } else if (!selectedSession && sessionOptions.length > 0) {
+            setSelectedSession(sessionOptions[0]);
         }
-    }, [sessionOptions]);
+    }, [sessionOptions, selectedSession]);
+
     useEffect(() => {
         if (selectedTerm && !termOptions.includes(selectedTerm)) {
             setSelectedTerm(termOptions[0] || '');
+        } else if (!selectedTerm && termOptions.length > 0) {
+            setSelectedTerm(termOptions[0]);
         }
-    }, [termOptions]);
+    }, [termOptions, selectedTerm]);
+
 
     const classOptions = useMemo(() => {
         if (!reportData) return [] as string[];
-        const { subjects } = reportData;
-        const sClass = reportData.student?.class;
-        return Array.from(new Set([sClass, ...subjects.flatMap((sub: any) => sub.classes || [])].filter(Boolean)));
+        const { subjects, student } = reportData;
+        const sClass = student?.class;
+        return Array.from(new Set([sClass, ...subjects.flatMap((sub: any) => sub.classes || [])].filter(Boolean))).sort();
     }, [reportData]);
 
     const historyClass = useMemo(() => {
@@ -239,135 +223,99 @@ const StudentReportCardViewer = ({ demoUserId }) => {
     const effectiveClass = historyClass || selectedClass || reportData.student.class;
     const ReportCardComponent = getReportCardTemplate(effectiveClass, reportData.settings);
 
-    return (
-        <div className="w-full bg-gray-50 min-h-[60vh] flex flex-col items-center py-4">
-            {/* Controls */}
-            <div className="no-print w-full max-w-4xl mb-4 sticky top-0 z-40 bg-white/95 backdrop-blur supports-backdrop-blur:bg-white shadow-sm">
-                <div className="card p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                        <div>
-                            <label className="label">Session</label>
-                            <select className="input-field" value={selectedSession} onChange={e => setSelectedSession(e.target.value)}>
-                                {sessionOptions.length === 0 ? (
-                                    <option value="">Select session</option>
-                                ) : (
-                                    sessionOptions.map(s => <option key={s} value={s}>{s}</option>)
-                                )}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="label">Term</label>
-                            <select className="input-field" value={selectedTerm} onChange={e => setSelectedTerm(e.target.value)}>
-                                {termOptions.length === 0 ? (
-                                    <option value="">Select term</option>
-                                ) : (
-                                    termOptions.map(t => <option key={t} value={t}>{t}</option>)
-                                )}
-                            </select>
-                        </div>
-                        {/* Class: if history has a match for selected session/term, lock to history; else allow manual selection */}
-                        {historyClass ? (
-                            <div>
-                                <label className="label">Class (from history)</label>
-                                <input className="input-field" value={historyClass} readOnly />
-                            </div>
-                        ) : (
-                            <div>
-                                <label className="label">Class</label>
-                                <select className="input-field" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
-                                    {classOptions.map(c => <option key={c} value={c}>{c}</option>)}
-                                </select>
-                            </div>
-                        )}
-                        <div className="flex items-end gap-2 justify-end">
-                            {/* Mobile: Toggle visible preview */}
-                            {isMobile && (
-                                <button
-                                    onClick={() => setShowMobilePreview(prev => !prev)}
-                                    className="btn btn-secondary flex-1 md:flex-none"
-                                    title="Toggle mobile preview"
-                                >
-                                    {showMobilePreview ? 'Hide Preview' : 'Show Preview'}
-                                </button>
+    const renderControls = () => (
+        <div className="no-print w-full max-w-4xl mb-4 sticky top-0 z-40 bg-white/95 backdrop-blur supports-backdrop-blur:bg-white shadow-sm">
+            <div className="card p-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div>
+                        <label className="label">Session</label>
+                        <select className="input-field" value={selectedSession} onChange={e => setSelectedSession(e.target.value)}>
+                            {sessionOptions.length === 0 ? (
+                                <option value="">Select session</option>
+                            ) : (
+                                sessionOptions.map(s => <option key={s} value={s}>{s}</option>)
                             )}
-                            <button
-                                onClick={() => exportToPDF('report-card-student-preview', reportData?.student?.name || 'report-card')}
-                                className="btn btn-secondary flex-1 md:flex-none"
-                                title="Download as PDF"
-                                disabled={exporting}
-                            >
-                                <ArrowDownTrayIcon className="w-5 h-5 mr-2" />
-                                {exporting ? 'Generating…' : 'Download PDF'}
-                            </button>
-                            <button onClick={() => window.print()} className="btn btn-secondary flex-1 md:flex-none">
-                                <PrinterIcon className="w-5 h-5 mr-2" />
-                                Print
-                            </button>
-                            <div className="flex space-x-1">
-                                <a 
-                                    href={`?print=report-card&pdf=react&student=${reportData?.student?.id}&session=${encodeURIComponent(selectedSession)}&term=${encodeURIComponent(selectedTerm)}&class=${encodeURIComponent(selectedClass)}`}
-                                    className="btn btn-primary flex-1 md:flex-none text-sm"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    title="React PDF - Professional quality"
-                                >
-                                    <PrinterIcon className="w-4 h-4 mr-1" />
-                                    React PDF
-                                </a>
-                                <a 
-                                    href={`?print=report-card&student=${reportData?.student?.id}&session=${encodeURIComponent(selectedSession)}&term=${encodeURIComponent(selectedTerm)}&class=${encodeURIComponent(selectedClass)}`}
-                                    className="btn btn-secondary flex-1 md:flex-none text-sm"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    title="HTML to PDF - Fallback option"
-                                >
-                                    <PrinterIcon className="w-4 h-4 mr-1" />
-                                    HTML PDF
-                                </a>
-                            </div>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="label">Term</label>
+                        <select className="input-field" value={selectedTerm} onChange={e => setSelectedTerm(e.target.value)}>
+                            {termOptions.length === 0 ? (
+                                <option value="">Select term</option>
+                            ) : (
+                                termOptions.map(t => <option key={t} value={t}>{t}</option>)
+                            )}
+                        </select>
+                    </div>
+                    {historyClass ? (
+                        <div>
+                            <label className="label">Class (from history)</label>
+                            <input className="input-field" value={historyClass} readOnly />
                         </div>
+                    ) : (
+                        <div>
+                            <label className="label">Class</label>
+                            <select className="input-field" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
+                                {classOptions.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                        </div>
+                    )}
+                    <div className="flex items-end gap-2 justify-end">
+                        {isMobile && (
+                            <button onClick={() => setShowMobilePreview(p => !p)} className="btn btn-secondary">
+                                {showMobilePreview ? 'Hide' : 'Show'} Preview
+                            </button>
+                        )}
+                         <button onClick={() => setPreviewMode(true)} className="btn btn-primary">
+                            <EyeIcon className="w-5 h-5 mr-2" />
+                            Preview
+                        </button>
+                        <button
+                            onClick={() => exportToPDF('report-card-student-preview', reportData?.student?.name || 'report-card')}
+                            className="btn btn-secondary"
+                            title="Download as PDF"
+                            disabled={exporting}
+                        >
+                            <ArrowDownTrayIcon className="w-5 h-5 mr-2" />
+                            {exporting ? '...' : 'Download'}
+                        </button>
+                        <button onClick={() => window.print()} className="btn btn-secondary">
+                            <PrinterIcon className="w-5 h-5 mr-2" />
+                            Print
+                        </button>
                     </div>
                 </div>
             </div>
+        </div>
+    );
 
-            {/* A4-like preview container; hide visible preview on mobile */}
+    if (previewMode) {
+        return (
+            <ZoomablePreview
+                title={`Report Card Preview - ${reportData.student.name}`}
+                onClose={() => setPreviewMode(false)}
+            >
+                <div id="report-card-student-preview">
+                    <ReportCardComponent
+                        {...reportData}
+                        student={{ ...reportData.student, class: effectiveClass }}
+                        term={selectedTerm || reportData.term}
+                        session={selectedSession || reportData.session}
+                    />
+                </div>
+            </ZoomablePreview>
+        );
+    }
+
+    return (
+        <div className="w-full bg-gray-50 min-h-[60vh] flex flex-col items-center py-4">
+            {renderControls()}
+
+            {/* A4-like preview container */}
             <div className="w-full px-2 report-card-wrapper">
                 <div className="mx-auto max-w-full md:max-w-4xl">
-                    <div className="block md:hidden">
-                        <div id="report-card-student-preview" className={`printable-content mx-auto bg-white shadow-lg report-card-page rounded-md offscreen`}>
-                            <ReportCardComponent
-                                {...reportData}
-                                student={{ ...reportData.student, class: effectiveClass }}
-                                term={selectedTerm || reportData.term}
-                                session={selectedSession || reportData.session}
-                            />
-                        </div>
-                        {!showMobilePreview && (
-                            <div className="a4-thumbnail no-print">
-                                <div className="a4-thumbnail-inner">
-                                    <ReportCardComponent
-                                        {...reportData}
-                                        student={{ ...reportData.student, class: effectiveClass }}
-                                        term={selectedTerm || reportData.term}
-                                        session={selectedSession || reportData.session}
-                                    />
-                                </div>
-                            </div>
-                        )}
-                        {showMobilePreview && (
-                            <div className="mx-auto bg-white shadow-lg report-card-page rounded-md">
-                                <ReportCardComponent
-                                    {...reportData}
-                                    student={{ ...reportData.student, class: effectiveClass }}
-                                    term={selectedTerm || reportData.term}
-                                    session={selectedSession || reportData.session}
-                                />
-                            </div>
-                        )}
-                    </div>
-                    {/* Desktop: normal visible preview */}
-                    <div className="hidden md:block">
-                        <div id={!isMobile ? 'report-card-student-preview' : undefined} className="printable-content mx-auto bg-white shadow-lg report-card-page rounded-md md:rounded-lg">
+                    <div className={`${isMobile && !showMobilePreview ? 'hidden' : 'block'} md:block`}>
+                         <div id="report-card-student-preview" className="printable-content mx-auto bg-white shadow-lg report-card-page rounded-md md:rounded-lg">
                             <ReportCardComponent
                                 {...reportData}
                                 student={{ ...reportData.student, class: effectiveClass }}
@@ -376,6 +324,11 @@ const StudentReportCardViewer = ({ demoUserId }) => {
                             />
                         </div>
                     </div>
+                     {isMobile && !showMobilePreview && (
+                        <div className="text-center p-4 card mt-4">
+                            Preview is hidden. Use the controls above to preview, download, or print.
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
