@@ -2,11 +2,11 @@ import { lazy, Suspense, PropsWithChildren, useEffect } from 'react';
 import useDailySnapshot from './hooks/useDailySnapshot';
 import { Routes, Route, useParams, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import GlobalSuccessNotification from './components/GlobalSuccessNotification';
 import GlobalNotification from './components/GlobalNotification';
 import GlobalBroadcast from './components/GlobalBroadcast';
 import ErrorBoundary from './components/ErrorBoundary';
-import { applyThemeToDocument, defaultTheme, ThemeSettings } from './hooks/useTheme';
 import { getConnectionManager } from './utils/connectionManager';
 import { DEFAULT_LANDING_PAGE_CONTENT, DEFAULT_MENU_ITEMS } from './utils/landingPageContent';
 
@@ -29,9 +29,7 @@ const TenantRouter = () => {
     const { tenantSlug } = useParams();
     const { loading, isValidTenant, subdomain } = useAuth();
     
-    // Redirect to force tenant detection via path
     if (tenantSlug && !subdomain) {
-        // This will trigger subdomain detection in the parent component
         return <Navigate to={window.location.pathname} replace />;
     }
     
@@ -59,22 +57,12 @@ const TenantRouter = () => {
 const AppRouter = () => {
     const { loading, isValidTenant, subdomain, platformSettings } = useAuth();
 
-    // Apply theme when platform settings load/change
-    useEffect(() => {
-        try {
-            const theme = (platformSettings as any)?.theme as ThemeSettings | undefined;
-            applyThemeToDocument(theme || defaultTheme);
-        } catch {}
-    }, [platformSettings]);
-    
-    // Check for Super Admin route first - this takes highest precedence
     const isControlHub = typeof window !== 'undefined' && window.location.pathname.startsWith('/controlhub');
     
     if (isControlHub) {
         return <Suspense fallback={<FullPageLoader />}><SuperAdminDashboard /></Suspense>;
     }
     
-    // Check for demo mode - this takes precedence over other routing
     const isDemoMode = typeof window !== 'undefined' && 
         (sessionStorage.getItem('isDemoMode') === 'true' || 
          localStorage.getItem('isDemoMode') === 'true');
@@ -87,7 +75,6 @@ const AppRouter = () => {
         return <FullPageLoader />;
     }
 
-    // Handle tenant-specific routing (subdomain-based)
     if (subdomain) {
         if (!isValidTenant) {
             return (
@@ -106,8 +93,6 @@ const AppRouter = () => {
         return <Suspense fallback={<FullPageLoader />}><Dashboard /></Suspense>;
     }
 
-    // Root site router with support for path-based tenant routing
-    // Handle query param view=signin for clean URL sign-in landing
     const viewParam = typeof window !== 'undefined' ? new URL(window.location.href).searchParams.get('view') : null;
     if (!subdomain && viewParam === 'signin') {
         return <Suspense fallback={<FullPageLoader />}><CentralLoginPage /></Suspense>;
@@ -124,9 +109,7 @@ const AppRouter = () => {
                 <Route path="/controlhub" element={<SuperAdminDashboard />} />
                 <Route path="/cbt/*" element={<CBTRouter />} />
                 <Route path="/schools/:schoolSlug" element={<SchoolLandingPage />} />
-                {/* Path-based tenant routing */}
                 <Route path="/:tenantSlug/*" element={<TenantRouter />} />
-                {/* Catch-all route for unknown paths (non-tenant) */}
                 <Route path="*" element={<NotFoundPage />} />
             </Routes>
         </Suspense>
@@ -136,33 +119,30 @@ const AppRouter = () => {
 
 const App = () => {
     useDailySnapshot();
-    // Initialize connection manager when app starts
+
     useEffect(() => {
         const connectionManager = getConnectionManager();
-        // Connection manager starts monitoring automatically in constructor
-        
         return () => {
-            // Cleanup on unmount
             connectionManager.stopMonitoring();
         };
     }, []);
 
-    // Prefetch Dashboard to avoid lazy-load fetch issues
     useEffect(() => {
         try {
-            // Warm up the module cache so Suspense loads instantly
             import('./components/Dashboard');
         } catch {}
     }, []);
 
     const AppWrapper = ({ children }: PropsWithChildren) => (
         <AuthProvider>
-            <div className="min-h-screen bg-gray-50">
-                <GlobalBroadcast />
-                {children}
-                <GlobalSuccessNotification />
-                <GlobalNotification />
-            </div>
+            <ThemeProvider>
+                <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+                    <GlobalBroadcast />
+                    {children}
+                    <GlobalSuccessNotification />
+                    <GlobalNotification />
+                </div>
+            </ThemeProvider>
         </AuthProvider>
     );
     

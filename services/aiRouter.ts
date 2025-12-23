@@ -124,12 +124,12 @@ class AIRouter {
         
         // Only force offline for sensitive finance or tool-heavy queries,
         // and NOT for lesson-plan or topic-suggestion contexts
-        const forceOffline = !isLessonContext && (sensitiveFinance || toolsNeeded);
+        // const forceOffline = !isLessonContext && (sensitiveFinance || toolsNeeded);
 
         // Override provider if forceOffline is true
-        if (forceOffline) {
-            targetProvider = 'offline';
-        }
+        // if (forceOffline) {
+        //     targetProvider = 'offline';
+        // }
 
         // Fallback chain: try providers in order (online first, then offline)
         const onlineChain: AIProvider[] = ['gemini', 'huggingface', 'anthropic', 'openrouter', 'openai'];

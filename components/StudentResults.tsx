@@ -6,6 +6,7 @@ import '../styles/report-card.css';
 import Modal from './Modal';
 import PrinterIcon from './icons/PrinterIcon';
 import ChevronDownIcon from './icons/ChevronDownIcon';
+import ArrowDownTrayIcon from './icons/ArrowDownTrayIcon';
 import SkeletonLoader from './SkeletonLoader';
 import AccordionSkeleton from './skeletons/AccordionSkeleton';
 
@@ -60,7 +61,6 @@ const StudentResults = ({ demoUserId }) => {
 
                 const studentScores = scores.filter(score => score.studentId === currentStudent.id);
                 
-                // Fix: Explicitly type `allSessions` as `string[]` to resolve the `unknown[]` type error when setting state.
                 const allSessions: string[] = [...new Set<string>(studentScores.map(s => s.session))].sort((a: string, b: string) => b.localeCompare(a));
                 const allTerms = ['First Term', 'Second Term', 'Third Term'];
                 setSessions(allSessions);
@@ -127,7 +127,6 @@ const StudentResults = ({ demoUserId }) => {
             .reverse();
     }, [allResults, selectedSession, selectedTerm]);
     
-    // Effect to expand the most recent term by default
     useEffect(() => {
         if (filteredTerms.length > 0 && !expandedTermKey) {
             setExpandedTermKey(filteredTerms[0]);
@@ -139,7 +138,6 @@ const StudentResults = ({ demoUserId }) => {
         const summaries = {};
         Object.keys(allResults).forEach(termKey => {
             const [session, term] = termKey.split(' - ');
-            // Note: This uses the student's current class for historical calculations, which is a limitation of the current data model.
             const performance = calculateOverallPerformance(student.id, student.class, allData.students, allData.scores, allData.subjects, term, session);
             summaries[termKey] = performance;
         });
@@ -225,28 +223,8 @@ const StudentResults = ({ demoUserId }) => {
                                             </tbody>
                                         </table>
                                     </div>
-                                    <div className="text-right mt-4 space-x-2">
-                                        <button onClick={() => handleViewReport(termKey)} className="btn btn-secondary">View Report Card</button>
-                                        <div className="inline-flex space-x-1">
-                                            <a 
-                                                href={`?print=report-card&pdf=react&student=${student?.id}&session=${encodeURIComponent(termKey.split(' - ')[0])}&term=${encodeURIComponent(termKey.split(' - ')[1])}`}
-                                                className="btn btn-primary text-xs px-2 py-1"
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                title="React PDF - Recommended"
-                                            >
-                                                React PDF
-                                            </a>
-                                            <a 
-                                                href={`?print=report-card&student=${student?.id}&session=${encodeURIComponent(termKey.split(' - ')[0])}&term=${encodeURIComponent(termKey.split(' - ')[1])}`}
-                                                className="btn btn-secondary text-xs px-2 py-1"
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                title="HTML to PDF - Fallback"
-                                            >
-                                                HTML PDF
-                                            </a>
-                                        </div>
+                                    <div className="text-right mt-4 flex justify-end items-center space-x-2">
+                                        <button onClick={() => handleViewReport(termKey)} className="btn btn-primary">View Report Card</button>
                                     </div>
                                 </div>
                             )}
@@ -258,7 +236,29 @@ const StudentResults = ({ demoUserId }) => {
             {isModalOpen && selectedTermData && ReportCardComponent && (
                 <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={`Report Card`} size="full">
                      <div className="bg-gray-100 p-4 md:p-8 flex flex-col items-center">
-                        {/* Offscreen on mobile to avoid heavy preview rendering */}
+                        <div className="no-print mb-8 flex gap-2">
+                            <button onClick={async () => {
+                                const el = document.querySelector('#report-card-modal') as HTMLElement | null;
+                                const hadOffscreen = !!el && el.classList.contains('offscreen');
+                                if (hadOffscreen) el.classList.remove('offscreen');
+                                try {
+                                    await downloadElementAsPdf(
+                                        '#report-card-modal',
+                                        `${student?.name || 'student'}-report-${selectedTermData.session}-${selectedTermData.term}`
+                                    );
+                                } finally {
+                                    if (hadOffscreen && el) el.classList.add('offscreen');
+                                }
+                            }} className="btn btn-secondary">
+                                <ArrowDownTrayIcon className="w-5 h-5 mr-2" />
+                                Download PDF
+                            </button>
+                            <button onClick={() => window.print()} className="btn btn-primary">
+                                <PrinterIcon className="w-5 h-5 mr-2" />
+                                Print Report
+                            </button>
+                        </div>
+
                         <div id="report-card-modal" className={`printable-content bg-white shadow-lg ${isMobile ? 'offscreen' : ''}`}>
                             <ReportCardComponent
                                 student={student}
@@ -267,24 +267,7 @@ const StudentResults = ({ demoUserId }) => {
                                 term={selectedTermData.term}
                             />
                         </div>
-                         <div className="no-print mt-8 flex gap-2">
-                            <button onClick={async () => {
-                                const el = document.querySelector('#report-card-modal') as HTMLElement | null;
-                                const hadOffscreen = !!el && el.classList.contains('offscreen');
-                                if (hadOffscreen) el.classList.remove('offscreen');
-                                try {
-                                    await downloadElementAsPdf('#report-card-modal', student?.name || 'report-card');
-                                } finally {
-                                    if (hadOffscreen && el) el.classList.add('offscreen');
-                                }
-                            }} className="btn btn-secondary">
-                                Download PDF
-                            </button>
-                            <button onClick={() => window.print()} className="btn btn-primary">
-                                <PrinterIcon className="w-5 h-5 mr-2" />
-                                Print Report
-                            </button>
-                        </div>
+                        
                         <div className="no-print text-xs text-gray-500 text-center mt-2 md:hidden">Preview disabled on mobile. Use Download/Print.</div>
                     </div>
                 </Modal>
