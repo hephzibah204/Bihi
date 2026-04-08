@@ -158,6 +158,16 @@ server {
 
 ## 🧪 Testing Deployment
 
+# 🔄 Getting changes to production
+
+Local edits in this workspace are not automatically pushed to GitHub or deployed. To publish updates:
+
+1. Commit your changes locally and push to your repository: `git push origin <branch-name>`.
+2. Open a pull request so CI/CD pipelines (Cloudflare Pages, Vercel, Netlify, etc.) can build and deploy from the merged branch.
+3. Verify the deployment status in your hosting dashboard after the PR is merged.
+
+If a PR isn’t opened or a push doesn’t occur, nothing will be deployed to production.
+
 ### 1. Test Domain Detection
 ```javascript
 // Browser console
